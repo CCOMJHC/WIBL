@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Gui App</title>
+    <style>
+        body {
+          margin: 0;
+        }
+  
+        .form-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Mock Gui App</h1>
+        
+        <!-- File Upload Form -->
+        <form method="POST" action="/" enctype="multipart/form-data">
+            <input type="file" name="file">
+            <button type="submit">Submit</button>
+        </form>
+
+        <br>
+
+        <!-- File Query Form -->
+        <form method="GET" action="/download"  enctype="multipart/form-data">
+            <label for="upload_id">Enter Upload ID:</label>
+            <input type="text" name="upload_id" required>
+            <button type="submit">Query</button>
+        </form>
+    </div>
+</body>
+</html>
