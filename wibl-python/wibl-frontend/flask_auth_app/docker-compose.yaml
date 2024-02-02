@@ -11,4 +11,10 @@ services:
     environment:
       MANAGER_DATABASE_URI: ${MANAGER_DATABASE_URI}
     ports:
-      - '8000:8000'
+      - '5000:5000'
+    #not sure if this is correct with our current structure:
+    #volumes:
+    #  - 'dbdata:/'
+    #put gunicorn into requirements file, we would need to determine name of application
+    #before using command below (and potentially more I am unaware of)
+    #command: '***gunicorn wibl_manager.application:app*** --workers 1 --bind 0.0.0.0:5000 --access-logfile -'
