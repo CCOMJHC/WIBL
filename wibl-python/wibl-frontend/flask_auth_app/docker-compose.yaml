@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - frontend.env
+    environment:
+      MANAGER_DATABASE_URI: ${MANAGER_DATABASE_URI}
+    ports:
+      - '8000:8000'
