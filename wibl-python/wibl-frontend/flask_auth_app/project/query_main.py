@@ -1,10 +1,13 @@
 from io import BytesIO
-
+import os
 from flask import Flask, render_template, request, send_file
 from flask_sqlalchemy import SQLAlchemy 
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
+MANAGER_DATABASE_URI = os.environ.get('MANAGER_DATABASE_URI', 'sqlite:///database.db')
+
+app = Flask(__name__) # WIBL-Manager
+app.config['SQLALCHEMY_DATABASE_URI'] = MANAGER_DATABASE_URI
+#'sqlite:///db.sqlite3' obsolete
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
 db2 = SQLAlchemy(app)
 
