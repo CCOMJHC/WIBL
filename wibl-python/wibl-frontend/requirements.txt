@@ -1,0 +1,8 @@
+gunicorn~=20.1.0
+Flask~=3.0.2
+Flask-SQLAlchemy~=3.1.1
+Flask-RESTful~=0.3.9
+dataclasses-json~=0.5.7
+Flask-Login~=0.6.3
+Flask-SQLAlchemy~=3.1.1
+requests~=2.28.2

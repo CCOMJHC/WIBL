@@ -3,7 +3,7 @@ import os
 from flask import Flask, render_template, request, send_file
 from flask_sqlalchemy import SQLAlchemy 
 
-WEB_DATABASE_URI = os.environ.get('MANAGER_DATABASE_URI', 'sqlite:///database.db')
+WEB_DATABASE_URI = os.environ.get('FRONTEND_DATABASE_URI', 'sqlite:///database.db')
 
 app = Flask(__name__) # WIBL-Manager
 app.config['SQLALCHEMY_DATABASE_URI'] = WEB_DATABASE_URI
