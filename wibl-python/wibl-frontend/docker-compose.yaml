@@ -1,0 +1,24 @@
+version: '3'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - frontend.env
+    environment:
+      FRONTEND_DATABASE_URI: ${FRONTEND_DATABASE_URI}
+    ports:
+      - '8002:8000'
+    volumes:
+      - 'dbdata:/var/wibl'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/heartbeat"]
+      interval: 10s
+      timeout: 1s
+      retries: 5
+    command: 'gunicorn wibl_frontend.application:app --workers 1 --bind 0.0.0.0:8000 --access-logfile -'
+volumes:
+  dbdata:
