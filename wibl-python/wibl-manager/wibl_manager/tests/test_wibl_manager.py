@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class TestWiblManager(unittest.TestCase):
     def setUp(self) -> None:
         self.filename = 'cddb-aefga-weqa'
-        self.base_uri = os.environ.get('BASE_URI', 'http://127.0.0.1:8000/')
+        self.base_uri = os.environ.get('BASE_URI', 'http://127.0.0.1:8001/')
 
     def tearDown(self) -> None:
         pass

@@ -1,4 +1,4 @@
-FROM --platform=linux/arm64 python:3.11-slim AS builder
+FROM --platform=linux/arm64 python:3.12-slim AS builder
 
 WORKDIR /usr/src/wibl
 ADD ./ /usr/src/wibl
@@ -16,6 +16,6 @@ RUN pip install .
 
 FROM builder as final
 
-EXPOSE 5000
+EXPOSE 8000
 
 CMD ["wibl-manager"]
