@@ -336,7 +336,10 @@ AWS_EFS_FS_ID_FE="$(cat ${WIBL_BUILD_LOCATION}/create_efs_file_system_frontend.j
 sed "s|REPLACEME_ACCOUNT_NUMBER|$ACCOUNT_NUMBER|g" manager/input/frontend-task-definition.proto | \
   sed "s|REPLACEME_AWS_EFS_FS_ID|$AWS_EFS_FS_ID_FE|g" | \
   sed "s|REPLECEME_AWS_REGION|$AWS_REGION|g" | \
-  sed "s|REPLACEME_MANAGEMENT_URL|$MANAGEMENT_URL|g" > ${WIBL_BUILD_LOCATION}/frontend-task-definition.json
+  sed "s|REPLACEME_MANAGEMENT_URL|$MANAGEMENT_URL|g" | \
+  sed "s|REPLACEME_INCOMING_BUCKET|$INCOMING_BUCKET|g" | \
+  sed "s|REPLACEME_STAGING_BUCKET|$STAGING_BUCKET|g" | \
+  sed "s|REPLACEME_VIZ_BUCKET|$VIZ_BUCKET|g" > ${WIBL_BUILD_LOCATION}/frontend-task-definition.json
 aws --region $AWS_REGION ecs register-task-definition \
 	--cli-input-json file://${WIBL_BUILD_LOCATION}/frontend-task-definition.json | \
 	tee ${WIBL_BUILD_LOCATION}/create_task_definition_frontend.json
