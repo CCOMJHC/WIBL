@@ -24,12 +24,12 @@ aws --region $AWS_REGION ecr get-login-password | docker login \
 # If `docker login` is successful, you should see `Login Succeeded` printed to STDOUT.
 
 # Build manager image and push to ECR repo
-docker build -t wibl/manager ../../../wibl-manager/
+docker build --platform linux/arm64 -t wibl/manager ../../../wibl-manager/
 docker tag wibl/manager:latest "${ACCOUNT_NUMBER}.dkr.ecr.${AWS_REGION}.amazonaws.com/wibl/manager:latest"
 docker push "${ACCOUNT_NUMBER}.dkr.ecr.${AWS_REGION}.amazonaws.com/wibl/manager:latest" | tee "${WIBL_BUILD_LOCATION}/docker_push_to_ecr.txt"
 
 # Build frontend image and push to ECR repo
-docker build -t wibl/frontend ../../../wibl-frontend/
+docker build --platform linux/arm64 -t wibl/frontend ../../../wibl-frontend/
 docker tag wibl/frontend:latest "${ACCOUNT_NUMBER}.dkr.ecr.${AWS_REGION}.amazonaws.com/wibl/frontend:latest"
 docker push "${ACCOUNT_NUMBER}.dkr.ecr.${AWS_REGION}.amazonaws.com/wibl/frontend:latest" | tee "${WIBL_BUILD_LOCATION}/docker_push_to_ecr_frontend.txt"
 
@@ -96,6 +96,12 @@ aws --region $AWS_REGION ec2 create-security-group \
 aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
   --tags 'Key=Name,Value=wibl-mgr-public'
 
+# Create PUBLIC ingress rule to the wibl-frontend load balancer to access the frontend via ports 80 and 443
+aws --region $AWS_REGION ec2 authorize-security-group-ingress \
+  --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
+  --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}, {"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}]' \
+  | tee ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_http.json
+
 # Create a subnet with a 10.0.0.0/24 CIDR block, this will be the private subnet
 aws --region $AWS_REGION ec2 create-subnet --vpc-id "$(cat ${WIBL_BUILD_LOCATION}/create_vpc.txt)" \
   --cidr-block 10.0.0.0/24 --query Subnet.SubnetId --output text \
@@ -129,7 +135,7 @@ aws --region $AWS_REGION ec2 create-security-group \
 aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_private.json | jq -r '.GroupId')" \
   --tags 'Key=Name,Value=wibl-mgr-ecs-fargate'
 
-# Create ingress rule to the load balancer to access the manager via port 8000
+# Create ingress rule to the wibl-manager load balancer to access the manager via port 8000
 aws --region $AWS_REGION ec2 authorize-security-group-ingress \
   --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_private.json | jq -r '.GroupId')" \
   --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 8000, "ToPort": 8000, "IpRanges": [{"CidrIp": "10.0.0.0/24"}]}]' \

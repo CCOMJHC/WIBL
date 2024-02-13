@@ -28,6 +28,10 @@
           "value": "REPLACEME_MANAGEMENT_URL"
         },
         {
+          "name": "MANAGEMENT_HEARTBEAT_PATH",
+          "value": "/heartbeat"
+        },
+        {
           "name": "INCOMING_BUCKET",
           "value": "REPLACEME_INCOMING_BUCKET"
         },
