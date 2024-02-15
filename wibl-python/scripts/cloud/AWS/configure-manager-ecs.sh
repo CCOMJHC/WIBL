@@ -85,6 +85,11 @@ aws --region $AWS_REGION ec2 create-route \
   --destination-cidr-block 0.0.0.0/0 \
   --gateway-id "$(cat ${WIBL_BUILD_LOCATION}/create_internet_gateway.txt)"
 
+aws --region $AWS_REGION ec2 create-route \
+  --route-table-id "$(cat ${WIBL_BUILD_LOCATION}/create_route_table_private.txt)" \
+  --destination-cidr-block 0.0.0.0/0 \
+  --gateway-id "$(cat ${WIBL_BUILD_LOCATION}/create_internet_gateway.txt)"
+
 # Create security group to give us control over ingress/egress:
 aws --region $AWS_REGION ec2 create-security-group \
 	--group-name wibl-mgr-public \
@@ -93,14 +98,20 @@ aws --region $AWS_REGION ec2 create-security-group \
 	| tee ${WIBL_BUILD_LOCATION}/create_security_group_public.json
 
 # Tag the security group with a name:
-aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
+aws --region $AWS_REGION ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
   --tags 'Key=Name,Value=wibl-mgr-public'
 
-# Create PUBLIC ingress rule to the wibl-frontend load balancer to access the frontend via ports 80 and 443
+# Create ingress rule to allow NFS connections from the subnet (e.g., EFS mount point)
 aws --region $AWS_REGION ec2 authorize-security-group-ingress \
   --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
-  --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}, {"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}]' \
-  | tee ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_http.json
+  --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 2049, "ToPort": 2049, "IpRanges": [{"CidrIp": "10.0.2.0/24"}]}]' \
+  | tee ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_efs.json
+
+# Create PUBLIC ingress rule to the wibl-frontend load balancer to access the frontend via ports 80 and 443
+#aws --region $AWS_REGION ec2 authorize-security-group-ingress \
+#  --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
+#  --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}, {"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}]' \
+#  | tee ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_http.json
 
 # Create a subnet with a 10.0.0.0/24 CIDR block, this will be the private subnet
 aws --region $AWS_REGION ec2 create-subnet --vpc-id "$(cat ${WIBL_BUILD_LOCATION}/create_vpc.txt)" \
@@ -135,15 +146,21 @@ aws --region $AWS_REGION ec2 create-security-group \
 aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_private.json | jq -r '.GroupId')" \
   --tags 'Key=Name,Value=wibl-mgr-ecs-fargate'
 
-# Create ingress rule to the wibl-manager load balancer to access the manager via port 8000
+# Create ingress rules so that wibl-manager and wibl-frontend load balancers can access manager and frontend via port 8000
 aws --region $AWS_REGION ec2 authorize-security-group-ingress \
   --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_private.json | jq -r '.GroupId')" \
   --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 8000, "ToPort": 8000, "IpRanges": [{"CidrIp": "10.0.0.0/24"}]}]' \
   | tee ${WIBL_BUILD_LOCATION}/create_security_group_private_rule_lambda.json
+aws --region $AWS_REGION ec2 authorize-security-group-ingress \
+  --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
+  --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 8000, "ToPort": 8000, "IpRanges": [{"CidrIp": "10.0.0.0/16"}]}]' \
+  | tee ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_allow_8000.json
 
-# Tag the load balancer ingress rule with a name
+# Tag the load balancer ingress rules with a name
 aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_private_rule_lambda.json | jq -r '.SecurityGroupRules[0].SecurityGroupRuleId')" \
   --tags 'Key=Name,Value=wibl-manager-elb'
+aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_allow_8000.json | jq -r '.SecurityGroupRules[0].SecurityGroupRuleId')" \
+  --tags 'Key=Name,Value=wibl-frontend-elb'
 
 ####################
 # Phase 2: Create NAT gateway to allow ECS to access various AWS services and lambdas to access the Internet
@@ -157,9 +174,9 @@ aws --region $AWS_REGION ec2 authorize-security-group-ingress \
   | tee ${WIBL_BUILD_LOCATION}/create_security_group_private_rules_http_https.json
 
 # Tag the HTTP/HTTPS ingress rules with names
-aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_private_rules_http_https.json | jq -r '.SecurityGroupRules[0].SecurityGroupRuleId')" \
+aws --region ${AWS_REGION} ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_private_rules_http_https.json | jq -r '.SecurityGroupRules[0].SecurityGroupRuleId')" \
   --tags 'Key=Name,Value=wibl-manager-http'
-aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_private_rules_http_https.json | jq -r '.SecurityGroupRules[1].SecurityGroupRuleId')" \
+aws --region ${AWS_REGION} ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_private_rules_http_https.json | jq -r '.SecurityGroupRules[1].SecurityGroupRuleId')" \
   --tags 'Key=Name,Value=wibl-manager-vpc-svc'
 
 # Create service endpoint so that things running in the VPC can access S3
@@ -282,35 +299,62 @@ aws --region $AWS_REGION iam attach-role-policy \
   --policy-arn "$(cat ${WIBL_BUILD_LOCATION}/create_log_policy.json| jq -r '.Policy.Arn')" \
   | tee ${WIBL_BUILD_LOCATION}/attach_role_policy_cloudwatch.json
 
-# Create application load balancer so that lambdas can find wibl-manager and wibl-frontend services
+# Create load balancers so that lambdas can find wibl-manager and wibl-frontend services
 # Create wibl-manager load balancer on private subnet
-aws elbv2 create-load-balancer --name wibl-manager-ecs-elb --type network \
+aws --region $AWS_REGION elbv2 create-load-balancer --name wibl-manager-ecs-elb --type network \
   --subnets "$(cat ${WIBL_BUILD_LOCATION}/create_subnet_private.txt)" \
   --scheme internal \
   | tee ${WIBL_BUILD_LOCATION}/create_elb.json
-# Create wibl-frontend load balancer on public subnet
-aws elbv2 create-load-balancer --name wibl-frontend-ecs-elb --type network \
+
+# Create internet-facing wibl-frontend load balancer on public subnet
+# First create security group for load balancer
+aws --region $AWS_REGION ec2 create-security-group \
+	--group-name wibl-fe-elb-public \
+	--vpc-id "$(cat ${WIBL_BUILD_LOCATION}/create_vpc.txt)" \
+	--description "Security Group for use by WIBL frontend load balancer" \
+	| tee ${WIBL_BUILD_LOCATION}/create_security_group_fe_elb_public.json
+# Tag the security group with a name:
+aws --region $AWS_REGION ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_fe_elb_public.json | jq -r '.GroupId')" \
+  --tags 'Key=Name,Value=wibl-fe-elb-public'
+# Create PUBLIC ingress rule to the wibl-frontend load balancer to access the frontend via ports 80 and 443
+aws --region $AWS_REGION ec2 authorize-security-group-ingress \
+  --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_fe_elb_public.json | jq -r '.GroupId')" \
+  --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}, {"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}]' \
+  | tee ${WIBL_BUILD_LOCATION}/create_security_group_fe_elb_public_rule_http.json
+# Add rule to public subnet security group to allow traffic from frontend load balancer
+aws --region $AWS_REGION ec2 authorize-security-group-ingress \
+  --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
+  --protocol tcp \
+  --port '8000' \
+  --source-group "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_fe_elb_public.json | jq -r '.GroupId')" \
+  | tee ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_allow_fe_elb.json
+# Finally create the internet-facing wibl-frontend load balancer
+aws --region $AWS_REGION elbv2 create-load-balancer --name wibl-frontend-ecs-elb --type network \
   --subnets "$(cat ${WIBL_BUILD_LOCATION}/create_subnet_public.txt)" \
+  --security-groups "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_fe_elb_public.json | jq -r '.GroupId')" \
   --scheme internet-facing \
   | tee ${WIBL_BUILD_LOCATION}/create_elb_frontend.json
 
 # Create target groups to associate load balancer listeners to ECS Fargate elastic IP addresses
 # wibl-manager target group
-aws elbv2 create-target-group --name wibl-manager-ecs-elb-tg \
+aws --region $AWS_REGION elbv2 create-target-group --name wibl-manager-ecs-elb-tg \
   --protocol TCP --port 8000 \
   --target-type ip \
   --vpc-id "$(cat ${WIBL_BUILD_LOCATION}/create_vpc.txt)" \
   | tee ${WIBL_BUILD_LOCATION}/create_elb_target_group.json
 # wibl-frontend target group
-aws elbv2 create-target-group --name wibl-frontend-ecs-elb-tg \
+aws --region $AWS_REGION elbv2 create-target-group --name wibl-frontend-ecs-elb-tg \
   --protocol TCP --port 8000 \
+  --health-check-protocol HTTP \
+  --health-check-port 8000 \
+  --health-check-path /heartbeat \
   --target-type ip \
   --vpc-id "$(cat ${WIBL_BUILD_LOCATION}/create_vpc.txt)" \
   | tee ${WIBL_BUILD_LOCATION}/create_elb_target_group_frontend.json
 
 # Create ELB listeners
 # wibl-manager listener
-aws elbv2 create-listener \
+aws --region $AWS_REGION elbv2 create-listener \
   --load-balancer-arn "$(cat ${WIBL_BUILD_LOCATION}/create_elb.json | jq -r '.LoadBalancers[0].LoadBalancerArn')" \
   --protocol TCP \
   --port 80 \
@@ -319,7 +363,7 @@ aws elbv2 create-listener \
   | tee ${WIBL_BUILD_LOCATION}/create_elb_listener.json
 # wibl-frontend TLS listener
 # TODO: Make this a TLS listener (which requires a valid certificate)
-aws elbv2 create-listener \
+aws --region $AWS_REGION elbv2 create-listener \
   --load-balancer-arn "$(cat ${WIBL_BUILD_LOCATION}/create_elb_frontend.json | jq -r '.LoadBalancers[0].LoadBalancerArn')" \
   --protocol TCP \
   --port 80 \
@@ -364,7 +408,7 @@ aws --region $AWS_REGION ecs create-service \
 	--network-configuration "awsvpcConfiguration={subnets=[ ${SUBNETS} ],securityGroups=[ ${SECURITY_GROUP_ID} ]}" \
 	--launch-type "FARGATE" | tee ${WIBL_BUILD_LOCATION}/create_ecs_service.json
 # wibl-frontend service
-SECURITY_GROUP_ID_FE="$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')"
+SECURITY_GROUP_ID_PUB="$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')"
 SUBNETS_FE="$(cat ${WIBL_BUILD_LOCATION}/create_subnet_public.txt)"
 ELB_TARGET_GROUP_ARN_FE="$(cat ${WIBL_BUILD_LOCATION}/create_elb_target_group_frontend.json | jq -r '.TargetGroups[0].TargetGroupArn')"
 aws --region $AWS_REGION ecs create-service \
@@ -373,5 +417,9 @@ aws --region $AWS_REGION ecs create-service \
 	--task-definition wibl-frontend-ecs-task \
 	--desired-count 1 \
 	--load-balancers "targetGroupArn=${ELB_TARGET_GROUP_ARN_FE},containerName=wibl-frontend,containerPort=8000" \
-	--network-configuration "awsvpcConfiguration={subnets=[ ${SUBNETS}, ${SUBNETS_FE} ],securityGroups=[ ${SECURITY_GROUP_ID}, ${SECURITY_GROUP_ID_FE} ]}" \
+	--network-configuration "awsvpcConfiguration={subnets=[ ${SUBNETS_FE} ],securityGroups=[ ${SECURITY_GROUP_ID_PUB} ]}" \
 	--launch-type "FARGATE" | tee ${WIBL_BUILD_LOCATION}/create_ecs_service_frontend.json
+
+
+  #--load-balancers "targetGroupArn=${ELB_TARGET_GROUP_ARN_FE},containerName=wibl-frontend,containerPort=8000" \
+	#--network-configuration "awsvpcConfiguration={subnets=[ ${SUBNETS_FE} ],securityGroups=[ ${SECURITY_GROUP_ID_PUB} ]}" \
