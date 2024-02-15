@@ -444,11 +444,11 @@ echo $'\e[31mConversion start lambda URL:' ${CONVERSION_START_URL} $'\e[0m'
 
 ########################
 # Phase 7: Generate the visualization lambda
-# Create ingress rule to allow NFS connections from the subnet (e.g., EFS mount point)
-aws --region $AWS_REGION ec2 authorize-security-group-ingress \
-  --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
-  --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 2049, "ToPort": 2049, "IpRanges": [{"CidrIp": "10.0.2.0/24"}]}]' \
-  | tee ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_efs.json
+## Create ingress rule to allow NFS connections from the subnet (e.g., EFS mount point)
+#aws --region $AWS_REGION ec2 authorize-security-group-ingress \
+#  --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
+#  --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 2049, "ToPort": 2049, "IpRanges": [{"CidrIp": "10.0.2.0/24"}]}]' \
+#  | tee ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_efs.json
 
 # Tag the NFS ingress rule with a name:
 aws --region $AWS_REGION ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_efs.json | jq -r '.SecurityGroupRules[0].SecurityGroupRuleId')" \
