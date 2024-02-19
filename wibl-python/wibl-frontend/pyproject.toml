@@ -39,5 +39,8 @@ test = [
 [project.scripts]
 wibl-manager = "wibl_frontend.application:main"
 
+[tool.setuptools]
+py-modules = []
+
 [tool.setuptools.dynamic]
 version = {attr = "wibl_frontend.__version__"}
