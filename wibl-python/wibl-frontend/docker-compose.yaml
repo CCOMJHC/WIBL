@@ -13,7 +13,7 @@ services:
     ports:
       - '8002:8000'
     volumes:
-      - 'dbdata:/var/wibl/database.db'
+      - 'dbdata:/var/wibl'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/heartbeat"]
       interval: 10s
