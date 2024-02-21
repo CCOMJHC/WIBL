@@ -20,12 +20,14 @@ class Upload(db2.Model):
     data = db2.Column(db2.LargeBinary)
 
 @query_main.route('/home')
+@login_required
 def home():
     print("Made it to query_main.home() method")
     return render_template("home.html")
 
 
 @query_main.route('/home', methods=['GET', 'POST'])
+@login_required
 def index():
 
     print("made it to query_main.index() - file upload")
@@ -55,6 +57,7 @@ def index():
 
 
 @query_main.route('/download/<upload_id>')
+@login_required
 def download(upload_id):
     upload = Upload.query.filter_by(id=upload_id).first()
     return send_file(BytesIO(upload.data), attachment_filename=upload.filename, as_attachment=True)
