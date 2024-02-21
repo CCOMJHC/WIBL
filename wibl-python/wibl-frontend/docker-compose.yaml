@@ -20,6 +20,7 @@ services:
     volumes:
       - 'dbdata_fe:/var/wibl'
       - 'dbdata:/var/wibl/database.db'
+      - 'dbdata:/var/wibl'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/heartbeat"]
       interval: 10s
