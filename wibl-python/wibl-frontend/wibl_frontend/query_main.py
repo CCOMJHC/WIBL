@@ -2,6 +2,7 @@ from io import BytesIO
 import os
 from flask import Flask, render_template, request, send_file, Blueprint
 from flask_sqlalchemy import SQLAlchemy 
+from flask_login import login_required
 
 WEB_DATABASE_URI = os.environ.get('FRONTEND_DATABASE_URI', 'sqlite:///database.db')
 
