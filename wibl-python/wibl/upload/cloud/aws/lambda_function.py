@@ -34,7 +34,7 @@ def lambda_handler(event, context):
 
     # Make sure object exists in incoming bucket
     s3_bucket = getenv('INCOMING_BUCKET')
-    # Use the same values for source and destination store and key so that we can use both the cloud controller
+    # Use the same values for source and destination store and key so that we can use the cloud controller
     # (which reads from the source attributes) and the notifier (which reads from the destination attributes)
     data_item: DataItem = DataItem(source_store=s3_bucket,
                                    source_key=s3_object,
@@ -49,12 +49,18 @@ def lambda_handler(event, context):
             'statusCode': 404,
             'body': 'Object not found'
         }
+    if config['verbose']:
+        print(f"Data item {str(data_item)} exists.")
     # Update data item with object size so that we can send a notification
     data_item.source_size = size
     data_item.dest_size = size
 
     # Send notification to SNS to trigger conversion
+    if config['verbose']:
+        print(f"Notifying for data item {str(data_item)}...")
     notifier.notify(data_item)
+    if config['verbose']:
+        print(f"Notification for data item {str(data_item)} complete.")
 
     return {
         'statusCode': 200,

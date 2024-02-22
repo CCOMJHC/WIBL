@@ -108,7 +108,7 @@ def lambda_handler(event, context):
         rtn['status_code'] = ReturnCodes.OK.value
         rtn['body'] = 'Succeeded metadata validation'
         item.dest_size = item.source_size
-        notifier.notify(item)
+        notifier.notify(item, verbose=config['verbose'])
         if config['verbose']:
             print(f'info: succeeded in validating {item}.')
     else:

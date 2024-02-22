@@ -27,14 +27,15 @@ mkdir -p ${WIBL_BUILD_LOCATION} || exit $?
 AUTHKEY=`cat ingest-external-${DCDB_PROVIDER_ID}.txt`
 
 # These parameters configure the AWS region and technical details of the Lambda runtime
-# that will be used.  If you change the region, you will also want to change the SciPy
+# that will be used.  If you change the region, you will also want to change the NumPy
 # layer name to reflect your local version.  You can change the architecture and Python
 # version, but note that not all combinations of these will result in a Lambda that can
-# both get the SciPy later that it needs, and boot successfully.
+# both get the NumPy later that it needs, and boot successfully.
 AWS_REGION=us-east-2
+AWS_REGION_S3_PL=pl-7ba54012
 ARCHITECTURE=arm64
-PYTHONVERSION=3.11
-NUMPY_LAYER_NAME=arn:aws:lambda:us-east-2:336392948345:layer:AWSSDKPandas-Python311-Arm64:1
+PYTHONVERSION=3.12
+NUMPY_LAYER_NAME=arn:aws:lambda:us-east-2:336392948345:layer:AWSSDKPandas-Python312-Arm64:4
 
 # $WIBL_PACKAGE is the absolute path of the zip file containing the lambda code
 WIBL_PACKAGE=${WIBL_BUILD_LOCATION}/wibl-package-py${PYTHONVERSION}-${ARCHITECTURE}.zip

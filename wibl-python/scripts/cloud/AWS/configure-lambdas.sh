@@ -4,6 +4,8 @@
 # AWS.  If, of course, you have part of this set up already, then you're likely to encounter
 # difficulties.  Probably best to clean up in the console first, then try again.
 
+set -eu -o pipefail
+
 source configuration-parameters.sh
 
 # Specify the URL for the management console component.  Leave empty if you don't want
@@ -14,8 +16,82 @@ source configuration-parameters.sh
 # package and deploy the management server container.
 MANAGEMENT_URL=http://"$(cat ${WIBL_BUILD_LOCATION}/create_elb.json | jq -r '.LoadBalancers[0].DNSName')"/
 
-LAMBDA_SUBNETS="$(cat ${WIBL_BUILD_LOCATION}/create_subnet_private.txt)"
-LAMBDA_SECURITY_GROUP="$(cat ${WIBL_BUILD_LOCATION}/create_security_group_private.json | jq -r '.GroupId')"
+#####################
+## Phase 0: Setup & configure subnet and security group for lambdas
+##
+echo $'\e[31mCreating private subnet, routes, and security group for lambdas ...\e[0m'
+aws --region $AWS_REGION ec2 create-subnet --vpc-id "$(cat ${WIBL_BUILD_LOCATION}/create_vpc.txt)" \
+  --availability-zone us-east-2b \
+  --cidr-block 10.0.3.0/24 --query Subnet.SubnetId --output text \
+  | tee "${WIBL_BUILD_LOCATION}/create_subnet_private_lambda.txt"
+# Tag lambda subnets with a name
+aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_subnet_private_lambda.txt)" \
+  --tags 'Key=Name,Value=wibl-private-lambda'
+# Create a routing table for private subnets to the VPC
+aws --region $AWS_REGION ec2 create-route-table --vpc-id "$(cat ${WIBL_BUILD_LOCATION}/create_vpc.txt)" \
+  --query RouteTable.RouteTableId --output text | tee "${WIBL_BUILD_LOCATION}/create_route_table_lambda.txt"
+# Tag the route table with a name
+aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_route_table_lambda.txt)" \
+  --tags 'Key=Name,Value=wibl-private-lambda'
+# Associate the custom routing table with the private subnet:
+aws --region $AWS_REGION ec2 associate-route-table \
+  --subnet-id "$(cat ${WIBL_BUILD_LOCATION}/create_subnet_private_lambda.txt)" \
+  --route-table-id "$(cat ${WIBL_BUILD_LOCATION}/create_route_table_lambda.txt)"
+# Create security group to give us control over ingress/egress
+aws --region $AWS_REGION ec2 create-security-group \
+	--group-name wibl-lambda \
+	--vpc-id "$(cat ${WIBL_BUILD_LOCATION}/create_vpc.txt)" \
+	--description "Security Group for WIBL lambdas" \
+	| tee "${WIBL_BUILD_LOCATION}/create_security_group_lambda.json"
+# Tag the security group with a name
+aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_lambda.json | jq -r '.GroupId')" \
+  --tags 'Key=Name,Value=wibl-lambda'
+
+# Create an ingress rule to allow anything running in the same VPC (e.g., SNS VPC, ECS, lambdas, EC2, ELB, EFS) to access other
+# services in the subnet via any port
+aws --region $AWS_REGION ec2 authorize-security-group-ingress \
+  --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_lambda.json | jq -r '.GroupId')" \
+  --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 0, "ToPort": 65535, "IpRanges": [{"CidrIp": "10.0.0.0/16"}]}]' \
+  | tee ${WIBL_BUILD_LOCATION}/create_security_group_lambda_rules_vpc-svc.json
+# Tag the lambda ingress rule with name
+aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_lambda_rules_vpc-svc.json | jq -r '.SecurityGroupRules[0].SecurityGroupRuleId')" \
+  --tags 'Key=Name,Value=wibl-lambda-vpc-svc'
+
+# Create ingress rule to allow all connections from AWS_REGION_S3_PL (region-specific S3 CIDR blocks)
+aws --region $AWS_REGION ec2 authorize-security-group-ingress \
+  --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_lambda.json | jq -r '.GroupId')" \
+  --ip-permissions "[{\"IpProtocol\": \"tcp\", \"FromPort\": 0, \"ToPort\": 65535, \"PrefixListIds\": [{\"Description\": \"S3\", \"PrefixListId\": \"${AWS_REGION_S3_PL}\"}]}]" \
+  | tee ${WIBL_BUILD_LOCATION}/create_security_group_lambda_rule_s3.json
+# Tag the S3 ingress rule with name
+aws ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_lambda_rule_s3.json | jq -r '.SecurityGroupRules[0].SecurityGroupRuleId')" \
+  --tags 'Key=Name,Value=wibl-lambda-s3'
+
+LAMBDA_SUBNET_1="$(cat ${WIBL_BUILD_LOCATION}/create_subnet_private_lambda.txt)"
+LAMBDA_SUBNETS="${LAMBDA_SUBNET_1}"
+LAMBDA_SECURITY_GROUP="$(cat ${WIBL_BUILD_LOCATION}/create_security_group_lambda.json | jq -r '.GroupId')"
+
+# Update route table in lambda subnet to route to internet gateway
+aws --region ${AWS_REGION} ec2 create-route \
+  --route-table-id "$(cat ${WIBL_BUILD_LOCATION}/create_route_table_lambda.txt)" \
+  --destination-cidr-block 0.0.0.0/0 --nat-gateway-id "$(cat ${WIBL_BUILD_LOCATION}/create_nat_gateway_lambda.json | jq -r '.NatGateway.NatGatewayId')"
+
+echo $'\e[31mCreating S3 and SNS service gateways for lambdas ...\e[0m'
+# Create service endpoint so that lambdas running in the VPC can access S3
+aws --region $AWS_REGION ec2 create-vpc-endpoint \
+  --vpc-id "$(cat ${WIBL_BUILD_LOCATION}/create_vpc.txt)" \
+  --service-name "com.amazonaws.${AWS_REGION}.s3" \
+  --route-table-ids "$(cat ${WIBL_BUILD_LOCATION}/create_route_table_lambda.txt)" \
+  | tee ${WIBL_BUILD_LOCATION}/create_vpc_endpoint_s3_lambda_subnet.json
+
+## Create service endpoint so that lambdas running in the VPC can access SNS
+echo $'\e[31mCreating SNS VPC endpoint for lambdas ...\e[0m'
+aws --region $AWS_REGION ec2 create-vpc-endpoint \
+  --vpc-id "$(cat ${WIBL_BUILD_LOCATION}/create_vpc.txt)" \
+  --service-name "com.amazonaws.${AWS_REGION}.sns" \
+  --vpc-endpoint-type Interface \
+  --subnet-ids ${LAMBDA_SUBNETS} \
+  --security-group-ids ${LAMBDA_SECURITY_GROUP} \
+  | tee ${WIBL_BUILD_LOCATION}/create_vpc_endpoint_sns_lambda_subnet.json
 
 ####################
 # Phase 1: Package up the WIBL software
@@ -198,7 +274,7 @@ echo $'\e[31mAdding permissions to the conversion lambda for invocation from SNS
 aws --region ${AWS_REGION} lambda add-permission \
   --function-name "${CONVERSION_LAMBDA}" \
 	--action lambda:InvokeFunction \
-	--statement-id s3invoke \
+	--statement-id snsinvoke \
 	--principal sns.amazonaws.com \
 	--source-arn "${TOPIC_ARN_CONVERSION}" \
 	--source-account "${ACCOUNT_NUMBER}" || exit $?
@@ -229,7 +305,7 @@ aws --region ${AWS_REGION} iam put-role-policy \
 ########################
 # Phase 4: Generate the validation lambda, and configure it to trigger from the validation SNS topic.
 # Create the conversion lambda
-echo $'\e[31mGenerating conversion lambda...\e[0m'
+echo $'\e[31mGenerating validation lambda...\e[0m'
 aws --region ${AWS_REGION} lambda create-function \
   --function-name ${VALIDATION_LAMBDA} \
   --no-cli-pager \
@@ -242,7 +318,7 @@ aws --region ${AWS_REGION} lambda create-function \
 	--architectures ${ARCHITECTURE} \
 	--layers ${NUMPY_LAYER_NAME} \
 	--vpc-config "SubnetIds=${LAMBDA_SUBNETS},SecurityGroupIds=${LAMBDA_SECURITY_GROUP}" \
-	--environment "Variables={NOTIFICATION_ARN=${TOPIC_ARN_SUBMISSION},PROVIDER_ID=${DCDB_PROVIDER_ID},STAGING_BUCKET=${STAGING_BUCKET},UPLOAD_POINT=${DCDB_UPLOAD_URL},MANAGEMENT_URL=${MANAGEMENT_URL}}" \
+	--environment "Variables={NOTIFICATION_ARN=${TOPIC_ARN_SUBMISSION},PROVIDER_ID=${DCDB_PROVIDER_ID},STAGING_BUCKET=${STAGING_BUCKET},DEST_BUCKET=${STAGING_BUCKET},MANAGEMENT_URL=${MANAGEMENT_URL}}" \
 	| tee "${WIBL_BUILD_LOCATION}/create_lambda_validation.json"
 
 echo $'\e[31mConfiguring S3 access policy so that conversion lambda can access S3 staging buckets...\e[0m'
@@ -273,7 +349,7 @@ echo $'\e[31mAdding permissions to the validation lambda for invocation from SNS
 aws --region ${AWS_REGION} lambda add-permission \
   --function-name "${VALIDATION_LAMBDA}" \
 	--action lambda:InvokeFunction \
-	--statement-id s3invoke \
+	--statement-id snsinvoke \
 	--principal sns.amazonaws.com \
 	--source-arn "${TOPIC_ARN_VALIDATION}" \
 	--source-account "${ACCOUNT_NUMBER}" || exit $?
@@ -316,7 +392,7 @@ aws --region ${AWS_REGION} lambda create-function \
 	--handler wibl.submission.cloud.aws.lambda_function.lambda_handler \
 	--zip-file fileb://${WIBL_PACKAGE} \
 	--vpc-config "SubnetIds=${LAMBDA_SUBNETS},SecurityGroupIds=${LAMBDA_SECURITY_GROUP}" \
-	--environment "Variables={NOTIFICATION_ARN=${TOPIC_ARN_SUBMITTED},PROVIDER_ID=${DCDB_PROVIDER_ID},PROVIDER_AUTH=${AUTHKEY},STAGING_BUCKET=${STAGING_BUCKET},UPLOAD_POINT=${DCDB_UPLOAD_URL},MANAGEMENT_URL=${MANAGEMENT_URL}}" \
+	--environment "Variables={NOTIFICATION_ARN=${TOPIC_ARN_SUBMITTED},PROVIDER_ID=${DCDB_PROVIDER_ID},PROVIDER_AUTH=${AUTHKEY},STAGING_BUCKET=${STAGING_BUCKET},DEST_BUCKET=${STAGING_BUCKET},UPLOAD_POINT=${DCDB_UPLOAD_URL},MANAGEMENT_URL=${MANAGEMENT_URL}}" \
 	| tee "${WIBL_BUILD_LOCATION}/create_lambda_submission.json"
 
 echo $'\e[31mConfiguring S3 access policy so that submission lambda can access S3 staging bucket...\e[0m'
@@ -330,7 +406,7 @@ echo $'\e[31mAdding permissions to the submission lambda for invocation from top
 aws --region ${AWS_REGION} lambda add-permission \
   --function-name "${SUBMISSION_LAMBDA}" \
 	--action lambda:InvokeFunction \
-	--statement-id s3invoke \
+	--statement-id snsinvoke \
 	--principal sns.amazonaws.com \
 	--source-arn "${TOPIC_ARN_SUBMISSION}" \
 	--source-account "${ACCOUNT_NUMBER}" || exit $?
@@ -374,7 +450,7 @@ aws --region ${AWS_REGION} lambda create-function \
 	--architectures ${ARCHITECTURE} \
 	--layers ${NUMPY_LAYER_NAME} \
 	--vpc-config "SubnetIds=${LAMBDA_SUBNETS},SecurityGroupIds=${LAMBDA_SECURITY_GROUP}" \
-	--environment "Variables={NOTIFICATION_ARN=${TOPIC_ARN_CONVERSION},INCOMING_BUCKET=${INCOMING_BUCKET}}" \
+	--environment "Variables={NOTIFICATION_ARN=${TOPIC_ARN_CONVERSION},INCOMING_BUCKET=${INCOMING_BUCKET},DEST_BUCKET=notused}" \
 	| tee "${WIBL_BUILD_LOCATION}/create_lambda_conversion_start.json"
 
 echo $'\e[31mConfiguring S3 access policy so that conversion start lambda can access S3 incoming bucket...\e[0m'
@@ -421,10 +497,10 @@ cat > "${WIBL_BUILD_LOCATION}/lambda-sns-access-conversion.json" <<-HERE
 HERE
 aws --region ${AWS_REGION} iam put-role-policy \
 	--role-name "${CONVERSION_START_LAMBDA_ROLE}" \
-	--policy-name lambda-conversion-sns-access-validation \
+	--policy-name lambda-conversion-sns-access-conversion \
 	--policy-document file://"${WIBL_BUILD_LOCATION}/lambda-sns-access-conversion.json" || exit $?
 
-echo $'\e[31mAdd policy to conversion start lambda granting permissions to allow public access from function URL\e[0m'
+echo $'\e[31mAdd permission to conversion start lambda granting permissions to allow public access from function URL\e[0m'
 aws --region ${AWS_REGION} lambda add-permission \
     --function-name ${CONVERSION_START_LAMBDA} \
     --action lambda:InvokeFunctionUrl \
@@ -434,7 +510,7 @@ aws --region ${AWS_REGION} lambda add-permission \
     | tee "${WIBL_BUILD_LOCATION}/url_invoke_lambda_conversion_start.json"
 
 echo $'\e[31mCreate a URL endpoint for conversion start lambda...\e[0m'
-aws lambda create-function-url-config \
+aws --region ${AWS_REGION} lambda create-function-url-config \
     --function-name ${CONVERSION_START_LAMBDA} \
     --auth-type NONE \
     | tee "${WIBL_BUILD_LOCATION}/create_url_lambda_conversion_start.json"
@@ -443,213 +519,7 @@ CONVERSION_START_URL="$(cat ${WIBL_BUILD_LOCATION}/create_url_lambda_conversion_
 echo $'\e[31mConversion start lambda URL:' ${CONVERSION_START_URL} $'\e[0m'
 
 ########################
-# Phase 7: Generate the visualization lambda
-## Create ingress rule to allow NFS connections from the subnet (e.g., EFS mount point)
-#aws --region $AWS_REGION ec2 authorize-security-group-ingress \
-#  --group-id "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
-#  --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 2049, "ToPort": 2049, "IpRanges": [{"CidrIp": "10.0.2.0/24"}]}]' \
-#  | tee ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_efs.json
-
-# Tag the NFS ingress rule with a name:
-aws --region $AWS_REGION ec2 create-tags --resources "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public_rule_efs.json | jq -r '.SecurityGroupRules[0].SecurityGroupRuleId')" \
-  --tags 'Key=Name,Value=wibl-vizlambda-efs-mount-point'
-
-# Create EFS volume for storing GEBCO data on
-aws --region $AWS_REGION efs create-file-system \
-  --creation-token wibl-vizlambda-efs \
-  --no-encrypted \
-  --no-backup \
-  --performance-mode generalPurpose \
-  --throughput-mode bursting \
-  --tags 'Key=Name,Value=wibl-vizlambda-efs' \
-  | tee ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_file_system.json
-WIBL_VIZ_LAMBDA_EFS_ID=$(cat ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_file_system.json | jq -r '.FileSystemId')
-
-# To delete:
-# aws --region $AWS_REGION efs delete-file-system \
-#  --file-system-id $(cat ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_file_system.json | jq -r '.FileSystemId')
-
-# Create mount target for EFS volume within our EC2 subnet (this is only needed temporarily while mounted from
-# an EC2 instance to load data onto the volume)
-aws --region $AWS_REGION efs create-mount-target \
-  --file-system-id "$(cat ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_file_system.json | jq -r '.FileSystemId')" \
-  --subnet-id "$(cat ${WIBL_BUILD_LOCATION}/create_subnet_public.txt)" \
-  --security-groups "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
-  | tee ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_mount_target.json
-
-echo $'\e[31mWaiting for 30 seconds to allow EFS-related security group rule to propagate ...\e[0m'
-sleep 30
-
-# To delete:
-# aws --region $AWS_REGION efs delete-mount-target \
-#  --mount-target-id $(cat ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_mount_target.json | jq -r '.MountTargetId')
-
-# Create SSH key pair to access temporary EC2 instance
-aws --region $AWS_REGION ec2 create-key-pair \
-  --key-name wibl-tmp-key \
-  --key-type rsa \
-  --key-format pem \
-  --query "KeyMaterial" \
-  --output text > "${WIBL_BUILD_LOCATION}/wibl-tmp-key.pem"
-chmod 400 "${WIBL_BUILD_LOCATION}/wibl-tmp-key.pem"
-
-aws --region $AWS_REGION ec2 run-instances --image-id ami-0d9b5e9b3272cff13 --count 1 --instance-type t4g.nano \
-	--key-name wibl-tmp-key \
-	--associate-public-ip-address \
-	--security-group-ids \
-	  "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_public.json | jq -r '.GroupId')" \
-	--subnet-id "$(cat ${WIBL_BUILD_LOCATION}/create_subnet_public.txt)" \
-	| tee ${WIBL_BUILD_LOCATION}/run-wibl-test-ec2-instance.json
-
-# Tag the instance with a name
-aws --region $AWS_REGION ec2 create-tags \
-  --resources "$(cat ${WIBL_BUILD_LOCATION}/run-wibl-test-ec2-instance.json| jq -r '.Instances[0].InstanceId')" \
-  --tags 'Key=Name,Value=wibl-test'
-
-echo $'\e[31mWaiting for 30 seconds to allow EC2 instance to start ...\e[0m'
-sleep 30
-
-TEST_INSTANCE_IP=$(aws ec2 describe-instances \
-  --instance-ids "$(cat ${WIBL_BUILD_LOCATION}/run-wibl-test-ec2-instance.json | jq -r '.Instances[0].InstanceId')" \
-  | jq -r '.Reservations[0].Instances[0].PublicIpAddress')
-
-# Connect to EC2 instance via SSH, mount EFS, download GEBCO data
-ssh -o StrictHostKeyChecking=accept-new -i "${WIBL_BUILD_LOCATION}/wibl-tmp-key.pem" ec2-user@${TEST_INSTANCE_IP} <<-EOF
-sudo dnf install -y wget amazon-efs-utils && \
-  mkdir -p efs && \
-  sudo mount -t efs "$WIBL_VIZ_LAMBDA_EFS_ID" efs && \
-  cd efs && \
-  sudo mkdir -p -m 777 gebco && \
-  cd gebco && \
-  echo 'Downloading GEBCO data to EFS volume (this will take several minutes)...' && \
-  wget -q https://www.bodc.ac.uk/data/open_download/gebco/gebco_2023/zip/ -O gebco_2023.zip && \
-  unzip gebco_2023.zip && \
-  chmod 755 GEBCO_2023.nc && \
-  rm gebco_2023.zip *.pdf && \
-  cd && \
-  sudo umount efs
-EOF
-test_aws_cmd_success $?
-
-# Terminate EC2 instance
-aws --region $AWS_REGION ec2 terminate-instances \
-  --instance-ids "$(cat ${WIBL_BUILD_LOCATION}/run-wibl-test-ec2-instance.json | jq -r '.Instances[0].InstanceId')"
-
-# Delete EC2 mount target so that we can later create one in the private subnet for use by lambdas
-aws --region $AWS_REGION efs delete-mount-target \
-  --mount-target-id "$(cat ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_mount_target.json | jq -r '.MountTargetId')"
-
-# Phase 7b: Now we can create the container image for the lambda and create the lambda that mounts the EFS volume
-#   created above.
-
-# Create ECR repo
-aws --region $AWS_REGION ecr create-repository \
-  --repository-name wibl/vizlambda | tee ${WIBL_BUILD_LOCATION}/create_ecr_repository_vizlambda.json
-
-# Delete: aws --region $AWS_REGION ecr delete-repository --repository-name wibl/vizlambda
-
-# `docker login` to the repo so that we can push to it
-aws --region $AWS_REGION ecr get-login-password | docker login \
-  --username AWS \
-  --password-stdin \
-  "$(cat ${WIBL_BUILD_LOCATION}/create_ecr_repository_vizlambda.json | jq -r '.repository.repositoryUri')"
-# If `docker login` is successful, you should see `Login Succeeded` printed to STDOUT.
-
-# Build image and push to ECR repo
-docker build -f ../../../Dockerfile.vizlambda -t wibl/vizlambda:latest ../../../
-docker tag wibl/vizlambda:latest "${ACCOUNT_NUMBER}.dkr.ecr.${AWS_REGION}.amazonaws.com/wibl/vizlambda:latest"
-docker push "${ACCOUNT_NUMBER}.dkr.ecr.${AWS_REGION}.amazonaws.com/wibl/vizlambda:latest" | tee "${WIBL_BUILD_LOCATION}/docker_push_vizlambda_to_ecr.txt"
-
-# Create policy to allow lambdas to mount EFS read-only
-# Define policy
-cat > "${WIBL_BUILD_LOCATION}/lambda-efs-ro-policy.json" <<-HERE
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "elasticfilesystem:ClientMount"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-HERE
-
-# Create policy
-aws --region ${AWS_REGION} iam create-policy \
-  --policy-name 'Lambda-EFS-RO' \
-  --policy-document file://"${WIBL_BUILD_LOCATION}/lambda-efs-ro-policy.json" \
-  | tee "${WIBL_BUILD_LOCATION}/create_lambda-efs-ro-policy.json"
-
-aws --region ${AWS_REGION} iam attach-role-policy \
-  --role-name ${VIZ_LAMBDA_ROLE} \
-  --policy-arn "$(cat ${WIBL_BUILD_LOCATION}/create_lambda-efs-ro-policy.json | jq -r '.Policy.Arn')" \
-  | tee "${WIBL_BUILD_LOCATION}/attach_role_policy_lambda_efs_ro_viz.json"
-
-# Create mount target and access point to later be used by lambda
-aws --region $AWS_REGION efs create-mount-target \
-  --file-system-id "$(cat ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_file_system.json | jq -r '.FileSystemId')" \
-  --subnet-id "$(cat ${WIBL_BUILD_LOCATION}/create_subnet_private.txt)" \
-  --security-groups "$(cat ${WIBL_BUILD_LOCATION}/create_security_group_private.json | jq -r '.GroupId')" \
-  | tee ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_mount_target_private.json
-
-aws --region ${AWS_REGION} efs create-access-point \
-  --file-system-id "$(cat ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_file_system.json | jq -r '.FileSystemId')" \
-  | tee ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_access_point.json
-VIZ_LAMBDA_EFS_AP_ARN=$(cat ${WIBL_BUILD_LOCATION}/create_vizlambda_efs_access_point.json | jq -r '.AccessPointArn')
-
-# Create the vizualization lambda which mounts the vizlambda EFS volume to provide access to GEBCO data
-echo $'\e[31mGenerating vizualization lambda...\e[0m'
-aws --region ${AWS_REGION} lambda create-function \
-  --function-name ${VIZ_LAMBDA} \
-  --no-cli-pager \
-	--role arn:aws:iam::${ACCOUNT_NUMBER}:role/${VIZ_LAMBDA_ROLE} \
-  --timeout ${LAMBDA_TIMEOUT} \
-  --memory-size ${LAMBDA_MEMORY} \
-	--package-type Image \
-	--code ImageUri="${ACCOUNT_NUMBER}.dkr.ecr.${AWS_REGION}.amazonaws.com/wibl/vizlambda:latest" \
-	--architectures ${ARCHITECTURE} \
-	--file-system-configs "Arn=${VIZ_LAMBDA_EFS_AP_ARN},LocalMountPath=/mnt/efs0" \
-	--vpc-config "SubnetIds=${LAMBDA_SUBNETS},SecurityGroupIds=${LAMBDA_SECURITY_GROUP}" \
-	--environment "Variables={WIBL_GEBCO_PATH=/mnt/efs0/gebco/GEBCO_2023.nc,DEST_BUCKET=${VIZ_BUCKET},STAGING_BUCKET=${STAGING_BUCKET},MANAGEMENT_URL=${MANAGEMENT_URL}}" \
-	| tee "${WIBL_BUILD_LOCATION}/create_lambda_viz.json"
-
-# To update function (i.e., after new image has been pushed), use update-function-code:
-# aws --region ${AWS_REGION} lambda update-function-code \
-#   --function-name ${VIZ_LAMBDA} \
-#   --image-uri "${ACCOUNT_NUMBER}.dkr.ecr.${AWS_REGION}.amazonaws.com/wibl/vizlambda:latest" \
-#   | tee "${WIBL_BUILD_LOCATION}/update_lambda_viz.json"
-
-echo $'\e[31mConfiguring S3 access policy so that viz lambda can access S3 staging and viz buckets...\e[0m'
-cat > "${WIBL_BUILD_LOCATION}/lambda-s3-access-viz.json" <<-HERE
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "LambdaAllowS3AccessAll",
-            "Effect": "Allow",
-            "Action": [
-                "s3:*"
-            ],
-            "Resource": [
-                "arn:aws:s3:::${STAGING_BUCKET}",
-                "arn:aws:s3:::${STAGING_BUCKET}/*",
-                "arn:aws:s3:::${VIZ_BUCKET}",
-                "arn:aws:s3:::${VIZ_BUCKET}/*"
-            ]
-        }
-    ]
-}
-HERE
-aws --region ${AWS_REGION} iam put-role-policy \
-	--role-name "${VIZ_LAMBDA_ROLE}" \
-	--policy-name lambda-s3-access-viz \
-	--policy-document file://"${WIBL_BUILD_LOCATION}/lambda-s3-access-viz.json" || exit $?
-
-########################
-# Phase 8: Configure SNS subscriptions for lambdas
+# Phase 7: Configure SNS subscriptions for lambdas
 #
 
 # Optional: If you want to automatically trigger the conversion lambda on upload to the incoming S3 bucket
@@ -657,60 +527,60 @@ aws --region ${AWS_REGION} iam put-role-policy \
 #   1. Create incoming bucket policy to notify the conversion topic; and
 #   2. Update conversion topic access policy to allow S3 to send notifications from our incoming bucket
 # Create incoming bucket policy to notify the conversion topic when files needing conversion
-echo $'\e[31mAdding bucket SNS notification to' ${INCOMING_BUCKET} $'...\e[0m'
-UUID=$(uuidgen)
-cat > "${WIBL_BUILD_LOCATION}/conversion-notification-cfg.json" <<-HERE
-{
-    "TopicConfigurations": [
-        {
-            "Id": "${UUID}",
-            "TopicArn": "${TOPIC_ARN_CONVERSION}",
-            "Events": [
-                "s3:ObjectCreated:Put",
-                "s3:ObjectCreated:CompleteMultipartUpload"
-            ]
-        }
-    ]
-}
-HERE
-aws --region ${AWS_REGION} s3api put-bucket-notification-configuration \
-  --skip-destination-validation \
-	--bucket "${INCOMING_BUCKET}" \
-	--notification-configuration file://"${WIBL_BUILD_LOCATION}/conversion-notification-cfg.json" || exit $?
-
-# Update conversion topic access policy to allow S3 to send notifications from our incoming bucket
-UUID=$(uuidgen)
-cat > "${WIBL_BUILD_LOCATION}/conversion-topic-access-policy.json" <<-HERE
-{
-    "Version": "2012-10-17",
-    "Id": "${UUID}",
-    "Statement": [
-        {
-            "Sid": "S3 SNS topic policy",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "s3.amazonaws.com"
-            },
-            "Action": [
-                "SNS:Publish"
-            ],
-            "Resource": "${TOPIC_ARN_CONVERSION}",
-            "Condition": {
-                "ArnLike": {
-                    "aws:SourceArn": "arn:aws:s3:::${INCOMING_BUCKET}"
-                },
-                "StringEquals": {
-                    "aws:SourceAccount": "${ACCOUNT_NUMBER}"
-                }
-            }
-        }
-    ]
-}
-HERE
-aws --region ${AWS_REGION} sns set-topic-attributes \
-  --topic-arn "${TOPIC_ARN_CONVERSION}" \
-  --attribute-name Policy \
-  --attribute-value file://"${WIBL_BUILD_LOCATION}/conversion-topic-access-policy.json"
+#echo $'\e[31mAdding bucket SNS notification to' ${INCOMING_BUCKET} $'...\e[0m'
+#UUID=$(uuidgen)
+#cat > "${WIBL_BUILD_LOCATION}/conversion-notification-cfg.json" <<-HERE
+#{
+#    "TopicConfigurations": [
+#        {
+#            "Id": "${UUID}",
+#            "TopicArn": "${TOPIC_ARN_CONVERSION}",
+#            "Events": [
+#                "s3:ObjectCreated:Put",
+#                "s3:ObjectCreated:CompleteMultipartUpload"
+#            ]
+#        }
+#    ]
+#}
+#HERE
+#aws --region ${AWS_REGION} s3api put-bucket-notification-configuration \
+#  --skip-destination-validation \
+#	--bucket "${INCOMING_BUCKET}" \
+#	--notification-configuration file://"${WIBL_BUILD_LOCATION}/conversion-notification-cfg.json" || exit $?
+#
+## Update conversion topic access policy to allow S3 to send notifications from our incoming bucket
+#UUID=$(uuidgen)
+#cat > "${WIBL_BUILD_LOCATION}/conversion-topic-access-policy.json" <<-HERE
+#{
+#    "Version": "2012-10-17",
+#    "Id": "${UUID}",
+#    "Statement": [
+#        {
+#            "Sid": "S3 SNS topic policy",
+#            "Effect": "Allow",
+#            "Principal": {
+#                "Service": "s3.amazonaws.com"
+#            },
+#            "Action": [
+#                "SNS:Publish"
+#            ],
+#            "Resource": "${TOPIC_ARN_CONVERSION}",
+#            "Condition": {
+#                "ArnLike": {
+#                    "aws:SourceArn": "arn:aws:s3:::${INCOMING_BUCKET}"
+#                },
+#                "StringEquals": {
+#                    "aws:SourceAccount": "${ACCOUNT_NUMBER}"
+#                }
+#            }
+#        }
+#    ]
+#}
+#HERE
+#aws --region ${AWS_REGION} sns set-topic-attributes \
+#  --topic-arn "${TOPIC_ARN_CONVERSION}" \
+#  --attribute-name Policy \
+#  --attribute-value file://"${WIBL_BUILD_LOCATION}/conversion-topic-access-policy.json"
 # End, optional configuration for automatically triggering conversion lambda on upload to incoming S3 bucket.
 
 # Create subscription to conversion topic

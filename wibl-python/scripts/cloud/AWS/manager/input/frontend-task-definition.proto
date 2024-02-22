@@ -42,6 +42,10 @@
         {
           "name": "VIZ_BUCKET",
           "value": "REPLACEME_VIZ_BUCKET"
+        },
+        {
+          "name": "VIZ_LAMBDA",
+          "value": "REPLACEME_VIZ_LAMBDA"
         }
       ],
       "logConfiguration": {
