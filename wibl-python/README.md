@@ -1,13 +1,57 @@
-# Python code WIBL low-cost data logger system
+# wibl-python: Python tools for working with the WIBL low-cost data logger system
 
 ## Installation
+You can run `wibl-python` either locally or in the cloud. For cloud instructions, see the "Packaging and Deploying 
+Processing and Submission Code" section below.
 
-### Locally
+For local installations there are currently two options: 
+1. Python
+2. Docker
+
+The following subsections describe each installation method.
+
+### Local installation using Python
+To install `wibl-python` in a local Python environment, first install Python 3 for your operating system; version 
+3.11 or greater is recommended, but 3.8 or later will work (though Python 3.8 will reach 
+[end-of-life](https://devguide.python.org/versions/) status in October 2024).
+
+Next, we'll need to install non-Python dependencies required by `wibl-python`. Currently, the only such dependency
+is [GDAL](https://gdal.org/download.html). If you are using Linux, your distribution likely has a recent-enough
+version of the GDAL that you can install via the package manager for that distribution (e.g., `apt` for Debian
+or Ubuntu derivatives, `yum` or `dnf` for RedHat or CentOS derivatives). For macOS, you can use the version of 
+GDAL provided by the [Homebrew](https://brew.sh) or [MacPorts](https://www.macports.org) package managers. For 
+Windows, it's probably best to install GDAL using the [Conda Forge](https://gdal.org/download.html#windows) package,
+which means using [Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) to install Python 3 as
+well.
+
+Once you have installed Python 3, [create a virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments)
+in which to install and run `wibl-python`. For example, on Linux or macOS
+this would look like:
+```shell
+$ python3 -m venv wibl-env
+```
+
+> Note: If using a `miniconda` version of Python, see [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
+> to learn how to create and activate a Python virtual environment.
+
+Once created, each time you want to use `wibl-python` (or before you install `wibl-python`) you will need to activate 
+the environment, which again on Linux or macOS would look like:
+```shell
+$ ./wibl-env/bin/activate
+```
+
+> Note: this assumes the current working directory of your shell is the same directory where `wibl-env` resides.
+
+Once you've activated the `wibl-env` Python virtual environment, you can install `wibl-python` as follows:
 ```
 pip install csbschema==1.1.1
 pip install ./wibl-manager
 pip install .
 ```
+
+### Local installation using Docker
+Please refer to the instructions [here](https://github.com/CCOMJHC/WIBL/blob/main/DataManagement/containers/README.md)
+to learn how to install and use `wibl-python` via Docker.
 
 ## Testing
 To run unit tests, including detailed verification of packet data output by the data simulator, run:
@@ -23,6 +67,8 @@ bash ./tests/integration/test_wibl.bash
 ```
 
 ## Usage
+Once you've activated the `wibl-env` Python virtual environment where you installed `wibl-python`, you can run the
+`wibl` command, which has several sub-commands that you can discover using the `--help` option:
 ```
 ]$ wibl --help
 usage: wibl <command> [<arguments>]
