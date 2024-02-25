@@ -1,5 +1,9 @@
 # Release Notes: Logger Firmware
 
+## Firmware 1.5.1
+
+Firmware 1.5.1 is a bug-fix for "last known good" data reporting in the firmware website.
+
 ## Firmware 1.5.0
 
 Firmware 1.5.0 includes the following additions:
