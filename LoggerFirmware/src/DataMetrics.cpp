@@ -46,7 +46,7 @@ DataObs::DataObs(uint32_t elapsed, const char *message)
     m_interface = INT_NMEA0183;
     m_receivedTime = elapsed;
     m_display = String(message);
-    m_tag = m_display.substring(3,5);
+    m_tag = m_display.substring(3,6);
     if (m_tag == "DBT" || m_tag == "DPT") {
         m_obsType = DATA_DEPTH;
         m_name = String("Depth");
@@ -57,6 +57,7 @@ DataObs::DataObs(uint32_t elapsed, const char *message)
         m_obsType = DATA_TIME;
         m_name = String("Time");
     } else {
+        Serial.printf("DBG: metrics: NMEA0183 data with tag \"%s\" not recognised.  Ignoring message |%s|.\n", m_tag.c_str(), message);
         Blank();
     }
 }
