@@ -19,6 +19,6 @@ services:
       interval: 10s
       timeout: 1s
       retries: 5
-    command: 'gunicorn wibl_frontend.application:app --workers 1 --bind 0.0.0.0:8000 --access-logfile -'
+    command: 'gunicorn wibl_frontend.application:app --workers 2 --timeout 10 --bind 0.0.0.0:8000 --access-logfile -'
 volumes:
   dbdata:

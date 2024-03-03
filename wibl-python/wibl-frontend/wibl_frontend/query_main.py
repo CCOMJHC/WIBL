@@ -3,6 +3,7 @@ import os
 from flask import Flask, render_template, request, send_file, Blueprint
 from flask_sqlalchemy import SQLAlchemy 
 from flask_login import login_required
+import requests
 
 WEB_DATABASE_URI = os.environ.get('FRONTEND_DATABASE_URI', 'sqlite:///database.db')
 
@@ -24,6 +25,9 @@ class Upload(db2.Model):
 @login_required
 def home():
     print("Made it to query_main.home() method")
+    # curl to manager localhost, this is the page where we will interact with the manager
+    connectManager = requests.get('http://127.0.0.1:8000/heartbeat')
+    print(f"Result of request to Manager/Heartbeat: {connectManager}") 
     return render_template("home.html")
 
 
