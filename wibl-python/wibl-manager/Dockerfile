@@ -1,7 +1,7 @@
 FROM --platform=linux/arm64 python:3.12-slim AS builder
 # FROM --platform=linux/arm64 python:3.11-slim AS builder
 # Thomas - Above has issues on my VM? switched to config in frontend
-FROM python:3.12-slim AS builder
+#FROM python:3.12-slim AS builder
 
 WORKDIR /usr/src/wibl
 ADD ./ /usr/src/wibl
