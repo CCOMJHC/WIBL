@@ -11,7 +11,7 @@ services:
     environment:
       MANAGER_DATABASE_URI: 'sqlite:////var/wibl/database.db'
     ports:
-      - '8001:8000'
+      #- '8001:8000'
       - '5000:5000'
     volumes:
       - 'dbdata_mgr:/var/wibl'
