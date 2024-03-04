@@ -29,10 +29,10 @@ def home():
     # curl to manager localhost, this is the page where we will interact with the manager
     #172.17.0.1 is the "default docker bridge link", required for the local connectivity
         #between containers: https://github.com/HTTP-APIs/hydra-python-agent/issues/104
-    connectManager = requests.get('http://172.17.0.1:5000/heartbeat')
+    connectManager = requests.get('http://host.docker.internal:5000/heartbeat')
     print(f"Result of request to Manager/Heartbeat: {connectManager}")
 
-    connectMoreManager = requests.get('http://172.17.0.1:5000/wibl/all')
+    connectMoreManager = requests.get('http://host.docker.internal:5000/wibl/all')
     print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
     print(json.dumps(connectMoreManager.json()))
 
@@ -48,6 +48,17 @@ def index():
     if request.method == 'POST':
         file = request.files['file']
         print("query_main.index() - file name: " + file.filename)
+
+        fileNameStripped = os.path.splitext(file.filename)[0]
+
+        print(f"File name without extension: {fileNameStripped}")
+
+        url = 'http://host.docker.internal:5000/wibl/' + fileNameStripped
+
+        headers = {'Content-type': 'application/octet-stream'}
+
+        fileUp = requests.post(url, headers=headers, json={'size':10.4})
+        print(f"File Upload Status: {fileUp}")
 
         """
         upload = Upload(filename=file.filename, data=file.read())
