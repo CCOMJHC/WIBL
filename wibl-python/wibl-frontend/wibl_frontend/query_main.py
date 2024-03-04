@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, send_file, Blueprint
 from flask_sqlalchemy import SQLAlchemy 
 from flask_login import login_required
 import requests
+import json
 
 WEB_DATABASE_URI = os.environ.get('FRONTEND_DATABASE_URI', 'sqlite:///database.db')
 
@@ -26,8 +27,15 @@ class Upload(db2.Model):
 def home():
     print("Made it to query_main.home() method")
     # curl to manager localhost, this is the page where we will interact with the manager
-    connectManager = requests.get('http://127.0.0.1:8000/heartbeat')
-    print(f"Result of request to Manager/Heartbeat: {connectManager}") 
+    #172.17.0.1 is the "default docker bridge link", required for the local connectivity
+        #between containers: https://github.com/HTTP-APIs/hydra-python-agent/issues/104
+    connectManager = requests.get('http://172.17.0.1:5000/heartbeat')
+    print(f"Result of request to Manager/Heartbeat: {connectManager}")
+
+    connectMoreManager = requests.get('http://172.17.0.1:5000/wibl/all')
+    print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
+    print(json.dumps(connectMoreManager.json()))
+
     return render_template("home.html")
 
 
@@ -40,9 +48,14 @@ def index():
     if request.method == 'POST':
         file = request.files['file']
         print("query_main.index() - file name: " + file.filename)
+
+        """
         upload = Upload(filename=file.filename, data=file.read())
         db2.session.add(upload)
         db2.session.commit()
+        """
+
+        
 
         return f'Uploaded: {file.filename}'
     elif request.method == 'GET':
