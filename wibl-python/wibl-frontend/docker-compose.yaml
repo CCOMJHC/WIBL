@@ -8,13 +8,6 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - manager
-version: '3'
-
-services:
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
     restart: always
     env_file:
       - frontend.env
@@ -26,12 +19,8 @@ services:
       - '8000:8000'
     volumes:
       - 'dbdata_fe:/var/wibl'
-      - 'dbdata:/var/wibl/database.db'
-      - 'dbdata:/var/wibl'
-    ports:
-      - '8000:8000'
-    volumes:
-      - 'dbdata:/var/wibl/database.db'
+        #  - 'dbdata:/var/wibl/database.db'
+        #  - 'dbdata:/var/wibl'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/heartbeat"]
       interval: 10s
@@ -40,4 +29,4 @@ services:
     command: 'gunicorn wibl_frontend.application:app --workers 1 --timeout 10 --bind 0.0.0.0:8000 --access-logfile -'
 volumes:
   dbdata_fe:
-  dbdata:
+          #dbdata:
