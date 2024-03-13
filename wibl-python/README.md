@@ -11,6 +11,47 @@ For local installations there are currently two options:
 The following subsections describe each installation method.
 
 ### Local installation using Python
+
+#### Using Conda (Windows, Linux, macOS)
+For Windows, it's probably best to install `wibl-python` using [Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) (Anaconda or Miniforge should also work). Linux and macOS users can also choose to use Conda, however it's not required as there are other ways to install the necessary dependencies in these environments (see below).
+
+Once you've installed conda, the next step is to create a conda environment for `wibl-python`. To do so, open a conda shell (in either PowerShell or the legacy Command Prompt on Windows, or your terminal on Linux or macOS) and do the following to create the `wibl-python` environment:
+```
+conda env create -f environment.yml
+```
+
+Then, each time you want to use `wibl-python` activate the environment as follows:
+```
+conda activate wibl-python
+```
+
+Once activated, you should be able to run `wibl` commands:
+```
+(wibl-python) PS C:\> wibl --help
+usage: wibl <command> [<arguments>]
+
+    Commands include:
+        datasim     Generate test data using Python-native data simulator.
+        editwibl    Edit WIBL logger files, e.g., add platform metadata.
+        uploadwibl  Upload WIBL logger files to an S3 bucket.
+        parsewibl   Read and report contents of a WIBL file.
+        dcdbupload  Upload a GeoJSON file to DCDB direct.
+        procwibl    Local processing from WIBL file to GeoJSON.
+        validate    Validate the metadata in a GeoJSON file.
+
+
+Python tools for WIBL low-cost data logger system
+
+positional arguments:
+  command     Subcommand to run
+
+options:
+  -h, --help  show this help message and exit
+  --version   print version and exit
+(wibl-python) PS C:\>
+```
+
+#### Linux or macOS
 To install `wibl-python` in a local Python environment, first install Python 3 for your operating system; version 
 3.11 or greater is recommended, but 3.8 or later will work (though Python 3.8 will reach 
 [end-of-life](https://devguide.python.org/versions/) status in October 2024).
@@ -19,10 +60,7 @@ Next, we'll need to install non-Python dependencies required by `wibl-python`. C
 is [GDAL](https://gdal.org/download.html). If you are using Linux, your distribution likely has a recent-enough
 version of the GDAL that you can install via the package manager for that distribution (e.g., `apt` for Debian
 or Ubuntu derivatives, `yum` or `dnf` for RedHat or CentOS derivatives). For macOS, you can use the version of 
-GDAL provided by the [Homebrew](https://brew.sh) or [MacPorts](https://www.macports.org) package managers. For 
-Windows, it's probably best to install GDAL using the [Conda Forge](https://gdal.org/download.html#windows) package,
-which means using [Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) to install Python 3 as
-well.
+GDAL provided by the [Homebrew](https://brew.sh) or [MacPorts](https://www.macports.org) package managers. 
 
 Once you have installed Python 3, [create a virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments)
 in which to install and run `wibl-python`. For example, on Linux or macOS
