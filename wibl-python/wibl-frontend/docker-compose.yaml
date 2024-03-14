@@ -1,24 +1,32 @@
-version: '3'
+include:
+  - ../wibl-manager/docker-compose.yaml
 
 services:
-  web:
+  frontend:
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      - manager
     restart: always
     env_file:
       - frontend.env
     environment:
       FRONTEND_DATABASE_URI: ${FRONTEND_DATABASE_URI}
+      MANAGEMENT_URL: 'http://manager:5000'
+      MANAGEMENT_HEARTBEAT_PATH: '/heartbeat'
     ports:
-      - '8002:8000'
+      - '8000:8000'
     volumes:
-      - 'dbdata:/var/wibl/database.db'
+      - 'dbdata_fe:/var/wibl'
+        #  - 'dbdata:/var/wibl/database.db'
+        #  - 'dbdata:/var/wibl'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/heartbeat"]
       interval: 10s
       timeout: 1s
       retries: 5
-    command: 'gunicorn wibl_frontend.application:app --workers 1 --bind 0.0.0.0:8000 --access-logfile -'
+    command: 'gunicorn wibl_frontend.application:app --workers 1 --timeout 10 --bind 0.0.0.0:8000 --access-logfile -'
 volumes:
-  dbdata:
+  dbdata_fe:
+          #dbdata:

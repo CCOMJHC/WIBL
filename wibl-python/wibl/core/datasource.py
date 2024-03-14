@@ -52,10 +52,17 @@ import os
 
 import boto3
 import botocore
+import botocore.config
 
 from wibl.core import getenv
 
-s3 = boto3.resource('s3')
+# Force path addressing style to allow s3 URLs to be constructed without having to resolve virtual URLs, which
+# requires an internet connection, which our lambdas won't have due to running in the VPC.
+# For more information, see: https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html
+region = os.getenv('AWS_REGION', 'us-east-2')
+config = botocore.config.Config(s3={'addressing_style': 'path'})
+s3 = boto3.resource(service_name='s3', region_name=region, config=config)
+s3_cli = s3.meta.client
 
 ## Dataclass to hold the specification for a single item of data being processed
 #
@@ -427,11 +434,10 @@ class AWSController(CloudController):
     # \return Tuple[bool, Optional[int]] (True, size in bytes) if the specified object exists,
     #   (False, None) if the specified object doesn't exist.
     def exists(self, meta: DataItem) -> Tuple[bool, Optional[int]]:
-        cli = boto3.client('s3')
         if self.verbose:
             print(f'Testing existence of object {meta.source_key} from bucket {meta.source_store}')
         try:
-            response = cli.head_object(Bucket=meta.source_store,
+            response = s3_cli.head_object(Bucket=meta.source_store,
                                        Key=meta.source_key)
             return True, response['ContentLength']
         except botocore.exceptions.ClientError as e:
@@ -452,7 +458,7 @@ class AWSController(CloudController):
         if self.verbose:
             print(f'Downloading from bucket {meta.source_store} object {meta.source_key} to local file {meta.localname}')
         s3.Bucket(meta.source_store).download_file(meta.source_key, meta.localname)
-        tags = boto3.client('s3').get_object_tagging(Bucket=meta.source_store, Key=meta.source_key)
+        tags = s3_cli.get_object_tagging(Bucket=meta.source_store, Key=meta.source_key)
         info: Dict[str,Any] = {'sourceID': '', 'logger': '', 'soundings': -1}
         for tag in tags['TagSet']:
             if tag['Key'] == 'SourceID':

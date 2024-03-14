@@ -3,7 +3,12 @@ import os
 from flask import Flask, render_template, request, send_file, Blueprint
 from flask_sqlalchemy import SQLAlchemy 
 from flask_login import login_required
+<<<<<<< HEAD
 import subprocess
+=======
+import requests
+import json
+>>>>>>> 435ec74bb09710add59a697155351c098706ca1b
 
 WEB_DATABASE_URI = os.environ.get('FRONTEND_DATABASE_URI', 'sqlite:///database.db')
 
@@ -25,6 +30,7 @@ class Upload(db2.Model):
 @login_required
 def home():
     print("Made it to query_main.home() method")
+<<<<<<< HEAD
     connectManager = requests.get('http://172.17.0.1:5000/heartbeat')
     print(f"Result of request to Manager/Heartbeat: {connectManager}")
 
@@ -32,6 +38,18 @@ def home():
     print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
     print(json.dumps(connectMoreManager.json()))
     
+=======
+    # curl to manager localhost, this is the page where we will interact with the manager
+    #172.17.0.1 is the "default docker bridge link", required for the local connectivity
+        #between containers: https://github.com/HTTP-APIs/hydra-python-agent/issues/104
+    connectManager = requests.get('http://host.docker.internal:5000/heartbeat')
+    print(f"Result of request to Manager/Heartbeat: {connectManager}")
+
+    connectMoreManager = requests.get('http://host.docker.internal:5000/wibl/all')
+    print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
+    print(json.dumps(connectMoreManager.json()))
+
+>>>>>>> 435ec74bb09710add59a697155351c098706ca1b
     return render_template("home.html")
 
 
@@ -44,9 +62,25 @@ def index():
     if request.method == 'POST':
         file = request.files['file']
         print("query_main.index() - file name: " + file.filename)
+
+        fileNameStripped = os.path.splitext(file.filename)[0]
+
+        print(f"File name without extension: {fileNameStripped}")
+
+        url = 'http://host.docker.internal:5000/wibl/' + fileNameStripped
+
+        headers = {'Content-type': 'application/octet-stream'}
+
+        fileUp = requests.post(url, headers=headers, json={'size':10.4})
+        print(f"File Upload Status: {fileUp}")
+
+        """
         upload = Upload(filename=file.filename, data=file.read())
         db2.session.add(upload)
         db2.session.commit()
+        """
+
+        
 
         return f'Uploaded: {file.filename}'
     elif request.method == 'GET':
