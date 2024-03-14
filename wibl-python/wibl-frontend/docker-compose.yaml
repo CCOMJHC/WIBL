@@ -13,7 +13,7 @@ services:
       - frontend.env
     environment:
       FRONTEND_DATABASE_URI: ${FRONTEND_DATABASE_URI}
-      MANAGEMENT_URL: 'http://manager:8000'
+      MANAGEMENT_URL: 'http://manager:5000'
       MANAGEMENT_HEARTBEAT_PATH: '/heartbeat'
     ports:
       - '8000:8000'
