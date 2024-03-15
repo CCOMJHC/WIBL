@@ -4,12 +4,8 @@ from flask import Flask, render_template, request, send_file, Blueprint
 from fileinput import filename
 from flask_sqlalchemy import SQLAlchemy 
 from flask_login import login_required
-<<<<<<< HEAD
-import subprocess
-=======
 import requests
 import json
->>>>>>> 435ec74bb09710add59a697155351c098706ca1b
 
 #from requests_toolbelt import MultipartEncoder
 from requests_toolbelt.multipart.encoder import MultipartEncoder
@@ -49,7 +45,6 @@ class Upload(db2.Model):
 @login_required
 def home():
     print("Made it to query_main.home() method")
-<<<<<<< HEAD
     connectManager = requests.get('http://172.17.0.1:5000/heartbeat')
     print(f"Result of request to Manager/Heartbeat: {connectManager}")
 
@@ -57,8 +52,6 @@ def home():
     print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
     print(json.dumps(connectMoreManager.json()))
     
-=======
-    # curl to manager localhost, this is the page where we will interact with the manager
     #172.17.0.1 is the "default docker bridge link", required for the local connectivity
     #between containers: https://github.com/HTTP-APIs/hydra-python-agent/issues/104
     connectManager = requests.get('http://172.17.0.1:5000/heartbeat')
@@ -68,7 +61,6 @@ def home():
     print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
     print(json.dumps(connectMoreManager.json()))
 
->>>>>>> 435ec74bb09710add59a697155351c098706ca1b
     return render_template("home.html")
 
 
@@ -95,7 +87,7 @@ def index():
 
         fname = secure_filename(f.filename)
 
-        # proof of concept, save to local dir
+        # proof of concept, save to staging 'launchpad' dir
         f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
         #f.save(fname)
 
@@ -124,7 +116,7 @@ def index():
         db2.session.add(upload)
         db2.session.commit()
         """
-        #modify return statement to redirect back to home.html
+        #TODO: modify return statement to redirect back to home.html
         return f'Uploaded: {f.filename}'
 
     elif request.method == 'GET':
