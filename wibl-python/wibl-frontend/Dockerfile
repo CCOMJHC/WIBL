@@ -14,6 +14,9 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 RUN pip install .
 
+#install requests toolbelt
+RUN pip install requests-toolbelt
+
 FROM builder as final
 
 EXPOSE 8000

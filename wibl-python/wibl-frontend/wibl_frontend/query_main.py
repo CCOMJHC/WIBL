@@ -1,17 +1,36 @@
 from io import BytesIO
 import os
 from flask import Flask, render_template, request, send_file, Blueprint
+from fileinput import filename
 from flask_sqlalchemy import SQLAlchemy 
 from flask_login import login_required
 import requests
 import json
 
+#from requests_toolbelt import MultipartEncoder
+from requests_toolbelt.multipart.encoder import MultipartEncoder
+
+# werkzeug utils
+from werkzeug.utils import secure_filename
+
 WEB_DATABASE_URI = os.environ.get('FRONTEND_DATABASE_URI', 'sqlite:///database.db')
 
 app = Flask(__name__) # WIBL-Manager
+
+# var for current working dir
+cwd = os.getcwd()
+
+UPLOAD_FOLDER = cwd + '/file_upload'
+
 app.config['SQLALCHEMY_DATABASE_URI'] = WEB_DATABASE_URI
+
+# configure upload folder to store files
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 #'sqlite:///db.sqlite3' obsolete
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
+
+#below line may be obsolete
 db2 = SQLAlchemy(app)
 
 query_main = Blueprint('query_main', __name__)
@@ -28,11 +47,11 @@ def home():
     print("Made it to query_main.home() method")
     # curl to manager localhost, this is the page where we will interact with the manager
     #172.17.0.1 is the "default docker bridge link", required for the local connectivity
-        #between containers: https://github.com/HTTP-APIs/hydra-python-agent/issues/104
-    connectManager = requests.get('http://host.docker.internal:5000/heartbeat')
+    #between containers: https://github.com/HTTP-APIs/hydra-python-agent/issues/104
+    connectManager = requests.get('http://172.17.0.1:5000/heartbeat')
     print(f"Result of request to Manager/Heartbeat: {connectManager}")
 
-    connectMoreManager = requests.get('http://host.docker.internal:5000/wibl/all')
+    connectMoreManager = requests.get('http://172.17.0.1:5000/wibl/all')
     print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
     print(json.dumps(connectMoreManager.json()))
 
@@ -44,20 +63,46 @@ def home():
 def index():
 
     print("made it to query_main.index() - file upload")
+    print(UPLOAD_FOLDER)
 
     if request.method == 'POST':
-        file = request.files['file']
-        print("query_main.index() - file name: " + file.filename)
 
-        fileNameStripped = os.path.splitext(file.filename)[0]
+        # check if file is actually part of the post request
+        if 'file' not in request.files:
+            flash('No file has been selected silly')
+            return redirect(request.url) # verify
 
-        print(f"File name without extension: {fileNameStripped}")
+        f = request.files['file']
 
-        url = 'http://host.docker.internal:5000/wibl/' + fileNameStripped
+        # check if a file has actually been selected
+        if f.filename == '':
+            flash('No selected file, try again')
+            return redirect(request.url) # verify
 
-        headers = {'Content-type': 'application/octet-stream'}
+        fname = secure_filename(f.filename)
 
-        fileUp = requests.post(url, headers=headers, json={'size':10.4})
+        # proof of concept, save to local dir
+        f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+        #f.save(fname)
+
+        #convertToBinaryData
+        #file = open(str(f.filename), 'rb')
+
+        payload = MultipartEncoder({'uploadedFile': (fname, f, 'application/octet-stream')})
+        print("query_main.index() - file name: " + fname)
+
+        #fileNameStripped = os.path.splitext(fname)[0]
+
+        #print(f"File name without extension: {fileNameStripped}")
+
+        url = 'http://172.17.0.1:5000/wibl/' + fname #+ fileNameStripped
+
+        #headers = {'Content-type': 'application/octet-stream'}
+
+        fileUp = requests.post(url, data=payload, headers={'Content-Type': payload.content_type, 'Accept':payload.content_type}, json={'size':10.4}) 
+
+        #json={'size':10.4})
+
         print(f"File Upload Status: {fileUp}")
 
         """
@@ -65,10 +110,9 @@ def index():
         db2.session.add(upload)
         db2.session.commit()
         """
+        #modify return statement to redirect back to home.html
+        return f'Uploaded: {f.filename}'
 
-        
-
-        return f'Uploaded: {file.filename}'
     elif request.method == 'GET':
         upload_id = request.args.get('upload_id')
         if upload_id:
@@ -82,8 +126,6 @@ def index():
 
         
     return render_template('home.html')
-
-
 
 @query_main.route('/download/<upload_id>')
 @login_required
