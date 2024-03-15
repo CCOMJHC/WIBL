@@ -4,8 +4,12 @@ from flask import Flask, render_template, request, send_file, Blueprint
 from fileinput import filename
 from flask_sqlalchemy import SQLAlchemy 
 from flask_login import login_required
+<<<<<<< HEAD
+import subprocess
+=======
 import requests
 import json
+>>>>>>> 435ec74bb09710add59a697155351c098706ca1b
 
 #from requests_toolbelt import MultipartEncoder
 from requests_toolbelt.multipart.encoder import MultipartEncoder
@@ -45,6 +49,15 @@ class Upload(db2.Model):
 @login_required
 def home():
     print("Made it to query_main.home() method")
+<<<<<<< HEAD
+    connectManager = requests.get('http://172.17.0.1:5000/heartbeat')
+    print(f"Result of request to Manager/Heartbeat: {connectManager}")
+
+    connectMoreManager = requests.get('http://172.17.0.1:5000/wibl/all')
+    print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
+    print(json.dumps(connectMoreManager.json()))
+    
+=======
     # curl to manager localhost, this is the page where we will interact with the manager
     #172.17.0.1 is the "default docker bridge link", required for the local connectivity
     #between containers: https://github.com/HTTP-APIs/hydra-python-agent/issues/104
@@ -55,6 +68,7 @@ def home():
     print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
     print(json.dumps(connectMoreManager.json()))
 
+>>>>>>> 435ec74bb09710add59a697155351c098706ca1b
     return render_template("home.html")
 
 
@@ -131,4 +145,23 @@ def index():
 @login_required
 def download(upload_id):
     upload = Upload.query.filter_by(id=upload_id).first()
+    result = subprocess.run(["dir"], shell=True, capture_output=True, text=True)
+
+    print(result.stdout)
     return send_file(BytesIO(upload.data), attachment_filename=upload.filename, as_attachment=True)
+
+
+import subprocess
+
+# Your curl command
+curl_command = 'curl -s "http://wibl-manager-ecs-elb-3a50ec1c9bfc0dee.elb.us-east-2.amazonaws.com/wibl/D57112C4-6F5C-4398-A920-B3D51A6AEAFB.wibl"'
+
+try:
+    # Run the curl command
+    result = subprocess.check_output(curl_command, shell=True, universal_newlines=True)
+    
+    # Print the result
+    print(result)
+except subprocess.CalledProcessError as e:
+    # Handle any errors
+    print(f"Error: {e}")
