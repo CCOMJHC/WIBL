@@ -6,6 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import login_required
 import requests
 import json
+import uuid
 
 #from requests_toolbelt import MultipartEncoder
 from requests_toolbelt.multipart.encoder import MultipartEncoder
@@ -73,18 +74,22 @@ def index():
 
     if request.method == 'POST':
 
+        # this method doesnt actually put the wibl file in? rather initializes?
+
         # check if file is actually part of the post request
+        """
         if 'file' not in request.files:
             flash('No file has been selected silly')
             return redirect(request.url) # verify
-
+        """
         f = request.files['file']
 
+        """
         # check if a file has actually been selected
         if f.filename == '':
             flash('No selected file, try again')
             return redirect(request.url) # verify
-
+        """
         fname = secure_filename(f.filename)
 
         # proof of concept, save to staging 'launchpad' dir
@@ -93,21 +98,23 @@ def index():
 
         #convertToBinaryData
         #file = open(str(f.filename), 'rb')
-
-        payload = MultipartEncoder({'uploadedFile': (fname, f, 'application/octet-stream')})
+        
+        """
+        payload = MultipartEncoder({'uploadedFile': (fname, f, 'application/json')})
+        #multipart/form-data
+        #application/octet-stream
         print("query_main.index() - file name: " + fname)
-
-        #fileNameStripped = os.path.splitext(fname)[0]
+        """
+        fileNameStripped = os.path.splitext(fname)[0]
 
         #print(f"File name without extension: {fileNameStripped}")
-
-        url = 'http://172.17.0.1:5000/wibl/' + fname #+ fileNameStripped
+        url = 'http://172.17.0.1:5000/wibl/' + fileNameStripped  #fname
 
         #headers = {'Content-type': 'application/octet-stream'}
 
-        fileUp = requests.post(url, data=payload, headers={'Content-Type': payload.content_type, 'Accept':payload.content_type}, json={'size':10.4}) 
+        #fileUp = requests.post(url, data=payload, headers={'Content-Type': payload.content_type, 'Accept':payload.content_type}, json={'size':10.4}) 
 
-        #json={'size':10.4})
+        fileUp = requests.post(url, json={'size':10.4})
 
         print(f"File Upload Status: {fileUp}")
 
@@ -137,23 +144,4 @@ def index():
 @login_required
 def download(upload_id):
     upload = Upload.query.filter_by(id=upload_id).first()
-    result = subprocess.run(["dir"], shell=True, capture_output=True, text=True)
-
-    print(result.stdout)
     return send_file(BytesIO(upload.data), attachment_filename=upload.filename, as_attachment=True)
-
-
-import subprocess
-
-# Your curl command
-curl_command = 'curl -s "http://wibl-manager-ecs-elb-3a50ec1c9bfc0dee.elb.us-east-2.amazonaws.com/wibl/D57112C4-6F5C-4398-A920-B3D51A6AEAFB.wibl"'
-
-try:
-    # Run the curl command
-    result = subprocess.check_output(curl_command, shell=True, universal_newlines=True)
-    
-    # Print the result
-    print(result)
-except subprocess.CalledProcessError as e:
-    # Handle any errors
-    print(f"Error: {e}")
