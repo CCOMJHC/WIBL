@@ -58,7 +58,7 @@ def home():
     print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
     print(json.dumps(connectMoreManager.json()))
 
-    connectManagerGeoJson = requests.get('http://172.17.0.1:500/geojson/all')
+    connectManagerGeoJson = requests.get('http://172.17.0.1:5000/geojson/all')
     print(f"Result of request to Manager/geojson/all: {connectManagerGeoJson}")
     print(json.dumps(connectManagerGeoJson.json()))
     
