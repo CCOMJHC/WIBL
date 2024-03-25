@@ -21,7 +21,7 @@ app = Flask(__name__) # WIBL-Manager
 # var for current working dir
 cwd = os.getcwd()
 
-UPLOAD_FOLDER = cwd + '/file_upload'
+UPLOAD_FOLDER = cwd + '/file_upload/'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = WEB_DATABASE_URI
 
@@ -66,7 +66,7 @@ def home():
     return render_template("home.html")
 
 
-@query_main.route('/home', methods=['GET', 'POST'])
+@query_main.route('/home', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @login_required
 def index():
 
@@ -93,40 +93,46 @@ def index():
         """
         fname = secure_filename(f.filename)
 
+
         # proof of concept, save to staging 'launchpad' dir
         f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
         #f.save(fname)
 
+        """
+        with open(UPLOAD_FOLDER + fname, 'r') as thafile:
+            data = json.load(thafile)
+        print(data)
+        """
         #convertToBinaryData
         #file = open(str(f.filename), 'rb')
         
-        """
-        payload = MultipartEncoder({'uploadedFile': (fname, f, 'application/json')})
+        payload = MultipartEncoder({'uploadedFile': (fname, f, 'application/octet-stream')})
         #multipart/form-data
         #application/octet-stream
         print("query_main.index() - file name: " + fname)
-        """
         fileNameStripped = os.path.splitext(fname)[0]
+
+        #TODO: Need to check if wibl or geojson
 
         #print(f"File name without extension: {fileNameStripped}")
         url = 'http://172.17.0.1:5000/wibl/' + fileNameStripped  #fname
 
-        #headers = {'Content-type': 'application/octet-stream'}
+        headers = {'Content-type': 'application/octet-stream'}
 
-        #fileUp = requests.post(url, data=payload, headers={'Content-Type': payload.content_type, 'Accept':payload.content_type}, json={'size':10.4}) 
-
+        # post request initializes file, does not need payload or data. doesnt even transfer a file, just initializes space in the DB
         fileUp = requests.post(url, json={'size':10.4})
 
         print(f"File Upload Status: {fileUp}")
-
+        # prototype put request, results in 415 error. File allegedly should be parsed by the manager, and arguments are automatically updated. Or, we could try to parse the file ourselves then manually send the JSON args in the payload
         """
-        upload = Upload(filename=file.filename, data=file.read())
-        db2.session.add(upload)
-        db2.session.commit()
+        fileUp = requests.put(url, data=payload, headers={'Content-Type': payload.content_type, 'Accept':payload.content_type}) 
+
+        print(f"File Upload Status: {fileUp}")
         """
         #TODO: modify return statement to redirect back to home.html
         return f'Uploaded: {f.filename}'
 
+    #TODO: needs work
     elif request.method == 'GET':
         upload_id = request.args.get('upload_id')
         if upload_id:
@@ -138,7 +144,49 @@ def index():
            else:
                 return "File not found."
 
+    # currently does not get recognized, need to figure out how to execute put request, either thru forms or alternative way
+    elif request.method == 'PUT':
+        f = request.files['file']
+
+        """
+        # check if a file has actually been selected
+        if f.filename == '':
+            flash('No selected file, try again')
+            return redirect(request.url) # verify
+        """
+        fname = secure_filename(f.filename)
+
+        # proof of concept, save to staging 'launchpad' dir
+        f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+        #f.save(fname)
+
+        #convertToBinaryData
+        #file = open(str(f.filename), 'rb')
         
+        payload = MultipartEncoder({'uploadedFile': (fname, f, 'application/octet-stream')})
+        #multipart/form-data
+        #application/octet-stream
+        print("query_main.index() - file name: " + fname)
+        fileNameStripped = os.path.splitext(fname)[0]
+
+        # Need to check if wibl or geojson
+
+        #print(f"File name without extension: {fileNameStripped}")
+        url = 'http://172.17.0.1:5000/wibl/' + fileNameStripped  #fname
+
+        headers = {'Content-type': 'application/octet-stream'}
+
+        fileUp = requests.put(url, data=payload, headers={'Content-Type': payload.content_type, 'Accept':payload.content_type}) 
+
+        #fileUp = requests.post(url, json={'size':10.4})
+
+        print(f"File Update Status: {fileUp}")
+
+        #TODO: modify return statement to redirect back to home.html
+        return f'Uploaded: {f.filename}'
+
+
+
     return render_template('home.html')
 
 @query_main.route('/download/<upload_id>')
