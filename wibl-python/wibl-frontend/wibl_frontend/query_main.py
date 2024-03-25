@@ -46,21 +46,22 @@ class Upload(db2.Model):
 @login_required
 def home():
     print("Made it to query_main.home() method")
-    connectManager = requests.get('http://172.17.0.1:5000/heartbeat')
-    print(f"Result of request to Manager/Heartbeat: {connectManager}")
 
-    connectMoreManager = requests.get('http://172.17.0.1:5000/wibl/all')
-    print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
-    print(json.dumps(connectMoreManager.json()))
-    
+
     #172.17.0.1 is the "default docker bridge link", required for the local connectivity
     #between containers: https://github.com/HTTP-APIs/hydra-python-agent/issues/104
+    # series of GET checks to ensure connectivity
     connectManager = requests.get('http://172.17.0.1:5000/heartbeat')
     print(f"Result of request to Manager/Heartbeat: {connectManager}")
 
     connectMoreManager = requests.get('http://172.17.0.1:5000/wibl/all')
     print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
     print(json.dumps(connectMoreManager.json()))
+
+    connectManagerGeoJson = requests.get('http://172.17.0.1:500/geojson/all')
+    print(f"Result of request to Manager/geojson/all: {connectManagerGeoJson}")
+    print(json.dumps(connectManagerGeoJson.json()))
+    
 
     return render_template("home.html")
 
