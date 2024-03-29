@@ -164,46 +164,18 @@ def index():
            else:
                 return "File not found."
 
-    # currently does not get recognized, need to figure out how to execute put request, either thru forms or alternative way
     elif request.method == 'PUT':
-        f = request.files['file']
+        print("IN PUT FUNCTION")
 
-        """
-        # check if a file has actually been selected
-        if f.filename == '':
-            flash('No selected file, try again')
-            return redirect(request.url) # verify
-        """
-        fname = secure_filename(f.filename)
+        fileName = request.get_data().decode()
+        print(f"RETURNED STRING: {fileName}")
 
-        # proof of concept, save to staging 'launchpad' dir
-        f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
-        #f.save(fname)
+        url = 'http://172.17.0.1:5000/wibl/' + fileName
+        filePut = requests.put(url, json={'logger':'Logger A', 'platform': 'USS Tallship'})
+        print(f"File Update Status: {filePut}")
 
-        #convertToBinaryData
-        #file = open(str(f.filename), 'rb')
-        
-        payload = MultipartEncoder({'uploadedFile': (fname, f, 'application/octet-stream')})
-        #multipart/form-data
-        print("query_main.index() - file name: " + fname)
-        fileNameStripped = os.path.splitext(fname)[0]
+        return ''
 
-        # Need to check if wibl or geojson
-
-        #print(f"File name without extension: {fileNameStripped}")
-        url = 'http://172.17.0.1:5000/wibl/' + fileNameStripped  #fname
-
-        headers = {'Content-type': 'application/octet-stream'}
-
-        fileUp = requests.put(url, data=payload, headers={'Content-Type': payload.content_type, 'Accept':payload.content_type}) 
-
-        #fileUp = requests.post(url, json={'size':10.4})
-
-        print(f"File Update Status: {fileUp}")
-
-        #TODO: modify return statement to redirect back to home.html
-        return f'Uploaded: {f.filename}'
-    
     #Delete Method
     elif request.method == "DELETE":
         print("IN DELETE FUNCTION")
@@ -213,7 +185,7 @@ def index():
 
         url = 'http://172.17.0.1:5000/wibl/' + fileName
         fileDelete = requests.delete(url)
-        print(f"File Update Status: {fileDelete}")
+        print(f"File Delete Status: {fileDelete}")
 
         return ''
 

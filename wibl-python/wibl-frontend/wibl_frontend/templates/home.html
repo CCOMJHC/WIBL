@@ -39,26 +39,30 @@
 
 	<br>
 
-	<!-- File Query Form -->
-        <form method="put" action="/home"  enctype="multipart/form-data">
-	    <input type="hidden" name="_method" value="put" />
-            <label for="upload_id">Update Metadata File</label>
-            <input type="file" name="file">
-            <button type="submit">Update</button>
-        </form>
+	<div>
+		<label for="put_id">Enter File Name</label>
+		<input type="text" name="filePut" id="userPut">
+		<button id="filePut">Update File</button>
+	</div>
+	
+	<script defer>
+	document.getElementById('filePut').onclick = function deleteFile() {
+	  fileID = document.getElementById('userPut').value;
+	  fetch('', {
+            method: 'PUT',
+	    headers: {
+	    	"Content-Type": "text/plain"
+		},
+		body: fileID
+                });
+	}
+	</script>
 
-	<br>
-	<!-- File Delete Form -->
-        <form method="post" action="/home"  enctype="multipart/form-data">
-	    <input type="hidden" name="_method" value="delete" />
-            <label for="upload_id">Delete Metadata File</label>
-            <input type="file" name="file">
-            <button type="submit">Update</button>
-        </form>
 
 	<br>
 
 	<div>
+		<label for="delete_id">Enter File Name</label>
 		<input type="text" name="fileInput" id="userInput">
 		<button id="fileInput">Delete File</button>
 	</div>
@@ -75,30 +79,6 @@
                 });
 	}
 	</script>
-
-	<!-- File Upload Form -->
-	<form method="post" action="/home" enctype="multipart/form-data">
-	    <input type="file" name="file" > <!-- accept="application/*"-->
-            <button type="submit">Initialize GeoJson File</button>
-        </form>
-
-	<br>
-
-        <!-- File Query Form -->
-        <form method="get" action="/download"  enctype="multipart/form-data">
-            <label for="upload_id">Enter Upload ID for GeoJSON File:</label>
-            <input type="text" name="upload_id" required>
-            <button type="submit">Query</button>
-        </form>
-
-	<br>
-	<!-- File Query Form -->
-        <form method="put" action="/home"  enctype="multipart/form-data">
-	    <input type="hidden" name="_method" value="put" />
-            <label for="upload_id">Update GeoJSON File</label>
-            <input type="file" name="file">
-            <button type="submit">Update</button>
-        </form>
 
     </div>
 </body>
