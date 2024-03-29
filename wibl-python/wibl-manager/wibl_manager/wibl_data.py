@@ -234,6 +234,12 @@ class WIBLData(Resource):
         :rtype:         int   The marshalling decorator should convert to JSON-serliasable form.
         
         """
+
+        if fileid == 'all':
+            db.session.query(WIBLDataModel).delete()
+            db.session.commit()   
+            return ReturnCodes.RECORD_DELETED.value
+        
         wibl_file = WIBLDataModel.query.filter_by(fileid=fileid).first()
         if not wibl_file:
             abort(ReturnCodes.FILE_NOT_FOUND.value, description='That WIBL file does not exist in the database, and therefore cannot be deleted.')
