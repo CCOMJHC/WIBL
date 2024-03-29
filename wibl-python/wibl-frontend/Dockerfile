@@ -17,6 +17,9 @@ RUN pip install .
 #install requests toolbelt
 RUN pip install requests-toolbelt
 
+#install flask-cors
+RUN pip install -U flask-cors
+
 FROM builder as final
 
 EXPOSE 8000

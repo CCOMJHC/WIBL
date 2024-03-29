@@ -38,6 +38,7 @@
         </form>
 
 	<br>
+
 	<!-- File Query Form -->
         <form method="put" action="/home"  enctype="multipart/form-data">
 	    <input type="hidden" name="_method" value="put" />
@@ -47,6 +48,33 @@
         </form>
 
 	<br>
+	<!-- File Delete Form -->
+        <form method="post" action="/home"  enctype="multipart/form-data">
+	    <input type="hidden" name="_method" value="delete" />
+            <label for="upload_id">Delete Metadata File</label>
+            <input type="file" name="file">
+            <button type="submit">Update</button>
+        </form>
+
+	<br>
+
+	<div>
+		<input type="text" name="fileInput" id="userInput">
+		<button id="fileInput">Delete File</button>
+	</div>
+	
+	<script defer>
+	document.getElementById('fileInput').onclick = function deleteFile() {
+	  fileID = document.getElementById('userInput').value;
+	  fetch('', {
+            method: 'DELETE',
+	    headers: {
+	    	"Content-Type": "text/plain"
+		},
+		body: fileID
+                });
+	}
+	</script>
 
 	<!-- File Upload Form -->
 	<form method="post" action="/home" enctype="multipart/form-data">

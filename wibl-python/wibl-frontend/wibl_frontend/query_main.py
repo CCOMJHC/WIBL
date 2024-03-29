@@ -1,12 +1,14 @@
 from io import BytesIO
 import os
 from flask import Flask, render_template, request, send_file, Blueprint
+from flask_cors import CORS, cross_origin
 from fileinput import filename
 from flask_sqlalchemy import SQLAlchemy 
 from flask_login import login_required
 import requests
 import json
 import uuid
+
 
 #from requests_toolbelt import MultipartEncoder
 from requests_toolbelt.multipart.encoder import MultipartEncoder
@@ -18,7 +20,11 @@ WEB_DATABASE_URI = os.environ.get('FRONTEND_DATABASE_URI', 'sqlite:///database.d
 
 app = Flask(__name__) # WIBL-Manager
 
+# enable cors
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 # var for current working dir
+
 cwd = os.getcwd()
 
 UPLOAD_FOLDER = cwd + '/file_upload/'
@@ -43,6 +49,7 @@ class Upload(db2.Model):
     data = db2.Column(db2.LargeBinary)
 
 @query_main.route('/home')
+@cross_origin(origin='*')
 @login_required
 def home():
     print("Made it to query_main.home() method")
@@ -67,6 +74,7 @@ def home():
 
 
 @query_main.route('/home', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@cross_origin(origin='*')
 @login_required
 def index():
 
@@ -93,7 +101,6 @@ def index():
         """
         fname = secure_filename(f.filename)
 
-
         # proof of concept, save to staging 'launchpad' dir
         f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
         #f.save(fname)
@@ -117,25 +124,38 @@ def index():
         #print(f"File name without extension: {fileNameStripped}")
         url = 'http://172.17.0.1:5000/wibl/' + fileNameStripped  #fname
 
-        headers = {'Content-type': 'application/octet-stream'}
+        #headers = {'Content-type': 'application/octet-stream'}
 
         # post request initializes file, does not need payload or data. doesnt even transfer a file, just initializes space in the DB
         fileUp = requests.post(url, json={'size':10.4})
 
-        print(f"File Upload Status: {fileUp}")
+        print(f"File Post Status: {fileUp}")
+        """
         # prototype put request, results in 415 error. File allegedly should be parsed by the manager, and arguments are automatically updated. Or, we could try to parse the file ourselves then manually send the JSON args in the payload
-        """
-        fileUp = requests.put(url, data=payload, headers={'Content-Type': payload.content_type, 'Accept':payload.content_type}) 
+        fileUp = requests.put(url, json={'logger':'Logger A'})
+        #fileUp = requests.put(url, data=payload, headers={'Content-Type': payload.content_type, 'Accept':payload.content_type}) 
 
-        print(f"File Upload Status: {fileUp}")
-        """
+        print(f"File Put Status: {fileUp}")
         #TODO: modify return statement to redirect back to home.html
+
+        fileUp = requests.delete(url)
+        print(f"File Delete Status: {fileUp}")
+        """
         return f'Uploaded: {f.filename}'
 
     #TODO: needs work
     elif request.method == 'GET':
         upload_id = request.args.get('upload_id')
+
+        print(f"UPLOAD ID: {upload_id}")
         if upload_id:
+
+           url = 'http://172.17.0.1:5000/wibl/' + upload_id
+
+           fileGet = requests.get(url)
+           print(json.dumps(fileGet.json()))
+           print(f"File Get Status: {fileGet}")
+
            upload = Upload.query.filter_by(id=upload_id).first()
 
            if upload:
@@ -165,7 +185,6 @@ def index():
         
         payload = MultipartEncoder({'uploadedFile': (fname, f, 'application/octet-stream')})
         #multipart/form-data
-        #application/octet-stream
         print("query_main.index() - file name: " + fname)
         fileNameStripped = os.path.splitext(fname)[0]
 
@@ -184,8 +203,19 @@ def index():
 
         #TODO: modify return statement to redirect back to home.html
         return f'Uploaded: {f.filename}'
+    
+    #Delete Method
+    elif request.method == "DELETE":
+        print("IN DELETE FUNCTION")
 
+        fileName = request.get_data().decode()
+        print(f"RETURNED STRING: {fileName}")
 
+        url = 'http://172.17.0.1:5000/wibl/' + fileName
+        fileDelete = requests.delete(url)
+        print(f"File Update Status: {fileDelete}")
+
+        return ''
 
     return render_template('home.html')
 
