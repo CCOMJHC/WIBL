@@ -144,7 +144,10 @@ def index():
         return f'Uploaded: {f.filename}'
 
     #TODO: needs work
-    elif request.method == 'GET':
+    if request.method == 'GET':
+
+        print("MADE IT TO GET METHOD")
+
         upload_id = request.args.get('upload_id')
 
         print(f"UPLOAD ID: {upload_id}")
@@ -155,7 +158,7 @@ def index():
            fileGet = requests.get(url)
            print(json.dumps(fileGet.json()))
            print(f"File Get Status: {fileGet}")
-
+           """
            upload = Upload.query.filter_by(id=upload_id).first()
 
            if upload:
@@ -163,8 +166,10 @@ def index():
                return send_file(BytesIO(upload.data), attachment_filename=upload.filename, as_attachment=True)
            else:
                 return "File not found."
+           """
 
-    elif request.method == 'PUT':
+
+    if request.method == 'PUT':
         print("IN PUT FUNCTION")
 
         fileName = request.get_data().decode()
@@ -177,7 +182,7 @@ def index():
         return ''
 
     #Delete Method
-    elif request.method == "DELETE":
+    if request.method == "DELETE":
         print("IN DELETE FUNCTION")
 
         fileName = request.get_data().decode()
@@ -191,8 +196,26 @@ def index():
 
     return render_template('home.html')
 
-@query_main.route('/download/<upload_id>')
+@query_main.route('/download')
 @login_required
-def download(upload_id):
+def download():
+    #arg upload_id
+    """
     upload = Upload.query.filter_by(id=upload_id).first()
     return send_file(BytesIO(upload.data), attachment_filename=upload.filename, as_attachment=True)
+    """
+    print("MADE IT TO GET METHOD")
+
+    upload_id = request.args.get('upload_id')
+
+    print(f"UPLOAD ID: {upload_id}")
+
+    if upload_id:
+
+       url = 'http://172.17.0.1:5000/wibl/' + upload_id
+
+       fileGet = requests.get(url)
+       print(json.dumps(fileGet.json()))
+       print(f"File Get Status: {fileGet}")
+
+    return 'File Downloaded'
