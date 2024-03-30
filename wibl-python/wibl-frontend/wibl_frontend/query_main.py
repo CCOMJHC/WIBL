@@ -102,7 +102,7 @@ def index():
         fname = secure_filename(f.filename)
 
         # proof of concept, save to staging 'launchpad' dir
-        f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+        #f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
         #f.save(fname)
 
         """
