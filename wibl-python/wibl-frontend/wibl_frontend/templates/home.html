@@ -21,12 +21,27 @@
 <body>
     <div class="form-container">
         <h1>Mock Gui App: Test</h1>
-        
-        <!-- File Upload Form -->
-	<form method="post" action="/home" enctype="multipart/form-data">
-	    <input type="file" name="file" > <!-- accept="application/*"-->
-            <button type="submit">Initialize Metadata File</button>
-        </form>
+
+        <div> 
+	    <label for="post_id">Post a File Test</label>
+	    <input type="text" name="filePost" id="userPost">
+            <button id="filePost">Initialize Metadata File</button>
+	</div>
+
+	<script defer>
+        document.getElementById('filePost').onclick = function postFile() {
+          fileID = document.getElementById('userPost').value;
+          fetch('', {
+            method: 'POST',
+	    redirect: 'follow',
+            headers: {
+                "Content-Type": "text/plain"
+                },
+                body: fileID
+                });
+        }
+        </script>
+
 
         <br>
 
@@ -46,10 +61,11 @@
 	</div>
 	
 	<script defer>
-	document.getElementById('filePut').onclick = function deleteFile() {
+	document.getElementById('filePut').onclick = function putFile() {
 	  fileID = document.getElementById('userPut').value;
 	  fetch('', {
             method: 'PUT',
+	    redirect: 'follow',
 	    headers: {
 	    	"Content-Type": "text/plain"
 		},
@@ -72,6 +88,7 @@
 	  fileID = document.getElementById('userInput').value;
 	  fetch('', {
             method: 'DELETE',
+	    redirect: 'follow',
 	    headers: {
 	    	"Content-Type": "text/plain"
 		},
