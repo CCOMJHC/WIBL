@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<style>
+  table, th, td {
+  border:1px solid black;
+  }
+</style>
+<head>
+</head>
+ <body>
+   <h1 class="logo">Results:</h1>
+
+   <!-- File Query Form -->
+
+   <form method="get" action="/download" enctype="multipart/form-data">
+
+    <label for="upload_id">Enter Upload ID for Metadata File (use 'all' to view all entries):</label>
+    <input type="text" name="upload_id" required>
+
+    <label for="loggers">Choose a logger to view:</label>
+    <select name="loggers" id="loggers" multiple>
+
+      {% for logger, logger_val in loggers %}
+        <option value="{{ logger }}">{{ logger }}  {{ logger_val }} Files(s)</option>
+      {% endfor %}
+
+    </select>
+    <br>
+    <input type="submit" value="Submit Filters">
+   </form>
+
+    <table>
+      <tr>
+        <td>File Name</td>
+        <td>Logger</td>
+        <td>Vessel</td>
+        <td>Size</td>
+        <td>Soundings</td>
+        <td>Observations</td>
+        <td>Start Time</td>
+        <td>End Time</td>
+      </tr>
+      {% for entry in data %}
+        <tr>
+          <td>{{entry.fileid}}</td>
+          <td>{{entry.logger}}</td>
+          <td>{{entry.platform}}</td>
+          <td>{{entry.size}}</td>
+          <td>{{entry.soundings}}</td>
+          <td>{{entry.observations}}</td>
+          <td>{{entry.starttime}}</td>
+          <td>{{entry.endtime}}</td>
+        </tr>
+      {% endfor %}
+    </table>
+
+ </body>
+</html>
