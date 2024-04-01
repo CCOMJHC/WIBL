@@ -182,4 +182,31 @@ def download():
     print(json.dumps(fileGet.json()))
     print(f"File Get Status: {fileGet}")
 
-    return f'File Downloaded {json.dumps(fileGet.json())}'
+    #return f'File Downloaded {json.dumps(fileGet.json())}'
+    fileGet = requests.get(url)
+    #should return some sort of list
+    json_output = fileGet.json()
+    print(json_output)
+    #https://stackoverflow.com/questions/46831044/using-jinja2-templates-to-display-json
+    print(f"File Get Status: {fileGet}")
+
+    loggers = request.args.get('loggers')
+    if loggers:
+        print(loggers)
+
+        #getting unique loggers (and other attributes?) from the returned json.
+        #key is logger, value is # occurances
+        unqiue_loggers = {}
+        for x in json_output:
+            if x['logger'] not in unqiue_loggers:
+            unqiue_loggers[x['logger']] = 1
+        else:
+            unqiue_loggers[x['logger']] = unqiue_loggers.get(x['logger']) + 1
+        
+
+        unqiue_loggers_output = unqiue_loggers.items()
+        return render_template('display_json.html', 
+                              loggers=unqiue_loggers_output,data=json_output)
+        
+    else:
+        return render_template("home.html")
