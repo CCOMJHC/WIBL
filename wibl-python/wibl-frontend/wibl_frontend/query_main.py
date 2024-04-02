@@ -195,11 +195,12 @@ def download():
         print(loggers)
 
         #getting unique loggers (and other attributes?) from the returned json.
+        #haha unqiue
         #key is logger, value is # occurances
         unqiue_loggers = {}
         for x in json_output:
             if x['logger'] not in unqiue_loggers:
-            unqiue_loggers[x['logger']] = 1
+                unqiue_loggers[x['logger']] = 1
         else:
             unqiue_loggers[x['logger']] = unqiue_loggers.get(x['logger']) + 1
         
