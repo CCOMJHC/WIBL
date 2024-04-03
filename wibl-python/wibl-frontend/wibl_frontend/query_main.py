@@ -181,9 +181,7 @@ def download():
     fileGet = requests.get(url)
     print(json.dumps(fileGet.json()))
     print(f"File Get Status: {fileGet}")
-
-    #return f'File Downloaded {json.dumps(fileGet.json())}'
-    fileGet = requests.get(url)
+    
     #should return some sort of list
     json_output = fileGet.json()
     print(json_output)
