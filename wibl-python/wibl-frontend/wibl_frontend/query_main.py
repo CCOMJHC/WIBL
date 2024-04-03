@@ -176,12 +176,11 @@ def download():
     elif upload_id.endswith('.geojson'):
        url = url + 'geojson/' + upload_id
     else:
-        url += upload_id
+        url += 'wibl/' + upload_id
 
     fileGet = requests.get(url)
-    print(json.dumps(fileGet.json()))
     print(f"File Get Status: {fileGet}")
-    
+
     #should return some sort of list
     json_output = fileGet.json()
     print(json_output)
