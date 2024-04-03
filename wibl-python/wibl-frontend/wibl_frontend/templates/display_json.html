@@ -31,6 +31,7 @@
 
     <table>
       <tr>
+	<td>Delete?</td>
         <td>File Name</td>
         <td>Logger</td>
         <td>Vessel</td>
@@ -40,8 +41,9 @@
         <td>Start Time</td>
         <td>End Time</td>
       </tr>
-      {% for entry in data %}
+	{% for entry in data %}
         <tr>
+	  <td><input type='checkbox' name="Delete?"></td>
           <td>{{entry.fileid}}</td>
           <td>{{entry.logger}}</td>
           <td>{{entry.platform}}</td>
@@ -51,8 +53,30 @@
           <td>{{entry.starttime}}</td>
           <td>{{entry.endtime}}</td>
         </tr>
-      {% endfor %}
+	{% endfor %}
     </table>
+
+    <button id="deleteButton">Delete Selected Files</button>
+	<script>
+		const deleteButton=document.getElementById("deleteButton");
+		deleteButton.addEventListener("click",()=>{
+		const checkboxes=
+		document.querySelectorAll("input [type='checkbox']:checked");
+		if(checkboxes.length>0){
+			const confirmDelete=confirm("Are you sure you want to delete these files?")
+			if(confirmDelete){
+				checkboxes.forEach(checkbox=>{
+					const row=checkbox.closest("tr");
+					row.remove();
+				});
+			}
+		}
+		else{
+			alert("No Files Selected.")
+		}
+		});
+	</script>
+
 
  </body>
 </html>
