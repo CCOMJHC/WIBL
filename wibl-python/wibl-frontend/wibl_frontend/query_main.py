@@ -171,6 +171,8 @@ def download():
 
     url = 'http://manager:5000/'
 
+    #TODO should not be 'getting' one file, have the request redirect straight to display_json. Should replace that download box with a button to redirect to view results/data
+
     if upload_id.endswith('.wibl'):
        url = url + 'wibl/' + upload_id
     elif upload_id.endswith('.geojson'):
@@ -178,23 +180,48 @@ def download():
     else:
         url += 'wibl/' + upload_id
 
+    json_output = [] 
     fileGet = requests.get(url)
     print(f"File Get Status: {fileGet}")
 
     #should return some sort of list
-    json_output = fileGet.json()
+
+    noWibl = "{'message': 'That WIBL file does not exist.'}"
+    noGeoJson = "{'message': 'That GeoJSON file does not exist.'}"
+
+    wiblJson = fileGet.json()
+
+    if noWibl != str(wiblJson):
+        print("Adding WIBL to form table")
+        json_output += wiblJson
+
+    #TEST append geojson output to json_output, have it reflect in forms
+    url = 'http://manager:5000/geojson/all'
+    geoJsonGet = requests.get(url)
+
+    geoJsonJson = geoJsonGet.json()
+    print(geoJsonJson)
+
+    if noGeoJson != str(geoJsonJson):
+        print("Adding geoJSON to form table")
+        json_output += geoJsonJson
+
+    print("JSON OUTPUT OF ALL ENTRIES")
     print(json_output)
+
+    # need to catch if the result is empty
+
     #https://stackoverflow.com/questions/46831044/using-jinja2-templates-to-display-json
     print(f"File Get Status: {fileGet}")
 
     loggers = request.args.get('loggers')
+    unqiue_loggers = {}
     if loggers:
         print(loggers)
 
     #getting unique loggers (and other attributes?) from the returned json.
     #haha unqiue
     #key is logger, value is # occurances
-    unqiue_loggers = {}
     for x in json_output:
         if x['logger'] not in unqiue_loggers:
             unqiue_loggers[x['logger']] = 1
