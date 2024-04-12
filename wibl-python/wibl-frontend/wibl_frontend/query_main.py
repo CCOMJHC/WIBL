@@ -165,23 +165,12 @@ def download():
     """
     print("MADE IT TO GET METHOD")
 
-    upload_id = request.args.get('upload_id')
-
-    print(f"UPLOAD ID: {upload_id}")
-
     url = 'http://manager:5000/'
 
     #TODO should not be 'getting' one file, have the request redirect straight to display_json. Should replace that download box with a button to redirect to view results/data
 
-    if upload_id.endswith('.wibl'):
-       url = url + 'wibl/' + upload_id
-    elif upload_id.endswith('.geojson'):
-       url = url + 'geojson/' + upload_id
-    else:
-        url += 'wibl/' + upload_id
-
     json_output = [] 
-    fileGet = requests.get(url)
+    fileGet = requests.get(url + 'wibl/all')
     print(f"File Get Status: {fileGet}")
 
     #should return some sort of list
@@ -196,8 +185,7 @@ def download():
         json_output += wiblJson
 
     #TEST append geojson output to json_output, have it reflect in forms
-    url = 'http://manager:5000/geojson/all'
-    geoJsonGet = requests.get(url)
+    geoJsonGet = requests.get(url + 'geojson/all')
 
     geoJsonJson = geoJsonGet.json()
     print(geoJsonJson)
