@@ -43,10 +43,7 @@
    <h1 class="logo">Results:</h1>
 
    <!-- File Query Form -->
-   <form id="deleteForm" method="POST" action="/home" enctype="multipart/form-data">
-
-    <label for="upload_id">Enter Upload ID for Metadata File (use 'all' to view all entries):</label>
-    <input type="text" name="upload_id" required>
+   <form id="queryForms" method="GET" action="/download" enctype="multipart/form-data">
 
     <label for="loggers">Choose a logger to view:</label>
     <select name="loggers" id="loggers" multiple>
@@ -58,6 +55,15 @@
     </select>
     <br>
     <input type="submit" value="Submit Filters">
+   </form>
+
+   <form id="queryFormByName" method="GET" action="/download" enctype="multipart/form-data">
+
+    <label for="upload_id">Or, Enter Upload ID for Specific Metadata File :</label>
+    <input type="text" name="upload_id" required>
+
+    <input type="submit" value="Search Name">
+
    </form>
 
     <table id="dataTable">
@@ -73,7 +79,7 @@
         <tr class="expandable-row">
           <td class="delete-checkbox"><input type='checkbox' name="fileDelete" class="fileDelete"></td>
           <td>{{entry.fileid}}</td>
-          <td>{{entry.starttime}}</td>
+          <td>{{entry.readablestarttime}}</td>
         </tr>
         <tr class="details-row">
           <td colspan="3">
@@ -83,8 +89,8 @@
               Size: {{ entry.size }}<br>
               Soundings: {{ entry.soundings }}<br>
               Observations: {{ entry.observations }}<br>
-              Start Time: {{ entry.starttime }}<br>
-              End Time: {{ entry.endtime }}<br>
+              Start Time: {{ entry.readablestarttime}}<br>
+              End Time: {{ entry.readableendtime }}<br>
             </div>
           </td>
         </tr>

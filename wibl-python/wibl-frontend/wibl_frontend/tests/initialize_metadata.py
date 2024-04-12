@@ -11,11 +11,6 @@ import requests
 import uuid
 import time, datetime, json
 
-#assume that we call this somewhere in the docker compose, and the file is already up?
-#do the post then put?
-
-
-
 def current_milli_time():
     return round(time.time() * 1000)
 
@@ -39,12 +34,6 @@ for i in range(10):
     loggerNames.append('UNHJHC-wibl-' + str(i))
 
 manager_endpoint = os.getenv('MANAGEMENT_URL', 'http://172.17.0.1:5000')
-
-"""
-def load_from_file(filename: str):
-    
-    return 0
-"""
 
 def main():
     
@@ -88,15 +77,19 @@ def main():
         'observations': 100232, 'soundings': 8023,
         'startTime': '2023-01-23T12:34:45.142',
         'endTime': '2023-01-24T01:45:23.012',
-        'status': 1
+        'status': 1 , 'message' : 'Fake file for testing'
     }
 
     json_array = []
+    geojson_array = []
     json_array.append(json_object)
 
-    for i in range(10):
+    for i in range(1000):
+
+        #this is the process for .wibl files
         file_name = 'wibl_' + str(i)
         fileid = str(uuid.uuid4())
+        fileid_wibl = fileid + '.wibl'
 
         logger = loggerNames[int(i/100)]
         platform = shipNames[int(i/100)]
@@ -113,33 +106,71 @@ def main():
         status = 1
 
         json_object = {
-            'url' : (manager_endpoint + '/wibl/' + fileid),
+            'url' : (manager_endpoint + '/wibl/' + fileid_wibl),
             'size' : (observations/10000.0),
             'logger' : logger, 'platform' : platform,
             'observations' : observations, 'soundings' : soundings,
             'startTime' : iso_startdate, 'endTime' : iso_enddate,
-            'status' : status
+            'status' : status, 'messages' : '',
         }
-        print(json_object)
+        print(json_object.__str__)
         json_array.append(json_object)
 
-        response = requests.post(manager_endpoint + '/wibl/' + fileid, json={'size': observations/10000.0})
+        response = requests.post(manager_endpoint + '/wibl/' + fileid_wibl, json={'size': observations/10000.0})
         
         if response is None:
-            print('Response from manager for post to' + manager_endpoint + '/wibl/' + fileid
+            print('Response from manager for POST to' + manager_endpoint + '/wibl/' + fileid_wibl
                   + ' was None. Aborting.')
             exit(1)
         if response.status_code != 201:
-            print('Response from manager for put to ' + manager_endpoint + '/wibl/' + fileid
+            print('Response from manager for POST to ' + manager_endpoint + '/wibl/' + fileid_wibl
                   + ' returned an unexpected value ' + response.status_code + ', expecting 201. Aborting.')
             exit(1)
 
-        response = requests.put(manager_endpoint + '/wibl/' + fileid,
+        #call to put for fileid should update 'updatetime' for metadata in server
+        response = requests.put(manager_endpoint + '/wibl/' + fileid_wibl,
                                     json=json_object)
         if response is None:
+            print('Response from manager for PUT to' + manager_endpoint + '/wibl/' + fileid_wibl
+                  + ' was None. Aborting.')
             exit(1)
         if response.status_code != 201:
-            print('Response from manager for put to ' + manager_endpoint + '/wibl/' + fileid
+            print('Response from manager for PUT to ' + manager_endpoint + '/wibl/' + fileid_wibl
+                  + ' returned an unexpected value ' + response.status_code + ', expecting 201. Aborting.')
+            exit(1)
+
+        #putting the same file into the geojson side
+        fileid_geojson = fileid +'.geojson'
+
+        json_object_geojson = {
+            'url' : (manager_endpoint + '/geojson/' + fileid_geojson),
+            'size' : (observations/10000.0),
+            'logger' : logger,
+            'observations' : observations, 'soundings' : soundings,
+            'status' : status, 'messages' : ''
+        }
+        print(json_object_geojson['url'])
+        geojson_array.append(json_object_geojson)
+
+        response = requests.post(manager_endpoint + '/geojson/' + fileid_geojson, json={'size': observations/10000.0})
+
+        if response is None:
+            print('Response from manager for POST to' + manager_endpoint + '/geojson/' + fileid_geojson
+                  + ' was None. Aborting.')
+            exit(1)
+        if response.status_code != 201:
+            print('Response from manager for POST to ' + manager_endpoint + '/geojson/' + fileid_geojson
+                  + ' returned an unexpected value ' + response.status_code + ', expecting 201. Aborting.')
+            exit(1)
+
+        response = requests.put(manager_endpoint + '/geojson/' + fileid_geojson,
+                                    json=json_object_geojson)
+        if response is None:
+            print('Response from manager for PUT to' + manager_endpoint + '/geojson/' + fileid_geojson
+                  + ' was None. Aborting.')
+            exit(1)
+        if response.status_code != 201:
+            print('Response from manager for PUT to ' + manager_endpoint + '/geojson/' + fileid_geojson
                   + ' returned an unexpected value ' + response.status_code + ', expecting 201. Aborting.')
             exit(1)
 
