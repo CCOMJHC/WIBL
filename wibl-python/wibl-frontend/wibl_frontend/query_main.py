@@ -220,3 +220,7 @@ def download():
     unqiue_loggers_output = unqiue_loggers.items()
     return render_template('display_json.html', 
                           loggers=unqiue_loggers_output,data=json_output)
+
+@query_main.route('/artifact')
+def artifact():
+    return render_template('artifact.html')

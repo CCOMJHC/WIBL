@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mock Gui App: Test</title>
+    <title>Wibl App Gui</title>
     <style>
         body {
           margin: 0;
@@ -27,7 +27,9 @@
 	    <input type="text" name="filePost" id="userPost">
             <button id="filePost">Initialize Metadata File</button>
 	</div>
-
+  <form action="/artifact" method="get">
+    <button type="submit">Go to Artifact Page</button>
+</form>
 	<script defer>
         document.getElementById('filePost').onclick = function postFile() {
           fileID = document.getElementById('userPost').value;
