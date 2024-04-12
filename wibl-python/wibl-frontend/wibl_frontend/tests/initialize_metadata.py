@@ -33,7 +33,7 @@ loggerNames = []
 for i in range(10):
     loggerNames.append('UNHJHC-wibl-' + str(i))
 
-manager_endpoint = os.getenv('MANAGEMENT_URL', 'http://172.17.0.1:5000')
+manager_endpoint = os.getenv('MANAGEMENT_URL', 'http://host.docker.internal:5000')
 
 def main():
     

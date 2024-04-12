@@ -16,6 +16,7 @@
 
         th {
             background-color: #f2f2f2;
+            white-space: nowrap; /* Prevent line breaks */
         }
 
         tr:nth-child(even) {
@@ -24,6 +25,15 @@
 
         .delete-checkbox {
             text-align: center;
+            width: 10%; /* Adjust width for Delete? column */
+        }
+
+        .file-name {
+            width: 50%; /* Adjust width for File Name column */
+        }
+
+        .date {
+            width: 40%; /* Adjust width for Date column */
         }
 
         .expandable-row {
@@ -36,6 +46,13 @@
 
         .details-row td {
             background-color: #eaeaea; /* Alternate background color for details row */
+        }
+
+        .fixed-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
         }
     </style>
 </head>
@@ -70,16 +87,16 @@
       <thead>
         <tr>
           <th class="delete-checkbox">Delete?</th>
-          <th>File Name</th>
-          <th>Date</th>
+          <th class="file-name">File Name</th>
+          <th class="date">Date</th>
         </tr>
       </thead>
       <tbody>
         {% for entry in data %}
         <tr class="expandable-row">
           <td class="delete-checkbox"><input type='checkbox' name="fileDelete" class="fileDelete"></td>
-          <td>{{entry.fileid}}</td>
-          <td>{{entry.readablestarttime}}</td>
+          <td class="file-name">{{entry.fileid}}</td>
+          <td class="date">{{entry.readablestarttime}}</td>
         </tr>
         <tr class="details-row">
           <td colspan="3">
@@ -98,7 +115,7 @@
       </tbody>
     </table>
 
-    <button id="deleteButton">Delete Selected Files</button>
+    <button id="deleteButton" class="fixed-button">Delete Selected Files</button>
 
     <script>
     const deleteButton = document.getElementById("deleteButton");
@@ -109,10 +126,10 @@
             if (confirmDelete) {
                 checkboxes.forEach(checkbox => {
                     const row = checkbox.closest("tr");
-                    const fileName = row.querySelector("td:nth-child(2)").innerText;
+                    const fileName = row.querySelector("td.file-name").innerText;
                     deleteFile(fileName);
-		    location.reload(true);
                 });
+                location.reload(); // Refresh the page after deletion
             }
         } else {
             alert("No Files Selected.");
@@ -120,13 +137,12 @@
     });
 
     const expandableRows = document.querySelectorAll(".expandable-row");
-    expandableRows.forEach((row, index) => {
-        if (index % 2 === 0) {
-            row.style.backgroundColor = "#f9f9f9"; /* Lighter color for even rows */
-        }
-        row.addEventListener("click", () => {
-            const detailsRow = row.nextElementSibling;
-            detailsRow.classList.toggle("details-row");
+    expandableRows.forEach(row => {
+        row.addEventListener("click", (event) => {
+            if (event.target.tagName !== "INPUT") { // Check if the clicked element is not an input element
+                const detailsRow = row.nextElementSibling;
+                detailsRow.classList.toggle("details-row");
+            }
         });
     });
 
@@ -141,7 +157,7 @@
         .then(response => {
             if (response.ok) {
                 // Remove the row from the table
-                const row = document.querySelector(`td:contains(${fileName})`).parentNode;
+                const row = document.querySelector(`td.file-name:contains(${fileName})`).parentNode;
                 row.parentNode.removeChild(row);
                 alert(`File ${fileName} deleted successfully.`);
             } else {
