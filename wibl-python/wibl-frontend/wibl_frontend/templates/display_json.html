@@ -111,6 +111,7 @@
                     const row = checkbox.closest("tr");
                     const fileName = row.querySelector("td:nth-child(2)").innerText;
                     deleteFile(fileName);
+		    location.reload(true);
                 });
             }
         } else {
@@ -150,6 +151,7 @@
         .catch(error => {
             console.error('Error:', error);
         });
+
     }
     </script>
  </body>
