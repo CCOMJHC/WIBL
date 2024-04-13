@@ -14,6 +14,7 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 RUN pip install .
 
+COPY wibl_frontend/templates/static static
 #install requests toolbelt
 RUN pip install requests-toolbelt
 
