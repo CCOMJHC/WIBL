@@ -1,13 +1,10 @@
-from io import BytesIO
 import os
-from flask import Flask, render_template, request, send_file, Blueprint, flash, redirect, url_for
+from flask import Flask, render_template, request, Blueprint, redirect, url_for
 from flask_cors import CORS, cross_origin
-from fileinput import filename
 from flask_sqlalchemy import SQLAlchemy 
 from flask_login import login_required
 import requests
-import json
-import uuid
+import json, datetime
 
 
 #from requests_toolbelt import MultipartEncoder
@@ -188,35 +185,73 @@ def download():
     geoJsonGet = requests.get(url + 'geojson/all')
 
     geoJsonJson = geoJsonGet.json()
-    print(geoJsonJson)
+    #print(geoJsonJson)
 
     if noGeoJson != str(geoJsonJson):
         print("Adding geoJSON to form table")
         json_output += geoJsonJson
 
     print("JSON OUTPUT OF ALL ENTRIES")
-    print(json_output)
+    #print(json_output)
+
 
     # need to catch if the result is empty
 
     #https://stackoverflow.com/questions/46831044/using-jinja2-templates-to-display-json
     print(f"File Get Status: {fileGet}")
 
-    loggers = request.args.get('loggers')
+    #if you want to query an parameter that may have  more than one argument, must convert from
+    #multidict to list
+    loggers = request.args.getlist('loggers')
     unqiue_loggers = {}
     if loggers:
         print(loggers)
+        print(type(loggers))
+        if type(loggers) is str:
+            new_loggers = []
+            new_loggers.append(loggers)
+            loggers = new_loggers
+            print(type(loggers))
 
     #getting unique loggers (and other attributes?) from the returned json.
     #haha unqiue
     #key is logger, value is # occurances
+    output_list = []
     for x in json_output:
+
         if x['logger'] not in unqiue_loggers:
             unqiue_loggers[x['logger']] = 1
         else:
             unqiue_loggers[x['logger']] = unqiue_loggers.get(x['logger']) + 1
+
+        #check to see if entry has desired logger, if not, removes it from output list
+        if loggers:
+            print(x['logger'] in loggers)
+            if (x['logger'] in loggers) == False:
+                print("removed entry")
+                continue
+
+        #add human readable time to wibl output? only wibl files have these attributes
+        if 'starttime' in x and 'endtime' in x:
+            if x['starttime'] != 'Unknown':
+                x['readablestarttime'] = datetime.datetime.fromisoformat(x['starttime']).strftime("%d %B, %Y, %H:%M:%S")
+            else:
+                x['readablestarttime'] = 'Unknown'
+            if x['endtime'] != 'Unknown':
+                x['readableendtime'] = datetime.datetime.fromisoformat(x['endtime']).strftime("%d %B, %Y, %H:%M:%S")
+            else:
+                x['readableendtime'] = 'Unknown'
+        else:
+            if x['uploadtime']:
+                x['readableuploadtime'] = datetime.datetime.fromisoformat(x['uploadtime']).strftime("%d %B, %Y, %H:%M:%S")
+            else:
+                x['readableuploadtime'] = 'Unknown'
+
+        
+        output_list.append(x)
         
 
+    print(output_list)
     unqiue_loggers_output = unqiue_loggers.items()
     return render_template('display_json.html', 
-                          loggers=unqiue_loggers_output,data=json_output)
+                          loggers=unqiue_loggers_output,data=output_list)

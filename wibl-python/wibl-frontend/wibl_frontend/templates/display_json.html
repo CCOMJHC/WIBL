@@ -96,7 +96,11 @@
         <tr class="expandable-row">
           <td class="delete-checkbox"><input type='checkbox' name="fileDelete" class="fileDelete"></td>
           <td class="file-name">{{entry.fileid}}</td>
-          <td class="date">{{entry.readablestarttime}}</td>
+            {% if entry.readablestarttime is defined %}
+                <td class="date">Start Time: {{entry.readablestarttime}}</td>
+            {% else %}
+                <td class="date">Upload Time: {{entry.readableuploadtime}}</td>
+            {% endif %}
         </tr>
         <tr class="details-row">
           <td colspan="3">
