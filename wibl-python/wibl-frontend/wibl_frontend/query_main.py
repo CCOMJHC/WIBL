@@ -164,94 +164,111 @@ def download():
 
     url = 'http://manager:5000/'
 
-    #TODO should not be 'getting' one file, have the request redirect straight to display_json. Should replace that download box with a button to redirect to view results/data
+    #TODO need to make a conditional for when use queries a specific file from display_json
+    uploadID = request.args.get('upload_id')
 
-    json_output = [] 
-    fileGet = requests.get(url + 'wibl/all')
-    print(f"File Get Status: {fileGet}")
+    if uploadID:
+        print(f"UPLOAD ID: {uploadID}")
 
-    #should return some sort of list
+        if uploadID.endswith('.wibl'):
+            url = url + 'wibl/' + uploadID
+        elif uploadID.endswith('.geojson'):
+            url = url + 'geojson/' + uploadID
 
-    noWibl = "{'message': 'That WIBL file does not exist.'}"
-    noGeoJson = "{'message': 'That GeoJSON file does not exist.'}"
+        individualGet = requests.get(url)
+        print(json.dumps(individualGet.json()))
+        print(f"File Get Status: {individualGet}")
 
-    wiblJson = fileGet.json()
+        return f'File Downloaded {json.dumps(individualGet.json())}'
 
-    if noWibl != str(wiblJson):
-        print("Adding WIBL to form table")
-        json_output += wiblJson
+    else:
 
-    #TEST append geojson output to json_output, have it reflect in forms
-    geoJsonGet = requests.get(url + 'geojson/all')
+        json_output = [] 
+        fileGet = requests.get(url + 'wibl/all')
+        print(f"File Get Status: {fileGet}")
 
-    geoJsonJson = geoJsonGet.json()
-    #print(geoJsonJson)
+        #should return some sort of list
 
-    if noGeoJson != str(geoJsonJson):
-        print("Adding geoJSON to form table")
-        json_output += geoJsonJson
+        noWibl = "{'message': 'That WIBL file does not exist.'}"
+        noGeoJson = "{'message': 'That GeoJSON file does not exist.'}"
 
-    print("JSON OUTPUT OF ALL ENTRIES")
-    #print(json_output)
+        wiblJson = fileGet.json()
+
+        if noWibl != str(wiblJson):
+            print("Adding WIBL to form table")
+            json_output += wiblJson
+
+        #TEST append geojson output to json_output, have it reflect in forms
+        geoJsonGet = requests.get(url + 'geojson/all')
+
+        geoJsonJson = geoJsonGet.json()
+        #print(geoJsonJson)
+
+        if noGeoJson != str(geoJsonJson):
+            print("Adding geoJSON to form table")
+            json_output += geoJsonJson
+
+        print("JSON OUTPUT OF ALL ENTRIES")
+        #print(json_output)
 
 
-    # need to catch if the result is empty
+        # need to catch if the result is empty
 
-    #https://stackoverflow.com/questions/46831044/using-jinja2-templates-to-display-json
-    print(f"File Get Status: {fileGet}")
+        #https://stackoverflow.com/questions/46831044/using-jinja2-templates-to-display-json
+        print(f"File Get Status: {fileGet}")
 
-    #if you want to query an parameter that may have  more than one argument, must convert from
-    #multidict to list
-    loggers = request.args.getlist('loggers')
-    unqiue_loggers = {}
-    if loggers:
-        print(loggers)
-        print(type(loggers))
-        if type(loggers) is str:
-            new_loggers = []
-            new_loggers.append(loggers)
-            loggers = new_loggers
-            print(type(loggers))
-
-    #getting unique loggers (and other attributes?) from the returned json.
-    #haha unqiue
-    #key is logger, value is # occurances
-    output_list = []
-    for x in json_output:
-
-        if x['logger'] not in unqiue_loggers:
-            unqiue_loggers[x['logger']] = 1
-        else:
-            unqiue_loggers[x['logger']] = unqiue_loggers.get(x['logger']) + 1
-
-        #check to see if entry has desired logger, if not, removes it from output list
+        #if you want to query an parameter that may have  more than one argument, must convert from
+        #multidict to list
+        loggers = request.args.getlist('loggers')
+        unqiue_loggers = {}
         if loggers:
-            print(x['logger'] in loggers)
-            if (x['logger'] in loggers) == False:
-                print("removed entry")
-                continue
+            print(loggers)
+            print(type(loggers))
+            if type(loggers) is str:
+                new_loggers = []
+                new_loggers.append(loggers)
+                loggers = new_loggers
+                print(type(loggers))
 
-        #add human readable time to wibl output? only wibl files have these attributes
-        if 'starttime' in x and 'endtime' in x:
-            if x['starttime'] != 'Unknown':
-                x['readablestarttime'] = datetime.datetime.fromisoformat(x['starttime']).strftime("%d %B, %Y, %H:%M:%S")
-            else:
-                x['readablestarttime'] = 'Unknown'
-            if x['endtime'] != 'Unknown':
-                x['readableendtime'] = datetime.datetime.fromisoformat(x['endtime']).strftime("%d %B, %Y, %H:%M:%S")
-            else:
-                x['readableendtime'] = 'Unknown'
-        else:
-            if x['uploadtime']:
-                x['readableuploadtime'] = datetime.datetime.fromisoformat(x['uploadtime']).strftime("%d %B, %Y, %H:%M:%S")
-            else:
-                x['readableuploadtime'] = 'Unknown'
+        #getting unique loggers (and other attributes?) from the returned json.
+        #haha unqiue
+        #key is logger, value is # occurances
+        output_list = []
+        for x in json_output:
 
-        
-        output_list.append(x)
-        
+            if x['logger'] not in unqiue_loggers:
+                unqiue_loggers[x['logger']] = 1
+            else:
+                unqiue_loggers[x['logger']] = unqiue_loggers.get(x['logger']) + 1
 
-    print(output_list)
-    unqiue_loggers_output = unqiue_loggers.items()
-    return render_template('display_json.html', 
-                          loggers=unqiue_loggers_output,data=output_list)
+            #check to see if entry has desired logger, if not, removes it from output list
+            if loggers:
+                print(x['logger'] in loggers)
+                if (x['logger'] in loggers) == False:
+                    print("removed entry")
+                    continue
+
+            #add human readable time to wibl output? only wibl files have these attributes
+            if 'starttime' in x and 'endtime' in x:
+                if x['starttime'] != 'Unknown':
+                    x['readablestarttime'] = datetime.datetime.fromisoformat(x['starttime']).strftime("%d %B, %Y, %H:%M:%S")
+                else:
+                    x['readablestarttime'] = 'Unknown'
+                if x['endtime'] != 'Unknown':
+                    x['readableendtime'] = datetime.datetime.fromisoformat(x['endtime']).strftime("%d %B, %Y, %H:%M:%S")
+                else:
+                    x['readableendtime'] = 'Unknown'
+            else:
+                if x['uploadtime']:
+                    x['readableuploadtime'] = datetime.datetime.fromisoformat(x['uploadtime']).strftime("%d %B, %Y, %H:%M:%S")
+                else:
+                    x['readableuploadtime'] = 'Unknown'
+
+            
+            output_list.append(x)
+            
+
+        print(output_list)
+        unqiue_loggers_output = unqiue_loggers.items()
+        return render_template('display_json.html', 
+                              loggers=unqiue_loggers_output,data=output_list)
