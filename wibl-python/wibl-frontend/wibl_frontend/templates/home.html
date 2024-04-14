@@ -20,16 +20,14 @@
 </head>
 <body>
     <div class="form-container">
-        <h1>Mock Gui App: Test</h1>
+        <h1>WIBL Web App</h1>
 
         <div> 
 	    <label for="post_id">Post a File Test</label>
 	    <input type="text" name="filePost" id="userPost">
             <button id="filePost">Initialize Metadata File</button>
 	</div>
-  <form action="/artifact" method="get">
-    <button type="submit">Go to Artifact Page</button>
-</form>
+
 	<script defer>
         document.getElementById('filePost').onclick = function postFile() {
           fileID = document.getElementById('userPost').value;
@@ -95,7 +93,13 @@
 		body: fileID
                 });
 	}
+
+
 	</script>
+    <br> 
+   <form action="/artifact" method="get">
+    <button type="submit">Go to Artifact Page</button>
+</form>
 
     </div>
 </body>
