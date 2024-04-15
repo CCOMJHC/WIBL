@@ -183,39 +183,42 @@ def download():
 
     else:
 
-        json_output = [] 
-        fileGet = requests.get(url + 'wibl/all')
-        print(f"File Get Status: {fileGet}")
+        json_output = []
 
-        #should return some sort of list
+        filetype = request.args.get('filetype')
+        if filetype:
+            print(filetype)
+        else:
+            filetype = 'both'
+            print(filetype)
 
         noWibl = "{'message': 'That WIBL file does not exist.'}"
         noGeoJson = "{'message': 'That GeoJSON file does not exist.'}"
 
-        wiblJson = fileGet.json()
+        #determine which files to retrieve
 
-        if noWibl != str(wiblJson):
-            print("Adding WIBL to form table")
-            json_output += wiblJson
+        if filetype == "both" or filetype == "wibl":
+            fileGet = requests.get(url + 'wibl/all')
+            print(f"File Get Status: {fileGet}")
+            wiblJson = fileGet.json()
+            if noWibl != str(wiblJson):
+                print("Adding WIBL to form table")
+                json_output += wiblJson
 
-        #TEST append geojson output to json_output, have it reflect in forms
-        geoJsonGet = requests.get(url + 'geojson/all')
-
-        geoJsonJson = geoJsonGet.json()
-        #print(geoJsonJson)
-
-        if noGeoJson != str(geoJsonJson):
-            print("Adding geoJSON to form table")
-            json_output += geoJsonJson
+        if filetype == "both" or filetype == "json":
+            #TEST append geojson output to json_output, have it reflect in forms
+            geoJsonGet = requests.get(url + 'geojson/all')
+            geoJsonJson = geoJsonGet.json()
+            #print(geoJsonJson)
+            if noGeoJson != str(geoJsonJson):
+                print("Adding geoJSON to form table")
+                json_output += geoJsonJson
+        
 
         print("JSON OUTPUT OF ALL ENTRIES")
         #print(json_output)
 
-
-        # need to catch if the result is empty
-
         #https://stackoverflow.com/questions/46831044/using-jinja2-templates-to-display-json
-        print(f"File Get Status: {fileGet}")
 
         #if you want to query an parameter that may have  more than one argument, must convert from
         #multidict to list
@@ -229,6 +232,10 @@ def download():
                 new_loggers.append(loggers)
                 loggers = new_loggers
                 print(type(loggers))
+
+        sorting = request.args.get('sorting')
+        if sorting:
+            print(sorting)
 
         #getting unique loggers (and other attributes?) from the returned json.
         #haha unqiue
@@ -267,8 +274,21 @@ def download():
             
             output_list.append(x)
             
+        #print("Output list before sorting:")
+        #print(output_list)
 
-        print(output_list)
+        sort_output_list = []
+
+        if sorting and sorting != 'default':
+            if sorting == 'filesizeup':
+                sort_output_list = sorted(output_list, key=lambda d: d['size'])
+            elif sorting == 'filesizedown':
+                sort_output_list = sorted(output_list, key=lambda d: d['size'], reverse=True)
+            output_list = sort_output_list
+
+        #print("Output list after sorting:")
+        #print(output_list)
+
         unqiue_loggers_output = unqiue_loggers.items()
         return render_template('display_json.html', 
                               loggers=unqiue_loggers_output,data=output_list)

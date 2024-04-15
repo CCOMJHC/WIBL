@@ -64,14 +64,32 @@
 
     <label for="loggers">Choose a logger to view:</label>
     <select name="loggers" id="loggers" multiple>
-
       {% for logger, logger_val in loggers %}
         <option value="{{ logger }}">{{ logger }}  {{ logger_val }} Files(s)</option>
       {% endfor %}
-
     </select>
+
+    <label for="filetype">Choose File Type:</label>
+    <select name="filetype" id="filetype">
+        <option value="both">Both</option>
+        <option value="wibl">WIBL (.wibl)</option>
+        <option value="json">GeoJSON (.json)</option>
+    </select>
+
+    <label for="sorting">Sort by:</label>
+    <select name="sorting" id="sorting">
+        <option value="default">Default</option>
+        <option value="filesizeup">File Size, Ascending</option>
+        <option value="filesizedown">File Size, Descending</option>
+    </select>
+
     <br>
     <input type="submit" value="Submit Filters">
+
+    <form method="get" action="/download">
+        <button type="submit">Clear Filters</button>
+    </form>
+
    </form>
 
    <form id="queryFormByName" method="GET" action="/download" enctype="multipart/form-data">
