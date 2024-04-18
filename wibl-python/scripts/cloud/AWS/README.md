@@ -82,6 +82,14 @@ will cause the conversion lambda to be invoked.
 The [vizualization lambda](../../../wibl/visualization/cloud/aws/lambda_function.py) allows multiple
 GeoJSON files stored in $STAGING_BUCKET to be combined and vizualized over GEBCO data using 
 [Generic Mapping Tools](https://www.generic-mapping-tools.org) and written to $VIZ_BUCKET. 
-vizlambdainvoke.py](../../vizlambdainvoke.py) shows how to invoke this lambda.
+The script [vizlambdainvoke.py](scripts/vizlambdainvoke.py) shows how to invoke this lambda (make sure
+to set the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables before running).
+
+When invoking the visualisation lambda, you may get the following error:
+```
+botocore.errorfactory.ResourceNotReadyException: An error occurred (ResourceNotReadyException) when calling the Invoke operation (reached max retries: 4): Resources for the function are being restored.
+```
+
+This can happen if the lambda hasn't been run in a while. Try again after a few minutes.
 
 > Note: Any service wishing to invoke this lambda will need to setup a [resources-based policy](https://docs.aws.amazon.com/lambda/latest/dg/access-control-resource-based.html).
