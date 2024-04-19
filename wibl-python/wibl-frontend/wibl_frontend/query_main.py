@@ -214,16 +214,7 @@ def download():
                 print("Adding geoJSON to form table")
                 json_output += geoJsonJson
         
-
-<<<<<<< HEAD
-    unqiue_loggers_output = unqiue_loggers.items()
-    return render_template('display_json.html', 
-                          loggers=unqiue_loggers_output,data=json_output)
-
-@query_main.route('/artifact')
-def artifact():
-    return render_template('artifact.html')
-=======
+        
         print("JSON OUTPUT OF ALL ENTRIES")
         #print(json_output)
 
@@ -301,4 +292,7 @@ def artifact():
         unqiue_loggers_output = unqiue_loggers.items()
         return render_template('display_json.html', 
                               loggers=unqiue_loggers_output,data=output_list)
->>>>>>> wibl-cs792-frontend
+
+@query_main.route('/artifact')
+def artifact():
+    return render_template('artifact.html')    
