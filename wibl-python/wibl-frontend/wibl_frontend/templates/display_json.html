@@ -54,6 +54,13 @@
             right: 20px;
             z-index: 999;
         }
+        table.scrollable{
+            display: block;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 400px;
+        }
+
     </style>
 </head>
 <body>
@@ -101,7 +108,7 @@
 
    </form>
 
-    <table id="dataTable">
+    <table id="dataTable" class="scrollable">
       <thead>
         <tr>
           <th class="delete-checkbox">Delete?</th>
@@ -109,6 +116,7 @@
           <th class="date">Date</th>
         </tr>
       </thead>
+      
       <tbody>
         {% for entry in data %}
         <tr class="expandable-row">
@@ -190,7 +198,10 @@
             console.error('Error:', error);
         });
 
+        
+
     }
     </script>
+
  </body>
 </html>
