@@ -202,9 +202,23 @@ class GeoJSONData(Resource):
         :rtype:         int   The marshalling decorator should convert to JSON-serliasable form.
         
         """
+        if fileid == 'all':
+            db.session.query(GeoJSONDataModel).delete()
+            db.session.commit()
+            return ReturnCodes.RECORD_DELETED.value
+
         geojson_file = GeoJSONDataModel.query.filter_by(fileid=fileid).first()
         if not geojson_file:
             abort(ReturnCodes.FILE_NOT_FOUND.value, description='That GeoJSON file does not exist in the database, and therefore cannot be deleted.')
         db.session.delete(geojson_file)
         db.session.commit()
+
+        # delete on the cloud
+        s3 = boto3.client('s3',
+                      endpoint_url="http://localstack:4566",
+                      use_ssl=False,
+                      aws_access_key_id='test',
+                      aws_secret_access_key='test')
+        s3.delete_object(Bucket='geojson-test', Key=fileid)
+
         return ReturnCodes.RECORD_DELETED.value

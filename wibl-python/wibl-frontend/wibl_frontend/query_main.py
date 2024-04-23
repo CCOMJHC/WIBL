@@ -1,10 +1,14 @@
 import os
+import uuid
+import random
+import time
 from flask import Flask, render_template, request, Blueprint, redirect, url_for
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy 
 from flask_login import login_required
 import requests
 import json, datetime
+import boto3
 
 
 #from requests_toolbelt import MultipartEncoder
@@ -152,6 +156,118 @@ def index():
 
     return render_template('home.html')
 
+@query_main.route('/setup')
+#@login_required
+def setupCloudData():
+    #TODO put cloud.localstack here
+    s3 = boto3.client('s3',
+                      endpoint_url="http://localstack:4566",
+                      use_ssl=False,
+                      aws_access_key_id='test',
+                      aws_secret_access_key='test')
+    # check if buckets are live 
+    print("ALL BUCKETS PRESENT:")
+    print(s3.list_buckets())
+
+    # can do all this with a curl command, curl -X GET http://127.0.0.1:8000/setup
+    # c/p some of Toms code for multiple parameters n stuff
+
+    def current_milli_time():
+        return round(time.time() * 1000)
+
+    shipNames = ["USS Alabama", "USS Alaska", "USS Albany", "USS Alexandria", "USS Arlington",
+          "USS Maine", "USS Maryland", "USS Constitution", "USS Green Bay", "USS Hawaii"]
+
+    loggerNames = []
+    for i in range(10):
+        loggerNames.append('UNHJHC-wibl-' + str(i))
+
+    manager_endpoint = os.getenv('MANAGEMENT_URL', 'http://host.docker.internal:5000')
+
+    #TODO make a check to see if there is anything on s3 buckets, empty buckets will fail do to no 'contents' field
+    wiblBucket = s3.list_objects(Bucket='wibl-test')['Contents']
+    geojsonBucket = s3.list_objects(Bucket='geojson-test')['Contents']
+
+    # iterate through each bucket, and post each filetype
+    json_array = []
+    geojson_array = []
+
+    count = 0
+
+    for i in wiblBucket:
+
+        #file_name = 'wibl_' + str(count)
+        #fileid = str(uuid.uuid64())
+        #fileid_wibl = fileid + '.wibl'
+
+        print(i['Key'])
+        logger = loggerNames[int(count/100)]
+        platform = shipNames[int(count/100)]
+        observations = random.randint(75000, 125000)
+        soundings = random.randint(8000, 12000)
+
+        #end date would be something like 12 to 24 hrs in advance?
+        #24*60*60*1000?
+        iso_startdate: int = time.time() - (86400 * count)
+        iso_enddate = random.randint(12*60*60, 24*60*60) + iso_startdate
+        iso_startdate = datetime.datetime.fromtimestamp(iso_startdate).isoformat()
+        iso_enddate = datetime.datetime.fromtimestamp(iso_enddate).isoformat()
+
+        status = 1
+
+        json_object = {
+            'url' : (manager_endpoint + '/wibl/' + i['Key']),
+            'size' : (observations/10000.0),
+            'logger' : logger, 'platform' : platform,
+            'observations' : observations, 'soundings' : soundings,
+            'startTime' : iso_startdate, 'endTime' : iso_enddate,
+            'status' : status, 'messages' : '',
+        }
+        print(json_object.__str__)
+        json_array.append(json_object)
+
+        response = requests.post(manager_endpoint + '/wibl/' + i['Key'], json={'size': observations/10000.0})
+        response = requests.put(manager_endpoint + '/wibl/' + i['Key'],
+                                    json=json_object)
+        count+=1
+        #fileUp = requests.post('http://manager:5000/wibl/' + i['Key'], json={'size':10.4})
+
+    count = 0
+
+    for i in geojsonBucket:
+        print(i['Key'])
+        logger = loggerNames[int(count/100)]
+        platform = shipNames[int(count/100)]
+        observations = random.randint(75000, 125000)
+        soundings = random.randint(8000, 12000)
+
+        #end date would be something like 12 to 24 hrs in advance?
+        #24*60*60*1000?
+        iso_startdate: int = time.time() - (86400 * count)
+        iso_enddate = random.randint(12*60*60, 24*60*60) + iso_startdate
+        iso_startdate = datetime.datetime.fromtimestamp(iso_startdate).isoformat()
+        iso_enddate = datetime.datetime.fromtimestamp(iso_enddate).isoformat()
+
+        status = 1
+
+        json_object_geojson = {
+            'url' : (manager_endpoint + '/geojson/' + i['Key']),
+            'size' : (observations/10000.0),
+            'logger' : logger, 'platform' : platform,
+            'observations' : observations, 'soundings' : soundings,
+            'status' : status, 'messages' : '',
+        }
+        print(json_object.__str__)
+        geojson_array.append(json_object)
+
+        response = requests.post(manager_endpoint + '/geojson/' + i['Key'], json={'size': observations/10000.0})
+        response = requests.put(manager_endpoint + '/geojson/' + i['Key'],
+                                    json=json_object_geojson)
+        count+=1
+        #fileUp = requests.post('http://manager:5000/geojson/' + i['Key'], json={'size':10.4})
+
+    return ''
+    
 @query_main.route('/download')
 @login_required
 def download():
@@ -183,6 +299,7 @@ def download():
 
     else:
 
+        # case when view results button is clicked. First, initalize connect with s3 buckets and update the manager (localstack)
         json_output = []
 
         filetype = request.args.get('filetype')
