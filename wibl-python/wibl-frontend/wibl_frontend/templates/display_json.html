@@ -7,27 +7,6 @@
             margin: 0;
         }
 
-        .header {
-            background-color: #ffffff;
-            padding: 20px;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 999;
-            border-bottom: 1px solid #ddd; /* Add border at the bottom */
-        }
-
-        .content {
-            margin-top: 70px; /* Adjust as needed based on header height */
-            padding-top: 50px; /* Adjust as needed to prevent content from hiding under header */
-        }
-
-        .table-wrapper {
-            max-height: calc(100vh - 200px); /* Adjust as needed based on header and button height */
-            overflow-y: auto;
-            z-index: 1; /* Ensure scrollbar appears above content */
-        }
-
         table {
             width: 100%;
             border-collapse: collapse;
@@ -42,10 +21,7 @@
 
         th {
             background-color: #f2f2f2;
-            white-space: nowrap;
-            position: sticky;
-            top: 70px; /* Adjust based on header height */
-            z-index: 999; /* Ensure columns appear above content */
+            white-space: nowrap; /* Prevent line breaks */
         }
 
         tr:nth-child(even) {
@@ -54,15 +30,15 @@
 
         .delete-checkbox {
             text-align: center;
-            width: 10%;
+            width: 10%; /* Adjust width for Delete? column */
         }
 
         .file-name {
-            width: 50%;
+            width: 50%; /* Adjust width for File Name column */
         }
 
         .date {
-            width: 40%;
+            width: 40%; /* Adjust width for Date column */
         }
 
         .expandable-row {
@@ -74,172 +50,63 @@
         }
 
         .details-row td {
-            background-color: #eaeaea;
+            background-color: #eaeaea; /* Alternate background color for details row */
         }
 
         .fixed-button {
-            background-color: #eaeaea;
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            cursor: pointer;
             position: fixed;
             bottom: 20px;
             right: 20px;
             z-index: 999;
         }
-        table.scrollable{
-            display: block;
-            overflow-y: auto;
-            overflow-x: hidden;
-            height: 400px;
-        }
-
     </style>
 </head>
 <body>
-   <div class="header">
-       <h1 class="logo">Results:</h1>
-       <!-- File Query Form -->
-       <form id="queryForms" method="GET" action="/download" enctype="multipart/form-data">
-           <label for="loggers">Choose a logger to view:</label>
-           <select name="loggers" id="loggers" multiple>
-               {% for logger, logger_val in loggers %}
-               <option value="{{ logger }}">{{ logger }}  {{ logger_val }} Files(s)</option>
-               {% endfor %}
-           </select>
+   <h1 class="logo">Results:</h1>
 
-           <label for="filetype">Choose File Type:</label>
-           <select name="filetype" id="filetype">
-               <option value="both">Both</option>
-               <option value="wibl">WIBL (.wibl)</option>
-               <option value="json">GeoJSON (.json)</option>
-           </select>
+   <!-- File Query Form -->
+   <form id="queryForms" method="GET" action="/download" enctype="multipart/form-data">
 
-           <label for="sorting">Sort by:</label>
-           <select name="sorting" id="sorting">
-               <option value="default">Default</option>
-               <option value="filesizeup">File Size, Ascending</option>
-               <option value="filesizedown">File Size, Descending</option>
-           </select>
+    <label for="loggers">Choose a logger to view:</label>
+    <select name="loggers" id="loggers" multiple>
+      {% for logger, logger_val in loggers %}
+        <option value="{{ logger }}">{{ logger }}  {{ logger_val }} Files(s)</option>
+      {% endfor %}
+    </select>
 
-           <br>
-           <input type="submit" value="Submit Filters">
+    <label for="filetype">Choose File Type:</label>
+    <select name="filetype" id="filetype">
+        <option value="both">Both</option>
+        <option value="wibl">WIBL (.wibl)</option>
+        <option value="json">GeoJSON (.json)</option>
+    </select>
 
-           <form method="get" action="/download">
-               <button type="submit">Clear Filters</button>
-           </form>
-       </form>
+    <label for="sorting">Sort by:</label>
+    <select name="sorting" id="sorting">
+        <option value="default">Default</option>
+        <option value="filesizeup">File Size, Ascending</option>
+        <option value="filesizedown">File Size, Descending</option>
+    </select>
 
-       <form id="queryFormByName" method="GET" action="/download" enctype="multipart/form-data">
-           <label for="upload_id">Or, Enter Upload ID for Specific Metadata File :</label>
-           <input type="text" name="upload_id" required>
-           <input type="submit" value="Search Name">
-       </form>
-   </div>
+    <br>
+    <input type="submit" value="Submit Filters">
 
-   <div class="content">
-       <div class="table-wrapper">
-           <table id="dataTable">
-               <thead>
-                   <tr>
-                       <th class="delete-checkbox">Delete?</th>
-                       <th class="file-name">File Name</th>
-                       <th class="date">Date</th>
-                   </tr>
-               </thead>
-               <tbody>
-                   {% for entry in data %}
-                   <tr class="expandable-row">
-                       <td class="delete-checkbox"><input type='checkbox' name="fileDelete" class="fileDelete"></td>
-                       <td class="file-name">{{entry.fileid}}</td>
-                       {% if entry.readablestarttime is defined %}
-                       <td class="date">{{entry.readablestarttime}}</td>
-                       {% else %}
-                       <td class="date">Upload Time: {{entry.readableuploadtime}}</td>
-                       {% endif %}
-                   </tr>
-                   <tr class="details-row">
-                       <td colspan="3">
-                           <div>
-                               Logger: {{ entry.logger }}<br>
-                               Vessel: {{ entry.platform }}<br>
-                               Size: {{ entry.size }}<br>
-                               Soundings: {{ entry.soundings }}<br>
-                               Observations: {{ entry.observations }}<br>
-                               Start Time: {{ entry.readablestarttime}}<br>
-                               End Time: {{ entry.readableendtime }}<br>
-                           </div>
-                       </td>
-                   </tr>
-                   {% endfor %}
-               </tbody>
-           </table>
-       </div>
+    <form method="get" action="/download">
+        <button type="submit">Clear Filters</button>
+    </form>
 
-       <button id="deleteButton" class="fixed-button">Delete Selected Files</button>
-   </div>
+   </form>
 
-   <script>
-       const deleteButton = document.getElementById("deleteButton");
-       deleteButton.addEventListener("click", () => {
-           const checkboxes = document.querySelectorAll("input[name='fileDelete']:checked");
-           if (checkboxes.length > 0) {
-               const confirmDelete = confirm("Are you sure you want to delete these files?");
-               if (confirmDelete) {
-                   checkboxes.forEach(checkbox => {
-                       const row = checkbox.closest("tr");
-                       const fileName = row.querySelector("td.file-name").innerText;
-                       deleteFile(fileName);
-                   });
-               }
-               location.reload(); // Refresh the page after deletion
-           } else {
-               alert("No Files Selected.");
-           }
-       });
+   <form id="queryFormByName" method="GET" action="/download" enctype="multipart/form-data">
 
-       const expandableRows = document.querySelectorAll(".expandable-row");
-       expandableRows.forEach(row => {
-           row.addEventListener("click", (event) => {
-               if (event.target.tagName !== "INPUT") { // Check if the clicked element is not an input element
-                   const detailsRow = row.nextElementSibling;
-                   detailsRow.classList.toggle("details-row");
-               }
-           });
-       });
+    <label for="upload_id">Or, Enter Upload ID for Specific Metadata File :</label>
+    <input type="text" name="upload_id" required>
 
-<<<<<<< HEAD
-       function deleteFile(fileName) {
-           fetch('/home', {
-               method: 'DELETE',
-               headers: {
-                   "Content-Type": "text/plain"
-               },
-               body: fileName
-           })
-           .then(response => {
-               if (response.ok) {
-                   // Remove the row from the table
-                   const row = document.querySelector(`td.file-name:contains(${fileName})`).parentNode;
-                   row.parentNode.removeChild(row);
-                   alert(`File ${fileName} deleted successfully.`);
-               } else {
-                   throw new Error('Error deleting file.');
-               }
-           })
-           .catch(error => {
-               console.error('Error:', error);
-           });
-       }
-   </script>
-</body>
-=======
     <input type="submit" value="Search Name">
 
    </form>
 
-    <table id="dataTable" class="scrollable">
+    <table id="dataTable">
       <thead>
         <tr>
           <th class="delete-checkbox">Delete?</th>
@@ -247,7 +114,6 @@
           <th class="date">Date</th>
         </tr>
       </thead>
-      
       <tbody>
         {% for entry in data %}
         <tr class="expandable-row">
@@ -262,7 +128,7 @@
         <tr class="details-row">
           <td colspan="3">
             <div>
-              Logger: {{ entry.logger }}<br>
+                Logger: {{ entry.logger }}<br>
                 {% if entry.platform is defined %}
                     Vessel: {{ entry.platform }}<br>
                 {% endif %}
@@ -339,11 +205,7 @@
             console.error('Error:', error);
         });
 
-        
-
     }
     </script>
-
  </body>
->>>>>>> 33115c13ee3303e23f72ec6607bb6d9ab5af85b3
 </html>
