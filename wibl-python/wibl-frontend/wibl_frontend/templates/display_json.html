@@ -132,12 +132,22 @@
           <td colspan="3">
             <div>
               Logger: {{ entry.logger }}<br>
-              Vessel: {{ entry.platform }}<br>
+                {% if entry.platform is defined %}
+                    Vessel: {{ entry.platform }}<br>
+                {% endif %}
               Size: {{ entry.size }}<br>
               Soundings: {{ entry.soundings }}<br>
-              Observations: {{ entry.observations }}<br>
-              Start Time: {{ entry.readablestarttime}}<br>
-              End Time: {{ entry.readableendtime }}<br>
+                {% if entry.readableobservations is defined %}
+                    Observations: {{ entry.observations }}<br>
+                {% endif %}
+                {% if entry.readablestarttime is defined %}
+                    Start Time: {{ entry.readablestarttime}}<br>
+                    End Time: {{ entry.readableendtime }}<br>
+                {% else %}
+                    Upload Time: {{ entry.readableuploadtime }}<br>
+                    Update Time: {{ entry.readableupdatetime }}<br>
+                {% endif %}
+                Status: {{ entry.readablestatus }}
             </div>
           </td>
         </tr>
