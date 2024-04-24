@@ -382,13 +382,30 @@ def download():
                     x['readableendtime'] = datetime.datetime.fromisoformat(x['endtime']).strftime("%d %B, %Y, %H:%M:%S")
                 else:
                     x['readableendtime'] = 'Unknown'
+                #use same mechanism for status
+                if x['status'] == 1:
+                    x['readablestatus'] = 'Processing Successful'
+                elif x['status'] == 2:
+                    x['readablestatus'] = 'Processing Failed'
+                else:
+                    x['readablestatus'] = 'Processing In Progress'
             else:
                 if x['uploadtime']:
                     x['readableuploadtime'] = datetime.datetime.fromisoformat(x['uploadtime']).strftime("%d %B, %Y, %H:%M:%S")
                 else:
                     x['readableuploadtime'] = 'Unknown'
+                if x['updatetime']:
+                     x['readableupdatetime'] = datetime.datetime.fromisoformat(x['updatetime']).strftime("%d %B, %Y, %H:%M:%S")
+                else:
+                    x['readableupdatetime'] = 'Unknown'
+                #use same mechanism for status
+                if x['status'] == 1:
+                    x['readablestatus'] = 'Upload Successful'
+                elif x['status'] == 2:
+                    x['readablestatus'] = 'Upload Failed'
+                else:
+                    x['readablestatus'] = 'Upload In Progress'
 
-            
             output_list.append(x)
             
         #print("Output list before sorting:")
@@ -413,3 +430,4 @@ def download():
 @query_main.route('/artifact')
 def artifact():
     return render_template('artifact.html')    
+

@@ -30,6 +30,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
+import boto3
 from datetime import datetime, timezone
 from flask import abort
 from flask_restful import Resource, reqparse, fields, marshal_with
