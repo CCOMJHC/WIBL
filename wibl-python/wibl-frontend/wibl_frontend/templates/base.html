@@ -21,8 +21,8 @@
                                 Home
                             </a>
 			    {% if current_user.is_authenticated %}
-                            <a href="{{ url_for('main.profile') }}" class="navbar-item">
-                                Profile
+                            <a href="{{ url_for('query_main.home') }}" class="navbar-item">
+                                Data
                             </a>
 			    {% endif %}
     			    {% if not current_user.is_authenticated %}

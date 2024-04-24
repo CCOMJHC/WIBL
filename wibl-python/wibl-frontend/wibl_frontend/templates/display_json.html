@@ -88,6 +88,13 @@
             right: 20px;
             z-index: 999;
         }
+        table.scrollable{
+            display: block;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 400px;
+        }
+
     </style>
 </head>
 <body>
@@ -202,6 +209,7 @@
            });
        });
 
+<<<<<<< HEAD
        function deleteFile(fileName) {
            fetch('/home', {
                method: 'DELETE',
@@ -226,4 +234,116 @@
        }
    </script>
 </body>
+=======
+    <input type="submit" value="Search Name">
+
+   </form>
+
+    <table id="dataTable" class="scrollable">
+      <thead>
+        <tr>
+          <th class="delete-checkbox">Delete?</th>
+          <th class="file-name">File Name</th>
+          <th class="date">Date</th>
+        </tr>
+      </thead>
+      
+      <tbody>
+        {% for entry in data %}
+        <tr class="expandable-row">
+          <td class="delete-checkbox"><input type='checkbox' name="fileDelete" class="fileDelete"></td>
+          <td class="file-name">{{entry.fileid}}</td>
+            {% if entry.readablestarttime is defined %}
+                <td class="date">Start Time: {{entry.readablestarttime}}</td>
+            {% else %}
+                <td class="date">Upload Time: {{entry.readableuploadtime}}</td>
+            {% endif %}
+        </tr>
+        <tr class="details-row">
+          <td colspan="3">
+            <div>
+              Logger: {{ entry.logger }}<br>
+                {% if entry.platform is defined %}
+                    Vessel: {{ entry.platform }}<br>
+                {% endif %}
+              Size: {{ entry.size }}<br>
+              Soundings: {{ entry.soundings }}<br>
+                {% if entry.readableobservations is defined %}
+                    Observations: {{ entry.observations }}<br>
+                {% endif %}
+                {% if entry.readablestarttime is defined %}
+                    Start Time: {{ entry.readablestarttime}}<br>
+                    End Time: {{ entry.readableendtime }}<br>
+                {% else %}
+                    Upload Time: {{ entry.readableuploadtime }}<br>
+                    Update Time: {{ entry.readableupdatetime }}<br>
+                {% endif %}
+                Status: {{ entry.readablestatus }}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <button id="deleteButton" class="fixed-button">Delete Selected Files</button>
+
+    <script>
+    const deleteButton = document.getElementById("deleteButton");
+    deleteButton.addEventListener("click", () => {
+        const checkboxes = document.querySelectorAll("input[name='fileDelete']:checked");
+        if (checkboxes.length > 0) {
+            const confirmDelete = confirm("Are you sure you want to delete these files?");
+            if (confirmDelete) {
+                checkboxes.forEach(checkbox => {
+                    const row = checkbox.closest("tr");
+                    const fileName = row.querySelector("td.file-name").innerText;
+                    deleteFile(fileName);
+                });
+            }
+        location.reload(); // Refresh the page after deletion
+        } else {
+            alert("No Files Selected.");
+        }
+    });
+
+    const expandableRows = document.querySelectorAll(".expandable-row");
+    expandableRows.forEach(row => {
+        row.addEventListener("click", (event) => {
+            if (event.target.tagName !== "INPUT") { // Check if the clicked element is not an input element
+                const detailsRow = row.nextElementSibling;
+                detailsRow.classList.toggle("details-row");
+            }
+        });
+    });
+
+    function deleteFile(fileName) {
+        fetch('/home', {
+            method: 'DELETE',
+            headers: {
+                "Content-Type": "text/plain"
+            },
+            body: fileName
+        })
+        .then(response => {
+            if (response.ok) {
+                // Remove the row from the table
+                const row = document.querySelector(`td.file-name:contains(${fileName})`).parentNode;
+                row.parentNode.removeChild(row);
+                alert(`File ${fileName} deleted successfully.`);
+            } else {
+                throw new Error('Error deleting file.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+
+        
+
+    }
+    </script>
+
+ </body>
+>>>>>>> 33115c13ee3303e23f72ec6607bb6d9ab5af85b3
 </html>
