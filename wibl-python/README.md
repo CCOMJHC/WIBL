@@ -13,9 +13,20 @@ The following subsections describe each installation method.
 ### Local installation using Python
 
 #### Using Conda (Windows, Linux, macOS)
-For Windows, it's probably best to install `wibl-python` using [Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) (Anaconda or Miniforge should also work). Linux and macOS users can also choose to use Conda, however it's not required as there are other ways to install the necessary dependencies in these environments (see below).
+For Windows, it's probably best to install `wibl-python` using 
+[Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) (Anaconda or Miniforge should also work). 
 
-Once you've installed conda, the next step is to create a conda environment for `wibl-python`. To do so, open a conda shell (in either PowerShell or the legacy Command Prompt on Windows, or your terminal on Linux or macOS) and do the following to create the `wibl-python` environment:
+> Note: If you plan to run [WIBL data management scripts](scripts/data-management/README.md) to automate data processing
+using `wibl-python`, make sure to follow the instructions in the [README](scripts/data-management/README.md) to
+set up Miniconda using PowerShell 7 (which is required to run the data management scripts).
+
+Linux and macOS users can also choose to use Conda, however it's not required as there are other ways to install 
+the necessary dependencies in these environments (see below).
+
+Once you've installed conda, the next step is to create a conda environment for `wibl-python`. To do so, open a 
+conda shell (we recommend using PowerShell 7 so that you can easily use 
+[WIBL data management scripts](scripts/data-management/README.md)) and do the following to create the `wibl-python` 
+environment:
 ```
 conda env create -f environment.yml
 ```

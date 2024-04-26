@@ -5,7 +5,18 @@ scripts that can be used to automate WIBL data management tasks.
 
 These scripts require PowerShell 7 or later running on Windows, macOS, or Linux. 
 See [here](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.3)
-for installation instructions.
+for installation instructions. After installing PowerShell 7, make sure to run `conda init` from within PowerShell 7
+to enable use of conda and the `wibl-python`. To do so on Windows, run:
+```powershell
+PS C:\Users\janeuser> C:\ProgramData\miniconda\Scripts\conda.exe init
+```
+
+> If you installed `conda` in your User directory, run `C:\Users\janeuser\miniconda3\Scripts\conda.exe init` instead.
+
+To do so on Linux or macOS, run:
+```shell
+PS /Users/janeuser> ./miniconda/bin/conda init powershell
+```
 
 ## convertToWibl.ps1: converting non-WIBL data to WIBL format using [LogConvert](../../../LogConvert)
 It is possible to use wibl-python to process non-WIBL data in the following formats: Yacht Devices YDVR-4,
@@ -19,8 +30,8 @@ needing conversion. However, if you have many files to convert, you can automate
 
 > Note: If your data are already in WIBL format, you don't need to run `LogConvert` or `convertToWibl.ps1`. 
 
-To run `convertToWibl.ps1` you'll first need to be in a Python virtual environment that has 
-[wibl-python](../../README.md) installed. When running `convertToWibl.ps1` you must supply at least two 
+To run `convertToWibl.ps1` you'll first need to be in a Python virtual environment running within PowerShell 7 
+that has [wibl-python](../../README.md) installed. When running `convertToWibl.ps1` you must supply at least two 
 inputs: 
 1. A zip file containing YDVR or TeamSurv files (all files in the zip file must be of the same 
 format); and
