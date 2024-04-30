@@ -3,16 +3,12 @@ import uuid
 import random
 import time
 from flask import Flask, render_template, request, Blueprint, redirect, url_for
-from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy 
 from flask_login import login_required
 import requests
 import json, datetime
 import boto3
 
-
-#from requests_toolbelt import MultipartEncoder
-from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 # werkzeug utils
 from werkzeug.utils import secure_filename
@@ -21,9 +17,6 @@ WEB_DATABASE_URI = os.environ.get('FRONTEND_DATABASE_URI', 'sqlite:///database.d
 
 app = Flask(__name__) # WIBL-Manager
 
-# enable cors
-cors = CORS(app)
-app.config['CORS_HEADERS'] = 'Content-Type'
 # var for current working dir
 
 cwd = os.getcwd()
@@ -50,7 +43,6 @@ class Upload(db2.Model):
     data = db2.Column(db2.LargeBinary)
 
 @query_main.route('/home')
-@cross_origin(origin='*')
 @login_required
 def home():
     print("Made it to query_main.home() method")
@@ -61,7 +53,7 @@ def home():
     # series of GET checks to ensure connectivity
     connectManager = requests.get('http://manager:5000/heartbeat')
     print(f"Result of request to Manager/Heartbeat: {connectManager}")
-
+    """
     connectMoreManager = requests.get('http://manager:5000/wibl/all')
     print(f"Result of request to Manager/wibl/all: {connectMoreManager}")
     print(json.dumps(connectMoreManager.json()))
@@ -69,13 +61,12 @@ def home():
     connectManagerGeoJson = requests.get('http://manager:5000/geojson/all')
     print(f"Result of request to Manager/geojson/all: {connectManagerGeoJson}")
     print(json.dumps(connectManagerGeoJson.json()))
-    
+    """ 
 
     return render_template("home.html")
 
 
 @query_main.route('/home', methods=['GET', 'POST', 'PUT', 'DELETE'])
-@cross_origin(origin='*')
 @login_required
 def index():
 
