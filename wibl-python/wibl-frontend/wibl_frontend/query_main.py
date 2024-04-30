@@ -87,6 +87,7 @@ def index():
 
        return url
 
+    # Initializes metadata entry in the manager
     if request.method == 'POST':
 
         print("MADE IT TO POST METHOD")
@@ -102,6 +103,7 @@ def index():
 
     """
     #TODO: needs work
+    # get method is found in the "download" route
     if request.method == 'GET':
 
         print("MADE IT TO GET METHOD")
@@ -126,7 +128,7 @@ def index():
                 return "File not found."
            """
 
-
+    # updates metadata fields/parameters
     if request.method == 'PUT':
         print("IN PUT FUNCTION")
         filePut = requests.put(formatURL(), json={'logger':'Logger A', 'platform': 'USS Tallship'})
@@ -147,6 +149,7 @@ def index():
 
     return render_template('home.html')
 
+#setup route, after running cloud/localstack commands, curl this route to populate the manager with cloud bucket entries
 @query_main.route('/setup')
 #@login_required
 def setupCloudData():
@@ -259,6 +262,7 @@ def setupCloudData():
 
     return ''
     
+# this route is for the get request, and brings the user into the display_json page to view and filter metadata entries
 @query_main.route('/download')
 @login_required
 def download():
@@ -418,6 +422,7 @@ def download():
         return render_template('display_json.html', 
                               loggers=unqiue_loggers_output,data=output_list)
 
+# view visual artifacts, WIP
 @query_main.route('/artifact')
 def artifact():
     return render_template('artifact.html')    

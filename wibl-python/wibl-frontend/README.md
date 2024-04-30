@@ -43,4 +43,17 @@ def home():
     return render_template("home.html")
 
 
-
+# Setup instructions for AWSCLI/Localstack testing
+****on separate terminal*****
+Run ‘aws –endpoint-url=http://127.0.0.1:4566 s3 ls’. This will establish the endpoint and list buckets (none are in place yet)
+Run ‘aws –endpoint-url=http://127.0.0.1:4566b s3 mb s3://geojson-test’
+Run ‘aws –endpoint-url=http://127.0.0.1:4566b s3 mb s3://wibl-test’
+Run the same initial command to confirm both buckets have been created.
+**** in the wibl-python/wibl-frontend directory
+Run ‘./createFile.sh’. This will fill the cloudGeojson/WiblFiles folders with 1000 bogus files a piece.
+Run ‘./cloudFilesTest.sh’ to upload those files into their respective buckets.
+(optional) Run ‘aws --endpoint-url=http://127.0.0.1:4566 s3 ls s3://wibl-test --recursive --human-readable --summarize’ to confirm bucket has the appropriate files. Same for geojson-test.
+^^^Cloud setup complete
+**** Can run the following wherever
+Run ‘curl -X DELETE http://127.0.0.1:5000/wibl/all’ To clear any previous data. Same for geojson endpoint.
+Run ‘curl -X GET http://127.0.0.1:8000/setup’. This will hit an endpoint in flask that iterates through every object in both buckets, and will post/update them to the manager-side. Manager has been edited such that the delete endpoint will also delete the bucket entry.
