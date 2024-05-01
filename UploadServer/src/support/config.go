@@ -47,11 +47,18 @@ type AWSParam struct {
 	SNSTopic     string `json:"sns_topic"`
 }
 
+// A DBParam provides all parameters required to talk to the database holding logger credentials
+// so that we can verify loggers when they attempt to connect.
+type DBParam struct {
+	Connection string `json:"connection"`
+}
+
 // The Config object encapsulates all of the parameters required for the server, and
 // subsequent upload of the data to the processing instances.
 type Config struct {
 	API APIParam `json:"api"`
 	AWS AWSParam `json:"aws"`
+	DB  DBParam  `json:"db"`
 }
 
 // Generate a new Config object from a given JSON file.  Errors are returned

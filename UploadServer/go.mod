@@ -28,4 +28,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.23.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
+	golang.org/x/crypto v0.22.0 // indirect
 )

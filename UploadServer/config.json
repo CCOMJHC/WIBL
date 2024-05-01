@@ -6,5 +6,8 @@
         "region":           "us-east-2",
         "upload_bucket":    "UNHJHC-wibl-incoming",
         "sns_topic":        "UNHJHC-wibl-conversion"
+    },
+    "db": {
+        "connection":   "loggers.db"
     }
 }

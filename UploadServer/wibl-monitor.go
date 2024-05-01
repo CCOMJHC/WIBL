@@ -81,7 +81,9 @@ func main() {
 	fs := flag.NewFlagSet("monitor", flag.ExitOnError)
 	configFile := fs.String("config", "", "Filename to load JSON configuration")
 
-	if err := fs.Parse(os.Args[1:]); err != nil {
+	var err error
+
+	if err = fs.Parse(os.Args[1:]); err != nil {
 		support.Errorf("failed to parse command line parameters (%v)\n", err)
 		os.Exit(1)
 	}
@@ -98,11 +100,20 @@ func main() {
 	}
 
 	address := fmt.Sprintf(":%d", server_config.API.Port)
+	var db support.DBConnection
+	if db, err = support.NewDatabase(server_config.DB.Connection); err != nil {
+		support.Errorf("failed to open database connection for logger information")
+		os.Exit(1)
+	}
+	if err = db.Setup(); err != nil {
+		support.Errorf("database error")
+		os.Exit(1)
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", syntax)
-	mux.HandleFunc("/checkin", support.BasicAuth(status_updates))
-	mux.HandleFunc("/update", support.BasicAuth(file_transfer))
+	mux.HandleFunc("/checkin", support.BasicAuth(status_updates, db))
+	mux.HandleFunc("/update", support.BasicAuth(file_transfer, db))
 
 	srv := &http.Server{
 		Addr:         address,
@@ -113,7 +124,7 @@ func main() {
 	}
 
 	log.Printf("starting server on %s", srv.Addr)
-	err := srv.ListenAndServeTLS("./certs/server.crt", "./certs/server.key")
+	err = srv.ListenAndServeTLS("./certs/server.crt", "./certs/server.key")
 	log.Fatal(err)
 }
 

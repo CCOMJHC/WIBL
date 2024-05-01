@@ -41,30 +41,37 @@ import (
 	"net/http"
 )
 
-func BasicAuth(next http.HandlerFunc) http.HandlerFunc {
+func BasicAuth(next http.HandlerFunc, db DBConnection) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		username, password, ok := r.BasicAuth()
+		logger_uuid, password, ok := r.BasicAuth()
 		if ok {
-			usernameHash := sha256.Sum256([]byte(username))
-			passwordHash := sha256.Sum256([]byte(password))
-			// You should typically Look up the username and password in a well-known list of loggers
-			// that you're supporting.  For testing, however, you can set the values directly here.
-			var known_username string = "wibl-logger"
-			var known_password string = "1f808ca8-9ae3-4db1-9838-002cd7be04a8"
-
 			// Note the use of SHA256 to generate a fixed-length string here for the authentication information.
 			// You can apparently carefully craft messages to expose how long it takes to do comparisons
 			// of strings on the server, and therefore work out how many characters of the username or
 			// password you have correct ...  This process avoids this attack by making fixed-length strings,
-			// and then using the constant-time compare (i.e., without short-circuit comparison).  SHA256 is
-			// of course not recommended for encryption of data at rest (e.g., in your password file or
-			// database).
+			// and then using the constant-time compare (i.e., without short-circuit comparison).
 
-			expectedUsernameHash := sha256.Sum256([]byte(known_username))
-			expectedPasswordHash := sha256.Sum256([]byte(known_password))
+			providedID := sha256.Sum256([]byte(logger_uuid))
+			hashedPassword, _ := GeneratePasswordHash(password)
+			providedPassword := sha256.Sum256(hashedPassword) // Convert to fixed length for comparison
 
-			usernameMatch := (subtle.ConstantTimeCompare(usernameHash[:], expectedUsernameHash[:]) == 1)
-			passwordMatch := (subtle.ConstantTimeCompare(passwordHash[:], expectedPasswordHash[:]) == 1)
+			// By default, set the logger ID from the DB to "invalid" and reset if we do find the logger's information
+			// in the DB on lookup.
+			expectedID := sha256.Sum256([]byte("invalid"))
+
+			var dbPassword []byte
+			var err error
+			if dbPassword, err = db.LookupLogger(logger_uuid); err == nil {
+				// If the lookup succeeds, this means that the logger id was found in the database.  We therefore
+				// copy this over to the "expected" part so that we don't have to reload from the database result.
+				// Failing to do this leaves the logger id as "invalid" and therefore the test below will fail, and
+				// access will be denied.
+				expectedID = providedID
+			}
+			expectedPassword := sha256.Sum256(dbPassword) // Convert to fixed length for comparison
+
+			usernameMatch := (subtle.ConstantTimeCompare(providedID[:], expectedID[:]) == 1)
+			passwordMatch := (subtle.ConstantTimeCompare(providedPassword[:], expectedPassword[:]) == 1)
 
 			if usernameMatch && passwordMatch {
 				next.ServeHTTP(w, r)
