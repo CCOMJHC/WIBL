@@ -54,6 +54,7 @@ bringing it up on a non-constrained port (see support/config.go for details).
 package main
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/json"
 	"flag"
@@ -67,7 +68,13 @@ import (
 
 	"ccom.unh.edu/wibl-monitor/src/api"
 	"ccom.unh.edu/wibl-monitor/src/support"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
+	"github.com/google/uuid"
 )
+
+var server_config *support.Config
 
 func main() {
 	log.SetFlags(log.Lmicroseconds | log.Ldate)
@@ -79,19 +86,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	var config *support.Config
 	if len(*configFile) > 0 {
 		var err error
-		config, err = support.NewConfig(*configFile)
+		server_config, err = support.NewConfig(*configFile)
 		if err != nil {
 			support.Errorf("failed to generate configuration from %q (%v)\n", *configFile, err)
 			os.Exit(1)
 		}
 	} else {
-		config = support.NewDefaultConfig()
+		server_config = support.NewDefaultConfig()
 	}
 
-	address := fmt.Sprintf(":%d", config.API.Port)
+	address := fmt.Sprintf(":%d", server_config.API.Port)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", syntax)
@@ -191,11 +197,45 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 	} else {
 		support.Infof("TRANS: successful recomputation of MD5 hash for transmitted contents.\n")
 		result.Status = "success"
-		// TODO: Further transfer of the file:
-		//    1. Make a UUID for the transferred data.
-		//    2. Store the received data into the appropriate S3 bucket for the current instance
-		//       with the UUID.wibl extension.
-		//    3. Trigger SNS topic for new file arrival.
+		// The files from the logger have a standard name ("wibl-raw.X") and therefore we need to adjust
+		// the name here to make sure that we don't stamp all over another logger's output when we upload
+		// to the S3 bucket.
+		file_uuid, err := uuid.NewUUID()
+		if err != nil {
+			support.Errorf("TRANS: Failed to generate file UUID: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		// Loading the default configuration will also do a search for AWS_ACCESS_KEY_ID and
+		// AWK_SECRET_ACCESS_KEY in the environment variables to set up credentials
+		cfg, err := awsConfig.LoadDefaultConfig(context.TODO(), awsConfig.WithRegion(server_config.AWS.Region))
+		if err != nil {
+			support.Errorf("failed to load configuration, %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		var service support.AWSInterface
+		service.S3Client = s3.NewFromConfig(cfg)
+		service.SnsClient = sns.NewFromConfig(cfg)
+		if exists, err := service.BucketExists(server_config.AWS.UploadBucket); err != nil {
+			support.Errorf("TRANS: BucketExists failed: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		} else if !exists {
+			support.Errorf("TRANS: Upload bucket does not exist - check config: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if err = service.UploadFile(server_config.AWS.UploadBucket, file_uuid.String()+".wibl", body); err != nil {
+			support.Errorf("TRANS: Upload to bucket %v failed: %v", server_config.AWS.UploadBucket, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if err = service.PublishSNS(server_config.AWS.SNSTopic, file_uuid.String()+".wbl"); err != nil {
+			support.Errorf("TRANS: Failed to notify SNS topic of converted file: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	var result_string []byte
