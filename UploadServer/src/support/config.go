@@ -88,5 +88,6 @@ func NewDefaultConfig() *Config {
 	config.AWS.Region = "us-east-2"
 	config.AWS.UploadBucket = "UNHJHC-wibl-incoming"
 	config.AWS.SNSTopic = "UNHJHC-wibl-conversion"
+	config.DB.Connection = "loggers.db"
 	return config
 }
