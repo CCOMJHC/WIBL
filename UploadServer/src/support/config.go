@@ -38,6 +38,12 @@ type APIParam struct {
 	Port int `json:"port"`
 }
 
+// A CloudParam provides parameters required to determine the back-end cloud structure
+// for the system.
+type CloudParam struct {
+	Provider string `json:"provider"`
+}
+
 // An AWSParam provides all parameters required to talk with AWS.  Note that the credentials
 // for interaction are typically done through environment variables, rather than from the JSON
 // file
@@ -56,9 +62,10 @@ type DBParam struct {
 // The Config object encapsulates all of the parameters required for the server, and
 // subsequent upload of the data to the processing instances.
 type Config struct {
-	API APIParam `json:"api"`
-	AWS AWSParam `json:"aws"`
-	DB  DBParam  `json:"db"`
+	API   APIParam   `json:"api"`
+	Cloud CloudParam `json:"cloud"`
+	AWS   AWSParam   `json:"aws"`
+	DB    DBParam    `json:"db"`
 }
 
 // Generate a new Config object from a given JSON file.  Errors are returned
@@ -85,6 +92,7 @@ func NewConfig(filename string) (*Config, error) {
 func NewDefaultConfig() *Config {
 	config := new(Config)
 	config.API.Port = 8000
+	config.Cloud.Provider = "debug"
 	config.AWS.Region = "us-east-2"
 	config.AWS.UploadBucket = "UNHJHC-wibl-incoming"
 	config.AWS.SNSTopic = "UNHJHC-wibl-conversion"

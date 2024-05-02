@@ -54,7 +54,6 @@ bringing it up on a non-constrained port (see support/config.go for details).
 package main
 
 import (
-	"context"
 	"crypto/md5"
 	"encoding/json"
 	"flag"
@@ -67,10 +66,9 @@ import (
 	"time"
 
 	"ccom.unh.edu/wibl-monitor/src/api"
+	"ccom.unh.edu/wibl-monitor/src/cloud"
 	"ccom.unh.edu/wibl-monitor/src/support"
-	awsConfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/sns"
+
 	"github.com/google/uuid"
 )
 
@@ -217,18 +215,25 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		// Loading the default configuration will also do a search for AWS_ACCESS_KEY_ID and
-		// AWK_SECRET_ACCESS_KEY in the environment variables to set up credentials
-		cfg, err := awsConfig.LoadDefaultConfig(context.TODO(), awsConfig.WithRegion(server_config.AWS.Region))
-		if err != nil {
-			support.Errorf("failed to load configuration, %v", err)
+
+		var service cloud.CloudInterface
+		switch server_config.Cloud.Provider {
+		case "debug":
+			service = new(cloud.LocalInterface)
+		case "aws":
+			service = new(cloud.AWSInterface)
+		default:
+			support.Errorf("TRANS: cloud provider not known (configuration issue).\n")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		var service support.AWSInterface
-		service.S3Client = s3.NewFromConfig(cfg)
-		service.SnsClient = sns.NewFromConfig(cfg)
-		if exists, err := service.BucketExists(server_config.AWS.UploadBucket); err != nil {
+
+		if err := service.Configure(server_config); err != nil {
+			support.Errorf("TRANS: failed to configure cloud interface.")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if exists, err := service.DestinationExists(server_config.AWS.UploadBucket); err != nil {
 			support.Errorf("TRANS: BucketExists failed: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -242,7 +247,7 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		if err = service.PublishSNS(server_config.AWS.SNSTopic, file_uuid.String()+".wbl"); err != nil {
+		if err = service.PublishNotification(server_config.AWS.SNSTopic, file_uuid.String()+".wbl"); err != nil {
 			support.Errorf("TRANS: Failed to notify SNS topic of converted file: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
