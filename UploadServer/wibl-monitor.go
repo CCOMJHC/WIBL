@@ -47,6 +47,8 @@ The flags are:
 
 	-config
 		Specify a JSON format file to configure the server
+	-level debug|info|warning|error
+		Set the level of logging information to report
 
 Without flags, the code generates a default configuration for the server, typically
 bringing it up on a non-constrained port (see support/config.go for details).
@@ -76,10 +78,6 @@ import (
 var server_config *support.Config
 
 func main() {
-	//var logLevel = new(slog.LevelVar)
-	//logHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})
-	//slog.SetDefault(slog.New(logHandler))
-
 	log.SetFlags(log.Lmicroseconds | log.Ldate)
 	fs := flag.NewFlagSet("monitor", flag.ExitOnError)
 	configFile := fs.String("config", "", "Filename to load JSON configuration")
