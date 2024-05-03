@@ -21,27 +21,28 @@ func (dbg *LocalInterface) Configure(config *support.Config) error {
 	return nil
 }
 
-func (dbg LocalInterface) DestinationExists(name string) (bool, error) {
+func (dbg LocalInterface) DestinationExists(meta ObjectDescription) (bool, error) {
 	if !dbg.Configured() {
 		return false, errors.New("interface not configured")
 	}
-	support.Debugf("DBGINT: check for existence of %q for upload.\n", name)
+	support.Debugf("DBGINT: check for existence of %q for upload.\n", meta.Destination)
 	return true, nil
 }
 
-func (dbg LocalInterface) UploadFile(destination string, key string, data []byte) error {
+func (dbg LocalInterface) UploadFile(meta ObjectDescription, data []byte) error {
 	if !dbg.Configured() {
 		return errors.New("interface not configured")
 	}
 	support.Debugf("DBGINT: request to upload to %q with key %q for data of length %d\n",
-		destination, key, len(data))
+		meta.Destination, meta.Filename, len(data))
 	return nil
 }
 
-func (dbg LocalInterface) PublishNotification(topic string, key string) error {
+func (dbg LocalInterface) PublishNotification(topic string, meta ObjectDescription) error {
 	if !dbg.Configured() {
 		return errors.New("interface not configured")
 	}
-	support.Debugf("DBGINT: notification on topic %q for key %q.\n", topic, key)
+	support.Debugf("DBGINT: notification on topic %q for filename %s to bucket %s length %d.\n",
+		topic, meta.Filename, meta.Destination, meta.FileSize)
 	return nil
 }

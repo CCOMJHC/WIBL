@@ -7,8 +7,8 @@
     },
     "aws": {
         "region":           "us-east-2",
-        "upload_bucket":    "UNHJHC-wibl-incoming",
-        "sns_topic":        "UNHJHC-wibl-conversion"
+        "upload_bucket":    "unhjhc-wibl-incoming",
+        "sns_topic":        "arn:aws:sns:us-east-2:ACCOUNT_NUMBER:unhjhc-wibl-conversion"
     },
     "db": {
         "connection":   "loggers.db"

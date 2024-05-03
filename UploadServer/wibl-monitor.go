@@ -255,7 +255,12 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		if exists, err := service.DestinationExists(server_config.AWS.UploadBucket); err != nil {
+		meta := cloud.ObjectDescription{
+			Destination: server_config.AWS.UploadBucket,
+			Filename:    file_uuid.String() + ".wibl",
+			FileSize:    len(body),
+		}
+		if exists, err := service.DestinationExists(meta); err != nil {
 			support.Errorf("TRANS: BucketExists failed: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -264,12 +269,12 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		if err = service.UploadFile(server_config.AWS.UploadBucket, file_uuid.String()+".wibl", body); err != nil {
+		if err = service.UploadFile(meta, body); err != nil {
 			support.Errorf("TRANS: Upload to bucket %v failed: %v", server_config.AWS.UploadBucket, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		if err = service.PublishNotification(server_config.AWS.SNSTopic, file_uuid.String()+".wbl"); err != nil {
+		if err = service.PublishNotification(server_config.AWS.SNSTopic, meta); err != nil {
 			support.Errorf("TRANS: Failed to notify SNS topic of converted file: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
