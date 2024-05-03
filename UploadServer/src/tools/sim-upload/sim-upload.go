@@ -75,8 +75,6 @@ func simulate_upload(url string, data []byte, ident string, password string) err
 		fmt.Printf("ERR: failed to read body from server (%v).\n", err)
 		return err
 	}
-	fmt.Printf("DBG: reponse body = |%s|.\n", string(body))
-
 	var result api.TransferResult
 	decoder := json.NewDecoder(bytes.NewBuffer(body))
 	if err := decoder.Decode(&result); err != nil {

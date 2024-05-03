@@ -36,48 +36,14 @@
 package support
 
 import (
-	"crypto/sha256"
-	"crypto/subtle"
-	"fmt"
 	"net/http"
 )
 
 func BasicAuth(next http.HandlerFunc, db DBConnection) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger_uuid, password, ok := r.BasicAuth()
-		fmt.Printf("AUTH: UUID = %s, password = %s\n", logger_uuid, password)
 		if ok {
-			// Note the use of SHA256 to generate a fixed-length string here for the authentication information.
-			// You can apparently carefully craft messages to expose how long it takes to do comparisons
-			// of strings on the server, and therefore work out how many characters of the username or
-			// password you have correct ...  This process avoids this attack by making fixed-length strings,
-			// and then using the constant-time compare (i.e., without short-circuit comparison).
-
-			providedID := sha256.Sum256([]byte(logger_uuid))
-			hashedPassword, _ := GeneratePasswordHash(password)
-			providedPassword := sha256.Sum256(hashedPassword) // Convert to fixed length for comparison
-
-			// By default, set the logger ID from the DB to "invalid" and reset if we do find the logger's information
-			// in the DB on lookup.
-			expectedID := sha256.Sum256([]byte("invalid"))
-
-			var dbPassword []byte
-			var err error
-			if dbPassword, err = db.LookupLogger(logger_uuid); err == nil {
-				// If the lookup succeeds, this means that the logger id was found in the database.  We therefore
-				// copy this over to the "expected" part so that we don't have to reload from the database result.
-				// Failing to do this leaves the logger id as "invalid" and therefore the test below will fail, and
-				// access will be denied.
-				expectedID = providedID
-			}
-			fmt.Printf("DBG: providedID |%v| expectedID |%v|.\n", providedID, expectedID)
-			fmt.Printf("DBG: hashedPassword |%s| dbPassword |%s|.\n", hashedPassword, dbPassword)
-			expectedPassword := sha256.Sum256(dbPassword) // Convert to fixed length for comparison
-
-			usernameMatch := (subtle.ConstantTimeCompare(providedID[:], expectedID[:]) == 1)
-			passwordMatch := (subtle.ConstantTimeCompare(providedPassword[:], expectedPassword[:]) == 1)
-
-			if usernameMatch && passwordMatch {
+			if db.ValidateLogger(logger_uuid, password) == nil {
 				next.ServeHTTP(w, r)
 				return
 			}

@@ -60,6 +60,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -75,9 +76,14 @@ import (
 var server_config *support.Config
 
 func main() {
+	//var logLevel = new(slog.LevelVar)
+	//logHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})
+	//slog.SetDefault(slog.New(logHandler))
+
 	log.SetFlags(log.Lmicroseconds | log.Ldate)
 	fs := flag.NewFlagSet("monitor", flag.ExitOnError)
 	configFile := fs.String("config", "", "Filename to load JSON configuration")
+	logFilter := fs.String("level", "", "Debug level of slog")
 
 	var err error
 
@@ -95,6 +101,23 @@ func main() {
 		}
 	} else {
 		server_config = support.NewDefaultConfig()
+	}
+	if len(*logFilter) > 0 {
+		var level slog.Level
+		switch *logFilter {
+		case "debug":
+			level = slog.LevelDebug
+		case "info":
+			level = slog.LevelInfo
+		case "warning":
+			level = slog.LevelWarn
+		case "error":
+			level = slog.LevelError
+		default:
+			support.Errorf("log level (%v) not recognised.\n", *logFilter)
+			os.Exit(1)
+		}
+		slog.SetLogLoggerLevel(level)
 	}
 
 	address := fmt.Sprintf(":%d", server_config.API.Port)
@@ -178,9 +201,9 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var result api.TransferResult
 
-	support.Infof("TRANS: File transfer request with headers:\n")
+	support.Debugf("TRANS: File transfer request with headers:\n")
 	for k, v := range r.Header {
-		support.Infof("TRANS:    %s = %s\n", k, v)
+		support.Debugf("TRANS:    %s = %s\n", k, v)
 	}
 	if body, err = io.ReadAll(r.Body); err != nil {
 		support.Errorf("API: failed to read file body from POST: %s.\n", err)
@@ -196,7 +219,6 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		md5digest = strings.Split(md5digest, "=")[1]
-		support.Infof("TRANS: MD5 Digest |%s|\n", md5digest)
 	}
 	md5hash := fmt.Sprintf("%X", md5.Sum(body))
 	if md5hash != md5digest {

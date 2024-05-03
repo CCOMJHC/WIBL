@@ -66,6 +66,14 @@ func (database DBConnection) LookupLogger(logger string) ([]byte, error) {
 	return hashedPassword, nil
 }
 
+func (database DBConnection) ValidateLogger(logger string, password string) error {
+	hashedPassword, err := database.LookupLogger(logger)
+	if err != nil {
+		return err
+	}
+	return bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
+}
+
 func GeneratePasswordHash(password string) ([]byte, error) {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
