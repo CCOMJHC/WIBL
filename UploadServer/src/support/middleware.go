@@ -38,12 +38,14 @@ package support
 import (
 	"crypto/sha256"
 	"crypto/subtle"
+	"fmt"
 	"net/http"
 )
 
 func BasicAuth(next http.HandlerFunc, db DBConnection) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger_uuid, password, ok := r.BasicAuth()
+		fmt.Printf("AUTH: UUID = %s, password = %s\n", logger_uuid, password)
 		if ok {
 			// Note the use of SHA256 to generate a fixed-length string here for the authentication information.
 			// You can apparently carefully craft messages to expose how long it takes to do comparisons
@@ -68,6 +70,8 @@ func BasicAuth(next http.HandlerFunc, db DBConnection) http.HandlerFunc {
 				// access will be denied.
 				expectedID = providedID
 			}
+			fmt.Printf("DBG: providedID |%v| expectedID |%v|.\n", providedID, expectedID)
+			fmt.Printf("DBG: hashedPassword |%s| dbPassword |%s|.\n", hashedPassword, dbPassword)
 			expectedPassword := sha256.Sum256(dbPassword) // Convert to fixed length for comparison
 
 			usernameMatch := (subtle.ConstantTimeCompare(providedID[:], expectedID[:]) == 1)

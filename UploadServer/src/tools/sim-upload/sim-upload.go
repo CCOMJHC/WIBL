@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -25,7 +26,7 @@ func generate_data(pkt_size int) []byte {
 }
 
 func generate_url(server string, port int) string {
-	return fmt.Sprintf("https://%s:%d", server, port)
+	return fmt.Sprintf("https://%s:%d/update", server, port)
 }
 
 func auth_token(ident string, password string) string {
@@ -69,8 +70,15 @@ func simulate_upload(url string, data []byte, ident string, password string) err
 	}
 	defer response.Body.Close()
 
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		fmt.Printf("ERR: failed to read body from server (%v).\n", err)
+		return err
+	}
+	fmt.Printf("DBG: reponse body = |%s|.\n", string(body))
+
 	var result api.TransferResult
-	decoder := json.NewDecoder(response.Body)
+	decoder := json.NewDecoder(bytes.NewBuffer(body))
 	if err := decoder.Decode(&result); err != nil {
 		fmt.Printf("ERR: failed to decode JSON response from server (%v).\n", err)
 		return err
