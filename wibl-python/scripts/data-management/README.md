@@ -6,7 +6,7 @@ scripts that can be used to automate WIBL data management tasks.
 These scripts require PowerShell 7 or later running on Windows, macOS, or Linux. 
 See [here](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.3)
 for installation instructions. After installing PowerShell 7, make sure to run `conda init` from within PowerShell 7
-to enable use of conda and the `wibl-python`. To do so on Windows, run:
+to enable use of conda and the `wibl-python` environment. To do so on Windows, run:
 ```powershell
 PS C:\Users\janeuser> C:\ProgramData\miniconda\Scripts\conda.exe init
 ```
