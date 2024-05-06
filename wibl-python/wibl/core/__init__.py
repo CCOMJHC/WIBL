@@ -72,7 +72,8 @@ class Lineage:
             if 'parameters' in e:
                 # Convert parameters from a string of comma-separated key-value pairs to a dict
                 # for export to JSON
-                e['parameters'] = dict([kvp.split('=') for kvp in e['parameters'].split(',')])
+                if e['parameters'] != '':
+                    e['parameters'] = dict([kvp.split('=') for kvp in e['parameters'].split(',')])
         return lin_exp
 
     def empty(self) -> bool:
