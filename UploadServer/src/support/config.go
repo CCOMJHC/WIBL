@@ -38,10 +38,34 @@ type APIParam struct {
 	Port int `json:"port"`
 }
 
+// A CloudParam provides parameters required to determine the back-end cloud structure
+// for the system.
+type CloudParam struct {
+	Provider string `json:"provider"`
+}
+
+// An AWSParam provides all parameters required to talk with AWS.  Note that the credentials
+// for interaction are typically done through environment variables, rather than from the JSON
+// file
+type AWSParam struct {
+	Region       string `json:"region"`
+	UploadBucket string `json:"upload_bucket"`
+	SNSTopic     string `json:"sns_topic"`
+}
+
+// A DBParam provides all parameters required to talk to the database holding logger credentials
+// so that we can verify loggers when they attempt to connect.
+type DBParam struct {
+	Connection string `json:"connection"`
+}
+
 // The Config object encapsulates all of the parameters required for the server, and
 // subsequent upload of the data to the processing instances.
 type Config struct {
-	API APIParam `json:"api"`
+	API   APIParam   `json:"api"`
+	Cloud CloudParam `json:"cloud"`
+	AWS   AWSParam   `json:"aws"`
+	DB    DBParam    `json:"db"`
 }
 
 // Generate a new Config object from a given JSON file.  Errors are returned
@@ -62,9 +86,16 @@ func NewConfig(filename string) (*Config, error) {
 }
 
 // Generate a basic-functionality Config structure if there is no further information
-// from the user (e.g., not JSON configuration file).
+// from the user (e.g., not JSON configuration file).  In this case it's unlikely that
+// the upload to the S3 bucket is going to work, but at least the error messages will be
+// illuminating.
 func NewDefaultConfig() *Config {
 	config := new(Config)
 	config.API.Port = 8000
+	config.Cloud.Provider = "debug"
+	config.AWS.Region = "us-east-2"
+	config.AWS.UploadBucket = "UNHJHC-wibl-incoming"
+	config.AWS.SNSTopic = "UNHJHC-wibl-conversion"
+	config.DB.Connection = "loggers.db"
 	return config
 }

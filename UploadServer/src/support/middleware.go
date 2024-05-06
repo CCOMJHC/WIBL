@@ -36,37 +36,14 @@
 package support
 
 import (
-	"crypto/sha256"
-	"crypto/subtle"
 	"net/http"
 )
 
-func BasicAuth(next http.HandlerFunc) http.HandlerFunc {
+func BasicAuth(next http.HandlerFunc, db DBConnection) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		username, password, ok := r.BasicAuth()
+		logger_uuid, password, ok := r.BasicAuth()
 		if ok {
-			usernameHash := sha256.Sum256([]byte(username))
-			passwordHash := sha256.Sum256([]byte(password))
-			// You should typically Look up the username and password in a well-known list of loggers
-			// that you're supporting.  For testing, however, you can set the values directly here.
-			var known_username string = "wibl-logger"
-			var known_password string = "1f808ca8-9ae3-4db1-9838-002cd7be04a8"
-
-			// Note the use of SHA256 to generate a fixed-length string here for the authentication information.
-			// You can apparently carefully craft messages to expose how long it takes to do comparisons
-			// of strings on the server, and therefore work out how many characters of the username or
-			// password you have correct ...  This process avoids this attack by making fixed-length strings,
-			// and then using the constant-time compare (i.e., without short-circuit comparison).  SHA256 is
-			// of course not recommended for encryption of data at rest (e.g., in your password file or
-			// database).
-
-			expectedUsernameHash := sha256.Sum256([]byte(known_username))
-			expectedPasswordHash := sha256.Sum256([]byte(known_password))
-
-			usernameMatch := (subtle.ConstantTimeCompare(usernameHash[:], expectedUsernameHash[:]) == 1)
-			passwordMatch := (subtle.ConstantTimeCompare(passwordHash[:], expectedPasswordHash[:]) == 1)
-
-			if usernameMatch && passwordMatch {
+			if db.ValidateLogger(logger_uuid, password) == nil {
 				next.ServeHTTP(w, r)
 				return
 			}

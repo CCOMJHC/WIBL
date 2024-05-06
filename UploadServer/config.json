@@ -1,5 +1,16 @@
 {
     "api": {
         "port": 8000
+    },
+    "cloud": {
+        "provider": "debug"
+    },
+    "aws": {
+        "region":           "us-east-2",
+        "upload_bucket":    "unhjhc-wibl-incoming",
+        "sns_topic":        "arn:aws:sns:us-east-2:ACCOUNT_NUMBER:unhjhc-wibl-conversion"
+    },
+    "db": {
+        "connection":   "loggers.db"
     }
 }
