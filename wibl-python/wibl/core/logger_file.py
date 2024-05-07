@@ -1791,12 +1791,12 @@ class Setup(DataPacket):
         try:
             if type(kwargs['setup']) != 'Dict':
                 if type(kwargs['setup']) == 'bytes':
-                    self.config = json.loads(kwargs['setup'].decode('UTF-8'))
+                    self.setup = json.loads(kwargs['setup'].decode('UTF-8'))
                 else:
-                    self.config = json.load(kwargs['setup'])
+                    self.setup = json.load(kwargs['setup'])
             else:
-                self.config = kwargs['setup']
-            if 'version' not in self.config or 'commandproc' not in self.config['version']:
+                self.setup = kwargs['setup']
+            if 'version' not in self.setup or 'commandproc' not in self.setup['version']:
                 raise SpecificationError('JSON specification does not contain version information.')
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
@@ -1810,8 +1810,9 @@ class Setup(DataPacket):
     # \param self   Reference for the object
     # \return Bytes array with the binary representation of the packet-specific parameters
     def payload(self) -> bytes:
-        setup_len = len(self.setup)
-        buffer = struct.pack(f'<I{setup_len}s', setup_len, self.setup)
+        stringified = json.dumps(self.setup).encode('UTF-8')
+        stringified_len = len(stringified)
+        buffer = struct.pack(f'<I{stringified_len}s', stringified_len, stringified)
         return buffer
 
     ## Provide the recognition ID for the packet, as used in the binary file
@@ -1828,7 +1829,7 @@ class Setup(DataPacket):
     # This simply reports the human-readable name for the class so that reporting is possible
     #
     # \param self   Reference for the object
-    # \return String with th ename of the object
+    # \return String with the name of the object
     def name(self) -> str:
         return 'Setup'
     
