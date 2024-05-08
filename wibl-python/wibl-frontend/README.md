@@ -64,11 +64,16 @@ Cloud setup complete!
 
 # If you need to clear the manager for a clean setup:
 Docker volumes contain databases that persist even if the instance is taken down.
+
 Run ‘curl -X DELETE http://127.0.0.1:5000/wibl/all’ To clear any previous data on the WIBL manager endpoint.
+
 Run 'curl -X DELETE http://127.0.0.1:5000/geojson/all' to clear any previous data on the GEOJSON manager endpoint.
+
 These deletes will also clear whatever is present on the local S3 Buckets: client connection and object deletion code can be found in each respective manager endpoint, under the http DELETE routings.
+
 For WIBL: wibl-2023-2024-cs-791-792/wibl-python/wibl-manager/wibl_manager/wibl_data.py
+
 For geojson: wibl-2023-2024-cs-791-792/wibl-python/wibl-manager/wibl_manager/geojson_data.py
 
 # To populate the manager with bucket entries:
-Run ‘curl -X GET http://127.0.0.1:8000/setup’. This will hit an endpoint in flask (wibl-frontend/query_main.py)that iterates through every object in both buckets, and will post/update them to the manager-side. Manager has been edited such that the delete endpoint will also delete the bucket entry.
+Run ‘curl -X GET http://127.0.0.1:8000/setup’. This will hit an endpoint in flask (wibl-frontend/query_main.py, defined in the setupCloudData function) iterates through every object in both buckets, and will post/update them to the manager-side.
