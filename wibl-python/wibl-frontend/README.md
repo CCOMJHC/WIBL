@@ -53,14 +53,17 @@ Run the same initial command to confirm both buckets have been created.
 
 Go to the the wibl-python/wibl-frontend directory
 
-Run ‘./createFile.sh’. This will fill the cloudGeojson/WiblFiles folders with 1000 bogus files a piece.
+Run ‘./createFile.sh’. This will fill the cloudGeojson/WiblFiles folders with 1000 test files a piece.
+
 Run ‘./cloudFilesTest.sh’ to upload those files into their respective buckets.
-(optional) Run ‘aws --endpoint-url=http://127.0.0.1:4566 s3 ls s3://wibl-test --recursive --human-readable --summarize’ to confirm bucket has the appropriate files. Same for geojson-test.
+
+(Optional) Run ‘aws --endpoint-url=http://127.0.0.1:4566 s3 ls s3://wibl-test --recursive --human-readable --summarize’ to confirm bucket has the appropriate files. Same for geojson-test.
+
 
 Cloud setup complete complete!
 
-#If you need to clear the manager for a clean setup:
+# If you need to clear the manager for a clean setup:
 Run ‘curl -X DELETE http://127.0.0.1:5000/wibl/all’ To clear any previous data. Same for geojson endpoint.
 
-#To populate the manager with bucket entries:
+# To populate the manager with bucket entries:
 Run ‘curl -X GET http://127.0.0.1:8000/setup’. This will hit an endpoint in flask (wibl-frontend/query_main.py)that iterates through every object in both buckets, and will post/update them to the manager-side. Manager has been edited such that the delete endpoint will also delete the bucket entry.
