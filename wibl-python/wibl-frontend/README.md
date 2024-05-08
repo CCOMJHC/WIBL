@@ -60,7 +60,7 @@ Run ‘./cloudFilesTest.sh’ to upload those files into their respective bucket
 (Optional) Run ‘aws --endpoint-url=http://127.0.0.1:4566 s3 ls s3://wibl-test --recursive --human-readable --summarize’ to confirm bucket has the appropriate files. Same for geojson-test.
 
 
-Cloud setup complete complete!
+Cloud setup complete!
 
 # If you need to clear the manager for a clean setup:
 Run ‘curl -X DELETE http://127.0.0.1:5000/wibl/all’ To clear any previous data. Same for geojson endpoint.
