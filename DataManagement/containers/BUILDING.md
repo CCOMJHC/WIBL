@@ -8,7 +8,7 @@ To build, do the following:
 ```shell
 $ docker buildx build \
   --platform linux/amd64,linux/arm64 --builder=desktop-linux \
-  -t ghcr.io/ccomjhc/wibl:1.0.3-amazonlinux -t ghcr.io/ccomjhc/wibl:1.0.3 \
+  -t ghcr.io/ccomjhc/wibl:1.0.4-amazonlinux -t ghcr.io/ccomjhc/wibl:1.0.4 \
   cloud/AWS
 ```
 

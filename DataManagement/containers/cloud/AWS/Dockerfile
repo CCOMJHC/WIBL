@@ -145,11 +145,20 @@ RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib -DCM
     cmake --build . -j && \
     cmake --build . --target install
 
+# Install PowerShell 7 so that we can run our data management scripts
+WORKDIR /tmp
+COPY ./install-powershell.bash .
+RUN /bin/bash install-powershell.bash
+
 # Install Python dependencies for wibl-python as well as wibl-python itself
 WORKDIR $WIBL_SRC/wibl-python
 RUN python -m pip install -r requirements-vizlambda.txt
 RUN python -m pip install ./wibl-manager
 RUN python -m pip install --no-deps .
+
+# Copy data management scripts to /opt/bin
+RUN mkdir /opt/bin
+RUN cp $WIBL_SRC/wibl-python/scripts/data-management/*.ps1 /opt/bin
 
 # Clean-up
 RUN dnf -y clean all && \
@@ -167,6 +176,10 @@ FROM public.ecr.aws/lambda/python:3.12 AS final
 
 COPY --from=builder /usr/ /usr/
 COPY --from=builder /var/lang/ /var/lang/
+COPY --from=builder /opt/powershell /opt/powershell
+COPY --from=builder /opt/bin /opt/bin
+COPY --from=builder /etc/environment /etc/environment
+COPY --from=builder /etc/profile.d/sh.local /etc/profile.d/sh.local
 # Setup environment
 ENV GMT_DATA=/var/gmt/data
 ENV DCW_ROOT=$GMT_DATA/dcw-gmt-2.1.2
@@ -176,5 +189,5 @@ ENV GSHHG_ROOT=$GMT_DATA/gshhg-gmt-2.3.7
 RUN mkdir -p /var/wibl
 WORKDIR /var/wibl
 
-ENTRYPOINT ["/bin/sh", "-c"]
+ENTRYPOINT ["/bin/bash", "-l", "-c"]
 CMD ["/bin/bash"]
