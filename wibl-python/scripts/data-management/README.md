@@ -1,10 +1,10 @@
 # WIBL data management scripts 
 This directory contains 
-[PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/overview?view=powershell-7.3)
+[PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/overview?view=powershell-7.4)
 scripts that can be used to automate WIBL data management tasks.
 
 These scripts require PowerShell 7 or later running on Windows, macOS, or Linux. 
-See [here](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.3)
+See [here](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.4)
 for installation instructions. After installing PowerShell 7, make sure to enable the execution of PowerShell 
 scripts:
 ```powershell
