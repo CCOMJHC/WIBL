@@ -89,9 +89,9 @@ To run `processWibl.ps1` you have to supply three inputs:
 1. The path to a directory containing WIBL files for a single
 vessel; 
 2. A path to a JSON file containing metadata for the vessel that collected the data 
-(for example, see: [b12_v3_metadata_example.json](../../tests/fixtures/b12_v3_metadata_example.json)); and 
+(for example, see: [b12_v3_metadata_example.json](../../tests/data/b12_v3_metadata_example.json)); and 
 3. A JSON configuration file for local processing (for example, see: 
-[configure.local.json](../../tests/fixtures/configure.local.json)). 
+[configure.local.json](../../tests/data/configure.local.json)). 
 
 The configuration file should look like the following:
 ```json

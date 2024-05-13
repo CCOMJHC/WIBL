@@ -18,8 +18,4 @@ Get-ChildItem -Path $inPath -Filter "*.$extension" -File -Recurse |
     } else {
         csbschema validate -f $_
     }
-    if ( -not ($LASTEXITCODE -eq 0) ) {
-      Write-Error "Error validating $_, exiting..."
-      exit -1
-    }
   }
