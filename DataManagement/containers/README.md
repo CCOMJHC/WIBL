@@ -2,8 +2,8 @@
 This page describes how to use WIBL base container imagers for running WIBL
 in Docker or other container runtime environments.
 
-There are currently two tags for the WIBL container image: `1.0.3-amazonlinux`
-and `1.0.3`, which at present reference the same image. For more information
+There are currently two tags for the WIBL container image: `1.0.4-amazonlinux`
+and `1.0.4`, which at present reference the same image. For more information
 see [here](https://github.com/CCOMJHC/WIBL/pkgs/container/wibl). In the 
 future these may be separated into distinct images for those not using
 Amazon Linux.

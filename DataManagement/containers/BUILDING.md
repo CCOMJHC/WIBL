@@ -15,8 +15,8 @@ $ docker buildx build \
 > Note: If you don't have a builder named `desktop-linux`, run `docker buildx ls`
 > to find the name of your builder.
 
-> Note: For now, we tag this image both as `1.0.3-amazonlinux` and 
-> `1.0.3`. In the future we may plan to build a version of the that is
+> Note: For now, we tag this image both as `1.0.4-amazonlinux` and 
+> `1.0.4`. In the future we may plan to build a version of the that is
 > not based on Amazon Linux.
 
 To push, first store your GitHub container registry personal access token to
