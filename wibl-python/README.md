@@ -100,7 +100,8 @@ pip install .
 
 ### Local installation using Docker
 Please refer to the instructions [here](https://github.com/CCOMJHC/WIBL/blob/main/DataManagement/containers/README.md)
-to learn how to install and use `wibl-python` via Docker.
+to learn how to install and use `wibl-python` and [data management scripts](scripts/data-management/README.md) via 
+Docker.
 
 ## Testing
 To run unit tests, including detailed verification of packet data output by the data simulator, run:
@@ -180,11 +181,11 @@ $ wibl editwibl -m sensor-inject.json test.bin test-inject.bin
 ### Process WIBL file into GeoJSON
 Convert a binary WIBL file into GeoJSON:
 ```
-$ wibl procwibl -c tests/fixtures/configure.local.json test-inject.bin test-inject.geojson
+$ wibl procwibl -c tests/data/configure.local.json test-inject.bin test-inject.geojson
 ```
 
 > Note: It is necessary to supply a configuration JSON file with the `local` attribute
-> set to `true`, such as `tests/fixtures/configure.local.json`, because `procwibl` uses
+> set to `true`, such as `tests/data/configure.local.json`, because `procwibl` uses
 > the same code as the conversion processing lambda code run in the cloud.
 
 ### Upload WIBL files into AWS S3 Buckets for processing
@@ -249,6 +250,12 @@ optional arguments:
 Configuration files suitable for uploading to both the test and production DCDB endpoints are available in the
 [examples](examples) directory; For test uploads, use [configure-submission-test.json](examples/configure-submission-test.json),
 and for production uploads use [configure-submission.json](examples/configure-submission.json).
+
+## Batch processing scripts
+In addition to running the above-documented `wibl` commands on individual WIBL files, it is also possible to batch 
+process many WIBL files using the provided [data management PowerShell scripts](scripts/data-management/README.md). 
+These scripts can also be run in [Docker](https://www.docker.com/) (or other container runtimes) using the 
+[wibl-base container image](https://github.com/CCOMJHC/WIBL/blob/main/DataManagement/containers/README.md).
 
 ## Packaging and Deploying Processing and Submission Code
 Packaging up the software for the cloud segment, and deploying it, can be a little involved due to security concerns with the various cloud providers.  Detailed setup instructions, and automation scripts, are provided as described below.
