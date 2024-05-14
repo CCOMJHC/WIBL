@@ -11,7 +11,7 @@ from wibl import get_logger
 
 RASTER_NODATA = -99999.
 RASTER_MAX = 40_000
-RASTER_RES = 0.0009
+RASTER_RES = 0.002
 REGION_INSET_MULT = 4
 
 GEBCO_PATH: str = os.getenv('WIBL_GEBCO_PATH')
@@ -83,7 +83,8 @@ def map_soundings(sounding_geojson: Path,
                                                     where=f"depth > 0 AND depth < {RASTER_MAX}")
     if p.returncode != 0:
         output = f"stdout: {p.stdout}, stderr: {p.stderr}"
-        mesg = f"Unable to rasterize {sounding_geojson} to {sounding_rast} due to error: {output}"
+        mesg = (f"Unable to rasterize {sounding_geojson} to {sounding_rast} "
+                f"due to error: {output}, return code was: {p.returncode}.")
         logger.error(mesg)
         raise Exception(mesg)
 
@@ -98,7 +99,7 @@ def map_soundings(sounding_geojson: Path,
     #   to avoid extremely tall or wide maps
     xrng = xmax - xmin
     yrng = ymax - ymin
-    buffer = max(xrng, yrng) / 2
+    buffer = max(xrng, yrng) / 3
     buffer_inset = REGION_INSET_MULT * buffer
 
     # Setup region, projections and polygons for main map an insets...
@@ -134,13 +135,14 @@ def map_soundings(sounding_geojson: Path,
     f.grdimage(GEBCO_PATH,
                region=region,
                projection="M16c",
-               cmap='terra')
+               cmap='terra',
+               dpi=120)
 
     f.colorbar(position="JBC", frame=["x+lGEBCO 2023 Bathymetry", "y+lm"])
 
     # Plot soundings
-    f.grdimage(sounding_rast, cmap='drywet', nan_transparent=True)
-    f.colorbar(position="JLM+o-2.0c/0c+w4c",
+    f.grdimage(sounding_rast, cmap='seis', dpi=300, nan_transparent=True)
+    f.colorbar(position="JLM+o-2.0c/0c+w8c",
                box="+gwhite@30+p0.8p,black",
                frame=["x+lSounding depth", "y+lm"])
 
