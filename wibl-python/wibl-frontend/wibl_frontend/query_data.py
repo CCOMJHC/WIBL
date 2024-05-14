@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_login import login_required
 
 from wibl_frontend.app_globals import db
 
@@ -6,6 +7,7 @@ querydata = Blueprint("querydata", __name__)
 
 
 @querydata.route('/query', methods=['GET'])
+@login_required
 def query():
     try:
         id1 = request.args.get('id', '')
@@ -22,6 +24,7 @@ def query():
         return jsonify(error_message), 500
 
 @querydata.route('/submit', methods=['POST'])
+@login_required
 def submit():
     try:
         data = request.json.get('data', '')

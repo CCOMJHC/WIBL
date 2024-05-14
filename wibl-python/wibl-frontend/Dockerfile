@@ -14,6 +14,8 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 RUN pip install .
 
+COPY wibl_frontend/templates/static static 
+
 FROM builder as final
 
 EXPOSE 8000

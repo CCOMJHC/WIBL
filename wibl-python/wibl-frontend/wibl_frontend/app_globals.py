@@ -10,7 +10,7 @@ from wibl_frontend import get_templates_path
 from wibl_frontend.models import User
 from wibl_frontend.auth import auth as auth_blueprint
 from wibl_frontend.main import main as main_blueprint
-
+from wibl_frontend.query_main import query_main as query_main_blueprint
 
 FRONTEND_DATABASE_URI = os.environ.get('FRONTEND_DATABASE_URI', 'sqlite:///database.db')
 
@@ -38,3 +38,4 @@ def load_user(user_id):
 
 app.register_blueprint(auth_blueprint)
 app.register_blueprint(main_blueprint)
+app.register_blueprint(query_main_blueprint)

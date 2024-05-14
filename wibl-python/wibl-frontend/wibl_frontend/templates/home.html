@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mock Gui App</title>
+    <title>Wibl App Gui</title> 
     <style>
         body {
           margin: 0;
@@ -17,25 +17,104 @@
           flex-direction: column;
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css" />
 </head>
 <body>
+  <section class="hero is-primary is-fullheight">
+    <div class="box">
     <div class="form-container">
-        <h1>Mock Gui App</h1>
-        
-        <!-- File Upload Form -->
-        <form method="POST" action="/" enctype="multipart/form-data">
-            <input type="file" name="file">
-            <button type="submit">Submit</button>
-        </form>
+    
+        <h1>WIBL Web App</h1>
 
+      <div class="field">
+        <div class="control">
+	    <label for="post_id">Post a File Test</label>
+	    <input class="input is-large" type="text" name="filePost" id="userPost">
+      </div>
+      </div>
+          <button class="navbar-item" style="color:black;" id="filePost">Initialize Metadata File</button>
+        
+
+	<script defer>
+        document.getElementById('filePost').onclick = function postFile() {
+          fileID = document.getElementById('userPost').value;
+          fetch('', {
+            method: 'POST',
+	    redirect: 'follow',
+            headers: {
+                "Content-Type": "text/plain"
+                },
+                body: fileID
+                });
+        }
+        </script>
         <br>
 
         <!-- File Query Form -->
-        <form method="GET" action="/download"  enctype="multipart/form-data">
-            <label for="upload_id">Enter Upload ID:</label>
-            <input type="text" name="upload_id" required>
-            <button type="submit">Query</button>
+        <form method="get" action="/download">
+            <button class="navbar-item" style="color:black;" type="submit">View Data and Results</button>
         </form>
+
+	<br>
+
+	<div class="field">
+    <div class="control">
+		<label for="put_id">Enter File Name</label>
+		<input class="input is-large" type="text" name="filePut" id="userPut">
     </div>
+    </div>
+		<button class="navbar-item" style="color:black;" id="filePut">Update File</button>
+	
+	
+	<script defer>
+	document.getElementById('filePut').onclick = function putFile() {
+	  fileID = document.getElementById('userPut').value;
+	  fetch('', {
+            method: 'PUT',
+	    redirect: 'follow',
+	    headers: {
+	    	"Content-Type": "text/plain"
+		},
+		body: fileID
+                });
+	}
+	</script>
+
+
+	<br>
+
+	<div class="field">
+    <div class="control">
+		<label for="delete_id">Enter File Name</label>
+		<input class="input is-large" type="text" name="fileInput" id="userInput">
+  </div>
+  </div>
+		<button class="navbar-item" style="color:black;" id="fileInput">Delete File</button>
+
+	
+	<script defer>
+	document.getElementById('fileInput').onclick = function deleteFile() {
+	  fileID = document.getElementById('userInput').value;
+	  fetch('', {
+            method: 'DELETE',
+	    redirect: 'follow',
+	    headers: {
+	    	"Content-Type": "text/plain"
+		},
+		body: fileID
+                });
+	}
+
+
+	</script>
+  
+   <form action="/artifact" method="get">
+    <button class="navbar-item" style="color:black;" type="submit">Go to Artifact Page</button>
+  </form>
+
+    </div>
+    </div>
+
+  </section>
 </body>
 </html>

@@ -13,17 +13,34 @@ services:
       - frontend.env
     environment:
       FRONTEND_DATABASE_URI: ${FRONTEND_DATABASE_URI}
-      MANAGEMENT_URL: 'http://manager:8000'
+      MANAGEMENT_URL: 'http://manager:5000'
       MANAGEMENT_HEARTBEAT_PATH: '/heartbeat'
     ports:
-      - '8002:8000'
+      - '8000:8000'
     volumes:
       - 'dbdata_fe:/var/wibl'
+        #- './file_upload:/var/wibl'
+        #- 'dbdata:/var/wibl/database.db'
+        #- 'dbdata:/var/wibl'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/heartbeat"]
       interval: 10s
       timeout: 1s
       retries: 5
-    command: 'gunicorn wibl_frontend.application:app --workers 1 --bind 0.0.0.0:8000 --access-logfile -'
+    command: 'gunicorn wibl_frontend.application:app --workers 1 --timeout 50 --bind 0.0.0.0:8000 --access-logfile -'
+  localstack:
+    image: localstack/localstack
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - SERVICES=s3,lambda,sns, kinesis, list-streams
+      - DEBUG=0
+      - LS_LOG=error
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
 volumes:
   dbdata_fe:
+          #dbdata:

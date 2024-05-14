@@ -1,26 +1,16 @@
 import os
-
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
-
 import requests
-
 from wibl_frontend.cloud import cloud_health_check
-
-
 MANAGEMENT_URL = os.getenv('MANAGEMENT_URL', None)
 MANAGEMENT_HEARTBEAT = os.getenv('MANAGEMENT_HEARTBEAT_PATH', '/heartbeat')
 HEARTBEAT_URL = f"{MANAGEMENT_URL}{MANAGEMENT_HEARTBEAT}"
 CLOUD_HEALTH_CHECK_OK: bool = False
-
 main = Blueprint('main', __name__)
-
-
 @main.route('/')
 def index():
     return render_template('index.html')
-
-
 @main.route('/heartbeat')
 def heartbeat():
     global CLOUD_HEALTH_CHECK_OK
@@ -37,8 +27,6 @@ def heartbeat():
             return f"Unable to access required cloud resources", 500
         CLOUD_HEALTH_CHECK_OK = True
     return 'Manager and cloud resource access OK', 200
-
-
 @main.route('/profile')
 @login_required
 def profile():
