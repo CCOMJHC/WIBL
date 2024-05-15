@@ -6,14 +6,15 @@ import subprocess
 
 import pygmt
 import rasterio
+import geopandas
 
 from wibl import get_logger
 
 RASTER_NODATA = -99999.
-RASTER_MAX = 40_000
+SND_MAX = 40_000
 RASTER_RES = 0.002
 REGION_INSET_MULT = 4
-
+NODATA = 42949672.92000
 GEBCO_PATH: str = os.getenv('WIBL_GEBCO_PATH')
 
 logger = get_logger()
@@ -80,7 +81,7 @@ def map_soundings(sounding_geojson: Path,
                                                     noData=RASTER_NODATA,
                                                     creationOptions=['COMPRESS=DEFLATE', 'ZLEVEL=9'],
                                                     attribute='depth',
-                                                    where=f"depth > 0 AND depth < {RASTER_MAX}")
+                                                    where=f"depth > 0 AND depth < {SND_MAX}")
     if p.returncode != 0:
         output = f"stdout: {p.stdout}, stderr: {p.stderr}"
         mesg = (f"Unable to rasterize {sounding_geojson} to {sounding_rast} "
@@ -89,11 +90,18 @@ def map_soundings(sounding_geojson: Path,
         raise Exception(mesg)
 
     # Get bounds from raster metadata
-    with rasterio.open(sounding_rast) as d:
-        xmin = d.bounds.left
-        xmax = d.bounds.right
-        ymin = d.bounds.bottom
-        ymax = d.bounds.top
+    # with rasterio.open(sounding_rast) as d:
+    #     xmin = d.bounds.left
+    #     xmax = d.bounds.right
+    #     ymin = d.bounds.bottom
+    #     ymax = d.bounds.top
+
+    snd = geopandas.read_file(sounding_geojson)
+    snd = snd[snd['depth'] < NODATA]
+    xmin = snd.bounds['minx'].min()
+    xmax = snd.bounds['maxx'].max()
+    ymin = snd.bounds['miny'].min()
+    ymax = snd.bounds['maxy'].max()
 
     # Buffer map bounds around data based on the maximum of the x- and y-ranges
     #   to avoid extremely tall or wide maps
@@ -141,7 +149,17 @@ def map_soundings(sounding_geojson: Path,
     f.colorbar(position="JBC", frame=["x+lGEBCO 2023 Bathymetry", "y+lm"])
 
     # Plot soundings
-    f.grdimage(sounding_rast, cmap='seis', dpi=300, nan_transparent=True)
+    # f.grdimage(sounding_rast, cmap='seis', dpi=300, nan_transparent=True)
+    # Make color map
+    pygmt.makecpt(cmap='wysiwyg',
+                  series=[snd['depth'].min(), snd['depth'].max(), 10],
+                  reverse=True,
+                  continuous=True)
+    f.plot(data=snd,
+           pen='4p,+z,-',
+           cmap=True,
+           aspatial='Z=depth')
+
     f.colorbar(position="JLM+o-2.0c/0c+w8c",
                box="+gwhite@30+p0.8p,black",
                frame=["x+lSounding depth", "y+lm"])

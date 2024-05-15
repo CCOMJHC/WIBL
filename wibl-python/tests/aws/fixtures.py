@@ -36,7 +36,7 @@ def localstack_url(docker_ip, docker_services):
     os.environ['S3_HOST'] = docker_ip
     os.environ['S3_PORT'] = str(port)
     os.environ['FSSPEC_S3_ENDPOINT_URL'] = url
-    os.environ['AWS_REGION'] = 'us-east-2'
+    os.environ['AWS_REGION'] = 'us-east-1'
     os.environ['AWS_ACCESS_KEY_ID'] = 'CHANGEME'
     os.environ['AWS_SECRET_ACCESS_KEY'] = 'CHANGEME'
 

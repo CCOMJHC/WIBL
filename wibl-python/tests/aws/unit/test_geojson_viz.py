@@ -3,19 +3,20 @@ from pathlib import Path
 from typing import List, Dict, Any
 import tempfile
 import json
+import shutil
 
 import pytest
 
 from wibl import config_logger_service
 from wibl.visualization.soundings import map_soundings
-from wibl.core.util import merge_geojson
+from wibl.core.util import merge_geojson, geojson_pt_to_ln
 from wibl.core.util.aws import generate_get_s3_object
 
-from tests.fixtures import data_path
+from tests.fixtures import data_path, get_named_tempfile
 # Note: need to import localstack_url fixture since other fixtures depend on it.
 from tests.aws.fixtures import localstack_url, s3_local_rsrc
 
-GEOJSON_BUCKET_NAME: str = 'geojson-test-bucket'
+GEOJSON_BUCKET_NAME: str = 'test-geojson-viz-bucket'
 
 
 logger = config_logger_service()
@@ -24,16 +25,24 @@ logger = config_logger_service()
 @pytest.fixture(scope="module")
 def populated_geojson_data(data_path, s3_local_rsrc):
     """
-    Fixture used to upload GeoJSON files to localstack S3
+    Fixture used to convert point GeoJSON files into LineString GeoJSON files and upload to localstack S3
     :param data_path:
     :return: boto3 S3 client
     """
     bucket = s3_local_rsrc.Bucket(GEOJSON_BUCKET_NAME)
     bucket.create()
 
-    geojson_path: Path = data_path / 'geojson'
-    for geojson_file in geojson_path.glob('*.json'):
-        bucket.upload_file(geojson_file, geojson_file.name)
+    with tempfile.TemporaryDirectory() as tempdir:
+        geojson_path: Path = data_path / 'geojson'
+        for geojson_file in geojson_path.glob('*.json'):
+            # First Convert point GeoJSON files to line
+            out_fp = get_named_tempfile(tempdir, '.json')
+            geojson_pt_to_ln(lambda l, f: open(os.path.join(l, f)), str(geojson_path), geojson_file.name, out_fp)
+            ln_geojson: Path = Path(out_fp.name)
+            out_fp.close()
+            # Upload line GeoJSON to S3
+            bucket.upload_file(ln_geojson, geojson_file.name)
+            # bucket.upload_file(geojson_file, geojson_file.name)
 
     yield bucket
 
@@ -89,6 +98,7 @@ def test_map_soundings(data_path, s3_local_rsrc, populated_geojson_data, merged_
     :return:
     """
     geojson_path: Path = data_path / 'geojson'
+
     files_to_merge: List[str] = [f.name for f in geojson_path.glob('*.json')]
 
     merged_geojson_path: Path = Path(merged_geojson_fp.name)

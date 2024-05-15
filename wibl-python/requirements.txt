@@ -7,3 +7,4 @@ csbschema~=1.1.1
 pygmt~=0.10.0
 rasterio~=1.3.0
 GDAL
+geopandas
