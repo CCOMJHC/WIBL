@@ -25,24 +25,16 @@ logger = config_logger_service()
 @pytest.fixture(scope="module")
 def populated_geojson_data(data_path, s3_local_rsrc):
     """
-    Fixture used to convert point GeoJSON files into LineString GeoJSON files and upload to localstack S3
+    Fixture used to upload GeoJSON files to localstack S3
     :param data_path:
     :return: boto3 S3 client
     """
     bucket = s3_local_rsrc.Bucket(GEOJSON_BUCKET_NAME)
     bucket.create()
 
-    with tempfile.TemporaryDirectory() as tempdir:
-        geojson_path: Path = data_path / 'geojson'
-        for geojson_file in geojson_path.glob('*.json'):
-            # First Convert point GeoJSON files to line
-            out_fp = get_named_tempfile(tempdir, '.json')
-            geojson_pt_to_ln(lambda l, f: open(os.path.join(l, f)), str(geojson_path), geojson_file.name, out_fp)
-            ln_geojson: Path = Path(out_fp.name)
-            out_fp.close()
-            # Upload line GeoJSON to S3
-            bucket.upload_file(ln_geojson, geojson_file.name)
-            # bucket.upload_file(geojson_file, geojson_file.name)
+    geojson_path: Path = data_path / 'geojson'
+    for geojson_file in geojson_path.glob('*.json'):
+        bucket.upload_file(geojson_file, geojson_file.name)
 
     yield bucket
 
@@ -93,7 +85,7 @@ def test_map_soundings(data_path, s3_local_rsrc, populated_geojson_data, merged_
     """
     :param data_path:
     :param s3_local_rsrc:
-    :param populated_data:
+    :param populated_geojson_data:
     :param merged_geojson_fp:
     :return:
     """
@@ -101,11 +93,19 @@ def test_map_soundings(data_path, s3_local_rsrc, populated_geojson_data, merged_
 
     files_to_merge: List[str] = [f.name for f in geojson_path.glob('*.json')]
 
-    merged_geojson_path: Path = Path(merged_geojson_fp.name)
-    merge_geojson(generate_get_s3_object(s3_local_rsrc.meta.client),
-                  GEOJSON_BUCKET_NAME, files_to_merge, merged_geojson_fp)
-    merged_geojson_fp.close()
+    with tempfile.TemporaryDirectory() as tempdir:
+        # First convert point GeoJSON files to line for plotting
+        for geojson_file in files_to_merge:
+            with open(os.path.join(tempdir, geojson_file), mode='w', encoding='utf-8') as out_fp:
+                geojson_pt_to_ln(generate_get_s3_object(s3_local_rsrc.meta.client),
+                                 GEOJSON_BUCKET_NAME, geojson_file, out_fp)
+        # Next merge line GeoJSON files into a single file
+        merged_geojson_path: Path = Path(merged_geojson_fp.name)
+        merge_geojson(lambda loc, f: open(os.path.join(loc, f)),
+                      tempdir, files_to_merge, merged_geojson_fp)
+        merged_geojson_fp.close()
 
+    # Finally plot the merged line GeoJSON file
     map_filename: Path = map_soundings(merged_geojson_path,
                                        '$VESSEL_NAME',
                                        'VESSEL_NAME')

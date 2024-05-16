@@ -69,33 +69,6 @@ def map_soundings(sounding_geojson: Path,
     out_path: Path = Path(tempfile.mkdtemp()).absolute()
     map_filename: Path = out_path / map_filename_prefix
 
-    sounding_rast: Path = sounding_geojson.with_suffix('.tif')
-
-    # Generate GeoTIFF of soundings from GeoJSON file
-    p: subprocess.CompletedProcess = gdal_rasterize(sounding_rast,
-                                                    sounding_geojson,
-                                                    format='GTiff',
-                                                    outputSRS='EPSG:4326',
-                                                    xRes=RASTER_RES,
-                                                    yRes=-RASTER_RES,
-                                                    noData=RASTER_NODATA,
-                                                    creationOptions=['COMPRESS=DEFLATE', 'ZLEVEL=9'],
-                                                    attribute='depth',
-                                                    where=f"depth > 0 AND depth < {SND_MAX}")
-    if p.returncode != 0:
-        output = f"stdout: {p.stdout}, stderr: {p.stderr}"
-        mesg = (f"Unable to rasterize {sounding_geojson} to {sounding_rast} "
-                f"due to error: {output}, return code was: {p.returncode}.")
-        logger.error(mesg)
-        raise Exception(mesg)
-
-    # Get bounds from raster metadata
-    # with rasterio.open(sounding_rast) as d:
-    #     xmin = d.bounds.left
-    #     xmax = d.bounds.right
-    #     ymin = d.bounds.bottom
-    #     ymax = d.bounds.top
-
     snd = geopandas.read_file(sounding_geojson)
     snd = snd[snd['depth'] < NODATA]
     xmin = snd.bounds['minx'].min()
@@ -148,13 +121,12 @@ def map_soundings(sounding_geojson: Path,
 
     f.colorbar(position="JBC", frame=["x+lGEBCO 2023 Bathymetry", "y+lm"])
 
-    # Plot soundings
-    # f.grdimage(sounding_rast, cmap='seis', dpi=300, nan_transparent=True)
-    # Make color map
+    # Make color map for soundings
     pygmt.makecpt(cmap='wysiwyg',
                   series=[snd['depth'].min(), snd['depth'].max(), 10],
                   reverse=True,
                   continuous=True)
+    # Plot soundings
     f.plot(data=snd,
            pen='4p,+z,-',
            cmap=True,

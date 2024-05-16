@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from typing import IO, AnyStr
+from typing import IO, AnyStr, Union
 import tempfile
 
 import pytest
@@ -23,10 +23,11 @@ def tempdir() -> Path:
     shutil.rmtree(tempdir)
 
 
-def get_named_tempfile(dir: Path, suffix: str) -> IO[AnyStr]:
+def get_named_tempfile(dir: Union[Path, str], *, suffix=None, prefix=None) -> IO[AnyStr]:
     return tempfile.NamedTemporaryFile(mode='w',
                                        encoding='utf-8',
                                        newline='\n',
-                                       dir=dir,
+                                       dir=Path(dir),
+                                       prefix=prefix,
                                        suffix=suffix,
                                        delete=False)
