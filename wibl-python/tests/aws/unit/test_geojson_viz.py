@@ -12,7 +12,7 @@ from wibl.visualization.soundings import map_soundings
 from wibl.core.util import merge_geojson, geojson_pt_to_ln
 from wibl.core.util.aws import generate_get_s3_object
 
-from tests.fixtures import data_path, get_named_tempfile
+from tests.fixtures import data_path
 # Note: need to import localstack_url fixture since other fixtures depend on it.
 from tests.aws.fixtures import localstack_url, s3_local_rsrc
 

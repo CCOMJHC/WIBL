@@ -556,7 +556,7 @@ aws --region $AWS_REGION ecr get-login-password | docker login \
 # If `docker login` is successful, you should see `Login Succeeded` printed to STDOUT.
 
 # Build image and push to ECR repo
-docker build -f ../../../Dockerfile.vizlambda -t wibl/vizlambda:latest ../../../
+docker build --provenance=false -f ../../../Dockerfile.vizlambda -t wibl/vizlambda:latest ../../../
 docker tag wibl/vizlambda:latest "${ACCOUNT_NUMBER}.dkr.ecr.${AWS_REGION}.amazonaws.com/wibl/vizlambda:latest"
 docker push "${ACCOUNT_NUMBER}.dkr.ecr.${AWS_REGION}.amazonaws.com/wibl/vizlambda:latest" | tee "${WIBL_BUILD_LOCATION}/docker_push_vizlambda_to_ecr.txt"
 

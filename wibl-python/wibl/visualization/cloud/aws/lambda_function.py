@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import tempfile
 from typing import List
@@ -9,7 +10,7 @@ from wibl.core import getenv
 import wibl.core.config as conf
 import wibl.core.datasource as ds
 from wibl.visualization.cloud.aws import get_config_file
-from wibl.core.util import merge_geojson
+from wibl.core.util import merge_geojson, geojson_pt_to_ln
 from wibl.core.util.aws import generate_get_s3_object
 from wibl.visualization.soundings import map_soundings
 
@@ -71,33 +72,55 @@ def lambda_handler(event, context):
         }
     source_keys: List[str] = body['source_keys']
 
-    # First merge GeoJSON soundings from S3 into a single local GeoJSON file
-    merged_geojson_fp = tempfile.NamedTemporaryFile(mode='w',
-                                                    encoding='utf-8',
-                                                    newline='\n',
-                                                    suffix='.json',
-                                                    delete=False)
-    merged_geojson_path: Path = Path(merged_geojson_fp.name)
-    try:
-        merge_geojson(generate_get_s3_object(s3.meta.client),
-                      source_store, source_keys, merged_geojson_fp,
-                      fail_on_error=True)
-    except Exception as e:
+    merged_geojson_path = None
+    with tempfile.TemporaryDirectory() as tempdir:
+        # First convert point GeoJSON files from S3 to line GeoJSON files in tempdir
+        try:
+            for geojson_file in source_keys:
+                with open(os.path.join(tempdir, geojson_file), mode='w', encoding='utf-8') as out_fp:
+                    geojson_pt_to_ln(generate_get_s3_object(s3.meta.client),
+                                     source_store, geojson_file, out_fp)
+        except Exception as e:
+            print(f"Unable to convert point GeoJSON from S3 to line GeoJSON in tempdir. Error was: {str(e)}")
+            return {
+                'statusCode': 500,
+                'body': 'Unable to convert point GeoJSON from S3 to line GeoJSON in tempdir.'
+            }
+
+        try:
+            # Next merge line GeoJSON files into a single GeoJSON file
+            merged_geojson_fp = tempfile.NamedTemporaryFile(mode='w',
+                                                            encoding='utf-8',
+                                                            newline='\n',
+                                                            suffix='.json',
+                                                            delete=False)
+            merged_geojson_path = Path(merged_geojson_fp.name)
+            merge_geojson(lambda loc, f: open(os.path.join(loc, f)),
+                          tempdir, source_keys, merged_geojson_fp,
+                          fail_on_error=True)
+        except Exception as e:
+            merged_geojson_fp.close()
+            merged_geojson_path.unlink()
+            print(f"Unable to merge line GeoJSON files into single GeoJSON file. Error was: {str(e)}")
+            return {
+                'statusCode': 500,
+                'body': 'Unable to merge line GeoJSON files into single GeoJSON file.'
+            }
         merged_geojson_fp.close()
-        merged_geojson_path.unlink()
+
+    # Now map soundings into local temporary file
+    try:
+        map_filename: Path = map_soundings(merged_geojson_path,
+                                           observer_name,
+                                           dest_key)
+        # Upload map to S3 destination bucket
+        controller.upload(str(map_filename), map_filename.name)
+    except Exception as e:
+        print(f"Unable to map soundings. Error was {str(e)}")
         return {
             'statusCode': 500,
-            'body': str(e)
+            'body': 'Unable to map soundings.'
         }
-    merged_geojson_fp.close()
-
-    # Map soundings into local temporary file
-    map_filename: Path = map_soundings(merged_geojson_path,
-                                       observer_name,
-                                       dest_key)
-
-    # Upload map to S3 destination bucket
-    controller.upload(str(map_filename), map_filename.name)
 
     return {
         'statusCode': 200,

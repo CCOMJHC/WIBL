@@ -82,7 +82,7 @@ will cause the conversion lambda to be invoked.
 The [vizualization lambda](../../../wibl/visualization/cloud/aws/lambda_function.py) allows multiple
 GeoJSON files stored in $STAGING_BUCKET to be combined and vizualized over GEBCO data using 
 [Generic Mapping Tools](https://www.generic-mapping-tools.org) and written to $VIZ_BUCKET. 
-The script [vizlambdainvoke.py](scripts/vizlambdainvoke.py) shows how to invoke this lambda (make sure
+The script [vizlambdainvoke.py](../../../scripts/vizlambdainvoke.py) shows how to invoke this lambda (make sure
 to set the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables before running).
 
 When invoking the visualisation lambda, you may get the following error:
