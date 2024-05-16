@@ -93,6 +93,8 @@ vessel;
 3. A JSON configuration file for local processing (for example, see: 
 [configure.local.json](../../tests/data/configure.local.json)). 
 
+> Note: if your WIBL files don't have the '.wibl' extension, you can bulk rename them with the following PowerShell one-liner: `Get-ChildItem * | Rename-Item -NewName { $_.Name + ".wibl" }`. Make sure to run this from the directory where the files to be renamed are located.
+
 The configuration file should look like the following:
 ```json
 {
@@ -112,7 +114,7 @@ should be set to the provider ID of the trusted node you plan to use to submit d
 > don't set this correctly, the WIBL processing tools won't be able to detect when the elapsed time timestamp
 > wraps around.
 
-To learn more about how to run `convertToWibl.ps1`, use the `Get-Help` command:
+To learn more about how to run `processWibl.ps1`, use the `Get-Help` command:
 ```
 PS /Users/janeuser/wibl/wibl-python/scripts/data-management> Get-Help ./processWibl.ps1  
 processWibl.ps1 [[-wiblPath] <string>] [[-metadataFile] <string>] [[-wiblConfig] <string>]
