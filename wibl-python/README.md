@@ -93,7 +93,7 @@ $ ./wibl-env/bin/activate
 
 Once you've activated the `wibl-env` Python virtual environment, you can install `wibl-python` as follows:
 ```
-pip install csbschema==1.1.1
+pip install csbschema~=1.1.2
 pip install ./wibl-manager
 pip install .
 ```
