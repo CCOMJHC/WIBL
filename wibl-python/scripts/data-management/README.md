@@ -27,6 +27,15 @@ To do so on Linux or macOS, run:
 PS /Users/janeuser> ./miniconda/bin/conda init powershell
 ```
 
+## debugWibl.ps1
+To debug each step of a workflow--from conversion to WIBL format, to adding metadata, to creating and validating
+GeoJSON output--for a single logger file (as opposed to doing batch processing steps, which are detailed below),
+use the [debugWibl.ps1](debugWibl.ps1) script:
+```
+Get-Help ./debugWibl.ps1
+debugWibl.ps1 [[-datFile] <string>] [[-metadataFile] <string>] [[-wiblConfig] <string>] [[-LogConvertPath] <string>] [[-Format] <string>]
+```
+
 ## convertToWibl.ps1: converting non-WIBL data to WIBL format using [LogConvert](../../../LogConvert)
 It is possible to use wibl-python to process non-WIBL data in the following formats: Yacht Devices YDVR-4,
 TeamSurv "tab separated" (but actually plain ASCII) NMEA0183 strings. To do so, it's first necessary to

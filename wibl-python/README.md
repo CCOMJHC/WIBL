@@ -31,6 +31,9 @@ environment:
 conda env create -f environment.yml
 ```
 
+> To update an existing environment, download or `git pull` the latest `wibl-python` code and then 
+> run `conda update -n wibl-python -f environment.yml`.
+
 Then, each time you want to use `wibl-python` activate the environment as follows:
 ```
 conda activate wibl-python
