@@ -37,7 +37,7 @@ function translateTime(elapsed) {
     if (days > 0) {
         start = true;
         display += `${days} day`;
-        if (day > 1)
+        if (days > 1)
             display += 's';
     }
     if (hours > 0 || start) {
