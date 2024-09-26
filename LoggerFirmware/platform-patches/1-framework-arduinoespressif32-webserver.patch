@@ -1,4 +1,4 @@
-310,314c310,314
+321,325c321,325
 < //           if (_currentClient.connected()) {
 < //             _currentStatus = HC_WAIT_CLOSE;
 < //             _statusChange = millis();

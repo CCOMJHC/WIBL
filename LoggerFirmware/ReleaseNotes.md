@@ -9,7 +9,7 @@ Firmware 1.5.2 includes the following changes:
 * Updates Arduino_LSM6DS3 from version 1.0.0 to 1.0.3
 * Updates ArduinoJson from version 6.20.1 to 6.21.5
 * Build updates:
-  * Pins espressif32 platform version to version 6.7.0
+  * Pins espressif32 platform version to version 6.4.0
   * Pin all library versions
   * Add automated patching of platformio package files
 
