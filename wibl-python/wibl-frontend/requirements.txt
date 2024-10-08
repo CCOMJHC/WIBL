@@ -1,0 +1,4 @@
+Django~=5.1.2
+psycopg[binary]~=3.2.3
+celery~=5.4.0
+redis~=5.1.1

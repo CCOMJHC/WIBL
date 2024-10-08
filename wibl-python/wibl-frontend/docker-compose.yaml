@@ -1,0 +1,74 @@
+name: wibl-frontend
+
+#include:
+#  - ../wibl-manager/docker-compose.yaml
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: frontend
+    command: >
+      bash -c "python manage.py makemigrations &&
+                  python manage.py migrate &&
+                  python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./src:/var/local/wibl/frontend
+    depends_on:
+      - db
+      - redis
+    restart: always
+    env_file:
+      - frontend.env
+    environment:
+      - MANAGEMENT_URL='http://manager:5000'
+      - MANAGEMENT_HEARTBEAT_PATH='/heartbeat'
+      - DEBUG=1
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    ports:
+      - '6081:8000'
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/heartbeat" ]
+      interval: 10s
+      timeout: 1s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery --app=wiblfe worker --pool threads --loglevel=info
+    volumes:
+      - ./src:/var/local/wibl/frontend
+    environment:
+      - DEBUG=1
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    depends_on:
+#      - manager
+      - frontend
+      - redis
+
+  db:
+    image: postgres:17-bookworm
+    container_name: db
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    expose:
+      - '6432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+    command: -p 6432
+
+  redis:
+    image: redis:7-bookworm
+
+# Enable db persistence with a volume definition
+volumes:
+  pgdata:
