@@ -7,7 +7,7 @@ from asgiref.sync import async_to_sync
 
 
 @shared_task(name='get-wibl-files')
-def get_wibl_files(user_or_session_id):
+def get_wibl_files(session_key: str):
     print("get_wibl_files called!")
     time.sleep(2)
     # TODO: Make call to WIBL manager
@@ -24,7 +24,7 @@ def get_wibl_files(user_or_session_id):
     channel_layer = get_channel_layer()
     print("sending to websocket...")
     async_to_sync(channel_layer.group_send)(
-        user_or_session_id,
+        session_key,
         {
             'type': 'wibl_message',
             'message': wibl_files_data

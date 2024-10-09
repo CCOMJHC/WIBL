@@ -30,3 +30,16 @@ python manage.py collectstatic
 ```
 
 > Note: You will then need to rebuild the frontend container using `docker-compose build`
+
+## Create test user
+```shell
+docker-compose exec frontend bash
+python manage.py shell
+from django.contrib.auth.models import User
+user=User.objects.create_user('foo', password='bar')
+user.is_superuser=False
+user.is_staff=False
+user.save()
+exit()
+exit
+```
