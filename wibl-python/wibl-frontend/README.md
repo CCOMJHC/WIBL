@@ -8,3 +8,8 @@ docker compose up --watch
 ```
 
 > The `--watch` option will watch source code and rebuild/refresh containers when files are updated.
+
+To re-build container images after major changes (e.g., addition of dependencies), run:
+```shell
+docker-compose build
+```

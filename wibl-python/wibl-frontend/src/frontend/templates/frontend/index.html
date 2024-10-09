@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>WIBL Frontend</title>
+  </head>
+  <body>
+    <p>Message: {{ message }}</p>
+
+    <div>
+        WIBL files...
+        <ul id="wibl-file-list">
+
+        </ul>
+    </div>
+
+    <script>
+        console.log("In script...");
+        const wiblFileList = document.getElementById("wibl-file-list");
+        const sock = new WebSocket('ws://' + window.location.host + '/ws/wibl/');
+
+        sock.addEventListener("message", (event) => {
+            console.log("In message event handler...");
+            const data = JSON.parse(event.data);
+            for (const wiblFile of data.message.files) {
+                const fileName = wiblFile.filename;
+                console.log(`Filename: ${fileName}`);
+                const li = document.createElement("li");
+                li.setAttribute("id", `wibl-file-${fileName}`);
+                li.textContent = fileName;
+                wiblFileList.appendChild(li);
+            }
+        });
+
+    </script>
+  </body>
+</html>
