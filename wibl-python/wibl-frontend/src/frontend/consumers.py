@@ -5,20 +5,26 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 class WiblFileConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        await self.channel_layer.group_add("wibl", self.channel_name)
+        # Get user session
+        self.session_key = self.scope['session'].session_key
+        # Try to get user ID, but fallback to session key if not authenticated
+        self.user = self.scope['user']
+        self.user_id = str(self.user.id) if self.user.is_authenticated else self.session_key
+
+        await self.channel_layer.group_add(self.user_id, self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard("wibl", self.channel_name)
+        await self.channel_layer.group_discard(self.user_id, self.channel_name)
 
     # Receive message from WebSocket
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json["message"]
 
-        await self.channel_layer.group_send(
-            "wibl", {"type": "wibl_message", "message": message}
-        )
+        await self.send(text_data=json.dumps({
+            'message': message
+        }))
 
     # Receive message from celery task?
     async def wibl_message(self, event):
