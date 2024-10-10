@@ -130,8 +130,6 @@ class GeoJSONData(Resource):
             result = db.session.query(GeoJSONDataModel).all()
         else:
             result = GeoJSONDataModel.query.filter_by(fileid=fileid).first()
-        if not result:
-            abort(ReturnCodes.FILE_NOT_FOUND.value, description='That GeoJSON file does not exist.')
         return result
 
     @marshal_with(geojson_resource_fields)

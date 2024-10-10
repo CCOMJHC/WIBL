@@ -14,6 +14,18 @@ To re-build container images after major changes (e.g., addition of dependencies
 docker-compose build
 ```
 
+### Load test data into the manager 
+Once the frontend is running via `docker compose`, you can load test data into the manager (so that the frontend will 
+have some initial data to display/manipulate) by running:
+```shell
+docker compose exec manager /usr/src/wibl/load-test-data.bash
+```
+
+> Note: This script is idempotent so it can be run multiple times without causing problems. If you want to 
+> reload test data, first stop `docker compose`, then run `docker compose down`, 
+> `docker volume rm wibl-frontend_dbdata_mgr`, `docker compose build`, and then re-run `docker compose up` 
+> and then the `load-test-data` script as above.
+
 ## Create superuser
 ```shell
 docker-compose exec frontend bash

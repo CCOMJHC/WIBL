@@ -153,8 +153,6 @@ class WIBLData(Resource):
             #   wrong.
         else:
             result = WIBLDataModel.query.filter_by(fileid=fileid).first()
-        if not result:
-            abort(ReturnCodes.FILE_NOT_FOUND.value, description='That WIBL file does not exist.')
         return result
 
     @marshal_with(wibl_resource_fields)

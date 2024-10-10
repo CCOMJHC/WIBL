@@ -1,10 +1,8 @@
-version: '3'
-
 services:
   manager:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     restart: always
     env_file:
       - manager.env
@@ -12,14 +10,19 @@ services:
       MANAGER_DATABASE_URI: 'sqlite:////var/wibl/database.db'
     ports:
       #- '8001:8000'
-      - '5000:5000'
+      - '6080:5000'
     volumes:
       - 'dbdata_mgr:/var/wibl'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/heartbeat"]
-      interval: 10s
+      interval: 30s
       timeout: 1s
       retries: 5
     command: 'gunicorn wibl_manager.application:app --workers 1 --bind 0.0.0.0:5000 --access-logfile -'
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./wibl_manager
+          target: /usr/src/wibl/wibl_manager
 volumes:
   dbdata_mgr:

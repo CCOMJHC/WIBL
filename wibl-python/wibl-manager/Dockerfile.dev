@@ -9,15 +9,14 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Install curl so that our healthcheck works under Docker
-RUN apt-get update -y
-RUN apt-get install -y curl
+RUN apt-get update -y && apt-get install -y curl
 
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
-RUN pip install .
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install .
 
 FROM builder AS final
 
 EXPOSE 5000
 
-ENTRYPOINT ["./entrypoint-dev.bash"]
+CMD ["wibl-manager"]
