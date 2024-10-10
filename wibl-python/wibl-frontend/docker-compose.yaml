@@ -49,8 +49,8 @@ services:
     environment:
       - DEBUG=1
       - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
-      - MANAGEMENT_URL='http://manager:5000'
-      - MANAGEMENT_HEARTBEAT_PATH='/heartbeat'
+      - MANAGEMENT_URL=http://manager:5000
+      - MANAGEMENT_HEARTBEAT_PATH=/heartbeat
       - CELERY_BROKER=redis://redis:6379/0
       - CELERY_BACKEND=redis://redis:6379/0
     depends_on:
