@@ -17,8 +17,10 @@
     <script>
         console.log("In script...");
         const wiblFileList = document.getElementById("wibl-file-list");
+        var dataRequested = false;
         const sock = new WebSocket('ws://' + window.location.host + '/ws/wibl/');
 
+        // Setup handlers to receive data from socket...
         sock.addEventListener("message", (event) => {
             console.log("In message event handler...");
             const data = JSON.parse(event.data);
@@ -31,6 +33,12 @@
                 wiblFileList.appendChild(li);
             }
         });
+
+        // Ask for data by sending to the socket...
+        sock.onopen = (event) => {
+            console.log("Sending event 'list_wibl_files' to websocket");
+            sock.send(JSON.stringify({type: "list_wibl_files"}));
+        }
 
     </script>
   </body>

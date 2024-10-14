@@ -7,23 +7,24 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: frontend
     command: >
       bash -c "python manage.py makemigrations &&
                   python manage.py migrate &&
                   daphne -b 0.0.0.0 -p 8000 wiblfe.asgi:application"
-    volumes:
-      - ./src:/var/local/wibl/frontend
     depends_on:
       - db
       - redis
+      - manager
     restart: always
     env_file:
       - frontend.env
     environment:
       - DEBUG=1
       - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - MANAGEMENT_URL=http://manager:5000
+      - MANAGEMENT_HEARTBEAT_PATH=/heartbeat
       - CELERY_BROKER=redis://redis:6379/0
       - CELERY_BACKEND=redis://redis:6379/0
     ports:
@@ -42,7 +43,7 @@ services:
   worker:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     command: celery --app=wiblfe worker --pool threads --loglevel=info
     volumes:
       - ./src:/var/local/wibl/frontend

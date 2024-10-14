@@ -6,20 +6,28 @@ from celery import shared_task
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-import requests
+import httpx
 
 @shared_task(name='get-wibl-files')
 def get_wibl_files(session_key: str):
+    """
+    Note: this is only here as an example of how to send data to the websocket associated with
+    the current logged-in user from a celery task.
+    We use ``frontend.consumers.WiblFileConsumer.send_list_wibl_files`` to send WIBL file listing
+    to the user once the browser has asked for the data via the websocket.
+    :param session_key:
+    :return:
+    """
     print("get_wibl_files called!")
     time.sleep(2)
 
     wibl_files = []
     wibl_files_data = {'files': wibl_files}
 
-    # TODO: Make call to WIBL manager
+    # Make call to WIBL manager
     manager_url: str = os.environ.get('MANAGEMENT_URL', 'http://manager:5000')
     wibl_url: str = f"{manager_url}/wibl/all"
-    response = requests.get(wibl_url)
+    response = httpx.get(wibl_url)
     if response.status_code != 200:
         # TODO: Setup logging and log this
         return False
