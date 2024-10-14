@@ -53,7 +53,8 @@ class WiblFileConsumer(AsyncWebsocketConsumer):
             })
         print("sending to websocket...")
         await self.send(text_data=json.dumps({
-            'type': 'wibl_message',
+            'type': 'wibl',
+            'event': 'list-wibl-files',
             'message': wibl_files_data
         }))
 
@@ -82,7 +83,7 @@ class WiblFileConsumer(AsyncWebsocketConsumer):
             return
 
         match message['type']:
-            case 'list_wibl_files':
+            case 'list-wibl-files':
                 print(f"WiblFileConsumer.receive: calling send_list_wibl_files()...")
                 await self.send_list_wibl_files()
             case _:
