@@ -11,7 +11,7 @@ docker compose up --watch
 
 To re-build container images after major changes (e.g., addition of dependencies), run:
 ```shell
-docker-compose build
+docker compose build
 ```
 
 ### Load test data into the manager 
@@ -28,24 +28,37 @@ docker compose exec manager /usr/src/wibl/load-test-data.bash
 
 ## Create superuser
 ```shell
-docker-compose exec frontend bash
+docker compose exec frontend bash
 python manage.py createsuperuser
 ```
 
 > Set the username to `admin`, password to whatever you can remember; e-mail address can be bogus.
 
 ## Collect static files
-Generate the static files needed by the admin site:
+You will need to run the Django `collectstatic` command at minimum the first time you
+run `docker compose up` so that the static JS, CSS, and images for the Django admin site
+are copied into the frontend container.
+
+Likewise, if you add or edit static JS, CSS, or images for the frontend app, you will
+also need to run `collectstatic`.
+
+To run `collecstatic`, first make sure `docker compose up` is running, then run:
 ```shell
-docker-compose exec frontend bash
+docker compose exec frontend bash
 python manage.py collectstatic
 ```
 
-> Note: You will then need to rebuild the frontend container using `docker-compose build`
+The first command will open a `bash` shell in the running frontend container. The second
+command runs `collectstatic`. Once you've done this, exit the bash shell running in the 
+frontend container. Then, from your host, stop `docker compose up` then run:
+```shell
+docker compose build
+docker compose up --watch
+```
 
 ## Create test user
 ```shell
-docker-compose exec frontend bash
+docker compose exec frontend bash
 python manage.py shell
 from django.contrib.auth.models import User
 user=User.objects.create_user('foo', password='bar')

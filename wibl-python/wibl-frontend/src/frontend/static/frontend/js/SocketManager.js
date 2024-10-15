@@ -1,23 +1,41 @@
 class SocketManager {
     // The websocket
     sock;
+    // Socket type, one of: "wibl",
+    type;
     // Event handlers
     event_handlers;
     // Event types
-    event_types = [
-        "list-wibl-files"
-    ];
+    event_types = {
+        "wibl": [
+            "list-wibl-files"
+        ]
+    };
+    // Class object to track singleton instances by URL
+    static _instances = {};
 
-    constructor(url) {
+    constructor(url, type) {
+        // TODO: Verify type is valid.
+        SocketManager._instances[url] = this;
+        this.type = type;
         this.sock = new WebSocket(url);
         // Setup empty event handler list for each event type
         this.event_handlers = {};
-        for (const etype of this.event_types) {
+        for (const etype of this.event_types[this.type]) {
             this.event_handlers[etype] = [];
         }
         // Register SocketManager handleEvent function with the socket. This will handle all events from
         // the socket and deliver to registered event listeners.
         this.sock.addEventListener("message", (event) => this.handleEvent(event));
+    }
+
+    static getInstance(url, type) {
+        if (url in SocketManager._instances) {
+            // TODO: Verify type matching that of instance.
+            return SocketManager._instances[url];
+        } else {
+            return new SocketManager(url, type);
+        }
     }
 
     addHandler(event_type, handler_fn) {
@@ -62,7 +80,7 @@ class SocketManager {
 
     sendRequest(event_type) {
         // TODO: Support sending requests with payloads
-        if (this.event_types.indexOf(event_type) === -1) {
+        if (this.event_types[this.type].indexOf(event_type) === -1) {
             console.error(`Unable to sendRequest for unknown event type ${event_type}.`);
             return
         }

@@ -6,39 +6,16 @@
     <title>WIBL Frontend</title>
   </head>
   <body>
-    <p>Message: {{ message }}</p>
+    <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
+    <script src="{% static 'frontend/js/WIBLFileList.js' %}"></script>
 
     <div>
         WIBL files...
         <ul id="wibl-file-list">
 
         </ul>
+        <wibl-file-list url="{{ wsURL }}"></wibl-file-list>
     </div>
 
-    <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
-
-    <script language="JavaScript">
-        function testWiblHandlerListWiblFiles(message) {
-            console.log("In testWiblHandlerListWiblFiles...");
-            for (const wiblFile of message.message.files) {
-                const fileName = wiblFile.fileid;
-                console.log(`Filename: ${fileName}`);
-                const li = document.createElement("li");
-                li.setAttribute("id", `wibl-file-${fileName}`);
-                li.textContent = fileName;
-                wiblFileList.appendChild(li);
-            }
-        }
-
-        console.log("In script...");
-        const wiblFileList = document.getElementById("wibl-file-list");
-        var dataRequested = false;
-        //const sock = new WebSocket('ws://' + window.location.host + '/ws/wibl/');
-
-        sock = new SocketManager('ws://' + window.location.host + '/ws/wibl/');
-        sock.addHandler("list-wibl-files", testWiblHandlerListWiblFiles);
-        sock.sendRequest("list-wibl-files");
-
-    </script>
   </body>
 </html>
