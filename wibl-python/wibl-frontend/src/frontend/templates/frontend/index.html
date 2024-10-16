@@ -9,6 +9,18 @@
     <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
     <script src="{% static 'frontend/js/WIBLFileList.js' %}"></script>
 
+    <ul class="sidebar-nav">
+      {% if user.is_authenticated %}
+      <li>User: {{ user.get_username }}</li>
+      <li>
+        <form id="logout-form" method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-link">Logout</button>
+        </form>
+      </li>
+      {% endif %}
+    </ul>
+
     <div>
         WIBL files...
         <ul id="wibl-file-list">

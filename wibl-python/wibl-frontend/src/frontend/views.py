@@ -16,3 +16,7 @@ def index(request: HttpRequest):
         'wsURL': f"ws://{request.get_host()}/ws/"
     }
     return render(request, 'frontend/index.html', context)
+
+@login_required
+def logout(request: HttpRequest):
+    logout(request)
