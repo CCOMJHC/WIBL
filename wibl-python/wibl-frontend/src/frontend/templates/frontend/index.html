@@ -14,8 +14,23 @@
         <ul id="wibl-file-list">
 
         </ul>
-        <wibl-file-list url="{{ wsURL }}"></wibl-file-list>
+        <wibl-file-list id="wibl-file-list1"
+                        url="{{ wsURL }}"
+                        stylesheet="{% static 'frontend/css/WIBLFileList.css' %}">
+        </wibl-file-list>
+
+        <button id="exampleButton1">Click me!</button>
     </div>
+
+    <script>
+        // Example showing how to call a member function of `wibl-file-list` web component
+        // to show come level of reactivity.
+        const button = document.getElementById("exampleButton1");
+        button.addEventListener("click", (event) => {
+            var wiblFileList = document.getElementById("wibl-file-list1");
+            wiblFileList.exampleOutsideEventReactivity();
+        })
+    </script>
 
   </body>
 </html>
