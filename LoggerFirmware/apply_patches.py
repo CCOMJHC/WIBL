@@ -4,15 +4,14 @@ from os.path import join, isfile
 
 Import("env")
 
-PATHES_PATH = 'platform-patches'
-
+PATCHES_PATH = 'platform-patches'
 FRAMEWORK_DIR = env.PioPlatform().get_package_dir("framework-arduinoespressif32")
 patchflag_path = join(FRAMEWORK_DIR, ".patching-done")
 
 print("Patching PlatformIO files...")
 
 patches = {
-    join("platform-patches", "1-framework-arduinoespressif32-webserver.patch"):
+    join(PATCHES_PATH, "1-framework-arduinoespressif32-webserver.patch"):
         join(FRAMEWORK_DIR, "libraries", "WebServer", "src", "WebServer.cpp")
 }
 
