@@ -1,5 +1,18 @@
 # Release Notes: Logger Firmware
 
+## Firmware 1.5.2
+
+Firmware 1.5.2 includes the following changes:
+
+* Fixes bug in logger website status script where status would not be updated once the logger was running for more than 1 day
+* Updates NMEA2000-library from version 4.17.2 to 4.21.5
+* Updates Arduino_LSM6DS3 from version 1.0.0 to 1.0.3
+* Updates ArduinoJson from version 6.20.1 to 6.21.5
+* Build updates:
+  * Pins espressif32 platform version to version 6.4.0
+  * Pin all library versions
+  * Add automated patching of platformio package files
+
 ## Firmware 1.5.1
 
 Firmware 1.5.1 is a bug-fix for "last known good" data reporting in the firmware website.
