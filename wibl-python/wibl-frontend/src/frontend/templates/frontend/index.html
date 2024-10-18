@@ -4,35 +4,76 @@
   <head>
     <meta charset="utf-8" />
     <title>WIBL Frontend</title>
+    <link rel="stylesheet"
+          href="{% static 'frontend/css/bulma-no-dark-mode.min.css' %}">
   </head>
   <body>
     <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
     <script src="{% static 'frontend/js/WIBLFileList.js' %}"></script>
+    <script src="{% static 'frontend/js/NavHelper.js' %}"></script>
 
-    <ul class="sidebar-nav">
-      {% if user.is_authenticated %}
-      <li>User: {{ user.get_username }}</li>
-      <li>
-        <form id="logout-form" method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-link">Logout</button>
-        </form>
-      </li>
-      {% endif %}
-    </ul>
+    <header class="navbar" role="navigation" aria-label="main navigation">
+      <div class="container">
+        <!-- Logo -->
+        <div class="navbar-brand">
+          <a class="navbar-item" href="#">
+            <img src="{% static 'frontend/img/wibl.png' %}"
+                 alt="WIBL logo">
+          </a>
+          <!-- Hamburger needed for narrow views (i.e., phone, small windows) -->
+          <a class="navbar-burger" role="button" aria-label="menu" aria-expanded="false" data-target="mainNav">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </a>
+        </div>
+        <!-- Top-level navigation -->
+        <div id="mainNav" class="navbar-menu">
+          <!-- Site pages -->
+          <div class="navbar-start">
+            <a class="navbar-item" href="/">
+              Home
+            </a>
+            <a class="navbar-item">
+              Dashboard
+            </a>
+          </div>
+          <!-- Username / logout -->
+          <div class="navbar-end">
+            <span class="navbar-item">
+              <div class="buttons">
+                {% if user.is_authenticated %}
+                  User: {{ user.get_username }}
+                  <form id="logout-form" method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="button is-light">Logout</button>
+                  </form>
+                {% endif %}
+              </div>
+            </span>
+          </div>
+        </div>
+      </div>
+    </header>
 
-    <div>
-        WIBL files...
-        <ul id="wibl-file-list">
+    <section class="container">
+      <div class="columns">
+        <!--  -->
+        <div class="column is-three-quarters">
+          WIBL files...
+          <ul id="wibl-file-list">
 
-        </ul>
-        <wibl-file-list id="wibl-file-list1"
-                        url="{{ wsURL }}"
-                        stylesheet="{% static 'frontend/css/WIBLFileList.css' %}">
-        </wibl-file-list>
+          </ul>
+          <wibl-file-list id="wibl-file-list1"
+                          url="{{ wsURL }}"
+                          stylesheet="{% static 'frontend/css/WIBLFileList.css' %}">
+          </wibl-file-list>
 
-        <button id="exampleButton1">Click me!</button>
-    </div>
+          <button id="exampleButton1" class="button">Click me!</button>
+        </div>
+      </div>
+    </section>
 
     <script>
         // Example showing how to call a member function of `wibl-file-list` web component
