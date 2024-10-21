@@ -5,9 +5,11 @@
     {% block title %}
       <title>WIBL frontend</title>
     {% endblock %}
+    <link rel="stylesheet"
+      href="{% static 'css/bulma-no-dark-mode.min.css' %}">
   </head>
   <body>
-    {% block sidebar %}
+    {% block navbar %}
       <!-- insert default navigation text for every page -->
     {% endblock %}
     {% block content %}

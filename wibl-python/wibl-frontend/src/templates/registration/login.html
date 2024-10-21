@@ -1,10 +1,24 @@
 {% extends "base.html" %}
 
-{% block content %}
+{% load static %}
 
-{% if form.errors %}
-<p>Your username and password didn't match. Please try again.</p>
-{% endif %}
+{% block navbar %}
+<header class="navbar" role="navigation" aria-label="main navigation">
+  <script src="{% static 'js/NavHelper.js' %}"></script>
+  <div class="container">
+    <!-- Logo -->
+    <div class="navbar-brand">
+      <a class="navbar-item" href="#">
+        <img src="{% static 'img/wibl.png' %}"
+             alt="WIBL logo">
+        WIBL cloud data manager - login
+      </a>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block content %}
 
 {% if next %}
     {% if user.is_authenticated %}
@@ -15,24 +29,65 @@
     {% endif %}
 {% endif %}
 
-<form method="post" action="{% url 'login' %}">
-{% csrf_token %}
-<table>
-<tr>
-    <td>{{ form.username.label_tag }}</td>
-    <td>{{ form.username }}</td>
-</tr>
-<tr>
-    <td>{{ form.password.label_tag }}</td>
-    <td>{{ form.password }}</td>
-</tr>
-</table>
+<section class="container">
+  <div class="columns is-mobile is-centered">
+    <div class="column is-narrow">
+      <form method="post" action="{% url 'login' %}">
+          {% csrf_token %}
 
-<input type="submit" value="login">
-<input type="hidden" name="next" value="{{ next }}">
-</form>
+          <div class="field">
+            <label class="label"
+                   for="{{ form.username.id_for_label }}">
+                Username
+            </label>
+            <div class="field">
+              <div class="control">
+                <input class="input" type="text" name="username" required
+                       value="{{ form.username.value|default_if_none:'' }}"
+                       autocapitalize="none" autocomplete="username" maxlength="150">
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label"
+                   for="{{ form.password.id_for_label }}">
+                Password
+            </label>
+            <div class="field">
+              <div class="control">
+                <input class="input" type="password" name="password" required
+                       value="{{ form.password.value|default_if_none:'' }}"
+                       autocomplete="current-password">
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="control">
+              <button class="button is-link">Submit</button>
+            </div>
+          </div>
+
+          <input type="hidden" name="next" value="{{ next }}">
+      </form>
+    </div>
+  </div>
+</section>
+
+
+{% if form.errors %}
+<section class="container">
+  <div class="columns is-mobile is-centered">
+    <div class="column is-narrow">
+      <p class="help is-danger">Your username or password didn't match or are unknown. Please try again.</p>
+    </div>
+  </div>
+</section>
+{% endif %}
+
 
 {# Assumes you set up the password_reset view in your URLconf #}
-<p><a href="{% url 'password_reset' %}">Lost password?</a></p>
+{# <p><a href="{% url 'password_reset' %}">Lost password?</a></p> #}
 
 {% endblock %}
