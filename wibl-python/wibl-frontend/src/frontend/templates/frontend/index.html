@@ -3,13 +3,44 @@
 {% load static %}
 
 {% block content %}
+    {# Create import map for 3rd party modules so that we can easily import them from our .js files
+       symbolically (without knowing their URLs).
+     #}
+    <script type="importmap">
+      {
+        "imports": {
+          "activetable": "{% static 'frontend/js/activeTable.bundle.js' %}"
+        }
+      }
+    </script>
+
     <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
     <script src="{% static 'frontend/js/WIBLFileList.js' %}"></script>
+    <script type="module" src="{% static 'frontend/js/WIBLFileTable.js' %}"></script>
 
     <section class="container">
       <div class="columns">
         <!--  -->
         <div class="column is-three-quarters">
+          <wibl-file-table
+            frameComponentsStyles='{
+              "styles": {
+                "default": {"backgroundColor": "#f5f5f5"},
+                "hoverColors": {"backgroundColor": "#dedede"}},
+              "inheritHeaderColors": false
+            }'
+            data='[
+              ["Planet", "Diameter", "Mass", "Moons", "Density"],
+              ["Earth", 12756, 5.97, 1, 5514],
+              ["Mars", 6792, 0.642, 2, 3934],
+              ["Jupiter", 142984, 1898, 79, 1326],
+              ["Saturn", 120536, 568, 82, 687],
+              ["Neptune", 49528, 102, 14, 1638]]'
+            tableStyle='{"borderRadius":"2px"}'
+          ></wibl-file-table>
+        </div>
+
+        <div class="column is-one-quarter">
           WIBL files...
           <ul id="wibl-file-list">
 
