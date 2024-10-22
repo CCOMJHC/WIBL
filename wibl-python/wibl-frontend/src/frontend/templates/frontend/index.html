@@ -3,41 +3,18 @@
 {% load static %}
 
 {% block content %}
-    {# Create import map for 3rd party modules so that we can easily import them from our .js files
-       symbolically (without knowing their URLs).
-     #}
-    <script type="importmap">
-      {
-        "imports": {
-          "activetable": "{% static 'frontend/js/activeTable.bundle.js' %}"
-        }
-      }
-    </script>
-
     <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
     <script src="{% static 'frontend/js/WIBLFileList.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/WIBLFileTable.js' %}"></script>
 
     <section class="container">
       <div class="columns">
-        <!--  -->
         <div class="column is-three-quarters">
-          <wibl-file-table
-            frameComponentsStyles='{
-              "styles": {
-                "default": {"backgroundColor": "#f5f5f5"},
-                "hoverColors": {"backgroundColor": "#dedede"}},
-              "inheritHeaderColors": false
-            }'
-            data='[
-              ["Planet", "Diameter", "Mass", "Moons", "Density"],
-              ["Earth", 12756, 5.97, 1, 5514],
-              ["Mars", 6792, 0.642, 2, 3934],
-              ["Jupiter", 142984, 1898, 79, 1326],
-              ["Saturn", 120536, 568, 82, 687],
-              ["Neptune", 49528, 102, 14, 1638]]'
-            tableStyle='{"borderRadius":"2px"}'
-          ></wibl-file-table>
+          <span class="is-size-4 has-text-weight-semibold">WIBL files</span>
+          <wibl-file-table id="wibl-file-table"
+                           url="{{ wsURL }}"
+                           stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
+          </wibl-file-table>
         </div>
 
         <div class="column is-one-quarter">
@@ -54,6 +31,17 @@
         </div>
       </div>
     </section>
+
+    <script>
+        // Request WIBL file data from the WebSocket once the DOM is ready; do this here instead of in the
+        // components to that the request is only sent once.
+        setTimeout(() => {
+            const wiblSockType = "wibl";
+            const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/";
+            const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
+            wiblSock.sendRequest("list-wibl-files");
+        });
+    </script>
 
     <script>
         // Example showing how to call a member function of `wibl-file-list` web component

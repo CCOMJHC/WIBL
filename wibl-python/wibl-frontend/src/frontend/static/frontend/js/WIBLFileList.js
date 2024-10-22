@@ -65,9 +65,6 @@ class WIBLFileList extends HTMLElement {
         }
 
         sock.addHandler("list-wibl-files", WIBLFileListHandlerListWiblFiles);
-
-        // Request WIBL file data from the WebSocket
-        sock.sendRequest("list-wibl-files");
     }
 
     // disconnectedCallback: Called each time the element is removed from the

@@ -116,3 +116,6 @@ used to push data to the browser as needed, for example to provide realtime noti
 of new/updated/deleted data from the manager. For this to work, the Django server must be 
 [configured](https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html) to periodically
 poll the manager using Celery beat tasks (not yet implemented).
+
+## CSS Styling
+WIBL Frontend currently uses [Bulma](https://bulma.io/documentation) as a CSS styling framework.
