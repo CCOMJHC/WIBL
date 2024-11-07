@@ -5,29 +5,31 @@
 {% block content %}
     <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
     <script src="{% static 'frontend/js/WIBLFileList.js' %}"></script>
+    <script type="module" src="{% static 'frontend/js/WIBLDetailTable.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/WIBLFileTable.js' %}"></script>
 
     <section class="container">
       <div class="columns">
-        <div class="column is-three-quarters">
+        <div class="column is-2-thirds">
           <span class="is-size-4 has-text-weight-semibold">WIBL files</span>
           <wibl-file-table id="wibl-file-table"
                            url="{{ wsURL }}"
                            stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
           </wibl-file-table>
+            <button id="deleteButton" class="button">Delete Selected</button>
+            <button id="archiveButton" class="button">Archive Selected</button>
         </div>
 
-        <div class="column is-one-quarter">
-          WIBL files...
-          <ul id="wibl-file-list">
+        <div class="column is-one-third">
+          WIBL details...
+          <ul id="wibl-detail-list">
 
           </ul>
-          <wibl-file-list id="wibl-file-list1"
+          <wibl-detail-table id="wibl-detail-table"
                           url="{{ wsURL }}"
-                          stylesheet="{% static 'frontend/css/WIBLFileList.css' %}">
-          </wibl-file-list>
+                          stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
+          </wibl-detail-table>
 
-          <button id="exampleButton1" class="button">Click me!</button>
         </div>
       </div>
     </section>
@@ -44,12 +46,15 @@
     </script>
 
     <script>
-        // Example showing how to call a member function of `wibl-file-list` web component
-        // to show come level of reactivity.
-        const button = document.getElementById("exampleButton1");
-        button.addEventListener("click", (event) => {
-            var wiblFileList = document.getElementById("wibl-file-list1");
-            wiblFileList.exampleOutsideEventReactivity();
+        const deleteButton = document.getElementById("deleteButton");
+        const archiveButton = document.getElementById("archiveButton");
+        deleteButton.addEventListener("click", (event) => {
+            var wiblFileTable = document.getElementById("wibl-file-table");
+            wiblFileTable.deleteSelectedFiles();
+        })
+        archiveButton.addEventListener("click", (event) => {
+            var wiblFileTable = document.getElementById("wibl-file-table");
+            wiblFileTable.archiveSelectedFiles();
         })
     </script>
 {% endblock %}

@@ -38,18 +38,17 @@ class WiblFileConsumer(AsyncWebsocketConsumer):
             wibl_files.append({
                 "fileid": wf['fileid'],
                 "processtime": wf['processtime'],
-                # TODO: Fill in other fields
-                # "updatetime": "2024-10-10T19:55:53.748479+00:00",
-                # "notifytime": "Unknown",
-                # "logger": "UNHJHC-wibl-1",
-                # "platform": "USCGC Healy",
-                # "size": 1.0,
-                # "observations": 100232,
-                # "soundings": 8023,
-                # "starttime": "2023-01-23T12:34:45.142",
-                # "endtime": "2023-01-24T01:45:23.012",
-                # "status": 0,
-                # "messages": ""
+                "updatetime": wf['updatetime'],
+                "notifytime": wf['notifytime'],
+                "logger": wf['logger'],
+                "platform": wf['platform'],
+                "size": wf['size'],
+                "observations": wf['observations'],
+                "soundings": wf['soundings'],
+                "starttime": wf['starttime'],
+                "endtime": wf['endtime'],
+                "status": wf['status'],
+                "messages": wf['messages']
             })
         print("sending to websocket...")
         await self.send(text_data=json.dumps({
