@@ -43,9 +43,22 @@
             const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
             wiblSock.sendRequest("list-wibl-files");
         });
+        const wiblFileTable = document.getElementById("wibl-file-table");
+        wiblFileTable.addEventListener("click", (event) => {
+            setTimeout(() => {
+                if (event.target.tagName === "ROW") {
+                    const wiblSockType = "wibl";
+                    const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/";
+                    const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
+                    wiblSock.sendRequest("list-wibl-details", event.target.id);
+                }
+            });
+        });
     </script>
 
     <script>
+
+
         const deleteButton = document.getElementById("deleteButton");
         const archiveButton = document.getElementById("archiveButton");
         deleteButton.addEventListener("click", (event) => {

@@ -8,7 +8,8 @@ class SocketManager {
     // Event types
     event_types = {
         "wibl": [
-            "list-wibl-files"
+            "list-wibl-files",
+            "list-wibl-details"
         ]
     };
     // Class object to track singleton instances by URL
@@ -64,26 +65,34 @@ class SocketManager {
         }
     }
 
-    _doSendRequest(event_type) {
+    _doSendRequest(event_type, fileid = "") {
         setTimeout(() => {
             if (this.sock.readyState === 1) {
                 console.log(`Socket is ready, sending event type ${event_type}`);
-                this.sock.send(JSON.stringify({type: event_type}));
+                if (event_type === "list-wibl-details") {
+                    this.sock.send(JSON.stringify({type: event_type, file_id: fileid})) ;
+                } else {
+                    this.sock.send(JSON.stringify({type: event_type}));
+                }
             } else {
                 // Socket isn't ready...
                 console.log("Socket isn't ready, waiting...");
-                this._doSendRequest(event_type);
+                this._doSendRequest(event_type, fileid);
             }
         }, 20);
 
     }
 
-    sendRequest(event_type) {
+    sendRequest(event_type, fileid = "") {
         // TODO: Support sending requests with payloads
         if (this.event_types[this.type].indexOf(event_type) === -1) {
             console.error(`Unable to sendRequest for unknown event type ${event_type}.`);
             return
         }
-        this._doSendRequest(event_type);
+        if (event_type === "list-wibl-details" && fileid === "") {
+            console.error("Unable to sendRequest to list details, missing parameter 'file-id'. ");
+            return
+        }
+        this._doSendRequest(event_type, fileid);
     }
 }

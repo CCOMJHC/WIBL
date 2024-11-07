@@ -54,6 +54,7 @@ class WIBLFileTable extends HTMLElement {
             const tbody = document.createElement("tbody");
             for (const wiblFile of message.message.files) {
                 const row = document.createElement("tr");
+
                 // fileid field
                 const fileName = wiblFile.fileid;
                 console.log(`Filename: ${fileName}`);
@@ -73,61 +74,10 @@ class WIBLFileTable extends HTMLElement {
                 td2.appendChild(checkbox);
                 row.appendChild(td2);
                 // TODO: Add remaining fields later...
+                row.setAttribute("id", fileName);
                 tbody.appendChild(row);
-
             }
             table.appendChild(tbody);
-
-            function handleCheckboxChange(event){
-                const fileDetails = {
-                    fileid: "",
-                    processtime: "",
-                    updatetime: "",
-                    notifytime: "",
-                    logger: "",
-                    platform: "",
-                    size: "",
-                    observations: "",
-                    soundings: "",
-                    starttime: "",
-                    endtime: "",
-                    status: "",
-                    messages: ""
-                };
-
-                const checkbox = event.target;
-                if (checkbox.checked) {
-                    const row = checkbox.closest("tr");
-                    for (const wiblFile of message.message.files) {
-
-                        if (wiblFile.fileid === row.querySelector("td:nth-of-type(1)").textContent) {
-                            fileDetails.fileid = wiblFile.fileid;
-                            fileDetails.processedtime = wiblFile.processtime;
-                            fileDetails.updatetime = wiblFile.updatetime;
-                            fileDetails.notifytime = wiblFile.notifytime;
-                            fileDetails.logger = wiblFile.logger;
-                            fileDetails.platform = wiblFile.platform;
-                            fileDetails.size = wiblFile.size;
-                            fileDetails.observations = wiblFile.observations;
-                            fileDetails.soundings = wiblFile.soundings;
-                            fileDetails.starttime = wiblFile.starttime;
-                            fileDetails.endtime = wiblFile.endtime;
-                            fileDetails.status = wiblFile.status;
-                            fileDetails.messages = wiblFile.messages;
-                        }
-                    }
-
-                    // Dispatch custom event with file details
-                    const updateEvent = new CustomEvent("fileSelected", {
-                        detail: fileDetails,
-                        bubbles: true,
-                        composed: true
-                    });
-                    this.dispatchEvent(updateEvent);
-                }
-            };
-            const checkboxes = shadow.querySelectorAll(".row-checkbox");
-            checkboxes.forEach(checkbox => checkbox.addEventListener("change", handleCheckboxChange));
         }
         sock.addHandler("list-wibl-files", WIBLFileTableHanlderListWiblFiles);
     }
