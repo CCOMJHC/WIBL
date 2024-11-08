@@ -15,7 +15,7 @@ class WIBLFileTable extends HTMLElement {
     connectedCallback() {
         console.log("wibl-file-table: Added to page.");
         const wsType = "wibl";
-        const wsURL = this._url + wsType + "/";
+        const wsURL = this._url + wsType + "/table";
         const sock = SocketManager.getInstance(wsURL, wsType);
 
         // Create shadow DOM root

@@ -15,7 +15,7 @@ class WIBLDetailTable extends HTMLElement {
     connectedCallback() {
         console.log("wibl-detail-table: Added to page.");
         const wsType = "wibl";
-        const wsURL = this._url + wsType + "/";
+        const wsURL = this._url + wsType + "/detail";
         const sock = SocketManager.getInstance(wsURL, wsType);
 
         // Create shadow DOM root
@@ -43,21 +43,21 @@ class WIBLDetailTable extends HTMLElement {
         shadow.appendChild(definitionList);
 
         function wiblDetailTableListWIBLDetails(message){
-                wiblFile = message.message.wibl_file_data;
+                const wiblFile = message.message;
 
-                this._shadow.getElementById("File Id").textContent = wiblFile.fileid;
-                this._shadow.getElementById("Processed Time").textContent = wiblFile.processtime;
-                this._shadow.getElementById("Update Time").textContent = wiblFile.updatetime;
-                this._shadow.getElementById("Notify Time").textContent = wiblFile.notifytime;
-                this._shadow.getElementById("Logger").textContent = wiblFile.logger;
-                this._shadow.getElementById("Platform").textContent = wiblFile.platform;
-                this._shadow.getElementById("Size").textContent = wiblFile.size;
-                this._shadow.getElementById("Observations").textContent = wiblFile.observations;
-                this._shadow.getElementById("Soundings").textContent = wiblFile.soundings;
-                this._shadow.getElementById("Start Time").textContent = wiblFile.starttime;
-                this._shadow.getElementById("End Time").textContent = wiblFile.endtime;
-                this._shadow.getElementById("Status").textContent = wiblFile.status;
-                this._shadow.getElementById("Messages").textContent = wiblFile.messages;
+                shadow.getElementById("File Id").textContent = wiblFile.fileid;
+                shadow.getElementById("Processed Time").textContent = wiblFile.processtime;
+                shadow.getElementById("Update Time").textContent = wiblFile.updatetime;
+                shadow.getElementById("Notify Time").textContent = wiblFile.notifytime;
+                shadow.getElementById("Logger").textContent = wiblFile.logger;
+                shadow.getElementById("Platform").textContent = wiblFile.platform;
+                shadow.getElementById("Size").textContent = wiblFile.size;
+                shadow.getElementById("Observations").textContent = wiblFile.observations;
+                shadow.getElementById("Soundings").textContent = wiblFile.soundings;
+                shadow.getElementById("Start Time").textContent = wiblFile.starttime;
+                shadow.getElementById("End Time").textContent = wiblFile.endtime;
+                shadow.getElementById("Status").textContent = wiblFile.status;
+                shadow.getElementById("Messages").textContent = wiblFile.messages;
         };
         sock.addHandler("list-wibl-details", wiblDetailTableListWIBLDetails);
     }
