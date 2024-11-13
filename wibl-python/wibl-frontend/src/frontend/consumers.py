@@ -10,7 +10,7 @@ class WiblFileDetailConsumer(AsyncWebsocketConsumer):
     async def send_wibl_details(self, file_id: str):
         HEADERS = ["fileid", "processtime", "updatetime", "notifytime", "logger", "platform", "size"
             , "observations", "soundings", "starttime", "endtime", "status", "messages"]
-        print("send_wibl_details called");
+        print("send_wibl_details called")
         wibl_file_data = {"fileid": "",
                         "processtime": "",
                         "updatetime": "",
@@ -63,9 +63,10 @@ class WiblFileDetailConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
-        message = json.loads(text_data)
+        data = json.loads(text_data)
+        message = data[0]
 
-        print(f"WiblFileConsumer.receive: Got message: {message}")
+        print(f"WiblFileDetailConsumer.receive: Got message: {message}")
 
         if 'type' not in message:
             # TODO: Properly handle error
@@ -77,7 +78,7 @@ class WiblFileDetailConsumer(AsyncWebsocketConsumer):
 
         match message['type']:
             case 'list-wibl-details':
-                print(f"WiblFileConsumer.receive: calling send_wibl_details()...")
+                print(f"WiblFileDetailConsumer.receive: calling send_wibl_details()...")
                 await self.send_wibl_details(message['file_id'])
             case _:
                 await self.send(text_data=json.dumps({
@@ -91,8 +92,6 @@ class WiblFileDetailConsumer(AsyncWebsocketConsumer):
         message = event["message"]
         # Send message to WebSocket
         await self.send(text_data=json.dumps({"message": message}))
-
-
 
 class WiblFileConsumer(AsyncWebsocketConsumer):
 
@@ -156,7 +155,8 @@ class WiblFileConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
-        message = json.loads(text_data)
+        data = json.loads(text_data)
+        message = data[0]
 
         print(f"WiblFileConsumer.receive: Got message: {message}")
 

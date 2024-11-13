@@ -59,14 +59,13 @@
                     const wiblSockType = "wibl";
                     const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/detail";
                     const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
-                    wiblSock.sendRequest("list-wibl-details", row.id);
+                    wiblSock.sendRequest("list-wibl-details", {"file_id" : row.id});
                 });
             }
         });
     </script>
 
     <script>
-
 
         const deleteButton = document.getElementById("deleteButton");
         const archiveButton = document.getElementById("archiveButton");

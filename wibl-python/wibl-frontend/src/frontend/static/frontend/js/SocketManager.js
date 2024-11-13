@@ -16,7 +16,6 @@ class SocketManager {
     static _instances = {};
 
     constructor(url, type) {
-        // TODO: Verify type is valid.
         SocketManager._instances[url] = this;
         this.type = type;
         this.sock = new WebSocket(url);
@@ -65,34 +64,30 @@ class SocketManager {
         }
     }
 
-    _doSendRequest(event_type, fileid = "") {
+    _doSendRequest(...args) {
         setTimeout(() => {
             if (this.sock.readyState === 1) {
-                console.log(`Socket is ready, sending event type ${event_type}`);
-                if (event_type === "list-wibl-details") {
-                    this.sock.send(JSON.stringify({type: event_type, file_id: fileid})) ;
-                } else {
-                    this.sock.send(JSON.stringify({type: event_type}));
-                }
+                console.log(`Socket is ready, sending event type ${args["type"]}`);
+                this.sock.send(JSON.stringify(args));
             } else {
                 // Socket isn't ready...
                 console.log("Socket isn't ready, waiting...");
-                this._doSendRequest(event_type, fileid);
+                this._doSendRequest(...args);
             }
         }, 20);
-
     }
 
-    sendRequest(event_type, fileid = "") {
+    sendRequest(event_type, ...optionalArgs) {
         // TODO: Support sending requests with payloads
         if (this.event_types[this.type].indexOf(event_type) === -1) {
             console.error(`Unable to sendRequest for unknown event type ${event_type}.`);
             return
         }
-        if (event_type === "list-wibl-details" && fileid === "") {
-            console.error("Unable to sendRequest to list details, missing parameter 'file-id'. ");
-            return
-        }
-        this._doSendRequest(event_type, fileid);
+        const op_args = optionalArgs[0];
+
+        const type = {"type" : event_type};
+        const args = {...type, ...op_args};
+
+        this._doSendRequest(args);
     }
 }
