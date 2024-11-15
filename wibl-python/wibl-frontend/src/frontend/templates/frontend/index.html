@@ -44,24 +44,29 @@
             wiblSock.sendRequest("list-wibl-files");
         });
         const wiblFileTable = document.getElementById("wibl-file-table");
+
         wiblFileTable.addEventListener("click", (event) => {
             const path = event.composedPath();
-            const row = path.find(el => el.tagName === "TR");
-            if (row) {
-                const rows = wiblFileTable._shadow.querySelectorAll('tr');
-                rows.forEach(iter_row => {
-                    if (iter_row.className === "is-selected") {
-                       iter_row.setAttribute("class", "");
-                    }
-                })
-                row.setAttribute("class", "is-selected");
-                setTimeout(() => {
-                    const wiblSockType = "wibl";
-                    const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/detail";
-                    const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
-                    wiblSock.sendRequest("list-wibl-details", {"file_id" : row.id});
-                });
+            const check = path.find(el => el.tagName === "INPUT");
+            if (!check) {
+                const row = path.find(el => el.tagName === "TR");
+                if (row) {
+                    const rows = wiblFileTable._shadow.querySelectorAll('tr');
+                    rows.forEach(iter_row => {
+                        if (iter_row.className === "is-selected") {
+                           iter_row.setAttribute("class", "");
+                        }
+                    })
+                    row.setAttribute("class", "is-selected");
+                    setTimeout(() => {
+                        const wiblSockType = "wibl";
+                        const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/detail";
+                        const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
+                        wiblSock.sendRequest("list-wibl-details", {"file_id" : row.id});
+                    });
+                }
             }
+
         });
     </script>
 

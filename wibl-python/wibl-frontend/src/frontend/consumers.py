@@ -63,8 +63,7 @@ class WiblFileDetailConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
-        data = json.loads(text_data)
-        message = data[0]
+        message = json.loads(text_data)
 
         print(f"WiblFileDetailConsumer.receive: Got message: {message}")
 
@@ -155,8 +154,7 @@ class WiblFileConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
-        data = json.loads(text_data)
-        message = data[0]
+        message = json.loads(text_data)
 
         print(f"WiblFileConsumer.receive: Got message: {message}")
 

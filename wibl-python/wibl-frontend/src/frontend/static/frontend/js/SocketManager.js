@@ -64,7 +64,7 @@ class SocketManager {
         }
     }
 
-    _doSendRequest(...args) {
+    _doSendRequest(args) {
         setTimeout(() => {
             if (this.sock.readyState === 1) {
                 console.log(`Socket is ready, sending event type ${args["type"]}`);
@@ -72,7 +72,7 @@ class SocketManager {
             } else {
                 // Socket isn't ready...
                 console.log("Socket isn't ready, waiting...");
-                this._doSendRequest(...args);
+                this._doSendRequest(args);
             }
         }, 20);
     }
