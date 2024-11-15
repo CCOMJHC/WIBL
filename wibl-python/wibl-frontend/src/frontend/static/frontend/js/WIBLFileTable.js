@@ -1,6 +1,6 @@
 
 // TODO: Add remaining headers...
-const HEADERS = ["File ID", "Processed time", "Test"]
+const HEADERS = ["File ID", "Processed time", ""]
 
 class WIBLFileTable extends HTMLElement {
     constructor() {
