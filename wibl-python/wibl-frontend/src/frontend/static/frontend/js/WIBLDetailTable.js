@@ -1,9 +1,10 @@
-
 const output_Headers = ["File Id", "Processed Time", "Update Time", "Notify Time", "Logger", "Platform", "Size"
     , "Observations", "Soundings", "Start Time", "End Time", "Status", "Messages"];
 
 const input_Headers = ["fileid", "processtime", "updatetime", "notifytime", "logger", "platform", "size"
             , "observations", "soundings", "starttime", "endtime", "status", "messages"];
+
+const defText = "To view details select a row!";
 
 class WIBLDetailTable extends HTMLElement {
     constructor() {
@@ -38,6 +39,12 @@ class WIBLDetailTable extends HTMLElement {
         detailTable.className = "table is-fullwidth";
         shadow.appendChild(detailTable);
 
+        // Create default view
+        const defaultText = document.createElement("div");
+        defaultText.setAttribute("id", "defaultText");
+        defaultText.textContent = defText;
+        shadow.appendChild(defaultText);
+
         function wiblDetailTableListWIBLDetails(message){
             console.log("In WIBLDetailTableListWiblDetails...");
             const table = shadow.getElementById("wibl-detail-table");
@@ -48,6 +55,7 @@ class WIBLDetailTable extends HTMLElement {
                     td.textContent = wiblFile[input_Headers[i]];
                 }
             } else {
+                shadow.getElementById("defaultText").remove();
                 const thead = document.createElement("thead");
                 const headerRow = document.createElement("tr");
                 const header1 = document.createElement("th");

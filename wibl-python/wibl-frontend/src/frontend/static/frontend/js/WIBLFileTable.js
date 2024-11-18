@@ -126,9 +126,23 @@ class WIBLFileTable extends HTMLElement {
         })
 
         if (selectedNames.length != 0) {
-            console.log(`Selected Files: ${selectedNames.join(', ')}`);
+            const promptText = `Would you like to delete files: \n${selectedNames.join('\n')}?`;
+            if (confirm(promptText)) {
+                //TODO: Communicate with manager to delete files selected
+                console.log(`Delete Files: ${selectedNames.join(', ')}`);
+
+                //uncheck all boxes
+                checkedBoxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                })
+
+                //TODO: Write a function that refreshes the file-table, put it here
+
+            } else {
+                console.log("Delete canceled");
+            }
         } else {
-            console.log("No files selected");
+            alert("No Files Selected To Delete.");
         }
     }
 
@@ -152,9 +166,23 @@ class WIBLFileTable extends HTMLElement {
         })
 
         if (selectedNames.length != 0) {
-            console.log(`Selected Files: ${selectedNames.join(', ')}`);
+            const promptText = `Would you like to archive files: ${selectedNames.join('\n')}?`;
+            if (confirm(promptText)) {
+                //TODO: Communicate with manager to archive files selected
+                console.log(`Selected Files: ${selectedNames.join(', ')}`);
+
+                //uncheck all boxes
+                checkedBoxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                })
+
+                //TODO: Write a function that refreshes the file-table, put it here
+
+            } else {
+                console.log("Archive canceled");
+            }
         } else {
-            console.log("No files selected");
+            alert("No Files Selected To Archive.");
         }
     }
 }
