@@ -141,10 +141,9 @@ validate. Optionally, you can specify the file extension of GeoJSON files to val
 (the default is `json`). Lastly, `validateWibl.ps1` allows you to specify the schema version to validate the
 GeoJSON against. The schema versions are described in the 
 [csbschema documentation](https://github.com/CCOMJHC/csbschema#usage), and are defined 
-[here](https://github.com/CCOMJHC/csbschema/blob/main/csbschema/__init__.py#L9). The default schema is currently
-"3.1.0-2023-08", other valid current schemas include: "3.0.0-2023-08", "XYZ-3.1.0-2023-08", "XYZ-3.0.0-2023-08". 
-You can find examples of IHO and NOAA B12 JSON encodings in the 
-[csbschema repository](https://github.com/CCOMJHC/csbschema/tree/main/docs).
+[here](https://github.com/CCOMJHC/csbschema/blob/main/csbschema/__init__.py#L9). The default schema is currently "3.1.0-2024-04", other valid current schemas include: "3.1.0-2023-08", 
+"3.0.0-2023-08", "XYZ-3.1.0-2023-08", "XYZ-3.0.0-2023-08". You can find examples of IHO and NOAA B12 JSON encodings 
+in the [csbschema repository](https://github.com/CCOMJHC/csbschema/tree/main/docs).
 
 ## submitDCDB.ps1: Submit IHO B12 GeoJSON data to DCDB
 Often, the last step of processing WIBL data will be submission to [DCDB](https://www.ngdc.noaa.gov/iho/). This can
