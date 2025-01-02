@@ -106,6 +106,32 @@ class WIBLFileTable extends HTMLElement {
         }
     }
 
+    searchDate(date) {
+        if (date === "") {
+            console.log("No date selected");
+        } else {
+            const dateObj = new Date(date);
+            const searchYear = dateObj.getFullYear();
+            const searchMonth = dateObj.getMonth() + 1;
+            const searchDay = dateObj.getDate();
+
+            //Figure out how to itterate over an HTML collection
+            var rows = this._shadow.children[1].rows;
+            var dates = [];
+            rows.forEach(row => {
+                var tempDate = row.querySelector('td:nth-of-type(2)');
+                const tempDateObj = new Date(tempDate);
+                const year = tempDateObj.getFullYear();
+                const month = tempDateObj.getMonth() + 1;
+                const day = tempDateObj.getDate();
+
+                if (searchDay == day && searchMonth == month && searchYear == year) {
+                    dates.push(tempDate);
+                }
+            })
+        }
+    }
+
     deleteSelectedFiles() {
         console.log("deleteSelectedFiles() called...");
 
