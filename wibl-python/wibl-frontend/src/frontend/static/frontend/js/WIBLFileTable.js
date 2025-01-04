@@ -118,9 +118,10 @@ class WIBLFileTable extends HTMLElement {
             //Figure out how to itterate over an HTML collection
             var rows = this._shadow.children[1].rows;
             var dates = [];
-            rows.forEach(row => {
-                var tempDate = row.querySelector('td:nth-of-type(2)');
-                const tempDateObj = new Date(tempDate);
+            for (let i = 1; i <= rows.length; i++) {
+                let tempDate = rows[i].querySelector('td:nth-of-type(2)');
+                let tempTrunk = tempDate.textcontent.replace(/\.\d{3}\d*/, (match) => match.slice(0, 4));
+                const tempDateObj = new Date(tempTrunk);
                 const year = tempDateObj.getFullYear();
                 const month = tempDateObj.getMonth() + 1;
                 const day = tempDateObj.getDate();
@@ -128,7 +129,7 @@ class WIBLFileTable extends HTMLElement {
                 if (searchDay == day && searchMonth == month && searchYear == year) {
                     dates.push(tempDate);
                 }
-            })
+            }
         }
     }
 
