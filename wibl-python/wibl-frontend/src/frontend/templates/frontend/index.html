@@ -9,39 +9,45 @@
     <script type="module" src="{% static 'frontend/js/WIBLFileTable.js' %}"></script>
 
     <section class="container">
-      <div class="columns">
-        <div class="column is-half">
-            <span class="is-size-4 has-text-weight-semibold">WIBL files</span>
+        <div class="columns">
+            <div class="column is-half">
+                <span class="is-size-4 has-text-weight-semibold">WIBL files</span>
 
-            <wibl-file-table id="wibl-file-table"
-                           url="{{ wsURL }}"
-                           stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
-            </wibl-file-table>
-            <button id="deleteButton" class="button">Delete Selected</button>
-            <button id="archiveButton" class="button">Archive Selected</button>
-            <div class="box">
-                <div class="field is-grouped">
-                    <p class="control">
-                        <input class="input is-normal" type="date" id="dateInput">
-                    </p>
-                    <p class="control">
-                        <button id="searchButton" class="button">Search</button>
-                    </p>
+                <wibl-file-table id="wibl-file-table"
+                               url="{{ wsURL }}"
+                               stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
+                </wibl-file-table>
+                <button id="deleteButton" class="button">Delete Selected</button>
+                <button id="archiveButton" class="button">Archive Selected</button>
+                <div class="dropdown">
+                    <div class="dropdown-trigger">
+                        <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+                            <span>Filter</span>
+                        </button>
+                    </div>
+                    <div class="dropdown-menu" id="dropdown-menu" role="menu">
+                        <div class="dropdown-item">
+                            <p>
+                              You can insert <strong>any type of content</strong> within the
+                              dropdown menu.
+                            </p>
+                        </div>
+                        <hr class="dropdown-divider" />
+                        <div class="dropdown-item">
+                            <p>You simply need to use a <code>&lt;div&gt;</code> instead.</p>
+                        </div>
+                        <hr class="dropdown-divider" />
+                            <a href="#" class="dropdown-item"> This is a link </a>
+                    </div>
                 </div>
             </div>
+            <div class="column is-half">
+              <wibl-detail-table id="wibl-detail-table"
+                              url="{{ wsURL }}"
+                              stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
+              </wibl-detail-table>
+            </div>
         </div>
-
-        <div class="column is-half">
-          <ul id="wibl-detail-list">
-
-          </ul>
-          <wibl-detail-table id="wibl-detail-table"
-                          url="{{ wsURL }}"
-                          stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
-          </wibl-detail-table>
-
-        </div>
-      </div>
     </section>
 
     <script>
@@ -84,7 +90,6 @@
 
         const deleteButton = document.getElementById("deleteButton");
         const archiveButton = document.getElementById("archiveButton");
-        const searchButton = document.getElementById("searchButton");
         const dateInput = document.getElementById("dateInput");
         deleteButton.addEventListener("click", (event) => {
             var wiblFileTable = document.getElementById("wibl-file-table");
@@ -93,10 +98,6 @@
         archiveButton.addEventListener("click", (event) => {
             var wiblFileTable = document.getElementById("wibl-file-table");
             wiblFileTable.archiveSelectedFiles();
-        })
-        searchButton.addEventListener("click", (event) => {
-            var wiblFileTable = document.getElementById("wibl-file-table");
-            wiblFileTable.searchDate(dateInput.value);
         })
     </script>
 {% endblock %}
