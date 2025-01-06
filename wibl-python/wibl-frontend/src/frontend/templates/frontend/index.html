@@ -7,45 +7,49 @@
     <script src="{% static 'frontend/js/WIBLFileList.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/WIBLDetailTable.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/WIBLFileTable.js' %}"></script>
-
+    <style>
+        #filterSection {
+            display: flex;
+            flex-direction: row;
+        }
+    </style>
     <section class="container">
         <div class="columns">
             <div class="column is-half">
-                <span class="is-size-4 has-text-weight-semibold">WIBL files</span>
-
-                <wibl-file-table id="wibl-file-table"
-                               url="{{ wsURL }}"
-                               stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
-                </wibl-file-table>
-                <button id="deleteButton" class="button">Delete Selected</button>
-                <button id="archiveButton" class="button">Archive Selected</button>
-                <div class="dropdown">
-                    <div class="dropdown-trigger">
-                        <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
-                            <span>Filter</span>
-                        </button>
+                <div class="box">
+                    <span class="is-size-4 has-text-weight-semibold">WIBL files</span>
+                    <div class="block">
+                        <wibl-file-table id="wibl-file-table"
+                                       url="{{ wsURL }}"
+                                       stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
+                        </wibl-file-table>
                     </div>
-                    <div class="dropdown-menu" id="dropdown-menu" role="menu">
-                        <div class="dropdown-item">
-                            <p>
-                              You can insert <strong>any type of content</strong> within the
-                              dropdown menu.
-                            </p>
-                        </div>
-                        <hr class="dropdown-divider" />
-                        <div class="dropdown-item">
-                            <p>You simply need to use a <code>&lt;div&gt;</code> instead.</p>
-                        </div>
-                        <hr class="dropdown-divider" />
-                            <a href="#" class="dropdown-item"> This is a link </a>
+                    <div class="block">
+                        <button id="deleteButton" class="button">Delete Selected</button>
+                        <button id="archiveButton" class="button">Archive Selected</button>
+                        <button class="button" id="showButton">Filter</button>
+                    </div>
+                    <div class="box is-hidden" id="filterSection">
+                        <button class="button" id="filterButton">Apply</button>
+
+                        <label for="dateInput">Date</label>
+                        <input type="date" class="input " id="dateInput">
+
+                        <label for="platformInput">Platform</label>
+                        <input type="text" class="input" id="platformInput">
+
+                        <label for="loggerInput">Logger</label>
+                        <input type="text" class="input" id="loggerInput">
                     </div>
                 </div>
             </div>
             <div class="column is-half">
-              <wibl-detail-table id="wibl-detail-table"
-                              url="{{ wsURL }}"
-                              stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
-              </wibl-detail-table>
+                <div class="box">
+                    <wibl-detail-table id="wibl-detail-table"
+                            url="{{ wsURL }}"
+                            stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
+                    </wibl-detail-table>
+                </div>
             </div>
         </div>
     </section>
@@ -88,9 +92,33 @@
 
     <script>
 
+        //Drop down logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const filterSection = document.querySelector('#filterSection');
+            const button = document.querySelector('#showButton');
+            button.addEventListener('click', () => {
+                if (filterSection.className === "box is-hidden") {
+                    filterSection.setAttribute("class", "box");
+                } else {
+                    filterSection.setAttribute("class", "box is-hidden");
+                }
+            });
+        });
+
+        const filterButton = document.getElementById("filterButton");
         const deleteButton = document.getElementById("deleteButton");
         const archiveButton = document.getElementById("archiveButton");
         const dateInput = document.getElementById("dateInput");
+
+        filterButton.addEventListener("click", (event) => {
+            var wiblFileTable = document.getElementById("wibl-file-table");
+            var dateInput = document.getElementById("dateInput");
+            var platformInput = document.getElementById("platformInput");
+            var loggerInput = document.getElementById("loggerInput");
+
+            wiblFileTable.filterTable(dateInput, platformInput, loggerInput);
+        })
+
         deleteButton.addEventListener("click", (event) => {
             var wiblFileTable = document.getElementById("wibl-file-table");
             wiblFileTable.deleteSelectedFiles();

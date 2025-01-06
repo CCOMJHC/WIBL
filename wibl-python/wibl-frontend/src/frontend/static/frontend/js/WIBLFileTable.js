@@ -2,12 +2,15 @@
 // TODO: Add remaining headers...
 const HEADERS = ["File ID", "Processed time", ""]
 
+const input_headers = ["fileid", "processtime"]
+
 class WIBLFileTable extends HTMLElement {
     constructor() {
         super();
         this._url = null;
         this._styleUrl = null;
         this._shadow = null;
+        this._rawData = [];
     }
 
     static observedAttributes = ["url", "stylesheet"];
@@ -20,6 +23,7 @@ class WIBLFileTable extends HTMLElement {
 
         // Create shadow DOM root
         const shadow = this.attachShadow({mode: "open"});
+        let active = 0;
         this._shadow = shadow;
 
         // Apply external styles to the shadow dom
@@ -35,49 +39,80 @@ class WIBLFileTable extends HTMLElement {
         table.className = "table";
         shadow.appendChild(table);
 
+        let raw = this._rawData;
+
         function WIBLFileTableHanlderListWiblFiles(message) {
             // TODO: Delete existing content in table to support re-loading of data.
             console.log("In WIBLFileTableHanlderListWiblFiles...");
             const table = shadow.getElementById("wc-wibl-file-table");
-            // Create header
-            const thead = document.createElement("thead");
-            const headerRow = document.createElement("tr");
-            // TODO: Programmatically loop over all headers and add them as elements to the row...
-            for (const headerText of HEADERS) {
-                const header = document.createElement("th");
-                header.textContent = headerText;
-                headerRow.appendChild(header);
-            }
-            thead.appendChild(headerRow)
-            table.appendChild(thead);
-            // Load WIBL file fields into table
-            const tbody = document.createElement("tbody");
-            for (const wiblFile of message.message.files) {
-                const row = document.createElement("tr");
+            if (active == 1) {
+                let rows = table.children[1].rows;
+                let j = 0;
+                for (const wiblFile of message.message.files){
+                    for (let i = 0; i < (HEADERS.length - 1) ; i++) {
+                        const td = rows[j].querySelector(`td:nth-of-type(${(i + 1)})`);
+                        td.textContent = wiblFile[input_headers[i]];
+                    }
 
-                // fileid field
-                const fileName = wiblFile.fileid;
-                console.log(`Filename: ${fileName}`);
-                var td = document.createElement("td");
-                td.setAttribute("id", `wc-wibl-file-${fileName}`);
-                td.textContent = fileName;
-                row.appendChild(td);
-                // processtime field
-                td = document.createElement("td");
-                td.textContent = wiblFile.processtime;
-                row.appendChild(td);
-                var td2 = document.createElement("td");
+                    raw[j][0] = wiblFile.fileid;
+                    raw[j][1] = wiblFile.processtime;
+                    raw[j][2] = wiblFile.platform;
+                    raw[j][3] = wiblFile.logger;
+                    j++;
+                }
+            } else {
+                // Create header
+                const thead = document.createElement("thead");
+                const headerRow = document.createElement("tr");
+                // TODO: Programmatically loop over all headers and add them as elements to the row...
+                for (const headerText of HEADERS) {
+                    const header = document.createElement("th");
+                    header.textContent = headerText;
+                    headerRow.appendChild(header);
+                }
+                thead.appendChild(headerRow)
+                table.appendChild(thead);
+                // Load WIBL file fields into table
+                const tbody = document.createElement("tbody");
+                let i = 0
+                for (const wiblFile of message.message.files) {
+                    let data = [];
+                    const row = document.createElement("tr");
 
-                const checkbox = document.createElement("input");
-                checkbox.type = "checkbox";
-                checkbox.className = "row-checkbox";
-                td2.appendChild(checkbox);
-                row.appendChild(td2);
-                // TODO: Add remaining fields later...
-                row.setAttribute("id", fileName);
-                tbody.appendChild(row);
+                    // fileid field
+                    const fileName = wiblFile.fileid;
+                    data[0] = fileName;
+                    console.log(`Filename: ${fileName}`);
+                    var td = document.createElement("td");
+                    td.setAttribute("id", `wc-wibl-file-${fileName}`);
+                    td.textContent = fileName;
+                    row.appendChild(td);
+
+                    // processtime field
+                    td = document.createElement("td");
+                    data[1] = wiblFile.processtime;
+                    td.textContent = wiblFile.processtime;
+                    row.appendChild(td);
+
+                    data[2] = wiblFile.platform;
+                    data[3] = wiblFile.logger;
+
+                    var td2 = document.createElement("td");
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.className = "row-checkbox";
+                    td2.appendChild(checkbox);
+                    row.appendChild(td2);
+                    // TODO: Add remaining fields later...
+                    row.setAttribute("id", fileName);
+                    tbody.appendChild(row);
+
+                    raw[i] = data;
+                    i++;
+                }
+                table.appendChild(tbody);
             }
-            table.appendChild(tbody);
+            active = 1;
         }
         sock.addHandler("list-wibl-files", WIBLFileTableHanlderListWiblFiles);
     }
@@ -106,31 +141,82 @@ class WIBLFileTable extends HTMLElement {
         }
     }
 
-    searchDate(date) {
+    filterTable(date, platform, logger) {
+
+        date = date.value;
+        platform = platform.value;
+        logger = logger.value;
+
+        let dateInclude = true;
+        let platformInclude = true;
+        let loggerInclude = true;
+
+        let searchYear = 0;
+        let searchMonth = 0;
+        let searchDay = 0;
+
         if (date === "") {
-            console.log("No date selected");
+            dateInclude = false;
+
         } else {
             const dateObj = new Date(date);
-            const searchYear = dateObj.getFullYear();
-            const searchMonth = dateObj.getMonth() + 1;
-            const searchDay = dateObj.getDate();
+            searchYear = dateObj.getFullYear();
+            searchMonth = dateObj.getMonth() + 1;
+            searchDay = dateObj.getDate();
+        }
 
-            //Figure out how to itterate over an HTML collection
-            var rows = this._shadow.children[1].rows;
-            var dates = [];
-            for (let i = 1; i <= rows.length; i++) {
-                let tempDate = rows[i].querySelector('td:nth-of-type(2)');
-                let tempTrunk = tempDate.textcontent.replace(/\.\d{3}\d*/, (match) => match.slice(0, 4));
-                const tempDateObj = new Date(tempTrunk);
-                const year = tempDateObj.getFullYear();
-                const month = tempDateObj.getMonth() + 1;
-                const day = tempDateObj.getDate();
+        if (platform === "") {
+            platformInclude = false;
+        }
 
-                if (searchDay == day && searchMonth == month && searchYear == year) {
-                    dates.push(tempDate);
+        if (logger === "") {
+            loggerInclude = false;
+        }
+
+        let files = [];
+        var rows = this._rawData;
+
+        for (let i = 0; i < rows.length; i++) {
+            let dateMatch = false;
+            let platformMatch = false;
+            let loggerMatch = false;
+
+            if (dateInclude) {
+                let originDate = rows[i][1];
+                let concatDate = originDate.slice(0, 10)
+                const compairDate = new Date(concatDate);
+
+                if (searchDay == compairDate.getDate() && searchMonth == (compairDate.getMonth() + 1) && searchYear == compairDate.getYear()) {
+                    dateMatch = true;
                 }
+            } else {
+                dateMatch = true;
+            }
+
+            if (platformInclude) {
+                let originPlatform = rows[i][2];
+                if (originPlatform === platform) {
+                    platformMatch = true;
+                }
+            } else {
+                platformMatch = true;
+            }
+
+            if (loggerInclude) {
+                let originLogger = rows[i][3];
+                if (originLogger === logger) {
+                    loggerMatch = true;
+                }
+            } else {
+                loggerMatch = "true";
+            }
+
+            if (loggerMatch && platformMatch && dateMatch) {
+                files.push(rows[i][0]);
             }
         }
+
+        console.log(files);
     }
 
     deleteSelectedFiles() {
