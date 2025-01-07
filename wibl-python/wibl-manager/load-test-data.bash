@@ -22,7 +22,7 @@ EOF
     -H 'Content-Type: application/json' \
   --data @-<<EOF
 {
-  "logger": "UNHJHC-wibl-1", "platform": "USCGC Healy",
+  "logger": "UNHJHC-wibl-2", "platform": "USCGC Healy",
   "observations": 100232, "soundings": 8023,
   "startTime": "2023-01-23T12:34:45.142",
   "endTime": "2023-01-24T01:45:23.012",
@@ -62,7 +62,7 @@ EOF
     -H 'Content-Type: application/json' \
   --data @-<<EOF
 {
-  "logger": "UNHJHC-wibl-1", "platform": "USCGC Healy",
+  "logger": "UNHJHC-wibl-2", "platform": "USCGC Coastal",
   "observations": 300230, "soundings": 4027,
   "startTime": "2023-03-23T12:44:45.142",
   "endTime": "2023-03-24T01:53:23.012",
@@ -82,7 +82,7 @@ EOF
     -H 'Content-Type: application/json' \
   --data @-<<EOF
 {
-  "logger": "UNHJHC-wibl-1", "platform": "USCGC Healy",
+  "logger": "UNHJHC-wibl-1", "platform": "USCGC Coastal",
   "observations": 999999, "soundings": 99999,
   "startTime": "2023-03-23T12:44:45.142",
   "endTime": "2023-03-24T01:53:23.012",

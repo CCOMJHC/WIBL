@@ -8,9 +8,8 @@
     <script type="module" src="{% static 'frontend/js/WIBLDetailTable.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/WIBLFileTable.js' %}"></script>
     <style>
-        #filterSection {
-            display: flex;
-            flex-direction: row;
+        #detailTableBlock {
+            position: fixed;
         }
     </style>
     <section class="container">
@@ -30,21 +29,28 @@
                         <button class="button" id="showButton">Filter</button>
                     </div>
                     <div class="box is-hidden" id="filterSection">
-                        <button class="button" id="filterButton">Apply</button>
+                        <div class="block">
+                            <button class="button" id="filterButton">Apply</button>
+                            <button class="button" id="clearButton">Clear</button>
+                        </div>
+                        <div class="block">
+                            <label for="dateInput">Date</label>
+                            <input type="date" class="input" id="dateInput">
 
-                        <label for="dateInput">Date</label>
-                        <input type="date" class="input " id="dateInput">
+                            <label for="timeInput">Time ("HH:MM")</label>
+                            <input type="text" class="input" id="timeInput">
 
-                        <label for="platformInput">Platform</label>
-                        <input type="text" class="input" id="platformInput">
+                            <label for="platformInput">Platform</label>
+                            <input type="text" class="input" id="platformInput">
 
-                        <label for="loggerInput">Logger</label>
-                        <input type="text" class="input" id="loggerInput">
+                            <label for="loggerInput">Logger</label>
+                            <input type="text" class="input" id="loggerInput">
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="column is-half">
-                <div class="box">
+                <div class="box" id="detailTableBlock">
                     <wibl-detail-table id="wibl-detail-table"
                             url="{{ wsURL }}"
                             stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">

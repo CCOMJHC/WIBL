@@ -141,7 +141,17 @@ class WIBLFileTable extends HTMLElement {
         }
     }
 
+
+    // This function works by finding all elements that should be HIDDEN, as in not a part of the table after the filter.
     filterTable(date, platform, logger) {
+
+        // Reset previous filter
+        const table_rows = this._shadow.querySelectorAll("tr");
+
+        for (let i = 0; i < table_rows.length; i++) {
+            const row = table_rows[i];
+            row.setAttribute("class", "");
+        }
 
         date = date.value;
         platform = platform.value;
@@ -176,6 +186,7 @@ class WIBLFileTable extends HTMLElement {
         let files = [];
         var rows = this._rawData;
 
+        // Filter
         for (let i = 0; i < rows.length; i++) {
             let dateMatch = false;
             let platformMatch = false;
@@ -186,7 +197,7 @@ class WIBLFileTable extends HTMLElement {
                 let concatDate = originDate.slice(0, 10)
                 const compairDate = new Date(concatDate);
 
-                if (searchDay == compairDate.getDate() && searchMonth == (compairDate.getMonth() + 1) && searchYear == compairDate.getYear()) {
+                if (searchDay == compairDate.getDate() || searchMonth == (compairDate.getMonth() + 1) || searchYear == compairDate.getYear()) {
                     dateMatch = true;
                 }
             } else {
@@ -208,15 +219,23 @@ class WIBLFileTable extends HTMLElement {
                     loggerMatch = true;
                 }
             } else {
-                loggerMatch = "true";
+                loggerMatch = true;
             }
 
-            if (loggerMatch && platformMatch && dateMatch) {
+            if (!loggerMatch || !platformMatch || !dateMatch) {
                 files.push(rows[i][0]);
             }
         }
 
-        console.log(files);
+        // Apply CSS
+        for (let i = 0; i < table_rows.length; i++) {
+            const row = table_rows[i];
+            files.forEach((file) => {
+                if (row.id === file) {
+                    row.setAttribute("class", "is-hidden");
+                }
+            })
+        }
     }
 
     deleteSelectedFiles() {
