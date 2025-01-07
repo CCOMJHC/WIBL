@@ -58,6 +58,8 @@ class WIBLFileTable extends HTMLElement {
                     raw[j][1] = wiblFile.processtime;
                     raw[j][2] = wiblFile.platform;
                     raw[j][3] = wiblFile.logger;
+                    raw[j][4] = wiblFile.starttime;
+                    raw[j][5] = wiblFile.endtime;
                     j++;
                 }
             } else {
@@ -96,6 +98,8 @@ class WIBLFileTable extends HTMLElement {
 
                     data[2] = wiblFile.platform;
                     data[3] = wiblFile.logger;
+                    data[4] = wiblFile.starttime;
+                    data[5] = wiblFile.endtime;
 
                     var td2 = document.createElement("td");
                     const checkbox = document.createElement("input");
@@ -142,18 +146,23 @@ class WIBLFileTable extends HTMLElement {
     }
 
 
-    // This function works by finding all elements that should be HIDDEN, as in not a part of the table after the filter.
-    filterTable(date, platform, logger) {
-
-        // Reset previous filter
+    clearCSS() {
         const table_rows = this._shadow.querySelectorAll("tr");
 
         for (let i = 0; i < table_rows.length; i++) {
             const row = table_rows[i];
             row.setAttribute("class", "");
         }
+    }
+
+    // This function works by finding all elements that should be HIDDEN, as in not a part of the table after the filter.
+    filterTable(date, time, platform, logger) {
+
+        // Reset previous filter
+        this.clearCSS();
 
         date = date.value;
+        time = time.value;
         platform = platform.value;
         logger = logger.value;
 
@@ -161,18 +170,13 @@ class WIBLFileTable extends HTMLElement {
         let platformInclude = true;
         let loggerInclude = true;
 
-        let searchYear = 0;
-        let searchMonth = 0;
-        let searchDay = 0;
+        let dateObj;
 
         if (date === "") {
             dateInclude = false;
-
         } else {
-            const dateObj = new Date(date);
-            searchYear = dateObj.getFullYear();
-            searchMonth = dateObj.getMonth() + 1;
-            searchDay = dateObj.getDate();
+            const dateStr = `${date}T${time}`
+            dateObj = new Date(dateStr);
         }
 
         if (platform === "") {
@@ -193,11 +197,15 @@ class WIBLFileTable extends HTMLElement {
             let loggerMatch = false;
 
             if (dateInclude) {
-                let originDate = rows[i][1];
-                let concatDate = originDate.slice(0, 10)
-                const compairDate = new Date(concatDate);
+                let starttime = rows[i][4];
+                let endtime = rows[i][5];
 
-                if (searchDay == compairDate.getDate() || searchMonth == (compairDate.getMonth() + 1) || searchYear == compairDate.getYear()) {
+                starttime = starttime.slice(0, 16);
+                endtime = endtime.slice(0, 16);
+                const startObj = new Date(starttime);
+                const endObj = new Date(endtime);
+
+                if ((startObj < dateObj) && (dateObj < endObj)) {
                     dateMatch = true;
                 }
             } else {
@@ -226,6 +234,8 @@ class WIBLFileTable extends HTMLElement {
                 files.push(rows[i][0]);
             }
         }
+
+        const table_rows = this._shadow.querySelectorAll("tr");
 
         // Apply CSS
         for (let i = 0; i < table_rows.length; i++) {

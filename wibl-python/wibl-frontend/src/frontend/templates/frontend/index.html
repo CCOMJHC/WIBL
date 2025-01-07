@@ -114,15 +114,21 @@
         const filterButton = document.getElementById("filterButton");
         const deleteButton = document.getElementById("deleteButton");
         const archiveButton = document.getElementById("archiveButton");
-        const dateInput = document.getElementById("dateInput");
+        const clearButton = document.getElementById("clearButton");
+
+        clearButton.addEventListener("click", (event) => {
+            let wiblFileTable = document.getElementById("wibl-file-table");
+            wiblFileTable.clearCSS();
+        })
 
         filterButton.addEventListener("click", (event) => {
             var wiblFileTable = document.getElementById("wibl-file-table");
             var dateInput = document.getElementById("dateInput");
+            var timeInput = document.getElementById("timeInput");
             var platformInput = document.getElementById("platformInput");
             var loggerInput = document.getElementById("loggerInput");
 
-            wiblFileTable.filterTable(dateInput, platformInput, loggerInput);
+            wiblFileTable.filterTable(dateInput, timeInput, platformInput, loggerInput);
         })
 
         deleteButton.addEventListener("click", (event) => {
