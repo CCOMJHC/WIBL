@@ -96,7 +96,6 @@ $ ./wibl-env/bin/activate
 
 Once you've activated the `wibl-env` Python virtual environment, you can install `wibl-python` as follows:
 ```
-pip install csbschema~=1.1.2
 pip install ./wibl-manager
 pip install .
 ```
@@ -123,7 +122,7 @@ bash ./tests/integration/test_wibl.bash
 Once you've activated the `wibl-env` Python virtual environment where you installed `wibl-python`, you can run the
 `wibl` command, which has several sub-commands that you can discover using the `--help` option:
 ```
-]$ wibl --help
+$ wibl --help
 usage: wibl <command> [<arguments>]
 
     Commands include:
