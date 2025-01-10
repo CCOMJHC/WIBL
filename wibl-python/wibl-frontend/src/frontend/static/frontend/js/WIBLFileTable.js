@@ -72,6 +72,7 @@ class WIBLFileTable extends HTMLElement {
                     header.textContent = headerText;
                     headerRow.appendChild(header);
                 }
+                headerRow.setAttribute("class", "headerRow");
                 thead.appendChild(headerRow)
                 table.appendChild(thead);
                 // Load WIBL file fields into table
@@ -149,6 +150,9 @@ class WIBLFileTable extends HTMLElement {
     clearCSS() {
         const table_rows = this._shadow.querySelectorAll("tr");
 
+        const hiddenMessage = document.querySelector("#emptyMessage");
+        hiddenMessage.setAttribute("class", "is-hidden");
+
         for (let i = 0; i < table_rows.length; i++) {
             const row = table_rows[i];
             row.setAttribute("class", "");
@@ -169,6 +173,8 @@ class WIBLFileTable extends HTMLElement {
         let dateInclude = true;
         let platformInclude = true;
         let loggerInclude = true;
+
+        let hideCount = 0;
 
         let dateObj;
 
@@ -231,6 +237,7 @@ class WIBLFileTable extends HTMLElement {
             }
 
             if (!loggerMatch || !platformMatch || !dateMatch) {
+                hideCount++;
                 files.push(rows[i][0]);
             }
         }
@@ -245,6 +252,10 @@ class WIBLFileTable extends HTMLElement {
                     row.setAttribute("class", "is-hidden");
                 }
             })
+        }
+        if (hideCount == rows.length) {
+            let emptyMessage = document.querySelector("#emptyMessage");
+            emptyMessage.setAttribute("class", "");
         }
     }
 

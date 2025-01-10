@@ -22,6 +22,7 @@
                                        url="{{ wsURL }}"
                                        stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
                         </wibl-file-table>
+                        <span class="is-hidden" id="emptyMessage">No results for selected filters.</span>
                     </div>
                     <div class="block">
                         <button id="deleteButton" class="button">Delete Selected</button>
@@ -77,19 +78,21 @@
             if (!check) {
                 const row = path.find(el => el.tagName === "TR");
                 if (row) {
-                    const rows = wiblFileTable._shadow.querySelectorAll('tr');
-                    rows.forEach(iter_row => {
-                        if (iter_row.className === "is-selected") {
-                           iter_row.setAttribute("class", "");
-                        }
-                    })
-                    row.setAttribute("class", "is-selected");
-                    setTimeout(() => {
-                        const wiblSockType = "wibl";
-                        const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/detail";
-                        const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
-                        wiblSock.sendRequest("list-wibl-details", {"file_id" : row.id});
-                    });
+                    if (row.className !== "headerRow") {
+                        const rows = wiblFileTable._shadow.querySelectorAll('tr');
+                        rows.forEach(iter_row => {
+                            if (iter_row.className === "is-selected") {
+                               iter_row.setAttribute("class", "");
+                            }
+                        })
+                        row.setAttribute("class", "is-selected");
+                        setTimeout(() => {
+                            const wiblSockType = "wibl";
+                            const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/detail";
+                            const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
+                            wiblSock.sendRequest("list-wibl-details", {"file_id" : row.id});
+                        });
+                    }
                 }
             }
 
