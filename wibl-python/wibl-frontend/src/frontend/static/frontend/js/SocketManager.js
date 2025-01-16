@@ -9,7 +9,8 @@ class SocketManager {
     event_types = {
         "wibl": [
             "list-wibl-files",
-            "list-wibl-details"
+            "list-wibl-details",
+            "delete-wibl-files"
         ]
     };
     // Class object to track singleton instances by URL

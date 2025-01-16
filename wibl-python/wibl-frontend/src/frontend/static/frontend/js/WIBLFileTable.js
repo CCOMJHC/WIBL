@@ -47,20 +47,45 @@ class WIBLFileTable extends HTMLElement {
             const table = shadow.getElementById("wc-wibl-file-table");
             if (active == 1) {
                 let rows = table.children[1].rows;
-                let j = 0;
-                for (const wiblFile of message.message.files){
-                    for (let i = 0; i < (HEADERS.length - 1) ; i++) {
-                        const td = rows[j].querySelector(`td:nth-of-type(${(i + 1)})`);
-                        td.textContent = wiblFile[input_headers[i]];
-                    }
+                let i = 0;
+                raw = [];
+                Array.from(rows).forEach(row => row.remove());
+                for (const wiblFile of message.message.files) {
+                    let data = [];
+                    const row = document.createElement("tr");
 
-                    raw[j][0] = wiblFile.fileid;
-                    raw[j][1] = wiblFile.processtime;
-                    raw[j][2] = wiblFile.platform;
-                    raw[j][3] = wiblFile.logger;
-                    raw[j][4] = wiblFile.starttime;
-                    raw[j][5] = wiblFile.endtime;
-                    j++;
+                    // fileid field
+                    const fileName = wiblFile.fileid;
+                    data[0] = fileName;
+                    console.log(`Filename: ${fileName}`);
+                    var td = document.createElement("td");
+                    td.setAttribute("id", `wc-wibl-file-${fileName}`);
+                    td.textContent = fileName;
+                    row.appendChild(td);
+
+                    // processtime field
+                    td = document.createElement("td");
+                    data[1] = wiblFile.processtime;
+                    td.textContent = wiblFile.processtime;
+                    row.appendChild(td);
+
+                    // Add aditional search fields if needed
+                    data[2] = wiblFile.platform;
+                    data[3] = wiblFile.logger;
+                    data[4] = wiblFile.starttime;
+                    data[5] = wiblFile.endtime;
+
+                    var td2 = document.createElement("td");
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.className = "row-checkbox";
+                    td2.appendChild(checkbox);
+                    row.appendChild(td2);
+                    row.setAttribute("id", fileName);
+                    table.children[1].appendChild(row);
+
+                    raw[i] = data;
+                    i++;
                 }
             } else {
                 // Create header
@@ -97,6 +122,7 @@ class WIBLFileTable extends HTMLElement {
                     td.textContent = wiblFile.processtime;
                     row.appendChild(td);
 
+                    // Add aditional search fields if needed
                     data[2] = wiblFile.platform;
                     data[3] = wiblFile.logger;
                     data[4] = wiblFile.starttime;
@@ -119,6 +145,13 @@ class WIBLFileTable extends HTMLElement {
             }
             active = 1;
         }
+
+        function WIBLFileTableHanlderDeleteWiblFiles(message) {
+            console.log(`Successfully Deleted Files \n${message['message'].join('\n')}`);
+        }
+
+
+        sock.addHandler("delete-wibl-files", WIBLFileTableHanlderDeleteWiblFiles);
         sock.addHandler("list-wibl-files", WIBLFileTableHanlderListWiblFiles);
     }
 
@@ -145,7 +178,6 @@ class WIBLFileTable extends HTMLElement {
                 console.warn(`Unknown attribute ${name}`);
         }
     }
-
 
     clearCSS() {
         const table_rows = this._shadow.querySelectorAll("tr");
@@ -259,9 +291,7 @@ class WIBLFileTable extends HTMLElement {
         }
     }
 
-    deleteSelectedFiles() {
-        console.log("deleteSelectedFiles() called...");
-
+    getSelectedFiles(option) {
         const checkedBoxes = this._shadow.querySelectorAll('.row-checkbox:checked');
 
         const selectedNames = [];
@@ -279,65 +309,115 @@ class WIBLFileTable extends HTMLElement {
         })
 
         if (selectedNames.length != 0) {
-            const promptText = `Would you like to delete files: \n${selectedNames.join('\n')}?`;
-            if (confirm(promptText)) {
-                //TODO: Communicate with manager to delete files selected
-                console.log(`Delete Files: ${selectedNames.join(', ')}`);
 
+            //Delete files option = 0, download files option = 1
+
+            let promptText;
+            if (option == 0) {
+                promptText = `Would you like to delete files: \n${selectedNames.join('\n')}?`;
+            } else if (option == 1){
+                promptText = `Would you like to download files: \n${selectedNames.join('\n')}?`;
+            } else {
+                return 0;
+            }
+
+            if (confirm(promptText)) {
                 //uncheck all boxes
                 checkedBoxes.forEach(checkbox => {
                     checkbox.checked = false;
                 })
 
-                //TODO: Write a function that refreshes the file-table, put it here
-
+                return selectedNames;
             } else {
                 console.log("Delete canceled");
+                return 0;
             }
         } else {
             alert("No Files Selected To Delete.");
+            return 0;
         }
     }
 
-    archiveSelectedFiles() {
-        console.log("archiveSelectedFiles() called...");
-
-        const checkedBoxes = this._shadow.querySelectorAll('.row-checkbox:checked');
-
-        const selectedNames = [];
-        const selectedRows = [];
-
-        checkedBoxes.forEach(checkbox => {
-                const row = checkbox.closest('tr');
-                selectedRows.push(row);
-        });
-
-        selectedRows.forEach(row => {
-            const fileNameCell = row.querySelector('td:nth-of-type(1)');
-            const fileName = fileNameCell.textContent;
-            selectedNames.push(fileName);
-        })
-
-        if (selectedNames.length != 0) {
-            const promptText = `Would you like to archive files: ${selectedNames.join('\n')}?`;
-            if (confirm(promptText)) {
-                //TODO: Communicate with manager to archive files selected
-                console.log(`Selected Files: ${selectedNames.join(', ')}`);
-
-                //uncheck all boxes
-                checkedBoxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                })
-
-                //TODO: Write a function that refreshes the file-table, put it here
-
-            } else {
-                console.log("Archive canceled");
-            }
-        } else {
-            alert("No Files Selected To Archive.");
-        }
-    }
+//    deleteSelectedFiles() {
+//        console.log("deleteSelectedFiles() called...");
+//
+//        const checkedBoxes = this._shadow.querySelectorAll('.row-checkbox:checked');
+//
+//        const selectedNames = [];
+//        const selectedRows = [];
+//
+//        checkedBoxes.forEach(checkbox => {
+//                const row = checkbox.closest('tr');
+//                selectedRows.push(row);
+//        });
+//
+//        selectedRows.forEach(row => {
+//            const fileNameCell = row.querySelector('td:nth-of-type(1)');
+//            const fileName = fileNameCell.textContent;
+//            selectedNames.push(fileName);
+//        })
+//
+//        if (selectedNames.length != 0) {
+//            const promptText = `Would you like to delete files: \n${selectedNames.join('\n')}?`;
+//            if (confirm(promptText)) {
+//                //TODO: Communicate with manager to delete files selected
+//
+//                //uncheck all boxes
+//                checkedBoxes.forEach(checkbox => {
+//                    checkbox.checked = false;
+//                })
+//
+//                //TODO: Write a function that refreshes the file-table, put it here
+//                return selectedNames;
+//            } else {
+//                console.log("Delete canceled");
+//                return 0;
+//            }
+//        } else {
+//            alert("No Files Selected To Delete.");
+//            return 0;
+//        }
+//    }
+//
+//    downloadSelectedFiles() {
+//        console.log("downloadSelectedFiles() called...");
+//
+//        const checkedBoxes = this._shadow.querySelectorAll('.row-checkbox:checked');
+//
+//        const selectedNames = [];
+//        const selectedRows = [];
+//
+//        checkedBoxes.forEach(checkbox => {
+//                const row = checkbox.closest('tr');
+//                selectedRows.push(row);
+//        });
+//
+//        selectedRows.forEach(row => {
+//            const fileNameCell = row.querySelector('td:nth-of-type(1)');
+//            const fileName = fileNameCell.textContent;
+//            selectedNames.push(fileName);
+//        })
+//
+//        if (selectedNames.length != 0) {
+//            const promptText = `Would you like to archive files: ${selectedNames.join('\n')}?`;
+//            if (confirm(promptText)) {
+//                //TODO: Communicate with manager to archive files selected
+//                console.log(`Selected Files: ${selectedNames.join(', ')}`);
+//
+//                //uncheck all boxes
+//                checkedBoxes.forEach(checkbox => {
+//                    checkbox.checked = false;
+//                })
+//
+//                //TODO: Write a function that refreshes the file-table, put it here
+//
+//            } else {
+//                console.log("Download canceled");
+//            }
+//        } else {
+//            alert("No Files Selected To Download.");
+//        }
+//    }
 }
 // Register custom element
 customElements.define("wibl-file-table", WIBLFileTable);

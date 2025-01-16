@@ -142,6 +142,33 @@ class WiblFileConsumer(AsyncWebsocketConsumer):
             'message': wibl_files_data
         }))
 
+    async def delete_wibl_files(self, file_ids):
+        print("delete_wibl_files called!")
+
+        manager_url: str = os.environ.get('MANAGEMENT_URL', 'http://manager:5000')
+        successful_deletes = []
+
+        for file_id in file_ids:
+            wibl_url: str = f"{manager_url}/wibl/{file_id}"
+            async with httpx.AsyncClient() as client:
+                response = await client.delete(wibl_url)
+            if response.status_code != 200:
+                mesg = f"Received status code {response.status_code} when querying manager."
+                print(mesg)
+                await self.send(text_data=json.dumps({
+                    'type': 'error',
+                    'message': mesg
+                }))
+            else:
+                print(f"Successfully deleted {file_id}")
+                successful_deletes.append(file_id)
+
+        await self.send(text_data=json.dumps({
+            'type': 'wibl',
+            'event': 'delete-wibl-files',
+            'message': successful_deletes
+        }))
+
     async def connect(self):
         # Get user session
         self.session_key = self.scope['session'].session_key
@@ -170,6 +197,9 @@ class WiblFileConsumer(AsyncWebsocketConsumer):
             case 'list-wibl-files':
                 print(f"WiblFileConsumer.receive: calling send_list_wibl_files()...")
                 await self.send_list_wibl_files()
+            case 'delete-wibl-files':
+                print(f"WiblFileDetailConsumer.receive: calling deleter_wibl_files()...")
+                await self.delete_wibl_files(message['file_ids'])
             case _:
                 await self.send(text_data=json.dumps({
                     'type': 'error',

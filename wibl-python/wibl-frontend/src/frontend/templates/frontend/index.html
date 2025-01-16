@@ -26,7 +26,7 @@
                     </div>
                     <div class="block">
                         <button id="deleteButton" class="button">Delete Selected</button>
-                        <button id="archiveButton" class="button">Archive Selected</button>
+                        <button id="downloadButton" class="button">Download Selected</button>
                         <button class="button" id="showButton">Filter</button>
                     </div>
                     <div class="box is-hidden" id="filterSection">
@@ -116,7 +116,7 @@
 
         const filterButton = document.getElementById("filterButton");
         const deleteButton = document.getElementById("deleteButton");
-        const archiveButton = document.getElementById("archiveButton");
+        const downloadButton = document.getElementById("downloadButton");
         const clearButton = document.getElementById("clearButton");
 
         clearButton.addEventListener("click", (event) => {
@@ -136,11 +136,21 @@
 
         deleteButton.addEventListener("click", (event) => {
             var wiblFileTable = document.getElementById("wibl-file-table");
-            wiblFileTable.deleteSelectedFiles();
+            var result = wiblFileTable.getSelectedFiles(0);
+            if (result != 0) {
+                const wiblSockType = "wibl";
+                const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/table";
+                const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
+                wiblSock.sendRequest("delete-wibl-files", {"file_ids" : result});
+                wiblSock.sendRequest("list-wibl-files");
+            }
         })
-        archiveButton.addEventListener("click", (event) => {
+        downloadButton.addEventListener("click", (event) => {
             var wiblFileTable = document.getElementById("wibl-file-table");
-            wiblFileTable.archiveSelectedFiles();
+            var result = wiblFileTable.getSelectedFiles(1);
+            if (result != 0) {
+                console.log(`Download files ${result.join('\n')}`);
+            }
         })
     </script>
 {% endblock %}
