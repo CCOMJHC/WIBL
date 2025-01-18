@@ -127,7 +127,7 @@ $AllFiles | ForEach-Object -ThrottleLimit 20 -Parallel {
     # Go to the directory that the .dat file lives in and then 
     # use log convert in that directory.
     Push-Location -Path $CurrentItemDirectory -StackName "Wibl"
-    & $using:FullLogConvertPath -f $Format -i $PSItem.FullName -o $WIBLFileName | Out-Null
+    & $using:FullLogConvertPath -f $using:Format -i $PSItem.FullName -o $WIBLFileName | Out-Null
     Pop-Location -StackName "Wibl"
 
     Remove-Item $PSItem

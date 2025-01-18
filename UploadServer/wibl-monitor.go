@@ -47,6 +47,8 @@ The flags are:
 
 	-config
 		Specify a JSON format file to configure the server
+	-level debug|info|warning|error
+		Set the level of logging information to report
 
 Without flags, the code generates a default configuration for the server, typically
 bringing it up on a non-constrained port (see support/config.go for details).
@@ -60,43 +62,77 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"ccom.unh.edu/wibl-monitor/src/api"
+	"ccom.unh.edu/wibl-monitor/src/cloud"
 	"ccom.unh.edu/wibl-monitor/src/support"
+
+	"github.com/google/uuid"
 )
+
+var server_config *support.Config
 
 func main() {
 	log.SetFlags(log.Lmicroseconds | log.Ldate)
 	fs := flag.NewFlagSet("monitor", flag.ExitOnError)
 	configFile := fs.String("config", "", "Filename to load JSON configuration")
+	logFilter := fs.String("level", "", "Debug level of slog")
 
-	if err := fs.Parse(os.Args[1:]); err != nil {
+	var err error
+
+	if err = fs.Parse(os.Args[1:]); err != nil {
 		support.Errorf("failed to parse command line parameters (%v)\n", err)
 		os.Exit(1)
 	}
 
-	var config *support.Config
 	if len(*configFile) > 0 {
 		var err error
-		config, err = support.NewConfig(*configFile)
+		server_config, err = support.NewConfig(*configFile)
 		if err != nil {
 			support.Errorf("failed to generate configuration from %q (%v)\n", *configFile, err)
 			os.Exit(1)
 		}
 	} else {
-		config = support.NewDefaultConfig()
+		server_config = support.NewDefaultConfig()
+	}
+	if len(*logFilter) > 0 {
+		var level slog.Level
+		switch *logFilter {
+		case "debug":
+			level = slog.LevelDebug
+		case "info":
+			level = slog.LevelInfo
+		case "warning":
+			level = slog.LevelWarn
+		case "error":
+			level = slog.LevelError
+		default:
+			support.Errorf("log level (%v) not recognised.\n", *logFilter)
+			os.Exit(1)
+		}
+		slog.SetLogLoggerLevel(level)
 	}
 
-	address := fmt.Sprintf(":%d", config.API.Port)
+	address := fmt.Sprintf(":%d", server_config.API.Port)
+	var db support.DBConnection
+	if db, err = support.NewDatabase(server_config.DB.Connection); err != nil {
+		support.Errorf("failed to open database connection for logger information")
+		os.Exit(1)
+	}
+	if err = db.Setup(); err != nil {
+		support.Errorf("database error")
+		os.Exit(1)
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", syntax)
-	mux.HandleFunc("/checkin", support.BasicAuth(status_updates))
-	mux.HandleFunc("/update", support.BasicAuth(file_transfer))
+	mux.HandleFunc("/checkin", support.BasicAuth(status_updates, db))
+	mux.HandleFunc("/update", support.BasicAuth(file_transfer, db))
 
 	srv := &http.Server{
 		Addr:         address,
@@ -107,7 +143,7 @@ func main() {
 	}
 
 	log.Printf("starting server on %s", srv.Addr)
-	err := srv.ListenAndServeTLS("./certs/server.crt", "./certs/server.key")
+	err = srv.ListenAndServeTLS("./certs/server.crt", "./certs/server.key")
 	log.Fatal(err)
 }
 
@@ -163,9 +199,9 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var result api.TransferResult
 
-	support.Infof("TRANS: File transfer request with headers:\n")
+	support.Debugf("TRANS: File transfer request with headers:\n")
 	for k, v := range r.Header {
-		support.Infof("TRANS:    %s = %s\n", k, v)
+		support.Debugf("TRANS:    %s = %s\n", k, v)
 	}
 	if body, err = io.ReadAll(r.Body); err != nil {
 		support.Errorf("API: failed to read file body from POST: %s.\n", err)
@@ -181,7 +217,6 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		md5digest = strings.Split(md5digest, "=")[1]
-		support.Infof("TRANS: MD5 Digest |%s|\n", md5digest)
 	}
 	md5hash := fmt.Sprintf("%X", md5.Sum(body))
 	if md5hash != md5digest {
@@ -191,11 +226,57 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 	} else {
 		support.Infof("TRANS: successful recomputation of MD5 hash for transmitted contents.\n")
 		result.Status = "success"
-		// TODO: Further transfer of the file:
-		//    1. Make a UUID for the transferred data.
-		//    2. Store the received data into the appropriate S3 bucket for the current instance
-		//       with the UUID.wibl extension.
-		//    3. Trigger SNS topic for new file arrival.
+		// The files from the logger have a standard name ("wibl-raw.X") and therefore we need to adjust
+		// the name here to make sure that we don't stamp all over another logger's output when we upload
+		// to the S3 bucket.
+		file_uuid, err := uuid.NewUUID()
+		if err != nil {
+			support.Errorf("TRANS: Failed to generate file UUID: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		var service cloud.CloudInterface
+		switch server_config.Cloud.Provider {
+		case "debug":
+			service = new(cloud.LocalInterface)
+		case "aws":
+			service = new(cloud.AWSInterface)
+		default:
+			support.Errorf("TRANS: cloud provider not known (configuration issue).\n")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if err := service.Configure(server_config); err != nil {
+			support.Errorf("TRANS: failed to configure cloud interface.")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		meta := cloud.ObjectDescription{
+			Destination: server_config.AWS.UploadBucket,
+			Filename:    file_uuid.String() + ".wibl",
+			FileSize:    len(body),
+		}
+		if exists, err := service.DestinationExists(meta); err != nil {
+			support.Errorf("TRANS: BucketExists failed: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		} else if !exists {
+			support.Errorf("TRANS: Upload bucket does not exist - check config: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if err = service.UploadFile(meta, body); err != nil {
+			support.Errorf("TRANS: Upload to bucket %v failed: %v", server_config.AWS.UploadBucket, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if err = service.PublishNotification(server_config.AWS.SNSTopic, meta); err != nil {
+			support.Errorf("TRANS: Failed to notify SNS topic of converted file: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	var result_string []byte

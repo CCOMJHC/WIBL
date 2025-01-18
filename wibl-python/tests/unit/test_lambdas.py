@@ -41,7 +41,7 @@ def validate_obs_time_str(obs_time_str: str) -> bool:
 
 class TestAlgorithms(unittest.TestCase):
     def setUp(self) -> None:
-        self.fixtures_dir = Path(Path(__file__).parent.parent, 'fixtures')
+        self.fixtures_dir = Path(Path(__file__).parent.parent, 'data')
         self.tmp_dir = tempfile.mkdtemp()
 
     def tearDown(self) -> None:

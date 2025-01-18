@@ -1,13 +1,109 @@
-# Python code WIBL low-cost data logger system
+# wibl-python: Python tools for working with the WIBL low-cost data logger system
 
 ## Installation
+You can run `wibl-python` either locally or in the cloud. For cloud instructions, see the "Packaging and Deploying 
+Processing and Submission Code" section below.
 
-### Locally
+For local installations there are currently two options: 
+1. Python
+2. Docker
+
+The following subsections describe each installation method.
+
+### Local installation using Python
+
+#### Using Conda (Windows, Linux, macOS)
+For Windows, it's probably best to install `wibl-python` using 
+[Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) (Anaconda or Miniforge should also work). 
+
+> Note: If you plan to run [WIBL data management scripts](scripts/data-management/README.md) to automate data processing
+using `wibl-python`, make sure to follow the instructions in the [README](scripts/data-management/README.md) to
+set up Miniconda using PowerShell 7 (which is required to run the data management scripts).
+
+Linux and macOS users can also choose to use Conda, however it's not required as there are other ways to install 
+the necessary dependencies in these environments (see below).
+
+Once you've installed conda, the next step is to create a conda environment for `wibl-python`. To do so, open a 
+conda shell (we recommend using PowerShell 7 so that you can easily use 
+[WIBL data management scripts](scripts/data-management/README.md)) and do the following to create the `wibl-python` 
+environment:
 ```
-pip install csbschema==1.1.1
+conda env create -f environment.yml
+```
+
+> To update an existing environment, download or `git pull` the latest `wibl-python` code and then 
+> run `conda update -n wibl-python -f environment.yml`.
+
+Then, each time you want to use `wibl-python` activate the environment as follows:
+```
+conda activate wibl-python
+```
+
+Once activated, you should be able to run `wibl` commands:
+```
+(wibl-python) PS C:\> wibl --help
+usage: wibl <command> [<arguments>]
+
+    Commands include:
+        datasim     Generate test data using Python-native data simulator.
+        editwibl    Edit WIBL logger files, e.g., add platform metadata.
+        uploadwibl  Upload WIBL logger files to an S3 bucket.
+        parsewibl   Read and report contents of a WIBL file.
+        dcdbupload  Upload a GeoJSON file to DCDB direct.
+        procwibl    Local processing from WIBL file to GeoJSON.
+        validate    Validate the metadata in a GeoJSON file.
+
+
+Python tools for WIBL low-cost data logger system
+
+positional arguments:
+  command     Subcommand to run
+
+options:
+  -h, --help  show this help message and exit
+  --version   print version and exit
+(wibl-python) PS C:\>
+```
+
+#### Linux or macOS
+To install `wibl-python` in a local Python environment, first install Python 3 for your operating system; version 
+3.11 or greater is recommended, but 3.8 or later will work (though Python 3.8 will reach 
+[end-of-life](https://devguide.python.org/versions/) status in October 2024).
+
+Next, we'll need to install non-Python dependencies required by `wibl-python`. Currently, the only such dependency
+is [GDAL](https://gdal.org/download.html). If you are using Linux, your distribution likely has a recent-enough
+version of the GDAL that you can install via the package manager for that distribution (e.g., `apt` for Debian
+or Ubuntu derivatives, `yum` or `dnf` for RedHat or CentOS derivatives). For macOS, you can use the version of 
+GDAL provided by the [Homebrew](https://brew.sh) or [MacPorts](https://www.macports.org) package managers. 
+
+Once you have installed Python 3, [create a virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments)
+in which to install and run `wibl-python`. For example, on Linux or macOS
+this would look like:
+```shell
+$ python3 -m venv wibl-env
+```
+
+> Note: If using a `miniconda` version of Python, see [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
+> to learn how to create and activate a Python virtual environment.
+
+Once created, each time you want to use `wibl-python` (or before you install `wibl-python`) you will need to activate 
+the environment, which again on Linux or macOS would look like:
+```shell
+$ ./wibl-env/bin/activate
+```
+
+> Note: this assumes the current working directory of your shell is the same directory where `wibl-env` resides.
+
+Once you've activated the `wibl-env` Python virtual environment, you can install `wibl-python` as follows:
+```
 pip install ./wibl-manager
 pip install .
 ```
+
+### Local installation using Docker
+Please refer to the instructions [here](https://github.com/CCOMJHC/WIBL/blob/main/DataManagement/containers/README.md)
+to learn how to install and use `wibl-python` and [data management scripts](scripts/data-management/README.md) via 
+Docker.
 
 ## Testing
 To run unit tests, including detailed verification of packet data output by the data simulator, run:
@@ -23,8 +119,10 @@ bash ./tests/integration/test_wibl.bash
 ```
 
 ## Usage
+Once you've activated the `wibl-env` Python virtual environment where you installed `wibl-python`, you can run the
+`wibl` command, which has several sub-commands that you can discover using the `--help` option:
 ```
-]$ wibl --help
+$ wibl --help
 usage: wibl <command> [<arguments>]
 
     Commands include:
@@ -85,11 +183,11 @@ $ wibl editwibl -m sensor-inject.json test.bin test-inject.bin
 ### Process WIBL file into GeoJSON
 Convert a binary WIBL file into GeoJSON:
 ```
-$ wibl procwibl -c tests/fixtures/configure.local.json test-inject.bin test-inject.geojson
+$ wibl procwibl -c tests/data/configure.local.json test-inject.bin test-inject.geojson
 ```
 
 > Note: It is necessary to supply a configuration JSON file with the `local` attribute
-> set to `true`, such as `tests/fixtures/configure.local.json`, because `procwibl` uses
+> set to `true`, such as `tests/data/configure.local.json`, because `procwibl` uses
 > the same code as the conversion processing lambda code run in the cloud.
 
 ### Upload WIBL files into AWS S3 Buckets for processing
@@ -154,6 +252,12 @@ optional arguments:
 Configuration files suitable for uploading to both the test and production DCDB endpoints are available in the
 [examples](examples) directory; For test uploads, use [configure-submission-test.json](examples/configure-submission-test.json),
 and for production uploads use [configure-submission.json](examples/configure-submission.json).
+
+## Batch processing scripts
+In addition to running the above-documented `wibl` commands on individual WIBL files, it is also possible to batch 
+process many WIBL files using the provided [data management PowerShell scripts](scripts/data-management/README.md). 
+These scripts can also be run in [Docker](https://www.docker.com/) (or other container runtimes) using the 
+[wibl-base container image](https://github.com/CCOMJHC/WIBL/blob/main/DataManagement/containers/README.md).
 
 ## Packaging and Deploying Processing and Submission Code
 Packaging up the software for the cloud segment, and deploying it, can be a little involved due to security concerns with the various cloud providers.  Detailed setup instructions, and automation scripts, are provided as described below.

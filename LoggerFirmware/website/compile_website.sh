@@ -1,6 +1,7 @@
 #!/bin/zsh
 
 JAR=${HOME}/Projects-Extras/WIBL/closure-compiler/closure-compiler-v20231112.jar
+#JAR=/usr/share/java/closure-compiler.jar
 
 for file in js/*.js
 do
@@ -12,6 +13,7 @@ python inline_flatten.py
 
 rm js/*_compiled.js
 
+mkdir -p ../data/website/images
 cp images/* ../data/website/images
 cp favicon.png ../data/website
 

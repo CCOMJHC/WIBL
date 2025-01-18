@@ -78,8 +78,9 @@ def read_local_event(event_file: str) -> Dict:
 
 def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth: str, local_file: str,
                      config: Dict[str,Any]) -> bool:
+    auth_token: str = provider_auth.strip()
     headers = {
-        'x-auth-token': provider_auth
+        'x-auth-token': auth_token
     }
     # The unique ID that we provide to DCDB must be preceeded by our provider ID and a hyphen.
     # This should happen before the code gets to here, but just in case, we enforce this requirement.
@@ -106,7 +107,7 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
     if config['verbose']:
         print(f'Source ID is: {source_info["sourceID"]}; ' + 
               f'Destination object uniqueID is: {dest_uniqueID}; ' +
-              f'Authorisation token is: {provider_auth}')
+              f'Authorisation token is: {auth_token}')
 
     files = {
         'file': (local_file, open(local_file, 'rb')),

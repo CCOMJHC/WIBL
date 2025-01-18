@@ -6,14 +6,15 @@ import subprocess
 
 import pygmt
 import rasterio
+import geopandas
 
 from wibl import get_logger
 
 RASTER_NODATA = -99999.
-RASTER_MAX = 40_000
-RASTER_RES = 0.0009
+SND_MAX = 40_000
+RASTER_RES = 0.002
 REGION_INSET_MULT = 4
-
+NODATA = 42949672.92000
 GEBCO_PATH: str = os.getenv('WIBL_GEBCO_PATH')
 
 logger = get_logger()
@@ -68,37 +69,18 @@ def map_soundings(sounding_geojson: Path,
     out_path: Path = Path(tempfile.mkdtemp()).absolute()
     map_filename: Path = out_path / map_filename_prefix
 
-    sounding_rast: Path = sounding_geojson.with_suffix('.tif')
-
-    # Generate GeoTIFF of soundings from GeoJSON file
-    p: subprocess.CompletedProcess = gdal_rasterize(sounding_rast,
-                                                    sounding_geojson,
-                                                    format='GTiff',
-                                                    outputSRS='EPSG:4326',
-                                                    xRes=RASTER_RES,
-                                                    yRes=-RASTER_RES,
-                                                    noData=RASTER_NODATA,
-                                                    creationOptions=['COMPRESS=DEFLATE', 'ZLEVEL=9'],
-                                                    attribute='depth',
-                                                    where=f"depth > 0 AND depth < {RASTER_MAX}")
-    if p.returncode != 0:
-        output = f"stdout: {p.stdout}, stderr: {p.stderr}"
-        mesg = f"Unable to rasterize {sounding_geojson} to {sounding_rast} due to error: {output}"
-        logger.error(mesg)
-        raise Exception(mesg)
-
-    # Get bounds from raster metadata
-    with rasterio.open(sounding_rast) as d:
-        xmin = d.bounds.left
-        xmax = d.bounds.right
-        ymin = d.bounds.bottom
-        ymax = d.bounds.top
+    snd = geopandas.read_file(sounding_geojson)
+    snd = snd[snd['depth'] < NODATA]
+    xmin = snd.bounds['minx'].min()
+    xmax = snd.bounds['maxx'].max()
+    ymin = snd.bounds['miny'].min()
+    ymax = snd.bounds['maxy'].max()
 
     # Buffer map bounds around data based on the maximum of the x- and y-ranges
     #   to avoid extremely tall or wide maps
     xrng = xmax - xmin
     yrng = ymax - ymin
-    buffer = max(xrng, yrng) / 2
+    buffer = max(xrng, yrng) / 3
     buffer_inset = REGION_INSET_MULT * buffer
 
     # Setup region, projections and polygons for main map an insets...
@@ -134,13 +116,23 @@ def map_soundings(sounding_geojson: Path,
     f.grdimage(GEBCO_PATH,
                region=region,
                projection="M16c",
-               cmap='terra')
+               cmap='terra',
+               dpi=120)
 
     f.colorbar(position="JBC", frame=["x+lGEBCO 2023 Bathymetry", "y+lm"])
 
+    # Make color map for soundings
+    pygmt.makecpt(cmap='wysiwyg',
+                  series=[snd['depth'].min(), snd['depth'].max(), 10],
+                  reverse=True,
+                  continuous=True)
     # Plot soundings
-    f.grdimage(sounding_rast, cmap='drywet', nan_transparent=True)
-    f.colorbar(position="JLM+o-2.0c/0c+w4c",
+    f.plot(data=snd,
+           pen='4p,+z,-',
+           cmap=True,
+           aspatial='Z=depth')
+
+    f.colorbar(position="JLM+o-2.0c/0c+w8c",
                box="+gwhite@30+p0.8p,black",
                frame=["x+lSounding depth", "y+lm"])
 

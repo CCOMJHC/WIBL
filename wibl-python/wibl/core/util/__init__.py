@@ -79,3 +79,90 @@ def merge_geojson(open_geojson: Callable[[str, str], Optional[IO[AnyStr]]],
 
     # Write out merged features
     json.dump(out_dict, out_geojson_fp)
+
+
+def new_line(pt1: dict, pt2: dict) -> dict:
+    line = {
+        "type": "Feature",
+        "geometry": {
+            "type": "LineString",
+            "coordinates": [
+                pt1["geometry"]["coordinates"],
+                pt2["geometry"]["coordinates"]
+            ],
+        },
+        "properties": {
+            "depth": min(pt1["properties"]["depth"], pt2["properties"]["depth"]),
+            "start_time": pt1["properties"]["time"],
+            "end_time": pt2["properties"]["time"]
+        }
+    }
+    return line
+
+
+def geojson_pt_to_ln(open_geojson: Callable[[str, str], Optional[IO[AnyStr]]],
+                     location: str, filename: str, out_geojson_fp) -> None:
+    """
+
+    :param open_geojson:
+    :param location:
+    :param filename:
+    :param out_geojson_fp:
+    :param fail_on_error:
+    :return:
+    """
+    out_features: List[Dict[str, Any]] = []
+
+    out_dict: Dict[str, Any] = {
+        'type': 'FeatureCollection',
+        'crs': {
+            'type': 'name',
+            'properties': {
+                'name': 'urn:ogc:def:crs:OGC:1.3:CRS84'
+            }
+        },
+        'features': out_features
+    }
+
+    file_like = open_geojson(location, filename)
+    if file_like is None:
+        mesg = f"Unable to convert point {filename}: Could not open resource."
+        logger.error(mesg)
+        raise Exception(mesg)
+
+    pt_geojson: Dict = json.load(file_like)
+
+    if 'features' not in pt_geojson:
+        mesg = f"Unable to convert point features from {filename}: No features found."
+        logger.error(mesg)
+        raise Exception(mesg)
+
+    pt_feat: List[Dict[str, Any]] = pt_geojson['features']
+    if not isinstance(pt_feat, list):
+        mesg = (f"Unable to convert point features from {filename}: "
+                "Expected 'features' to be an array, but it is not.")
+        logger.error(mesg)
+        raise Exception(mesg)
+
+    ln_feat = []
+
+    # Sort pt_feat by time
+    sorted_pt = sorted(pt_feat, key=lambda i: i['properties']['time'])
+
+    num_pt: int = len(sorted_pt)
+    if num_pt < 2:
+        mesg = f"Unable to convert point features from {filename} to lines because there are less than 2 points."
+        logger.error(mesg)
+        raise Exception(mesg)
+
+    # Iterate by twos
+    for j in range(1, num_pt):
+        i = j - 1
+        pt1 = sorted_pt[i]
+        pt2 = sorted_pt[j]
+        ln_feat.append(new_line(pt1, pt2))
+
+    out_features.extend(ln_feat)
+
+    # Write out line features
+    json.dump(out_dict, out_geojson_fp)

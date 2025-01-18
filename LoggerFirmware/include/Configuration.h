@@ -38,7 +38,7 @@ namespace logger {
 // Firmware software version (i.e., overall firmware, rather than components like Command Processor, etc.)
 const int firmware_major = 1;
 const int firmware_minor = 5;
-const int firmware_patch = 0;
+const int firmware_patch = 2;
 
 /// @brief Stringify the version information for the firmware itself
 String FirmwareVersion(void);

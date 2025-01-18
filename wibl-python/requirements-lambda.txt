@@ -1,7 +1,7 @@
 setuptools
 requests~=2.31.0
 pynmea2~=1.18
-csbschema~=1.1.1
+csbschema~=1.1.2
 # Pin to pre-urllib 2.0 to avoid this error:
 #   Runtime.ImportModuleError: Unable to import module 'wibl.upload.cloud.aws.lambda_function':
 #   urllib3 v2.0 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with

@@ -37,6 +37,7 @@ from wibl.command import get_subcommand_prog
 def parsewibl():
     parser = arg.ArgumentParser(description='Parse WIBL logger files locally and report contents.', prog=get_subcommand_prog())
     parser.add_argument('-s', '--stats', action='store_true', help='Provide summary statistics on packets seen')
+    parser.add_argument('-d', '--dump', type=str, help='Dump ASCII representation of NMEA0183 data to file')
     parser.add_argument('input', type=str, help='Specify the file to parse')
 
     optargs = parser.parse_args(sys.argv[2:])
@@ -50,6 +51,11 @@ def parsewibl():
         stats = True
     else:
         stats = False
+    
+    if optargs.dump:
+        dump_file = open(optargs.dump, 'w')
+    else:
+        dump_file = None
 
     file = open(filename, 'rb')
 
@@ -62,6 +68,9 @@ def parsewibl():
             if pkt is not None:
                 print(pkt)
                 packet_count += 1
+                if dump_file:
+                    if pkt.name() == 'SerialString':
+                        dump_file.write(f'{pkt.elapsed} {pkt.data.decode("utf-8").strip()}\n')
                 if stats:
                     if pkt.name() not in packet_stats:
                         packet_stats[pkt.name()] = 0

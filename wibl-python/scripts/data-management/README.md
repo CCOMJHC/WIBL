@@ -1,11 +1,40 @@
 # WIBL data management scripts 
 This directory contains 
-[PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/overview?view=powershell-7.3)
+[PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/overview?view=powershell-7.4)
 scripts that can be used to automate WIBL data management tasks.
 
 These scripts require PowerShell 7 or later running on Windows, macOS, or Linux. 
-See [here](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.3)
-for installation instructions.
+See [here](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.4)
+for installation instructions. After installing PowerShell 7, make sure to enable the execution of PowerShell 
+scripts:
+```powershell
+PS C:\Users\janeuser> Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser
+```
+
+> Note: this may require an administrator to make this change. For more information see 
+> [PowerShell documentation](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.4).
+
+Next, make sure to run `conda init` from within PowerShell 7 to enable use of conda and the `wibl-python` 
+environment. To do so on Windows, run:
+```powershell
+PS C:\Users\janeuser> C:\ProgramData\miniconda\Scripts\conda.exe init
+```
+
+> If you installed `conda` in your User directory, run `C:\Users\janeuser\miniconda3\Scripts\conda.exe init` instead.
+
+To do so on Linux or macOS, run:
+```shell
+PS /Users/janeuser> ./miniconda/bin/conda init powershell
+```
+
+## debugWibl.ps1
+To debug each step of a workflow--from conversion to WIBL format, to adding metadata, to creating and validating
+GeoJSON output--for a single logger file (as opposed to doing batch processing steps, which are detailed below),
+use the [debugWibl.ps1](debugWibl.ps1) script:
+```
+Get-Help ./debugWibl.ps1
+debugWibl.ps1 [[-datFile] <string>] [[-metadataFile] <string>] [[-wiblConfig] <string>] [[-LogConvertPath] <string>] [[-Format] <string>]
+```
 
 ## convertToWibl.ps1: converting non-WIBL data to WIBL format using [LogConvert](../../../LogConvert)
 It is possible to use wibl-python to process non-WIBL data in the following formats: Yacht Devices YDVR-4,
@@ -19,8 +48,8 @@ needing conversion. However, if you have many files to convert, you can automate
 
 > Note: If your data are already in WIBL format, you don't need to run `LogConvert` or `convertToWibl.ps1`. 
 
-To run `convertToWibl.ps1` you'll first need to be in a Python virtual environment that has 
-[wibl-python](../../README.md) installed. When running `convertToWibl.ps1` you must supply at least two 
+To run `convertToWibl.ps1` you'll first need to be in a Python virtual environment running within PowerShell 7 
+that has [wibl-python](../../README.md) installed. When running `convertToWibl.ps1` you must supply at least two 
 inputs: 
 1. A zip file containing YDVR or TeamSurv files (all files in the zip file must be of the same 
 format); and
@@ -69,9 +98,11 @@ To run `processWibl.ps1` you have to supply three inputs:
 1. The path to a directory containing WIBL files for a single
 vessel; 
 2. A path to a JSON file containing metadata for the vessel that collected the data 
-(for example, see: [b12_v3_metadata_example.json](../../tests/fixtures/b12_v3_metadata_example.json)); and 
+(for example, see: [b12_v3_metadata_example.json](../../tests/data/b12_v3_metadata_example.json)); and 
 3. A JSON configuration file for local processing (for example, see: 
-[configure.local.json](../../tests/fixtures/configure.local.json)). 
+[configure.local.json](../../tests/data/configure.local.json)). 
+
+> Note: if your WIBL files don't have the '.wibl' extension, you can bulk rename them with the following PowerShell one-liner: `Get-ChildItem * | Rename-Item -NewName { $_.Name + ".wibl" }`. Make sure to run this from the directory where the files to be renamed are located.
 
 The configuration file should look like the following:
 ```json
@@ -92,7 +123,7 @@ should be set to the provider ID of the trusted node you plan to use to submit d
 > don't set this correctly, the WIBL processing tools won't be able to detect when the elapsed time timestamp
 > wraps around.
 
-To learn more about how to run `convertToWibl.ps1`, use the `Get-Help` command:
+To learn more about how to run `processWibl.ps1`, use the `Get-Help` command:
 ```
 PS /Users/janeuser/wibl/wibl-python/scripts/data-management> Get-Help ./processWibl.ps1  
 processWibl.ps1 [[-wiblPath] <string>] [[-metadataFile] <string>] [[-wiblConfig] <string>]
@@ -110,10 +141,9 @@ validate. Optionally, you can specify the file extension of GeoJSON files to val
 (the default is `json`). Lastly, `validateWibl.ps1` allows you to specify the schema version to validate the
 GeoJSON against. The schema versions are described in the 
 [csbschema documentation](https://github.com/CCOMJHC/csbschema#usage), and are defined 
-[here](https://github.com/CCOMJHC/csbschema/blob/main/csbschema/__init__.py#L9). The default schema is currently
-"3.1.0-2023-08", other valid current schemas include: "3.0.0-2023-08", "XYZ-3.1.0-2023-08", "XYZ-3.0.0-2023-08". 
-You can find examples of IHO and NOAA B12 JSON encodings in the 
-[csbschema repository](https://github.com/CCOMJHC/csbschema/tree/main/docs).
+[here](https://github.com/CCOMJHC/csbschema/blob/main/csbschema/__init__.py#L9). The default schema is currently "3.1.0-2024-04", other valid current schemas include: "3.1.0-2023-08", 
+"3.0.0-2023-08", "XYZ-3.1.0-2023-08", "XYZ-3.0.0-2023-08". You can find examples of IHO and NOAA B12 JSON encodings 
+in the [csbschema repository](https://github.com/CCOMJHC/csbschema/tree/main/docs).
 
 ## submitDCDB.ps1: Submit IHO B12 GeoJSON data to DCDB
 Often, the last step of processing WIBL data will be submission to [DCDB](https://www.ngdc.noaa.gov/iho/). This can
