@@ -36,7 +36,7 @@ from flask import abort
 from flask_restful import Resource, reqparse, fields, marshal_with
 import boto3
 
-from wibl_manager.app_globals import db
+from wibl_manager.app_globals import db, s3_client
 from wibl_manager import ReturnCodes, ProcessingStatus
 
 
@@ -181,7 +181,7 @@ class WIBLData(Resource):
         db.session.commit()
 
         # post on the cloud
-
+        # s3_client.put_object(Body=wibl_file, Bucket='wibl-test', Key=fileid)
         return wibl_file, ReturnCodes.RECORD_CREATED.value
     
     @marshal_with(wibl_resource_fields)
@@ -224,6 +224,9 @@ class WIBLData(Resource):
         if args['messages']:
             wibl_file.messages = args['messages'][:1024]
         db.session.commit()
+
+        # s3_client.put_object(Body=wibl_file, Bucket='wibl-test', Key=fileid)
+
         return wibl_file, ReturnCodes.RECORD_CREATED.value
 
     def delete(self, fileid):
@@ -249,11 +252,6 @@ class WIBLData(Resource):
         db.session.commit()
 
         # delete on the cloud
-        # s3 = boto3.client('s3',
-        #               endpoint_url="http://localstack:4566",
-        #               use_ssl=False,
-        #               aws_access_key_id='test',
-        #               aws_secret_access_key='test')
-        # s3.delete_object(Bucket='wibl-test', Key=fileid)
+        # s3_client.delete_object(Bucket='wibl-test', Key=fileid)
 
         return ReturnCodes.RECORD_DELETED.value
