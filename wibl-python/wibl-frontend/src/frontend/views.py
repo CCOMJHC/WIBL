@@ -1,9 +1,30 @@
+from http.client import HTTPResponse
+
+from celery.bin.base import JSON_ARRAY
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
-from django.http import HttpRequest
+from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse
+from django.urls import reverse
 
 from wiblfe.celery import app as celery
 
+import os
+import requests
+
+@login_required
+def downloadView(request: HttpRequest, fileid):
+    download_url = request.build_absolute_uri(reverse('downloadWiblFile', args=[fileid]))
+    return JsonResponse({'download_url': download_url})
+
+@login_required
+def downloadWiblFile(request, fileid):
+    manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+    full_url = f"{manager_url}/wibl/download/{fileid}"
+    with requests.get(full_url, stream=True) as response:
+        response_stream = StreamingHttpResponse(response.iter_content(1024),
+                                                content_type='application/octet-stream')
+        response_stream['Content-Disposition'] = f'attachment; filename="{fileid}"'
+        return response_stream
 
 @login_required
 def index(request: HttpRequest):

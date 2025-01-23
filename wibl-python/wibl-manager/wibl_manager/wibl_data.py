@@ -36,7 +36,7 @@ from flask import abort
 from flask_restful import Resource, reqparse, fields, marshal_with
 import boto3
 
-from wibl_manager.app_globals import db, s3_client
+from wibl_manager.app_globals import db
 from wibl_manager import ReturnCodes, ProcessingStatus
 
 

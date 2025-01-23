@@ -7,5 +7,3 @@ from wibl_manager.geojson_data import GeoJSONData
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-
-    s3_client.create_bucket(Bucket="wibl-test")

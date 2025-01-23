@@ -27,8 +27,9 @@ services:
   localstack:
     image: localstack/localstack
     environment:
-      - DYNAMODB_IN_MEMORY=1
-      - DYNAMODB_DELAY_TRANSIENT_STATUSES=0
+      - AWS_DEFAULT_REGION=us-east2
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
       - DOCKER_HOST=unix:///var/run/docker.sock
       - SERVICES=s3
       - DEBUG=0
@@ -38,5 +39,6 @@ services:
       - "14510-14559:4510-4559"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./s3-test-load.bash:/opt/code/localstack/s3-test-load.bash"
 volumes:
   dbdata_mgr:

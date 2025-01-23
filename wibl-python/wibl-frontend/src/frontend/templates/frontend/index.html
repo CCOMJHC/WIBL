@@ -27,6 +27,7 @@
                     <div class="block">
                         <button id="deleteButton" class="button">Delete Selected</button>
                         <button id="downloadButton" class="button">Download Selected</button>
+                        <button id="testDownloadButton" class="button">Test Download</button>
                         <button class="button" id="showButton">Filter</button>
                     </div>
                     <div class="box is-hidden" id="filterSection">
@@ -118,6 +119,7 @@
         const deleteButton = document.getElementById("deleteButton");
         const downloadButton = document.getElementById("downloadButton");
         const clearButton = document.getElementById("clearButton");
+        const testDownloadButton = document.getElementById("testDownloadButton")
 
         clearButton.addEventListener("click", (event) => {
             let wiblFileTable = document.getElementById("wibl-file-table");
@@ -152,5 +154,28 @@
                 console.log(`Download files ${result.join('\n')}`);
             }
         })
+
+        testDownloadButton.addEventListener("click", (event) => {
+            downloadFile('test_file.txt')
+        })
+
+        function downloadFile(fileid) {
+            fetch(`/downloadView/${fileid}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Figure out how to get the download url
+                    const download_url = data.download_url;
+                    const anchor = document.createElement('a');
+                    anchor.href = download_url;
+                    anchor.download = fileid;
+                    document.body.appendChild(anchor);
+                    anchor.click();
+                    document.body.removeChild(anchor);
+                })
+                .catch(error => console.error('Error fetching download URL:', error));
+        }
+
+
+
     </script>
 {% endblock %}
