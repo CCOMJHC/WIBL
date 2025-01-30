@@ -147,6 +147,7 @@
                 wiblSock.sendRequest("list-wibl-files");
             }
         })
+
         downloadButton.addEventListener("click", (event) => {
             var wiblFileTable = document.getElementById("wibl-file-table");
             var result = wiblFileTable.getSelectedFiles(1);
@@ -156,26 +157,8 @@
         })
 
         testDownloadButton.addEventListener("click", (event) => {
-            downloadFile('test_file.txt')
+            const url = `/downloadWiblFile/test_file.txt`;
+            window.location.href = url;
         })
-
-        function downloadFile(fileid) {
-            fetch(`/downloadView/${fileid}`)
-                .then(response => response.json())
-                .then(data => {
-                    // Figure out how to get the download url
-                    const download_url = data.download_url;
-                    const anchor = document.createElement('a');
-                    anchor.href = download_url;
-                    anchor.download = fileid;
-                    document.body.appendChild(anchor);
-                    anchor.click();
-                    document.body.removeChild(anchor);
-                })
-                .catch(error => console.error('Error fetching download URL:', error));
-        }
-
-
-
     </script>
 {% endblock %}
