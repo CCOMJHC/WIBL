@@ -11,7 +11,6 @@ from wiblfe.celery import app as celery
 
 import httpx
 import os
-import requests
 
 @login_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)

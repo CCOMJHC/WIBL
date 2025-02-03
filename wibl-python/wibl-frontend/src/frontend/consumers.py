@@ -1,29 +1,51 @@
 # WebSocket consumers for real-time delivery of data
 import os
 import json
-
+from abc import ABC, abstractmethod
 from channels.generic.websocket import AsyncWebsocketConsumer
-
 import httpx
 
-class WiblFileDetailConsumer(AsyncWebsocketConsumer):
+
+class FileConsumer(ABC, AsyncWebsocketConsumer):
+    async def connect(self):
+        # Get user session
+        self.session_key = self.scope['session'].session_key
+        print(f"{self.channel_name}.connect: session_key: {self.session_key}")
+        await self.channel_layer.group_add(self.session_key, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.session_key, self.channel_name)
+
+    @abstractmethod
+    async def receive(self, text_data, **kwargs):
+        pass
+
+    async def send_message(self, event):
+        print("send_message called...")
+        message = event["message"]
+        # Send message to WebSocket
+        await self.send(text_data=json.dumps({"message": message}))
+
+
+class WiblFileDetailConsumer(FileConsumer):
     async def send_wibl_details(self, file_id: str):
         HEADERS = ["fileid", "processtime", "updatetime", "notifytime", "logger", "platform", "size"
             , "observations", "soundings", "starttime", "endtime", "status", "messages"]
         print("send_wibl_details called")
         wibl_file_data = {"fileid": "",
-                        "processtime": "",
-                        "updatetime": "",
-                        "notifytime": "",
-                        "logger": "",
-                        "platform": "",
-                        "size": "",
-                        "observations": "",
-                        "soundings": "",
-                        "starttime": "",
-                        "endtime": "",
-                        "status": "",
-                        "messages": ""}
+                          "processtime": "",
+                          "updatetime": "",
+                          "notifytime": "",
+                          "logger": "",
+                          "platform": "",
+                          "size": "",
+                          "observations": "",
+                          "soundings": "",
+                          "starttime": "",
+                          "endtime": "",
+                          "status": "",
+                          "messages": ""}
 
         # Make call to WIBL manager
         manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
@@ -51,18 +73,8 @@ class WiblFileDetailConsumer(AsyncWebsocketConsumer):
             'message': wibl_file_data
         }))
 
-    async def connect(self):
-        # Get user session
-        self.session_key = self.scope['session'].session_key
-        print(f"WiblFileDetailConsumer.connect: session_key: {self.session_key}")
-        await self.channel_layer.group_add(self.session_key, self.channel_name)
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.session_key, self.channel_name)
-
     # Receive message from WebSocket
-    async def receive(self, text_data):
+    async def receive(self, text_data, **kwargs):
         message = json.loads(text_data)
 
         print(f"WiblFileDetailConsumer.receive: Got message: {message}")
@@ -85,14 +97,8 @@ class WiblFileDetailConsumer(AsyncWebsocketConsumer):
                     'message': f"Unknown type '{message['type']}' in message: {message}"
                 }))
 
-    # Receive message from celery task?
-    async def wibl_message(self, event):
-        print("wibl_message called...")
-        message = event["message"]
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({"message": message}))
 
-class WiblFileConsumer(AsyncWebsocketConsumer):
+class WiblFileConsumer(FileConsumer):
 
     async def send_list_wibl_files(self):
         print("send_list_wibl_files called!")
@@ -169,18 +175,8 @@ class WiblFileConsumer(AsyncWebsocketConsumer):
             'message': successful_deletes
         }))
 
-    async def connect(self):
-        # Get user session
-        self.session_key = self.scope['session'].session_key
-        print(f"WiblFileConsumer.connect: session_key: {self.session_key}")
-        await self.channel_layer.group_add(self.session_key, self.channel_name)
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.session_key, self.channel_name)
-
     # Receive message from WebSocket
-    async def receive(self, text_data):
+    async def receive(self, text_data, **kwargs):
         message = json.loads(text_data)
 
         print(f"WiblFileConsumer.receive: Got message: {message}")
@@ -205,10 +201,3 @@ class WiblFileConsumer(AsyncWebsocketConsumer):
                     'type': 'error',
                     'message': f"Unknown type '{message['type']}' in message: {message}"
                 }))
-
-    # Receive message from celery task?
-    async def wibl_message(self, event):
-        print("wibl_message called...")
-        message = event["message"]
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({"message": message}))
