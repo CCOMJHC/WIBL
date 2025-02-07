@@ -1,5 +1,54 @@
 
+
+/**
+*   A reusable class that builds a Custom HTML Element depending on initialized values.
+*   @extends {HTMLElement}
+*/
 export class FileTable extends HTMLElement {
+
+    /*
+        For correct connectedCallback() functionality, an extending class must have the following
+        initialized attributes in their constructor. Created for code sharing between Wibl and geoJSON implementation.
+
+        _outputHeaders:
+            A list of header names that directly correspond to the table's headers. Expected First element to be a
+            heading for File ID. Must be smaller than or equal to the size of input headers. Having matching indexes
+            between input and output headers is essential, because the data directly corresponds to the header index.
+
+        _inputHeaders:
+            A list of headers that directly correspond with the JSON response from the manager. Used to populate
+            the table as well as the classes _rawData. Must be greater than or equal to the size of the _output_headers
+            argument. Anything not included in the output headers is only stored in raw data for search filtering purposes.
+
+        _fileType:
+            Either “wibl” or “geojson”. Used interchangeably throughout all functions in the table. Used when creating
+            the socket URL as well as crafting the correct manager endpoint to get data from.
+
+
+        Example:
+           const output_headers = ["File ID"]
+           const input_headers = ["file_id", "processtime", "loggername", etc.] (Whatever key that data is associated with in the response)
+           const file_type = "png" (Only ever actually "wibl" or "geojson")
+           class pngTable extends FileTable {
+                constructor() {
+                    super();
+                    this._outputHeaders = output_headers;
+                    this._inputHeaders = output_headers;
+                    this._fileType = "png"
+                }
+
+                (Any other required functionality, search/filter features, etc.)
+           }
+
+       This class will create a table with two columns, one with the header "File ID" and another with a blank header.
+       Each row will be a different file from the manager with the corresponding input header set at the value.
+       The blank header column will contain an auto generated checkbox associated with the file contained in that row.
+       Checkboxes ensure delete and download functionality no matter what output headers are given to the child class.
+       An instance of pngTable class will contain an attribute named _rawData. Depending on the given input headers, this
+       2d array will update with the information grabbed from each key in the list.
+    */
+
+
     constructor() {
         super();
         this._url = null;
@@ -15,8 +64,7 @@ export class FileTable extends HTMLElement {
 
     connectedCallback() {
         console.log(`${this._fileType}-file-table: Added to page.`);
-        const wsType = this._fileType;
-        const wsURL = this._url + wsType + "/table";
+        const wsURL = this._url + this._fileType + "/table";
         const sock = SocketManager.getInstance(wsURL, wsType);
 
         // Create shadow DOM root
@@ -32,17 +80,17 @@ export class FileTable extends HTMLElement {
 
         // Create table
         const table = document.createElement("table");
-        table.setAttribute("id", `wc-${wsType}-file-table`);
+        table.setAttribute("id", `wc-${this._fileType}-file-table`);
         table.className = "table";
         shadow.appendChild(table);
 
+        // Generate variables to be used in ListFiles scope
         let raw = this._rawData;
         let fileType = this._fileType;
         let output_headers = this._outputHeaders;
         let input_headers = this._inputHeaders;
         let output_count = this._outputHeaders.length;
         let input_count = this._inputHeaders.length;
-
 
         function ListFiles(message) {
             console.log(`In ListFiles for table of type: ${fileType}`);
@@ -64,6 +112,7 @@ export class FileTable extends HTMLElement {
             header.textContent = "";
             headerRow.appendChild(header);
 
+            // Append header row to table
             headerRow.setAttribute("class", "headerRow");
             thead.appendChild(headerRow)
             table.appendChild(thead);
@@ -82,7 +131,7 @@ export class FileTable extends HTMLElement {
                 td.textContent = fileName;
                 row.appendChild(td);
 
-                // Iterate through the given output headers
+                // Iterate through the given output headers, skipping the fileid column
                 for (let x = 1; x < output_count; x++) {
                     td = document.createElement("td");
                     td.textContent = file[input_headers[x]];
@@ -110,6 +159,7 @@ export class FileTable extends HTMLElement {
             table.appendChild(tbody);
         }
 
+        // Bare bones socket handler, most of the delete work is handled by the manager.
         function DeleteFiles(message) {
             console.log(`Successfully Deleted Files \n${message['message'].join('\n')}`);
         }
@@ -118,6 +168,10 @@ export class FileTable extends HTMLElement {
         sock.addHandler(`list-${this._fileType}-files`, ListFiles);
     }
 
+    // Returns a list of rows that have their checkbox checked
+    // Option changes certain log messages depending on functionality.
+    // 0: delete
+    // 1: download
     getSelectedFiles(option) {
         const checkedBoxes = this._shadow.querySelectorAll('.row-checkbox:checked');
 

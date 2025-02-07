@@ -6,7 +6,13 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 import httpx
 
 
+
 class FileConsumer(ABC, AsyncWebsocketConsumer):
+    """
+        Abstract class for file consumer
+        Created to reuse code.
+
+    """
     async def connect(self):
         # Get user session
         self.session_key = self.scope['session'].session_key
