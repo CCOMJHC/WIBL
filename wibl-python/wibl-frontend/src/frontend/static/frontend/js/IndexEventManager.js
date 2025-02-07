@@ -48,7 +48,13 @@ downloadButton.addEventListener("click", (event) => {
     var wiblFileTable = document.getElementById("wibl-file-table");
     var result = wiblFileTable.getSelectedFiles(1);
     if (result != 0) {
-        console.log(`Download files ${result.join('\n')}`);
+        if (result.length > 1) {
+            alert("Multiple files selected. Please select only one file to download.");
+            return;
+        } else {
+            const url = `/downloadWiblFile/${result[0]}`;
+            window.location.href = url;
+        }
     }
 })
 

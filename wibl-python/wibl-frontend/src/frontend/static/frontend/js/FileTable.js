@@ -45,7 +45,7 @@ export class FileTable extends HTMLElement {
 
 
         function ListFiles(message) {
-            console.log("In WIBLFileTableHanlderListWiblFiles...");
+            console.log(`In ListFiles for table of type: ${fileType}`);
             const table = shadow.getElementById(`wc-${fileType}-file-table`);
 
             // Create header row
@@ -82,16 +82,19 @@ export class FileTable extends HTMLElement {
                 td.textContent = fileName;
                 row.appendChild(td);
 
+                // Iterate through the given output headers
                 for (let x = 1; x < output_count; x++) {
                     td = document.createElement("td");
                     td.textContent = file[input_headers[x]];
                     row.appendChild(td);
                 }
 
+                // Add given input headers to data, later added to the tables raw data 2d array
                 for (let y = 0; y < input_count; y++) {
                     data[y] = file[input_headers[y]];
                 }
 
+                // Create this rows checkbox
                 var td = document.createElement("td");
                 const checkbox = document.createElement("input");
                 checkbox.type = "checkbox";
@@ -158,87 +161,6 @@ export class FileTable extends HTMLElement {
         } else {
             alert("No Files Selected To Delete.");
             return 0;
-        }
-    }
-
-    deleteSelectedFiles() {
-        console.log("deleteSelectedFiles() called...");
-
-        const checkedBoxes = this._shadow.querySelectorAll('.row-checkbox:checked');
-
-        const selectedNames = [];
-        const selectedRows = [];
-
-        checkedBoxes.forEach(checkbox => {
-                const row = checkbox.closest('tr');
-                selectedRows.push(row);
-        });
-
-        selectedRows.forEach(row => {
-            const fileNameCell = row.querySelector('td:nth-of-type(1)');
-            const fileName = fileNameCell.textContent;
-            selectedNames.push(fileName);
-        })
-
-        if (selectedNames.length != 0) {
-            const promptText = `Would you like to delete files: \n${selectedNames.join('\n')}?`;
-            if (confirm(promptText)) {
-                //TODO: Communicate with manager to delete files selected
-
-                //uncheck all boxes
-                checkedBoxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                })
-
-                //TODO: Write a function that refreshes the file-table, put it here
-                return selectedNames;
-            } else {
-                console.log("Delete canceled");
-                return 0;
-            }
-        } else {
-            alert("No Files Selected To Delete.");
-            return 0;
-        }
-    }
-
-    downloadSelectedFiles() {
-        console.log("downloadSelectedFiles() called...");
-
-        const checkedBoxes = this._shadow.querySelectorAll('.row-checkbox:checked');
-
-        const selectedNames = [];
-        const selectedRows = [];
-
-        checkedBoxes.forEach(checkbox => {
-                const row = checkbox.closest('tr');
-                selectedRows.push(row);
-        });
-
-        selectedRows.forEach(row => {
-            const fileNameCell = row.querySelector('td:nth-of-type(1)');
-            const fileName = fileNameCell.textContent;
-            selectedNames.push(fileName);
-        })
-
-        if (selectedNames.length != 0) {
-            const promptText = `Would you like to archive files: ${selectedNames.join('\n')}?`;
-            if (confirm(promptText)) {
-                //TODO: Communicate with manager to archive files selected
-                console.log(`Selected Files: ${selectedNames.join(', ')}`);
-
-                //uncheck all boxes
-                checkedBoxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                })
-
-                //TODO: Write a function that refreshes the file-table, put it here
-
-            } else {
-                console.log("Download canceled");
-            }
-        } else {
-            alert("No Files Selected To Download.");
         }
     }
 
