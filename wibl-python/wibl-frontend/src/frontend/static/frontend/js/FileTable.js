@@ -65,7 +65,7 @@ export class FileTable extends HTMLElement {
     connectedCallback() {
         console.log(`${this._fileType}-file-table: Added to page.`);
         const wsURL = this._url + this._fileType + "/table";
-        const sock = SocketManager.getInstance(wsURL, wsType);
+        const sock = SocketManager.getInstance(wsURL, this._fileType);
 
         // Create shadow DOM root
         const shadow = this.attachShadow({mode: "open"});
@@ -95,6 +95,10 @@ export class FileTable extends HTMLElement {
         function ListFiles(message) {
             console.log(`In ListFiles for table of type: ${fileType}`);
             const table = shadow.getElementById(`wc-${fileType}-file-table`);
+
+            // Wipes table/raw data to allow for reload
+            table.innerHTML = "";
+            raw.length = 0;
 
             // Create header row
             const thead = document.createElement("thead");

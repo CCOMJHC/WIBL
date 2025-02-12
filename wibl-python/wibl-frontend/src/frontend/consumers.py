@@ -23,6 +23,7 @@ class FileConsumer(ABC, AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.session_key, self.channel_name)
 
+    # Implements the AsyncWebsocketConsumer's method, while making it abstract
     @abstractmethod
     async def receive(self, text_data, **kwargs):
         pass
@@ -32,7 +33,6 @@ class FileConsumer(ABC, AsyncWebsocketConsumer):
         message = event["message"]
         # Send message to WebSocket
         await self.send(text_data=json.dumps({"message": message}))
-
 
 class WiblFileDetailConsumer(FileConsumer):
     async def send_wibl_details(self, file_id: str):
@@ -103,7 +103,6 @@ class WiblFileDetailConsumer(FileConsumer):
                     'message': f"Unknown type '{message['type']}' in message: {message}"
                 }))
 
-
 class WiblFileConsumer(FileConsumer):
 
     async def send_list_wibl_files(self):
@@ -161,6 +160,7 @@ class WiblFileConsumer(FileConsumer):
         successful_deletes = []
 
         for file_id in file_ids:
+            print(file_id)
             wibl_url: str = f"{manager_url}/wibl/{file_id}"
             async with httpx.AsyncClient() as client:
                 response = await client.delete(wibl_url)
