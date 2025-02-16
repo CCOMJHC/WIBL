@@ -36,8 +36,5 @@ test = [
 "Homepage" = "https://bitbucket.org/ccomjhc/wibl/"
 "Bug Tracker" = "https://bitbucket.org/ccomjhc/wibl/"
 
-[project.scripts]
-wibl-manager = "wibl_manager.application:main"
-
 [tool.setuptools.dynamic]
 version = {attr = "wibl_manager.__version__"}

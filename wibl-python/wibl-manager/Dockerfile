@@ -18,4 +18,4 @@ FROM builder as final
 
 EXPOSE 5000
 
-CMD ["wibl-manager"]
+CMD ["gunicorn", "wibl_manager.application:app", "--workers", "1", "--bind 0.0.0.0:8000", "--access-logfile", "-"]
