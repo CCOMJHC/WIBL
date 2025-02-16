@@ -177,7 +177,7 @@ options:
 ### Edit WIBL file
 Add platform metadata to existing binary WIBL file (e.g., from data simulator or from a real datalogger):
 ```
-$ wibl editwibl -m sensor-inject.json test.bin test-inject.bin
+$ wibl editwibl -m examples/ship-metadata-simple.json test.bin test-inject.bin
 ```
 
 ### Process WIBL file into GeoJSON

@@ -12,7 +12,7 @@ RUN apt-get install -y curl
 
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
-RUN pip install .
+RUN pip install '.[server]'
 
 FROM builder as final
 
