@@ -13,8 +13,11 @@ The following subsections describe each installation method.
 ### Local installation using Python
 
 #### Using Conda (Windows, Linux, macOS)
-For Windows, it's probably best to install `wibl-python` using 
-[Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) (Anaconda or Miniforge should also work). 
+`wibl-python` is available as a [conda-forge package](https://anaconda.org/conda-forge/wibl-python) and can be used
+on Windows, Linux, and macOS (without needing to download or clone the source code from GitHub). 
+
+For Windows, it's probably best to install `wibl-python` using [Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) (Anaconda or Miniforge should also 
+work). 
 
 > Note: If you plan to run [WIBL data management scripts](scripts/data-management/README.md) to automate data processing
 using `wibl-python`, make sure to follow the instructions in the [README](scripts/data-management/README.md) to
@@ -31,13 +34,14 @@ environment:
 conda env create -f environment.yml
 ```
 
-> To update an existing environment, download or `git pull` the latest `wibl-python` code and then 
-> run `conda update -n wibl-python -f environment.yml`.
+> To update an existing environment, run `conda update -n wibl-python wibl-python`.
 
 Then, each time you want to use `wibl-python` activate the environment as follows:
 ```
 conda activate wibl-python
 ```
+
+> Note: You can also install `wibl-python` in an existing conda environment by running `conda install wibl-python`.
 
 Once activated, you should be able to run `wibl` commands:
 ```
