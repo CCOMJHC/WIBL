@@ -28,17 +28,19 @@ the necessary dependencies in these environments (see below).
 
 Once you've installed conda, the next step is to create a conda environment for `wibl-python`. To do so, open a 
 conda shell (we recommend using PowerShell 7 so that you can easily use 
-[WIBL data management scripts](scripts/data-management/README.md)) and do the following to create the `wibl-python` 
+[WIBL data management scripts](scripts/data-management/README.md)) and do the following to create the `wibl` 
 environment:
 ```
-conda env create -f environment.yml
+conda env create -n wibl
+conda activate wibl
+conda install wibl-python
 ```
 
-> To update an existing environment, run `conda update -n wibl-python wibl-python`.
+> To update an existing environment, run `conda update -n wibl wibl-python`.
 
 Then, each time you want to use `wibl-python` activate the environment as follows:
 ```
-conda activate wibl-python
+conda activate wibl
 ```
 
 > Note: You can also install `wibl-python` in an existing conda environment by running `conda install wibl-python`.
