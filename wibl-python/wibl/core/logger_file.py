@@ -53,7 +53,7 @@ def wibl_file_version() -> str:
 def numeric_file_version(major: int, minor: int) -> int:
     return major*1000 + minor
 
-# HEY YOY! YEAH, YOU THERE AT THE KEYBOARD!  Did you remember to update LogConvert/src/serialisation.h/cpp
+# HEY YOU! YEAH, YOU THERE AT THE KEYBOARD!  Did you remember to update LogConvert/src/serialisation.h/cpp
 # with the specification for that cool packet you just addded?
 
 ## Enumeration of the identification numbers associated with the various packets in a WIBL file
