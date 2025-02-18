@@ -6,7 +6,7 @@
 namespace gps {
 
 Logger::Logger(logger::Manager *logManager)
-: m_logManager(logManager), m_verbose(false)
+: m_logManager(logManager), m_verbose(false), m_isCalibrating(false)
 {
     m_sensor = new SFE_UBLOX_GNSS();
 }
@@ -79,6 +79,100 @@ void Logger::logGPSData(void)
     String output;
     serializeJson(doc, output);
     m_logManager->LogData(output.c_str());
+}
+
+bool Logger::runCalibration(void)
+{
+    if (m_isCalibrating) return false;
+    
+    m_isCalibrating = true;
+    configureCalibration();
+    
+    // Log calibration start
+    if (m_logManager != nullptr) {
+        StaticJsonDocument<256> doc;
+        doc["type"] = "GPS_CAL";
+        doc["event"] = "start";
+        
+        String output;
+        serializeJson(doc, output);
+        m_logManager->LogData(output.c_str());
+    }
+    
+    return true;
+}
+
+void Logger::configureCalibration(void)
+{
+    // Set high precision mode
+    m_sensor->setAutoPVT(false);
+    m_sensor->setNavigationFrequency(1);  // Reduce to 1Hz during calibration
+    
+    // Enable Raw Measurements
+    m_sensor->enableMeasurement(UBX_RXM_RAWX, true);
+    m_sensor->enableMeasurement(UBX_RXM_SFRBX, true);
+    
+    // Configure Survey-In Mode
+    m_sensor->enableSurveyMode(300, 2.0); // 300 seconds minimum, 2.0m precision
+    
+    // Save the calibration configuration
+    m_sensor->saveConfiguration();
+}
+
+bool Logger::isCalibrating(void)
+{
+    if (!m_isCalibrating) return false;
+    
+    bool surveying = m_sensor->getSurveyInActive();
+    bool valid = m_sensor->getSurveyInValid();
+    
+    if (!surveying && valid) {
+        // Calibration completed successfully
+        stopCalibration();
+        return false;
+    }
+    
+    // Log current calibration status
+    if (m_logManager != nullptr) {
+        StaticJsonDocument<256> doc;
+        doc["type"] = "GPS_CAL";
+        doc["event"] = "progress";
+        doc["observations"] = m_sensor->getSurveyInObservationTime();
+        doc["mean_accuracy"] = m_sensor->getSurveyInMeanAccuracy();
+        
+        String output;
+        serializeJson(doc, output);
+        m_logManager->LogData(output.c_str());
+    }
+    
+    return true;
+}
+
+void Logger::stopCalibration(void)
+{
+    if (!m_isCalibrating) return;
+    
+    // Disable Survey-In Mode
+    m_sensor->disableSurveyMode();
+    
+    // Restore normal operation settings
+    configureDevice();
+    
+    m_isCalibrating = false;
+    
+    // Log calibration completion
+    if (m_logManager != nullptr) {
+        StaticJsonDocument<256> doc;
+        doc["type"] = "GPS_CAL";
+        doc["event"] = "complete";
+        doc["valid"] = m_sensor->getSurveyInValid();
+        doc["total_time"] = m_sensor->getSurveyInObservationTime();
+        doc["final_accuracy"] = m_sensor->getSurveyInMeanAccuracy();
+        
+        String output;
+        serializeJson(doc, output);
+        m_logManager->LogData(output.c_str());
+    }
 }
 
 } // namespace gps 

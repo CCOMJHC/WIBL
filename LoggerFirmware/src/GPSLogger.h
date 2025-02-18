@@ -15,14 +15,19 @@ public:
     bool begin(void);
     void update(void);
     bool data_available(void);
+    bool runCalibration(void);
+    bool isCalibrating(void);
+    void stopCalibration(void);
 
 private:
     SFE_UBLOX_GNSS *m_sensor;
     logger::Manager *m_logManager;
     bool m_verbose;
+    bool m_isCalibrating;
 
     void configureDevice(void);
     void logGPSData(void);
+    void configureCalibration(void);
 };
 
 } // namespace gps
