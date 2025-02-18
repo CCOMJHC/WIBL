@@ -39,6 +39,7 @@
 #include "SupplyMonitor.h"
 #include "Configuration.h"
 #include "HeapMonitor.h"
+#include "GPSLogger.h"
 
 /// Hardware version for the logger implementation (for NMEA2000 declaration)
 #define LOGGER_HARDWARE_VERSION "2.4.1"
@@ -66,6 +67,7 @@ StatusLED               *LEDs = nullptr;            ///< Pointer to the status L
 SerialCommand           *CommandProcessor = nullptr;///< Pointer for the command processor object
 mem::MemController      *memController = nullptr;   ///< Pointer for the storage abstraction
 logger::SupplyMonitor   *supplyMonitor = nullptr;   ///< Pointer for the supply voltage monitoring code
+gps::Logger             *GPSLogger = nullptr;         ///< Pointer for the GPS data logger
 
 /// \brief Primary setup code for the logger
 ///
@@ -204,6 +206,13 @@ void setup()
 
     Serial.printf("DBG: After voltage monitoring start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
 
+    Serial.println("Starting GPS logger ...");
+    GPSLogger = new gps::Logger(logManager);
+    if (!GPSLogger->begin()) {
+        Serial.println("Failed to initialize GPS logger");
+        LEDs->SetStatus(StatusLED::Status::sERROR);
+    }
+
     Serial.println("Setup complete, setting status for normal operations.");
     LEDs->SetStatus(StatusLED::Status::sNORMAL);
 
@@ -241,5 +250,8 @@ void loop()
         // Eek!  Power went out, so we need to stop logging ASAP
         //Serial.printf("DBG: Supply voltage ADC dropped to %hu\n", supply_voltage);
         CommandProcessor->EmergencyStop();
+    }
+    if (GPSLogger != nullptr) {
+        GPSLogger->update();
     }
 }
