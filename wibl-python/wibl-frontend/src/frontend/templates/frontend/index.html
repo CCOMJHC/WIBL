@@ -9,14 +9,9 @@
     <script type="module" src="{% static 'frontend/js/WIBLFileTable.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/GeojsonDetailTable.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/GeojsonFileTable.js' %}"></script>
-    <style>
-        #filterErrorMessage {
-            font-weight: bold;
-        }
-    </style>
     <section class="container is-fluid">
         <div class="columns is-centered">
-            <div class="column"  style="max-width: 47rem;">
+            <div class="column"  id="tableColumn">
                 <div class="box">
                     <span class="is-size-4 has-text-weight-semibold">WIBL files</span>
                     <div class="block" style="margin-top: 0.5rem;">
@@ -56,18 +51,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="column"  style="max-width: 38rem;">
-                <div class="box" id="WiblDetailTableBlock">
-                    <wibl-detail-table id="wibl-detail-table"
-                            url="{{ wsURL }}"
-                            stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
-                    </wibl-detail-table>
-                </div>
-            </div>
-        </div>
-        <div class="columns is-centered">
-            <div class="column"  style="max-width: 47rem;">
                 <div class="box">
                     <span class="is-size-4 has-text-weight-semibold">GeoJSON files</span>
                     <div class="block" style="margin-top: 0.5rem;">
@@ -78,17 +61,46 @@
                     </div>
                 </div>
             </div>
-            <div class="column"  style="max-width: 38rem;">
-                <div class="box" id="GeojsonDetailTableBlock">
+            <div class="column" id="detailColumn">
+                <div class="box is-sticky" id="detailBlock">
+                    <div class="tabs is-centered is-boxed">
+                        <ul>
+                            <li class="is-active" data-target="wibl-detail-table"><a>WIBL Details</a></li>
+                            <li data-target="geojson-detail-table"><a>Geojson Details</a></li>
+                        </ul>
+                    </div>
                     <geojson-detail-table id="geojson-detail-table"
                             url="{{ wsURL }}"
-                            stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
+                            stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}"
+                            class="table is-hidden">
                     </geojson-detail-table>
+                    <wibl-detail-table id="wibl-detail-table"
+                            url="{{ wsURL }}"
+                            stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}"
+                            class="table">
+                    </wibl-detail-table>
                 </div>
             </div>
         </div>
     </section>
-
+    <style>
+        :root {
+            --bulma-link-text: hsla(171deg, 100%, 30%, 1);
+        }
+        #filterErrorMessage {
+            font-weight: bold;
+        }
+        #tableColumn {
+            max-width: 47rem;
+        }
+        #detailColumn {
+            max-width: 38rem;
+        }
+        .is-sticky {
+            position: sticky;
+            top: 1rem;
+        }
+    </style>
     <script>
         // Request WIBL file data from the WebSocket once the DOM is ready; do this here instead of in the
         // components to that the request is only sent once.
@@ -103,6 +115,23 @@
 
             wiblSock.sendRequest("list-wibl-files");
             geojsonSock.sendRequest("list-geojson-files");
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const tabs = document.querySelectorAll(".tabs ul li");
+            const tables = document.querySelectorAll(".table");
+
+            tabs.forEach(tab => {
+                tab.addEventListener("click", function () {
+                    tabs.forEach(t => t.classList.remove("is-active"));
+                    this.classList.add("is-active");
+
+                    tables.forEach(table => table.classList.add("is-hidden"));
+
+                    const target = this.getAttribute("data-target");
+                    document.getElementById(target).classList.remove("is-hidden");
+                });
+            });
         });
 
         // Delete button logic
