@@ -1,7 +1,7 @@
 class SocketManager {
     // The websocket
     sock;
-    // Socket type, one of: "wibl",
+    // Socket type, one of: "wibl", "geojson"
     type;
     // Event handlers
     event_handlers;
@@ -11,6 +11,11 @@ class SocketManager {
             "list-wibl-files",
             "list-wibl-details",
             "delete-wibl-files"
+        ],
+        "geojson": [
+            "list-geojson-files",
+            "list-geojson-details",
+            "delete-geojson-files"
         ]
     };
     // Class object to track singleton instances by URL
