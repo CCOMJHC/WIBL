@@ -14,6 +14,8 @@
             <div class="column"  id="tableColumn">
                 <div class="box">
                     <span class="is-size-4 has-text-weight-semibold">WIBL files</span>
+                    <label for="linkBox">Link Files</label>
+                    <input type="checkbox" id="linkBox" value="true">
                     <div class="block" style="margin-top: 0.5rem;">
                         <wibl-file-table id="wibl-file-table"
                                        url="{{ wsURL }}"
@@ -102,6 +104,9 @@
         }
     </style>
     <script>
+
+
+
         // Request WIBL file data from the WebSocket once the DOM is ready; do this here instead of in the
         // components to that the request is only sent once.
         setTimeout(() => {
@@ -149,8 +154,43 @@
             }
         })
 
-        //Wibl File Table Logic
         const wiblFileTable = document.getElementById("wibl-file-table");
+        const geojsonFileTable = document.getElementById("geojson-file-table");
+
+        const linkBox = document.getElementById("linkBox");
+        let linkFlag = false;
+
+        let linked_files = [];
+
+        linkBox.addEventListener("change", (event) => {
+            let geojsonFiles = [];
+            let wiblFiles = [];
+            for (let i = 0; i < geojsonFileTable._rawData.length; i++) {
+                const geojsonRaw = geojsonFileTable._rawData[i];
+                geojsonFiles.push(geojsonRaw[0]);
+            }
+
+            for (let i = 0; i < wiblFileTable._rawData.length; i++) {
+                const wiblRaw = wiblFileTable._rawData[i];
+                wiblFiles.push(wiblRaw[0]);
+            }
+
+            if (!linkFlag) {
+                linked_files = [];
+                for (let i = 0; i < geojsonFiles.length; i++) {
+                    for (let x = 0; x < wiblFiles.length; x++) {
+                        const geojsonRootFile = geojsonFiles[i].split(".");
+                        const wiblRootFile = wiblFiles[x].split(".");
+                        if (geojsonRootFile[0] === wiblRootFile[0]) {
+                            linked_files.push(wiblRootFile[0]);
+                        }
+                    }
+                }
+            }
+            linkFlag = !linkFlag;
+        });
+
+        //Wibl File Table Logic
         wiblFileTable.addEventListener("click", (event) => {
             const path = event.composedPath();
             const check = path.find(el => el.tagName === "INPUT");
@@ -158,18 +198,43 @@
                 const row = path.find(el => el.tagName === "TR");
                 if (row) {
                     if (row.className !== "headerRow") {
-                        const rows = wiblFileTable._shadow.querySelectorAll('tr');
-                        rows.forEach(iter_row => {
+
+                        const wiblRows = wiblFileTable._shadow.querySelectorAll('tr');
+                        wiblRows.forEach(iter_row => {
                             if (iter_row.className === "is-selected") {
                                 iter_row.setAttribute("class", "");
                             }
                         })
+
                         row.setAttribute("class", "is-selected");
+
+                        const linked_file_exists = false;
+                        if (linkFlag === true) {
+                            const root_file = row.id.split(".")[0];
+                            for (linked_file in linked_files) {
+                                 if (root_file === linked_file) {
+                                     linked_file_exists = true;
+                                     break;
+                                 }
+                            }
+                        }
                         setTimeout(() => {
                             const wiblSockType = "wibl";
                             const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/detail";
                             const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
-                            wiblSock.sendRequest("list-wibl-details", {"file_id" : row.id});
+
+                            const wiblFileId = row.id;
+
+                            if (linked_file_exists) {
+                                const geojsonFileId = row.id.split(".")[0];
+                                const geojsonSockType = "geojson";
+                                const geojsonSockUrl = "{{wsURL}}" + "geojson/detail";
+                                const geojsonSock = SocketManager.getInstance(geojsonSockUrl, geojsonSockType);
+
+                                geojsonSock.sendRequest("list-geojson-details", {"file_id" : geojsonFileId});
+                            }
+                            wiblSock.sendRequest("list-wibl-details", {"file_id" : wiblFileId});
+
                         });
                     }
                 }
@@ -177,7 +242,6 @@
         });
 
         //Detail File Table Logic
-        const geojsonFileTable = document.getElementById("geojson-file-table");
         geojsonFileTable.addEventListener("click", (event) => {
             const path = event.composedPath();
             const check = path.find(el => el.tagName === "INPUT");
