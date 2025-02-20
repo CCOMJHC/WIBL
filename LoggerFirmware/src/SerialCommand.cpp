@@ -97,6 +97,8 @@ SerialCommand::SerialCommand(nmea::N2000::Logger *CANLogger, nmea::N0183::Logger
             Serial.printf("ERR: Failed to start WiFi interface.\n");
         }
     }
+
+    m_commandParser.addCommand("gps_cal", std::bind(&SerialCommand::HandleGPSCalibration, this));
 }
 
 /// Default destructor for the SerialCommand object.  This deallocates the BLE service object,
@@ -1734,4 +1736,20 @@ bool SerialCommand::EmitJSON(String const& source, CommandSource chan)
             break;
     }
     return true;
+}
+
+void SerialCommand::HandleGPSCalibration(void)
+{
+    if (GPSLogger == nullptr) {
+        Serial.println("ERR: GPS Logger not initialized");
+        return;
+    }
+
+    if (GPSLogger->runCalibration()) {
+        Serial.println("INF: GPS calibration started");
+        Serial.println("INF: Device must remain stationary for calibration");
+        Serial.println("INF: Use 'gps_status' to check calibration progress");
+    } else {
+        Serial.println("ERR: Could not start GPS calibration (already running?)");
+    }
 }

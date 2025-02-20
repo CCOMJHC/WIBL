@@ -42,7 +42,7 @@
 #include "GPSLogger.h"
 
 /// Hardware version for the logger implementation (for NMEA2000 declaration)
-#define LOGGER_HARDWARE_VERSION "2.4.1"
+#define LOGGER_HARDWARE_VERSION "2.5.0"
 
 const unsigned long TransmitMessages[] PROGMEM={0}; ///< List of messages the logger transmits (null set)
 const unsigned long ReceiveMessages[] PROGMEM =
