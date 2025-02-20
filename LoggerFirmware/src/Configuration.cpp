@@ -218,7 +218,7 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_UPLOAD_B, upload_online);
     params["enable"]["nmea0183"] = nmea0183_enable;
     params["enable"]["nmea2000"] = nmea2000_enable;
-    params["enable"]["imu"] = imu_enable;
+    params["enable"]["imu"] = 0; //imu_enable;
     params["enable"]["powermonitor"] = powmon_enable;
     params["enable"]["sdmmc"] = sdmmc_enable;
     params["enable"]["udpbridge"] = udp_bridge_enable;
