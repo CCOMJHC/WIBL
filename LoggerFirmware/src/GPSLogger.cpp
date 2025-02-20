@@ -20,11 +20,16 @@ bool Logger::begin(void)
 {
     // Configure I2C pins for GPS
     Wire.begin(33, 36); // SDA, SCL
+    Wire.setClock(400000); // Set I2C clock to 400kHz for faster data transfer
+    Wire.setBufferSize(2048); // Increase buffer size for larger RAWX messages
 
     if (!m_sensor->begin(Wire)) {
         Serial.println("Failed to initialize ZED-F9P GPS");
         return false;
     }
+
+    // Set larger internal buffer for u-blox library
+    m_sensor->setPacketCfgPayloadSize(2048); 
 
     configureDevice();
     return true;
@@ -38,11 +43,15 @@ void Logger::configureDevice(void)
     m_sensor->setAutoPVT(true);                          // Enable automatic PVT messages
     m_sensor->setDynamicModel(DYN_MODEL_MARINE);         // Set dynamic model for marine applications
     
-    // Configure RTCM message output
-    m_sensor->enableRTCMmessage(UBX_RTCM_1005, COM_PORT_I2C, 1);   // Stationary RTK Reference
-    m_sensor->enableRTCMmessage(UBX_RTCM_1077, COM_PORT_I2C, 1);   // GPS MSM7
-    m_sensor->enableRTCMmessage(UBX_RTCM_1087, COM_PORT_I2C, 1);   // GLONASS MSM7
-    m_sensor->enableRTCMmessage(UBX_RTCM_1127, COM_PORT_I2C, 1);   // BeiDou MSM7
+    // Enable messages needed for RINEX post-processing with optimized rates
+    m_sensor->enableMessage(UBX_NAV_PVT, COM_PORT_I2C, 1);       // Position, Velocity, Time (1Hz)
+    m_sensor->enableMessage(UBX_NAV_HPPOSLLH, COM_PORT_I2C, 1);  // High Precision Position (1Hz)
+    m_sensor->enableMessage(UBX_NAV_TIMEUTC, COM_PORT_I2C, 1);   // UTC Time Solution (1Hz)
+    m_sensor->enableMessage(UBX_RXM_RAWX, COM_PORT_I2C, 1);      // Raw GNSS Measurements (1Hz)
+    
+    // Configure additional settings for better data quality
+    m_sensor->setMainTalkerID(SFE_UBLOX_MAIN_TALKER_ID_GP); // Set GPS as main constellation
+    m_sensor->setHighPrecisionMode(true);                    // Enable high precision mode
     
     // Save configuration
     m_sensor->saveConfiguration();
@@ -55,19 +64,35 @@ bool Logger::data_available(void)
 
 void Logger::update(void)
 {
+    static uint32_t lastI2CReset = 0;
+    
     if (data_available()) {
-        logGPSData();
+        if (!logGPSData()) {
+            // If logging fails, check if it's an I2C error
+            if (Wire.getErrorCode() != 0) {
+                // Only reset I2C every 5 seconds at most
+                if (millis() - lastI2CReset > 5000) {
+                    Serial.println("I2C error detected, resetting bus...");
+                    Wire.flush();
+                    Wire.begin(33, 36);
+                    Wire.setClock(400000);
+                    lastI2CReset = millis();
+                }
+            }
+        }
     }
 }
 
-void Logger::logGPSData(void)
+bool Logger::logGPSData(void)
 {
-    if (m_logManager == nullptr) return;
+    if (m_logManager == nullptr) return false;
 
     // Create JSON document for logging
-    StaticJsonDocument<512> doc;
+    StaticJsonDocument<2048> doc;  // Further increased size for reliability
     
     doc["type"] = "GPS";
+    
+    // Standard PVT data
     doc["lat"] = m_sensor->getLatitude() / 10000000.0;
     doc["lon"] = m_sensor->getLongitude() / 10000000.0;
     doc["alt"] = m_sensor->getAltitude() / 1000.0;
@@ -76,9 +101,46 @@ void Logger::logGPSData(void)
     doc["acc_h"] = m_sensor->getHorizontalAccuracy() / 1000.0;
     doc["acc_v"] = m_sensor->getVerticalAccuracy() / 1000.0;
     
-    String output;
-    serializeJson(doc, output);
-    m_logManager->LogData(output.c_str());
+    // High precision position data
+    if (m_sensor->getHPPOSLLH()) {
+        doc["hp_lat"] = m_sensor->getHighResLatitude();
+        doc["hp_lon"] = m_sensor->getHighResLongitude();
+        doc["hp_alt"] = m_sensor->getHighResAltitude();
+    }
+    
+    // UTC Time data
+    if (m_sensor->getNAVTIMEUTC()) {
+        doc["utc_year"] = m_sensor->getYear();
+        doc["utc_month"] = m_sensor->getMonth();
+        doc["utc_day"] = m_sensor->getDay();
+        doc["utc_hour"] = m_sensor->getHour();
+        doc["utc_min"] = m_sensor->getMinute();
+        doc["utc_sec"] = m_sensor->getSecond();
+        doc["utc_nano"] = m_sensor->getNano();
+    }
+    
+    // Raw measurement data (for RINEX)
+    if (m_sensor->getRXMRAWX()) {
+        JsonArray rawx = doc.createNestedArray("rawx");
+        for (int i = 0; i < m_sensor->getNumRXMRAWXmessages(); i++) {
+            JsonObject meas = rawx.createNestedObject();
+            meas["pr"] = m_sensor->getRXMRAWXPseudorange(i);
+            meas["cp"] = m_sensor->getRXMRAWXCarrierPhase(i);
+            meas["do"] = m_sensor->getRXMRAWXDoppler(i);
+            meas["gnss"] = m_sensor->getRXMRAWXGNSSId(i);
+            meas["sv"] = m_sensor->getRXMRAWXSvId(i);
+            meas["cno"] = m_sensor->getRXMRAWXCNo(i);
+        }
+    }
+    
+    try {
+        String output;
+        serializeJson(doc, output);
+        return m_logManager->LogData(output.c_str());
+    } catch (const std::exception& e) {
+        Serial.printf("Error serializing GPS data: %s\n", e.what());
+        return false;
+    }
 }
 
 bool Logger::runCalibration(void)

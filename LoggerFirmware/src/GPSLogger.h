@@ -24,9 +24,12 @@ private:
     logger::Manager *m_logManager;
     bool m_verbose;
     bool m_isCalibrating;
+    static const uint32_t I2C_BUFFER_SIZE = 2048;
+    static const uint32_t I2C_CLOCK_SPEED = 400000;
+    uint32_t m_lastI2CError;
 
     void configureDevice(void);
-    void logGPSData(void);
+    bool logGPSData(void);
     void configureCalibration(void);
 };
 
