@@ -20,8 +20,8 @@ bool Logger::begin(void)
 {
     // Configure I2C pins for GPS
     Wire.begin(33, 36); // SDA, SCL
-    Wire.setClock(400000); // Set I2C clock to 400kHz for faster data transfer
-    Wire.setBufferSize(2048); // Increase buffer size for larger RAWX messages
+    Wire.setClock(I2C_CLOCK_SPEED); // Set I2C clock to 400kHz for faster data transfer
+    Wire.setBufferSize(I2C_BUFFER_SIZE); // Increase buffer size for larger RAWX messages
 
     if (!m_sensor->begin(Wire)) {
         Serial.println("Failed to initialize ZED-F9P GPS");
@@ -29,7 +29,7 @@ bool Logger::begin(void)
     }
 
     // Set larger internal buffer for u-blox library
-    m_sensor->setPacketCfgPayloadSize(2048); 
+    m_sensor->setPacketCfgPayloadSize(I2C_BUFFER_SIZE); 
 
     configureDevice();
     return true;
@@ -67,17 +67,14 @@ void Logger::update(void)
     static uint32_t lastI2CReset = 0;
     
     if (data_available()) {
-        if (!logGPSData()) {
-            // If logging fails, check if it's an I2C error
-            if (Wire.getErrorCode() != 0) {
-                // Only reset I2C every 5 seconds at most
-                if (millis() - lastI2CReset > 5000) {
-                    Serial.println("I2C error detected, resetting bus...");
-                    Wire.flush();
-                    Wire.begin(33, 36);
-                    Wire.setClock(400000);
-                    lastI2CReset = millis();
-                }
+        if (!logGPSData() && Wire.getErrorCode() != 0) {
+            // Only reset I2C every 5 seconds at most
+            if (millis() - lastI2CReset > 5000) {
+                Serial.println("I2C error detected, resetting bus...");
+                Wire.flush();
+                Wire.begin(33, 36);
+                Wire.setClock(I2C_CLOCK_SPEED);
+                lastI2CReset = millis();
             }
         }
     }
