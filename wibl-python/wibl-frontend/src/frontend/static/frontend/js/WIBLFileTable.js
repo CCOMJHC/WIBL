@@ -4,7 +4,7 @@ const input_headers = ["fileid", "processtime", "platform", "logger", "starttime
 
 import { FileTable } from './FileTable.js';
 
-class WIBLFileTable extends FileTable {
+export class WIBLFileTable extends FileTable {
     constructor() {
         super();
         this._inputHeaders = input_headers;

@@ -217,7 +217,6 @@ export class FileTable extends HTMLElement {
                 return 0;
             }
         } else {
-            alert("No Files Selected To Delete.");
             return 0;
         }
     }
