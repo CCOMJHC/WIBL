@@ -47,9 +47,3 @@ downloadButton.addEventListener("click", (event) => {
         }
     }
 })
-
-const testDownloadButton = document.getElementById("testDownloadButton")
-testDownloadButton.addEventListener("click", (event) => {
-    const url = `/downloadWiblFile/test_file.txt`;
-    window.location.href = url;
-})

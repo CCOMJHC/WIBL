@@ -213,11 +213,11 @@ class GeoJSONData(Resource):
         db.session.commit()
 
         # delete on the cloud
-        s3 = boto3.client('s3',
-                      endpoint_url="http://localstack:4566",
-                      use_ssl=False,
-                      aws_access_key_id='test',
-                      aws_secret_access_key='test')
-        s3.delete_object(Bucket='geojson-test', Key=fileid)
+        # s3 = boto3.client('s3',
+        #               endpoint_url="http://localstack:4566",
+        #               use_ssl=False,
+        #               aws_access_key_id='test',
+        #               aws_secret_access_key='test')
+        # s3.delete_object(Bucket='geojson-test', Key=fileid)
 
         return ReturnCodes.RECORD_DELETED.value

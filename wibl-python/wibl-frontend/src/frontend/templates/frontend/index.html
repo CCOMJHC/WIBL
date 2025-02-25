@@ -17,13 +17,12 @@
                     <label for="linkBox">Link Files</label>
                     <input type="checkbox" id="linkBox" value="true">
                     <div class="block" style="margin-top: 0.5rem;">
-                        <wibl-file-table id="wibl-file-table"
-                                       url="{{ wsURL }}"
-                                       stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
+                         <wibl-file-table id="wibl-file-table"
+                                   url="{{ wsURL }}"
+                                   stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
                         </wibl-file-table>
                         <span class="is-hidden" id="filterErrorMessage"></span>
                     </div>
-
                 </div>
                 <div class="box">
                     <span class="is-size-4 has-text-weight-semibold">GeoJSON files</span>
@@ -37,7 +36,6 @@
                 <div class="block">
                     <button id="deleteButton" class="button">Delete Selected</button>
                     <button id="downloadButton" class="button">Download Selected</button>
-                    <button id="testDownloadButton" class="button">Test Download</button>
                     <button class="button" id="showButton">Filter</button>
                 </div>
                 <div class="box is-hidden" id="filterSection">
@@ -73,14 +71,14 @@
                         </ul>
                     </div>
                     <geojson-detail-table id="geojson-detail-table"
-                            url="{{ wsURL }}"
-                            stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}"
-                            class="table is-hidden">
+                        url="{{ wsURL }}"
+                        stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}"
+                        class="table is-hidden">
                     </geojson-detail-table>
                     <wibl-detail-table id="wibl-detail-table"
-                            url="{{ wsURL }}"
-                            stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}"
-                            class="table">
+                        url="{{ wsURL }}"
+                        stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}"
+                        class="table">
                     </wibl-detail-table>
                 </div>
             </div>
@@ -99,6 +97,7 @@
         #detailColumn {
             max-width: 38rem;
         }
+
         .is-sticky {
             position: sticky;
             top: 1rem;
@@ -165,7 +164,6 @@
                 geojsonSock.sendRequest("delete-geojson-files", {"file_ids" : geojsonResult});
                 geojsonSock.sendRequest("list-geojson-files");
             }
-
         })
 
         const linkBox = document.getElementById("linkBox");
@@ -173,7 +171,7 @@
 
         let linked_files = [];
 
-        linkBox.addEventListener("change", (event) => {
+        function linkFiles() {
             let geojsonFiles = [];
             let wiblFiles = [];
             for (let i = 0; i < geojsonFileTable._rawData.length; i++) {
@@ -186,23 +184,31 @@
                 wiblFiles.push(wiblRaw[0]);
             }
 
-            if (!linkFlag) {
-                linked_files = [];
-                for (let i = 0; i < geojsonFiles.length; i++) {
-                    for (let x = 0; x < wiblFiles.length; x++) {
-                        const geojsonRootFile = geojsonFiles[i].split(".");
-                        const wiblRootFile = wiblFiles[x].split(".");
-                        if (geojsonRootFile[0] === wiblRootFile[0]) {
-                            linked_files.push(wiblRootFile[0]);
-                        }
+            linked_files = [];
+            for (let i = 0; i < geojsonFiles.length; i++) {
+                for (let x = 0; x < wiblFiles.length; x++) {
+                    const geojsonRootFile = geojsonFiles[i].split(".");
+                    const wiblRootFile = wiblFiles[x].split(".");
+                    if (geojsonRootFile[0] === wiblRootFile[0]) {
+                        linked_files.push(wiblRootFile[0]);
                     }
                 }
+            }
+        }
+
+
+        document.addEventListener("linkFilesEvent", (event) => {
+            linkFiles();
+        });
+
+        linkBox.addEventListener("change", (event) => {
+            if (!linkFlag) {
+                linkFiles();
             }
             linkFlag = !linkFlag;
         });
 
         function tableSelectEvent(fileTable, event) {
-
             const path = event.composedPath();
             const check = path.find(el => el.tagName === "INPUT");
             if (!check) {

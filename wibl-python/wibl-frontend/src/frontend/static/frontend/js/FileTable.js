@@ -1,5 +1,4 @@
 
-
 /**
 *   A reusable class that builds a Custom HTML Element depending on initialized values.
 *   @extends {HTMLElement}
@@ -82,7 +81,14 @@ export class FileTable extends HTMLElement {
         const table = document.createElement("table");
         table.setAttribute("id", `wc-${this._fileType}-file-table`);
         table.className = "table";
-        shadow.appendChild(table);
+
+        // Create table container
+        const tableContainer = document.createElement("div");
+        tableContainer.className = "table-container";
+        tableContainer.setAttribute("id", `${this._fileType}-table-container`);
+        tableContainer.appendChild(table);
+        tableContainer.setAttribute("style", "max-height: 20rem; overflow-y: auto;");
+        shadow.appendChild(tableContainer);
 
         // Generate variables to be used in ListFiles scope
         let raw = this._rawData;
@@ -161,6 +167,7 @@ export class FileTable extends HTMLElement {
                 i++;
             }
             table.appendChild(tbody);
+            document.dispatchEvent(new CustomEvent("linkFilesEvent"));
         }
 
         // Bare bones socket handler, most of the delete work is handled by the manager.
