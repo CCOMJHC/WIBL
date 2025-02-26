@@ -1,3 +1,0 @@
-#!/bin/bash
-
-wibl-manager
