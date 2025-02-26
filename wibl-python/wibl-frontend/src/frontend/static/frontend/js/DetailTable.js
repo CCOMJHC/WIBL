@@ -1,5 +1,8 @@
 
-
+/**
+*   A reusable class that builds a Custom HTML Element depending on initialized values.
+*   @extends {HTMLElement}
+*/
 export class DetailTable extends HTMLElement {
     constructor() {
         super();
@@ -41,12 +44,14 @@ export class DetailTable extends HTMLElement {
         defaultText.textContent = "To view details select a row!";
         shadow.appendChild(defaultText);
 
+        // Generate variables to be used in ListFileDetails scope
         let fileType = this._fileType;
         let inputHeaders = this._inputHeaders;
         let outputHeaders = this._outputHeaders;
         let output_count = outputHeaders.length;
         let input_count = inputHeaders.length;
         let active = this._active;
+
         function listFileDetails(message){
             console.log("In listFileDetails...");
             const table = shadow.getElementById(`${fileType}-detail-table`);
