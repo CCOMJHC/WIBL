@@ -13,8 +13,11 @@ The following subsections describe each installation method.
 ### Local installation using Python
 
 #### Using Conda (Windows, Linux, macOS)
-For Windows, it's probably best to install `wibl-python` using 
-[Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) (Anaconda or Miniforge should also work). 
+`wibl-python` is available as a [conda-forge package](https://anaconda.org/conda-forge/wibl-python) and can be used
+on Windows, Linux, and macOS (without needing to download or clone the source code from GitHub). 
+
+For Windows, it's probably best to install `wibl-python` using [Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) (Anaconda or Miniforge should also 
+work). 
 
 > Note: If you plan to run [WIBL data management scripts](scripts/data-management/README.md) to automate data processing
 using `wibl-python`, make sure to follow the instructions in the [README](scripts/data-management/README.md) to
@@ -25,19 +28,22 @@ the necessary dependencies in these environments (see below).
 
 Once you've installed conda, the next step is to create a conda environment for `wibl-python`. To do so, open a 
 conda shell (we recommend using PowerShell 7 so that you can easily use 
-[WIBL data management scripts](scripts/data-management/README.md)) and do the following to create the `wibl-python` 
+[WIBL data management scripts](scripts/data-management/README.md)) and do the following to create the `wibl` 
 environment:
 ```
-conda env create -f environment.yml
+conda env create -n wibl
+conda activate wibl
+conda install wibl-python
 ```
 
-> To update an existing environment, download or `git pull` the latest `wibl-python` code and then 
-> run `conda update -n wibl-python -f environment.yml`.
+> To update an existing environment, run `conda update -n wibl wibl-python`.
 
 Then, each time you want to use `wibl-python` activate the environment as follows:
 ```
-conda activate wibl-python
+conda activate wibl
 ```
+
+> Note: You can also install `wibl-python` in an existing conda environment by running `conda install wibl-python`.
 
 Once activated, you should be able to run `wibl` commands:
 ```
@@ -177,7 +183,7 @@ options:
 ### Edit WIBL file
 Add platform metadata to existing binary WIBL file (e.g., from data simulator or from a real datalogger):
 ```
-$ wibl editwibl -m sensor-inject.json test.bin test-inject.bin
+$ wibl editwibl -m examples/ship-metadata-simple.json test.bin test-inject.bin
 ```
 
 ### Process WIBL file into GeoJSON

@@ -3,12 +3,4 @@ channels:
   - conda-forge
 dependencies:
   - python=3.12
-  - gdal
-  - numpy
-  - rasterio
-  - matplotlib
-  - pip
-  - pip:
-    - -r requirements.txt
-    - ./wibl-manager
-    - .
+  - wibl-python

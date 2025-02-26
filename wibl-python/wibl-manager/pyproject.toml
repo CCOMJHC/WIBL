@@ -18,24 +18,23 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    'gunicorn~=20.1.0',
-    'Flask~=2.2.3',
-    'Flask-SQLAlchemy~=3.0.3',
-    'Flask-RESTful~=0.3.9',
     'requests~=2.31.0',
     'dataclasses-json~=0.5.7'
 ]
 
 [project.optional-dependencies]
+server = [
+    'gunicorn~=20.1.0',
+    'Flask~=2.2.3',
+    'Flask-SQLAlchemy~=3.0.3',
+    'Flask-RESTful~=0.3.9',
+]
 test = [
 ]
 
 [project.urls]
 "Homepage" = "https://bitbucket.org/ccomjhc/wibl/"
 "Bug Tracker" = "https://bitbucket.org/ccomjhc/wibl/"
-
-[project.scripts]
-wibl-manager = "wibl_manager.application:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "wibl_manager.__version__"}
