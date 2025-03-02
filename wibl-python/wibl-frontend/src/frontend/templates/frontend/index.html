@@ -3,6 +3,9 @@
 {% load static %}
 
 {% block content %}
+    <link href='https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css' rel='stylesheet' />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
+    <script type="module" src="{% static 'frontend/js/GeojsonMap.js' %}"></script>
     <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/IndexEventManager.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/WIBLDetailTable.js' %}"></script>
@@ -68,6 +71,7 @@
                         <ul>
                             <li class="is-active" data-target="wibl-detail-table"><a>WIBL Details</a></li>
                             <li data-target="geojson-detail-table"><a>Geojson Details</a></li>
+                            <li data-target="map"><a>Geojson Map</a></li>
                         </ul>
                     </div>
                     <geojson-detail-table id="geojson-detail-table"
@@ -80,7 +84,9 @@
                         stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}"
                         class="table">
                     </wibl-detail-table>
+                    <div id="map" class="is-hidden" style="width: 100%; height: 500px;"></div>
                 </div>
+
             </div>
         </div>
     </section>
@@ -107,6 +113,7 @@
 
         import { WIBLFileTable } from '/static/frontend/js/WIBLFileTable.js';
         import { GeojsonFileTable } from '/static/frontend/js/GeojsonFileTable.js';
+        import { mapCreate } from '/static/frontend/js/GeojsonMap.js';
 
         const wiblFileTable = document.getElementById("wibl-file-table");
         const geojsonFileTable = document.getElementById("geojson-file-table");
@@ -129,6 +136,7 @@
         document.addEventListener("DOMContentLoaded", function () {
             const tabs = document.querySelectorAll(".tabs ul li");
             const tables = document.querySelectorAll(".table");
+            const map = document.getElementById("map");
 
             tabs.forEach(tab => {
                 tab.addEventListener("click", function () {
@@ -136,11 +144,14 @@
                     this.classList.add("is-active");
 
                     tables.forEach(table => table.classList.add("is-hidden"));
+                    map.classList.add("is-hidden");
 
                     const target = this.getAttribute("data-target");
                     document.getElementById(target).classList.remove("is-hidden");
                 });
             });
+
+            mapCreate();
         });
 
         // Delete button logic
