@@ -4,6 +4,8 @@ import boto3
 import json
 import wibl_manager.app_globals as globals
 
+#TODO: Configure the boto client from environment variables
+
 # Creates local client for testing, will eventually be a global configuration
 s3_client = boto3.client('s3',
                          endpoint_url="http://localstack:4566",
