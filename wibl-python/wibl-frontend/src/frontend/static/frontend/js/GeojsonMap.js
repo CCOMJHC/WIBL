@@ -1,13 +1,17 @@
-export function mapCreate() {
-    mapboxgl.accessToken = 'pk.eyJ1IjoiZ3QxMDc0IiwiYSI6ImNtN3M0YTl2ODFnNzUyanB1cjA3a2Q1YXUifQ.-RsSlrDnwsBvwDP3OpJjsg';
-    const map = new mapboxgl.Map({
-        container: 'map', // container ID
-        style: 'mapbox://styles/mapbox/streets-v12', // style URL
-        center: [-74.5, 40], // starting position [lng, lat]
-        zoom: 9, // starting zoom
-    });
-}
+import Map from "./ol/Map.js";
+import OSM from "./ol/source/OSM.js";
+import TileLayer from "./ol/layer/Tile.js";
+import View from "./node_modules/ol/View.js";
 
-export function mapUpdate(map) {
-
-}
+export const olMap = new Map({
+  target: 'map',
+  layers: [
+    new TileLayer({
+      source: new OSM(),
+    }),
+  ],
+  view: new View({
+    center: [0, 0],
+    zoom: 2,
+  }),
+});
