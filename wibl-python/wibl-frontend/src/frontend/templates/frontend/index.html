@@ -3,8 +3,6 @@
 {% load static %}
 
 {% block content %}
-    <link href='https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css' rel='stylesheet' />
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
     <script type="module" src="{% static 'frontend/js/GeojsonMap.js' %}"></script>
     <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/IndexEventManager.js' %}"></script>
@@ -108,12 +106,21 @@
             position: sticky;
             top: 1rem;
         }
+
+        @import "node_modules/ol/ol.css";
+
+        #map {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 100%;
+        }
     </style>
     <script type="module">
 
         import { WIBLFileTable } from '/static/frontend/js/WIBLFileTable.js';
         import { GeojsonFileTable } from '/static/frontend/js/GeojsonFileTable.js';
-        import { mapCreate } from '/static/frontend/js/GeojsonMap.js';
+        import { olMap } from '/static/frontend/js/GeojsonMap.js';
 
         const wiblFileTable = document.getElementById("wibl-file-table");
         const geojsonFileTable = document.getElementById("geojson-file-table");
