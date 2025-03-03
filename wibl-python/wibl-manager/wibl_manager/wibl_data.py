@@ -34,6 +34,7 @@
 from datetime import datetime, timezone
 from flask import abort
 from flask_restful import Resource, reqparse, fields, marshal_with
+import boto3
 
 from wibl_manager.app_globals import db
 from wibl_manager import ReturnCodes, ProcessingStatus
@@ -152,8 +153,6 @@ class WIBLData(Resource):
             #   wrong.
         else:
             result = WIBLDataModel.query.filter_by(fileid=fileid).first()
-        if not result:
-            abort(ReturnCodes.FILE_NOT_FOUND.value, description='That WIBL file does not exist.')
         return result
 
     @marshal_with(wibl_resource_fields)
@@ -180,6 +179,9 @@ class WIBLData(Resource):
                                   status=ProcessingStatus.PROCESSING_STARTED.value, messages='')
         db.session.add(wibl_file)
         db.session.commit()
+
+        # post on the cloud
+        # s3_client.put_object(Body=wibl_file, Bucket='wibl-test', Key=fileid)
         return wibl_file, ReturnCodes.RECORD_CREATED.value
     
     @marshal_with(wibl_resource_fields)
@@ -222,6 +224,9 @@ class WIBLData(Resource):
         if args['messages']:
             wibl_file.messages = args['messages'][:1024]
         db.session.commit()
+
+        # s3_client.put_object(Body=wibl_file, Bucket='wibl-test', Key=fileid)
+
         return wibl_file, ReturnCodes.RECORD_CREATED.value
 
     def delete(self, fileid):
@@ -234,10 +239,19 @@ class WIBLData(Resource):
         :rtype:         int   The marshalling decorator should convert to JSON-serliasable form.
         
         """
+
+        if fileid == 'all':
+            db.session.query(WIBLDataModel).delete()
+            db.session.commit()   
+            return ReturnCodes.RECORD_DELETED.value
+        
         wibl_file = WIBLDataModel.query.filter_by(fileid=fileid).first()
         if not wibl_file:
             abort(ReturnCodes.FILE_NOT_FOUND.value, description='That WIBL file does not exist in the database, and therefore cannot be deleted.')
         db.session.delete(wibl_file)
         db.session.commit()
+
+        # delete on the cloud
+        # s3_client.delete_object(Bucket='wibl-test', Key=fileid)
 
         return ReturnCodes.RECORD_DELETED.value

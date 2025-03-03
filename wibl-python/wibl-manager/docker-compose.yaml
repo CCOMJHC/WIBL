@@ -1,24 +1,44 @@
-version: '3'
-
 services:
-  web:
+  manager:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     restart: always
     env_file:
       - manager.env
     environment:
-      MANAGER_DATABASE_URI: ${MANAGER_DATABASE_URI}
+      MANAGER_DATABASE_URI: 'sqlite:////var/wibl/database.db'
     ports:
-      - '8000:8000'
+      #- '8001:8000'
+      - '6080:5000'
     volumes:
-      - 'dbdata:/var/wibl'
+      - 'dbdata_mgr:/var/wibl'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/heartbeat"]
-      interval: 10s
+      test: ["CMD", "curl", "-f", "http://localhost:5000/heartbeat"]
+      interval: 30s
       timeout: 1s
       retries: 5
-    command: 'gunicorn wibl_manager.application:app --workers 1 --bind 0.0.0.0:8000 --access-logfile -'
+    command: 'gunicorn wibl_manager.application:app --workers 1 --bind 0.0.0.0:5000 --access-logfile -'
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./wibl_manager
+          target: /usr/src/wibl/wibl_manager
+  localstack:
+    image: localstack/localstack
+    environment:
+      - AWS_DEFAULT_REGION=us-east2
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - SERVICES=s3
+      - DEBUG=0
+      - LS_LOG=error
+    ports:
+      - "14566:4566"
+      - "14510-14559:4510-4559"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./s3-test-load.bash:/opt/code/localstack/s3-test-load.bash"
 volumes:
-  dbdata:
+  dbdata_mgr:

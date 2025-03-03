@@ -3,6 +3,17 @@ The following instructions describe how to setup WIBL processing lambdas and WIB
 web service in AWS.
 
 ## Setup
+The following scripts will use the AWS CLI to provision the S3 buckets, lambdas, and ECS cluster needed to
+run WIBL AWS processing services. Before running these scripts, make sure your AWS user has the following
+permissions policies attached to it:
+- AmazonEC2FullAccess
+- AmazonECS_FullAccess
+- AmazonElasticFileSystemFullAccess
+- AmazonS3FullAccess
+- AmazonSSMFullAccess
+- AWSCertificateManagerFullAccess
+- AWSLambda_FullAccess
+- AmazonSNSFullAccess
 
 ### 1. Edit configuration
 Edit `configuration-parameters.sh` as needed. The main thing you will probably need to do change
@@ -24,12 +35,29 @@ lambdas:
 $ ./configure-sns.sh
 ```
 
-### 4. Configure WIBL manager ECS service
+### 4. Configure WIBL manager and frontend ECS services
 Run `configure-manager-ecs.sh` to create WIBL manager ECS service. This will also create all VPC
 resources needed to run WIBL processing lambdas:
 ```shell
 $ ./configure-manager-ecs.sh
 ```
+
+#### Update WIBL manager and frontend ECS services
+Run `update-manager-ecs.sh` to re-build the manager container image, push it to ECR, and force a new deployment
+of `wibl-manager-ecs-svc` ECS service:
+```shell
+$ ./update-manager-ecs.sh
+```
+
+Run `update-frontend-ecs.sh` to re-build the frontend container image, push it to ECR, and force a new deployment
+of `wibl-frontend-ecs-svc` ECS service:
+```shell
+$ ./update-frontend-ecs.sh
+```
+
+In either case, when the new deployment is successful, the existing deployment will be de-provisioned. If the
+new deployment fails, the existing deployment will be left in place. You can use "Tasks" section of the ECS console
+service page to "filter by desired status: Stopped", which will let you find failed deployments and view their logs.
 
 ### 5. Configure WIBL processing lambdas
 Run `configure-lambdas.sh` to create WIBL processing lambdas and SNS subscriptions needed to 
@@ -45,7 +73,15 @@ have been created:
 $ ./update-lambda-code.sh
 ```
 
-### 6. Configure test EC2 instances (Optional)
+### 6. Configure WIBL visualization lambda code
+Run `configure-vizlambda.sh` to create WIBL visualization lambda:
+```shell
+$ ./configure-vizlambda.sh
+```
+
+> For more information on using the visulization lambda, see "Running vizualization lambda" below.
+
+### 7. Configure test EC2 instances (Optional)
 Run `configure-ec2-test-instance.sh` to create EC2 instances on the private and public subnet
 of the WIBL VPC. These EC2 instances can use useful for testing and debugging WIBL manager and 
 processing service lambdas:

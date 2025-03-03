@@ -1,0 +1,9 @@
+ul.class-1 {
+    list-style: square;
+    color: blue;
+}
+
+ul.class-2 {
+    list-style: disc;
+    color: black;
+}

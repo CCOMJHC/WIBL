@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eu -o pipefail
+
 source configuration-parameters.sh
 
 # Rebuild lambda package for upload

@@ -1,0 +1,301 @@
+{% extends "base_nav.html" %}
+
+{% load static %}
+
+{% block content %}
+    <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
+    <script type="module" src="{% static 'frontend/js/IndexEventManager.js' %}"></script>
+    <script type="module" src="{% static 'frontend/js/WIBLDetailTable.js' %}"></script>
+    <script type="module" src="{% static 'frontend/js/WIBLFileTable.js' %}"></script>
+    <script type="module" src="{% static 'frontend/js/GeojsonDetailTable.js' %}"></script>
+    <script type="module" src="{% static 'frontend/js/GeojsonFileTable.js' %}"></script>
+    <section class="container is-fluid">
+        <div class="columns is-centered">
+            <div class="column"  id="tableColumn">
+                <div class="box">
+                    <span class="is-size-4 has-text-weight-semibold">WIBL files</span>
+                    <label for="linkBox">Link Files</label>
+                    <input type="checkbox" id="linkBox" value="true">
+                    <div class="block" style="margin-top: 0.5rem;">
+                         <wibl-file-table id="wibl-file-table"
+                                   url="{{ wsURL }}"
+                                   stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
+                        </wibl-file-table>
+                        <span class="is-hidden" id="filterErrorMessage"></span>
+                    </div>
+                </div>
+                <div class="box">
+                    <span class="is-size-4 has-text-weight-semibold">GeoJSON files</span>
+                    <div class="block" style="margin-top: 0.5rem;">
+                        <geojson-file-table id="geojson-file-table"
+                                       url="{{ wsURL }}"
+                                       stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
+                        </geojson-file-table>
+                    </div>
+                </div>
+                <div class="block">
+                    <button id="deleteButton" class="button">Delete Selected</button>
+                    <button id="downloadButton" class="button">Download Selected</button>
+                    <button class="button" id="showButton">Filter</button>
+                </div>
+                <div class="box is-hidden" id="filterSection">
+                    <div class="block">
+                        <button class="button" id="filterButton">Apply</button>
+                        <button class="button" id="clearButton">Clear</button>
+                    </div>
+                    <div class="block">
+                        <div class="columns">
+                            <div class="column is-half">
+                                <label for="dateInput">Date</label>
+                                <input type="date" class="input" id="dateInput">
+                            </div>
+                            <div class="column is-half">
+                                <label for="timeInput">Time ("HH:MM")</label>
+                                <input type="text" class="input" id="timeInput">
+                            </div>
+                        </div>
+                            <label for="platformInput">Platform</label>
+                            <input type="text" class="input" id="platformInput">
+
+                            <label for="loggerInput">Logger</label>
+                            <input type="text" class="input" id="loggerInput">
+                    </div>
+                </div>
+            </div>
+            <div class="column" id="detailColumn">
+                <div class="box is-sticky" id="detailBlock">
+                    <div class="tabs is-centered is-boxed">
+                        <ul>
+                            <li class="is-active" data-target="wibl-detail-table"><a>WIBL Details</a></li>
+                            <li data-target="geojson-detail-table"><a>Geojson Details</a></li>
+                        </ul>
+                    </div>
+                    <geojson-detail-table id="geojson-detail-table"
+                        url="{{ wsURL }}"
+                        stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}"
+                        class="table is-hidden">
+                    </geojson-detail-table>
+                    <wibl-detail-table id="wibl-detail-table"
+                        url="{{ wsURL }}"
+                        stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}"
+                        class="table">
+                    </wibl-detail-table>
+                </div>
+            </div>
+        </div>
+    </section>
+    <style>
+        :root {
+            --bulma-link-text: hsla(171deg, 100%, 30%, 1);
+        }
+        #filterErrorMessage {
+            font-weight: bold;
+        }
+        #tableColumn {
+            max-width: 47rem;
+        }
+        #detailColumn {
+            max-width: 38rem;
+        }
+
+        .is-sticky {
+            position: sticky;
+            top: 1rem;
+        }
+    </style>
+    <script type="module">
+
+        import { WIBLFileTable } from '/static/frontend/js/WIBLFileTable.js';
+        import { GeojsonFileTable } from '/static/frontend/js/GeojsonFileTable.js';
+
+        const wiblFileTable = document.getElementById("wibl-file-table");
+        const geojsonFileTable = document.getElementById("geojson-file-table");
+
+        // Request WIBL file data from the WebSocket once the DOM is ready; do this here instead of in the
+        // components to that the request is only sent once.
+        setTimeout(() => {
+            const wiblSockType = "wibl";
+            const wiblSockUrl = "{{ wsURL }}" + "wibl/table";
+            const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
+
+            const geojsonSockType = "geojson";
+            const geojsonSockUrl = "{{wsURL}}" + "geojson/table";
+            const geojsonSock = SocketManager.getInstance(geojsonSockUrl, geojsonSockType);
+
+            wiblSock.sendRequest("list-wibl-files");
+            geojsonSock.sendRequest("list-geojson-files");
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const tabs = document.querySelectorAll(".tabs ul li");
+            const tables = document.querySelectorAll(".table");
+
+            tabs.forEach(tab => {
+                tab.addEventListener("click", function () {
+                    tabs.forEach(t => t.classList.remove("is-active"));
+                    this.classList.add("is-active");
+
+                    tables.forEach(table => table.classList.add("is-hidden"));
+
+                    const target = this.getAttribute("data-target");
+                    document.getElementById(target).classList.remove("is-hidden");
+                });
+            });
+        });
+
+        // Delete button logic
+        // Must be in index so it can use the wsURL context provided by the index view
+        const deleteButton = document.getElementById("deleteButton");
+        deleteButton.addEventListener("click", (event) => {
+            let wiblResult = wiblFileTable.getSelectedFiles(0);
+            let geojsonResult = geojsonFileTable.getSelectedFiles(0);
+            if (wiblResult != 0) {
+                const wiblSockType = "wibl";
+                const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/table";
+                const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
+                wiblSock.sendRequest("delete-wibl-files", {"file_ids" : wiblResult});
+                wiblSock.sendRequest("list-wibl-files");
+            }
+
+            if (geojsonResult != 0) {
+                const geojsonSockType = "geojson";
+                const geojsonSockUrl = "{{wsURL}}" + geojsonSockType +"/table";
+                const geojsonSock = SocketManager.getInstance(geojsonSockUrl, geojsonSockType);
+                geojsonSock.sendRequest("delete-geojson-files", {"file_ids" : geojsonResult});
+                geojsonSock.sendRequest("list-geojson-files");
+            }
+        })
+
+        const linkBox = document.getElementById("linkBox");
+        let linkFlag = false;
+
+        let linked_files = [];
+
+        function linkFiles() {
+            let geojsonFiles = [];
+            let wiblFiles = [];
+            for (let i = 0; i < geojsonFileTable._rawData.length; i++) {
+                const geojsonRaw = geojsonFileTable._rawData[i];
+                geojsonFiles.push(geojsonRaw[0]);
+            }
+
+            for (let i = 0; i < wiblFileTable._rawData.length; i++) {
+                const wiblRaw = wiblFileTable._rawData[i];
+                wiblFiles.push(wiblRaw[0]);
+            }
+
+            linked_files = [];
+            for (let i = 0; i < geojsonFiles.length; i++) {
+                for (let x = 0; x < wiblFiles.length; x++) {
+                    const geojsonRootFile = geojsonFiles[i].split(".");
+                    const wiblRootFile = wiblFiles[x].split(".");
+                    if (geojsonRootFile[0] === wiblRootFile[0]) {
+                        linked_files.push(wiblRootFile[0]);
+                    }
+                }
+            }
+        }
+
+
+        document.addEventListener("linkFilesEvent", (event) => {
+            linkFiles();
+        });
+
+        linkBox.addEventListener("change", (event) => {
+            if (!linkFlag) {
+                linkFiles();
+            }
+            linkFlag = !linkFlag;
+        });
+
+        function tableSelectEvent(fileTable, event) {
+            const path = event.composedPath();
+            const check = path.find(el => el.tagName === "INPUT");
+            if (!check) {
+                const row = path.find(el => el.tagName === "TR");
+                if (row) {
+                    if (row.className !== "headerRow") {
+                        fileTable.clearCSS();
+
+                        row.setAttribute("class", "is-selected");
+
+                        let linked_file_exists = false;
+                        if (linkFlag === true) {
+                            const root_file = row.id.split(".")[0];
+                            linked_files.forEach(linked_file => {
+                                 if (root_file === linked_file) {
+                                     linked_file_exists = true;
+                                 }
+                            });
+                        }
+                        setTimeout(() => {
+                            if (fileTable instanceof WIBLFileTable) {
+                                const wiblSockType = "wibl";
+                                const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/detail";
+                                const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
+
+                                const wiblFileId = row.id;
+
+                                if (linkFlag) {
+                                    geojsonFileTable.clearCSS();
+                                }
+
+                                if (linked_file_exists) {
+                                    let geojsonFileId = row.id.split(".")[0];
+                                    geojsonFileId += ".geojson";
+
+                                    const geojsonRow = geojsonFileTable._shadow.getElementById(geojsonFileId);
+                                    geojsonRow.setAttribute("class", "is-selected");
+
+                                    const geojsonSockType = "geojson";
+                                    const geojsonSockUrl = "{{wsURL}}" + geojsonSockType + "/detail";
+                                    const geojsonSock = SocketManager.getInstance(geojsonSockUrl, geojsonSockType);
+
+                                    geojsonSock.sendRequest("list-geojson-details", {"file_id" : geojsonFileId});
+                                }
+                                wiblSock.sendRequest("list-wibl-details", {"file_id" : wiblFileId});
+
+                            } else if (fileTable instanceof GeojsonFileTable) {
+                                const geojsonSockType = "geojson";
+                                const geojsonSockUrl = "{{ wsURL }}" + geojsonSockType + "/detail";
+                                const geojsonSock = SocketManager.getInstance(geojsonSockUrl, geojsonSockType);
+
+                                const geojsonFileId = row.id;
+
+                                if (linkFlag) {
+                                    wiblFileTable.clearCSS();
+                                }
+
+                                if (linked_file_exists) {
+                                    let wiblFileId = row.id.split(".")[0];
+                                    wiblFileId += ".wibl";
+
+                                    const wiblRow = wiblFileTable._shadow.getElementById(wiblFileId);
+                                    wiblRow.setAttribute("class", "is-selected");
+
+                                    const wiblSockType = "wibl";
+                                    const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/detail";
+                                    const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
+                                    wiblSock.sendRequest("list-wibl-details", {"file_id" : wiblFileId});
+                                }
+
+                                geojsonSock.sendRequest("list-geojson-details", {"file_id" : geojsonFileId});
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+
+        wiblFileTable.addEventListener("click", (event) => {
+            tableSelectEvent(wiblFileTable, event);
+        });
+
+        //Detail File Table Logic
+        geojsonFileTable.addEventListener("click", (event) => {
+            tableSelectEvent(geojsonFileTable, event);
+        });
+
+    </script>
+{% endblock %}

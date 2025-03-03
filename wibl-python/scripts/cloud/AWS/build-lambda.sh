@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eu -o pipefail
+
 source configuration-parameters.sh
 
 echo $'\e[31mBuilding the WIBL package from' ${WIBL_SRC_LOCATION} $'...\e[0m'

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  {% load static %}
+  <head>
+    {% block title %}
+      <title>WIBL frontend</title>
+    {% endblock %}
+    <link rel="stylesheet"
+      href="{% static 'css/bulma-no-dark-mode.min.css' %}">
+  </head>
+  <body>
+    {% block navbar %}
+      <!-- insert default navigation text for every page -->
+    {% endblock %}
+    {% block content %}
+      <!-- default content text (typically empty) -->
+    {% endblock %}
+  </body>
+</html>

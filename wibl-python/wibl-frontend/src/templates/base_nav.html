@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block navbar %}
+<header class="navbar" role="navigation" aria-label="main navigation">
+  <script src="{% static 'js/NavHelper.js' %}"></script>
+  <div class="container is-fluid">
+    <!-- Logo -->
+    <div class="navbar-brand">
+      <a class="navbar-item" href="#">
+        <img src="{% static 'img/wibl.png' %}"
+             alt="WIBL logo">
+        WIBL cloud data manager
+      </a>
+      <!-- Hamburger needed for narrow views (i.e., phone, small windows) -->
+      <a class="navbar-burger" role="button" aria-label="menu" aria-expanded="false" data-target="mainNav">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </a>
+    </div>
+    <!-- Top-level navigation -->
+    <div id="mainNav" class="navbar-menu">
+      <!-- Site pages -->
+      <div class="navbar-start">
+        <a class="navbar-item" href="/">
+          Home
+        </a>
+        <a class="navbar-item">
+          Dashboard
+        </a>
+      </div>
+      <!-- Username / logout -->
+      <div class="navbar-end">
+        <span class="navbar-item">
+          <div class="buttons">
+            {% if user.is_authenticated %}
+              User: {{ user.get_username }}
+              <form id="logout-form" method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="button is-light">Logout</button>
+              </form>
+            {% endif %}
+          </div>
+        </span>
+      </div>
+    </div>
+  </div>
+</header>
+{% endblock %}

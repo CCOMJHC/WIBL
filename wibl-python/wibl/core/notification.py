@@ -46,10 +46,14 @@ class SNSNotifier(Notifier):
     def __init__(self, arn: str) -> None:
         self.arn = arn
     
-    def notify(self, item: DataItem) -> str:
+    def notify(self, item: DataItem, *, verbose: bool = False) -> str:
         sns = boto3.client('sns')
         try:
+            if verbose:
+                print(f"Publishing item {item} to topic {self.arn}...")
             result = sns.publish(TopicArn=self.arn, Message=self.generate_message(item))
+            if verbose:
+                print(f"Done publishing item {item} to topic {self.arn}.")
             msgid = result['MessageId']
         except awsexe.ClientError as error:
             print(f'error: notification failed: AWS SNS responded {error}.')
