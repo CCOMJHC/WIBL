@@ -1,12 +1,13 @@
-321,325c321,325
-< //           if (_currentClient.connected()) {
-< //             _currentStatus = HC_WAIT_CLOSE;
-< //             _statusChange = millis();
-< //             keepCurrentClient = true;
-< //           }
----
->           if (_currentClient.connected()) {
->             _currentStatus = HC_WAIT_CLOSE;
->             _statusChange = millis();
->             keepCurrentClient = true;
->           }
+--- WebServer.cpp
++++ WebServer.cpp
+@@ -321,5 +321,5 @@
+-//           if (_currentClient.connected()) {
+-//             _currentStatus = HC_WAIT_CLOSE;
+-//             _statusChange = millis();
+-//             keepCurrentClient = true;
+-//           }
++           if (_currentClient.connected()) {
++             _currentStatus = HC_WAIT_CLOSE;
++             _statusChange = millis();
++             keepCurrentClient = true;
++           }
