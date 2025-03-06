@@ -132,18 +132,42 @@
         });
 
         document.addEventListener("DOMContentLoaded", function () {
-            const olMap = new ol.Map({
-                target: "map",
-                layers: [
-                    new ol.layer.Tile({
-                        source: new ol.source.OSM(),
-                    }),
-                ],
-                view: new ol.View({
-                    center: ol.proj.fromLonLat([-74.5, 40]),
-                    zoom: 9,
-                }),
-            });
+            async function loadGeojson() {
+                const jsonDataURL = "{% static 'frontend/js/b12_v3_1_0_example-2023-03.json' %}";
+
+                try {
+                    const res = await fetch(jsonDataURL);
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! Status: ${res.status}`);
+                    }
+                    const geojsonObject = await res.json();
+
+                    const vectorSource = new ol.source.Vector({
+                        features: new ol.format.GeoJSON().readFeatures(geojsonObject),
+                    });
+
+                    const vectorLayer = new ol.layer.Vector({
+                        source: vectorSource,
+                    });
+
+                    const olMap = new ol.Map({
+                        target: 'map',
+                        layers: [
+                            new ol.layer.Tile({
+                              source: new ol.source.OSM(),
+                            }),
+                        vectorLayer,
+                        ],
+                        view: new ol.View({
+                            center: ol.proj.fromLonLat([-74.5, 40]),
+                            zoom: 9,
+                            }),
+                    });
+                } catch (error) {
+                    console.error('Error loading GeoJSON:', error);
+                }
+            }
+            loadGeojson();
 
             const tabs = document.querySelectorAll(".tabs ul li");
             const tables = document.querySelectorAll(".table");
