@@ -40,5 +40,6 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./s3-test-load.bash:/opt/code/localstack/s3-test-load.bash"
+      - "./wibl-manager/tests/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson:/opt/code/localstack/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson"
 volumes:
   dbdata_mgr:
