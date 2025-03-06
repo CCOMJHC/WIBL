@@ -37,6 +37,7 @@
                 <div class="block">
                     <button id="deleteButton" class="button">Delete Selected</button>
                     <button id="downloadButton" class="button">Download Selected</button>
+                    <button class="button" id="mapButton">Add to Map</button>
                     <button class="button" id="showButton">Filter</button>
                 </div>
                 <div class="box is-hidden" id="filterSection">
@@ -131,43 +132,41 @@
             geojsonSock.sendRequest("list-geojson-files");
         });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            async function loadGeojson() {
-                const jsonDataURL = "{% static 'frontend/js/b12_v3_1_0_example-2023-03.json' %}";
-
-                try {
-                    const res = await fetch(jsonDataURL);
-                    if (!res.ok) {
-                        throw new Error(`HTTP error! Status: ${res.status}`);
-                    }
-                    const geojsonObject = await res.json();
-
-                    const vectorSource = new ol.source.Vector({
-                        features: new ol.format.GeoJSON().readFeatures(geojsonObject),
-                    });
-
-                    const vectorLayer = new ol.layer.Vector({
-                        source: vectorSource,
-                    });
-
-                    const olMap = new ol.Map({
-                        target: 'map',
-                        layers: [
-                            new ol.layer.Tile({
-                              source: new ol.source.OSM(),
-                            }),
-                        vectorLayer,
-                        ],
-                        view: new ol.View({
-                            center: ol.proj.fromLonLat([-74.5, 40]),
-                            zoom: 9,
-                            }),
-                    });
-                } catch (error) {
-                    console.error('Error loading GeoJSON:', error);
+        async function loadGeojson(map, fileid) {
+            try {
+                const res = await fetch(`/saveGeojsonFile/${fileid}`);
+                if (!res.ok) {
+                    throw new Error(`HTTP error! Status: ${res.status}`);
                 }
+                const geojsonObject = await res.json();
+
+                const vectorSource = new ol.source.Vector({
+                    features: new ol.format.GeoJSON().readFeatures(geojsonObject),
+                });
+
+                const vectorLayer = new ol.layer.Vector({
+                    source: vectorSource,
+                });
+
+                map.addLayer(vectorLayer);
+            } catch (error) {
+                console.error('Error loading GeoJSON:', error);
             }
-            loadGeojson();
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const olMap = new ol.Map({
+                target: 'map',
+                layers: [
+                    new ol.layer.Tile({
+                      source: new ol.source.OSM(),
+                    }),
+                ],
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([-74.5, 40]),
+                    zoom: 9,
+                    }),
+            });
 
             const tabs = document.querySelectorAll(".tabs ul li");
             const tables = document.querySelectorAll(".table");
