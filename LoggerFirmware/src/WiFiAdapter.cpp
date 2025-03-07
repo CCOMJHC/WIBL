@@ -476,7 +476,7 @@ private:
     {
         String message;
         serializeJson(*m_messages, message);
-        Serial.printf("DBG: WiFi transmitting response |%s|\n", message.c_str());
+        //Serial.printf("DBG: WiFi transmitting response |%s|\n", message.c_str());
         m_server->send(m_statusCode, "application/json", message);
         m_messages->clear();
         m_statusCode = HTTPReturnCodes::OK; // "OK" by default

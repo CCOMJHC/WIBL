@@ -389,6 +389,13 @@ void SerialCommand::SetWiFiPassword(String const& params, CommandSource src)
 {
     int position = params.indexOf(" ") + 1;
     String password = params.substring(position);
+    if (password.length() < 8 || password.length() > 64) {
+        EmitMessage("ERR: WiFi password must be in range [8,64] characters.\n", src);
+        if (src == CommandSource::WirelessPort && m_wifi != nullptr) {
+            m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
+        }
+        return;
+    }
     if (params.startsWith("ap")) {
         logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_AP_PASSWD_S, password);
     } else if (params.startsWith("station")) {
@@ -1129,11 +1136,7 @@ void SerialCommand::ReportCurrentStatus(CommandSource src)
         serializeJsonPretty(status, json);
         EmitMessage(json+"\n", src);
     } else {
-        String json;
-        serializeJsonPretty(status, json);
-        Serial.printf("DBG: status command returned |%s| for WiFi command.\n", json.c_str());
         if (m_wifi != nullptr) {
-            Serial.printf("DBG: status command: setting WiFi return message.\n");
             m_wifi->SetMessage(status);
         }
     }
@@ -1669,7 +1672,6 @@ void SerialCommand::ProcessCommand(void)
             cmd.trim();
             Serial.printf("Found WiFi command: \"%s\"\n", cmd.c_str());
             Execute(cmd, CommandSource::WirelessPort);
-            Serial.printf("DBG: transmitting messages on WiFi adapter.\n");
             m_wifi->TransmitMessages();
         }
         if (m_uploadManager != nullptr) {
