@@ -470,15 +470,14 @@ private:
     /// messages, and the status code, and sends back via the web-server, then resets the message buffer
     /// to empty, and the status code to 200 OK.
     ///
-    /// \param data_type    Text string indicating the MIME type to indicate for the data.
     /// \return True if the message was send succesfully, otherwise false.
 
-    bool transmitMessages(char const* data_type)
+    bool transmitMessages(void)
     {
         String message;
         serializeJson(*m_messages, message);
         //Serial.printf("DBG: WiFi transmitting response |%s|\n", message.c_str());
-        m_server->send(m_statusCode, data_type, message);
+        m_server->send(m_statusCode, "application/json", message);
         m_messages->clear();
         m_statusCode = HTTPReturnCodes::OK; // "OK" by default
         return true;
@@ -543,7 +542,7 @@ void WiFiAdapter::SetStatusCode(HTTPReturnCodes status_code) { setStatusCode(sta
 /// This should also complete the transaction from the client's request.
 ///
 /// \return True if the messages were transmitted successfully
-bool WiFiAdapter::TransmitMessages(char const* data_type) { return transmitMessages(data_type); }
+bool WiFiAdapter::TransmitMessages(void) { return transmitMessages(); }
 
 /// Pass-through implementation to the sub-class code to set the wireless adapter mode.
 ///

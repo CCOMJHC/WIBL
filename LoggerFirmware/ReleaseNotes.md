@@ -1,5 +1,13 @@
 # Release Notes: Logger Firmware
 
+## Firmware 1.5.3
+
+Firmware 1.5.3 includes the following changes:
+
+* __WiFi Password Length Checks__.  Fixes an oversight (i.e., an exploitable bug that we don't want to see in practice) in the length of the password set for AP or station mode: if the user provided a password shorter than eight characters or longer than 64 when using the debug version of the firmware, the underlying WiFi library fails the password, but then fails a debug `assert()` which caused the firmware to enter into a reboot loop of death, bricking the logger until the entire flash memory was erased and rebuilt!
+* __File Patching__.  Ah, Windows ...  It turns out that on Windows systems there isn't a `patch` command, and so the auto-patching of the WebServer.cpp code (to revert the "fix" for Chrome that forces you to attempt to complete the entire HTTP call within a single callback) doesn't work---but claims that it did.  This release of firmware uses an entirely Python patch utility so that it's platform agnostic.  Much thanks to Ashok Anjappa at CHS Pacific to help us work out what was really going on here.
+* __HTTP Response MIME Code__.  Since the firmware now responds to all commands with JSON data, the MIME response header in the HTTP should always be "application/json".  It now is.
+
 ## Firmware 1.5.2
 
 Firmware 1.5.2 includes the following changes:

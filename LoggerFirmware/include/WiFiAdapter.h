@@ -74,7 +74,7 @@ public:
     void SetStatusCode(HTTPReturnCodes status);
 
     /// \brief Transmit the current set of accumulated messages to the client
-    bool TransmitMessages(char const *data_type);
+    bool TransmitMessages(void);
     
     enum WirelessMode {
         ADAPTER_STATION,    ///< Join the configured network when activated
@@ -109,7 +109,7 @@ private:
     virtual void setStatusCode(HTTPReturnCodes status_code) = 0;
 
     /// \brief Sub-class implementation of code to transmit messages (and complete transaction)
-    virtual bool transmitMessages(char const *data_type) = 0;
+    virtual bool transmitMessages(void) = 0;
 
     virtual void runLoop(void) = 0;
 };
