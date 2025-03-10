@@ -33,19 +33,17 @@ def downloadWiblFile(request, fileid):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-def saveGeojsonFile(request, fileid):
+async def saveGeojsonFile(request, fileid):
     manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
     full_url = f"{manager_url}/geojson/save/{fileid}"
 
-    async def get_geojson():
-        client = httpx.AsyncClient()
-        response = await client.get(full_url)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return {'error': 'Failed to get geojson'}
+    client = httpx.AsyncClient()
+    response = await client.get(full_url)
+    if response.status_code == 200:
+        return JsonResponse({'managerResponse' : response.json()})
+    else:
+        return {'error': 'Failed to get geojson'}
 
-    return get_geojson()
 
 @login_required
 def index(request: HttpRequest):
