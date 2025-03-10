@@ -15,4 +15,4 @@ class GeoJSONSave(Resource):
     def get(self, fileid):
         # Currently only configured to search a test bucket
         s3_file = s3_client.get_object(Bucket=globals.S3_BUCKET_NAME, Key=fileid)
-        return Response(s3_file, content_type="application/json")
+        return Response(s3_file['Body'], content_type="application/geo+json")

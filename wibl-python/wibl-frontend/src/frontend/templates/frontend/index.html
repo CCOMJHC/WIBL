@@ -139,7 +139,7 @@
         const mapButton = document.getElementById("mapButton");
 
         mapButton.addEventListener("click", (event) => {
-            const files = geojsonFileTable.getSelected();
+            const files = geojsonFileTable.getSelectedFiles(3);
             for(let i = 0; i < files.length; i++) {
                 const file = files[i];
                 loadGeojson(olMap, file);
@@ -150,7 +150,7 @@
             let layers = map.getLayers();
 
             try {
-                const res = await fetch(`/saveGeojsonFile/${fileid}`);
+                const res = await fetch(`./saveGeojsonFile/${fileid}`);
                 if (!res.ok) {
                     throw new Error(`HTTP error! Status: ${res.status}`);
                 }
