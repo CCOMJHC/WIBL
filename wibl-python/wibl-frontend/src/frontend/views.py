@@ -40,7 +40,7 @@ async def saveGeojsonFile(request, fileid):
     client = httpx.AsyncClient()
     response = await client.get(full_url)
     if response.status_code == 200:
-        return JsonResponse({'managerResponse' : response.json()})
+        return JsonResponse({'geojson': response.json()})
     else:
         return {'error': 'Failed to get geojson'}
 
