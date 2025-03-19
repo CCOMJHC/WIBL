@@ -10,6 +10,7 @@
     <script type="module" src="{% static 'frontend/js/WIBLFileTable.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/GeojsonDetailTable.js' %}"></script>
     <script type="module" src="{% static 'frontend/js/GeojsonFileTable.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'frontend/css/ol.css' %}">
     <section class="container is-fluid">
         <div class="columns is-centered">
             <div class="column"  id="tableColumn">
@@ -140,7 +141,7 @@
 
         mapButton.addEventListener("click", (event) => {
             const files = geojsonFileTable.getSelectedFiles(3);
-            for(let i = 0; i < files.length; i++) {
+            for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 loadGeojson(olMap, file);
             }
@@ -148,7 +149,11 @@
 
         async function loadGeojson(map, fileid) {
             let layers = map.getLayers();
-
+            for (let layer of layers.array_) {
+                if (layer.className_ !== "ol-layer") {
+                    map.removeLayer(layer);
+                }
+            }
             try {
                 const res = await fetch(`./saveGeojsonFile/${fileid}`);
                 if (!res.ok) {
@@ -156,21 +161,46 @@
                 }
                 const geojsonObject = await res.json();
 
+                const geojsonFormat = new ol.format.GeoJSON();
+                const features = geojsonFormat.readFeatures(geojsonObject.geojson, {
+                    featureProjection: 'EPSG:3857'
+                });
+
                 const vectorSource = new ol.source.Vector({
-                    features: new ol.format.GeoJSON().readFeatures(geojsonObject),
+                    features: features
                 });
 
                 const vectorLayer = new ol.layer.Vector({
                     source: vectorSource,
+                    className: `ol-${fileid}`
                 });
 
                 map.addLayer(vectorLayer);
+
+                const selectInteraction = new ol.interaction.Select({
+                    condition: ol.events.condition.click,
+                    layers: [vectorLayer]
+                });
+
+                map.addInteraction(selectInteraction);
+
+                selectInteraction.on('select', function (event) {
+                    if (event.selected.length > 0) {
+                        const feature = event.selected[0];
+                        const properties = feature.getProperties();
+                        delete properties.geometry;
+
+                        console.log("Selected Feature Properties:", properties);
+
+                        alert(JSON.stringify(properties, null, 2));
+                    }
+                });
+
+
             } catch (error) {
                 console.error('Error loading GeoJSON:', error);
             }
         }
-
-
 
         document.addEventListener("DOMContentLoaded", function () {
             olMap = new ol.Map({
@@ -182,7 +212,7 @@
                 ],
                 view: new ol.View({
                     center: ol.proj.fromLonLat([-74.5, 40]),
-                    zoom: 9,
+                    zoom: 1,
                     }),
             });
 
