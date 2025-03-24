@@ -141,11 +141,42 @@
 
         mapButton.addEventListener("click", (event) => {
             const files = geojsonFileTable.getSelectedFiles(3);
+
+            const tabs = document.querySelectorAll(".tabs ul li");
+            let geoTab;
+            tabs.forEach((tab) => {
+                if (tab.getAttribute("data-target") === "map") {
+                    geoTab = tab;
+                }
+            });
+            geoTab.click();
+
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 loadGeojson(olMap, file);
             }
         });
+
+
+        function getFeaturesExtent(features) {
+            let extent = features[0].getGeometry().getExtent();
+
+            for (let feature of features) {
+                ol.extent.extend(extent, feature.getGeometry().getExtent());
+            }
+
+            return extent;
+        }
+
+        function calculateZoom(map, features) {
+            const extent = getFeaturesExtent(features);
+            const mapSize = map.getSize();
+            const view = map.getView();
+
+            const resolution = view.getResolutionForExtent(extent, mapSize);
+
+            return view.getZoomForResolution(resolution);
+        }
 
         async function loadGeojson(map, fileid) {
             let layers = map.getLayers();
@@ -163,8 +194,24 @@
 
                 const geojsonFormat = new ol.format.GeoJSON();
                 const features = geojsonFormat.readFeatures(geojsonObject.geojson, {
-                    featureProjection: 'EPSG:3857'
+                    featureProjection: 'EPSG:4326'
                 });
+
+                var avg_X = 0;
+                var avg_Y = 0;
+
+                let all_X_Coordinates = 0;
+                let all_Y_Coordinates = 0;
+
+                for (let feature of features) {
+                    let coordinates = feature.getGeometry().getCoordinates();
+                    all_X_Coordinates += coordinates[0];
+                    all_Y_Coordinates += coordinates[1];
+                }
+
+                avg_X = all_X_Coordinates / features.length;
+                avg_Y = all_Y_Coordinates / features.length;
+
 
                 const vectorSource = new ol.source.Vector({
                     features: features
@@ -176,6 +223,13 @@
                 });
 
                 map.addLayer(vectorLayer);
+
+                // const extent = getFeaturesExtent(features);
+                // map.getView().fit(extent, { padding: [50,50,50,50], duration: 1000, constrainResolution: false});
+                map.getView().setCenter([avg_X, avg_Y]);
+                const zoom = calculateZoom(map, features);
+                map.getView().setZoom(zoom == 0 ? zoom: zoom - 1);
+
 
                 const selectInteraction = new ol.interaction.Select({
                     condition: ol.events.condition.click,
@@ -211,8 +265,9 @@
                     }),
                 ],
                 view: new ol.View({
-                    center: ol.proj.fromLonLat([-74.5, 40]),
-                    zoom: 1,
+                    projection: "EPSG:4326",
+                    center: [0, 0],
+                    zoom: 0,
                     }),
             });
 
@@ -232,8 +287,6 @@
                     document.getElementById(target).classList.remove("is-hidden");
                 });
             });
-
-
         });
 
         // Delete button logic
