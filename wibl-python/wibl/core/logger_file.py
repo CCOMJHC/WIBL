@@ -1612,8 +1612,9 @@ class SensorScales(DataPacket):
     # \param self   Reference for the object
     # \return Bytes array with the binary representation of the packet-specific parameters
     def payload(self) -> bytes:
-        config_len = len(self.config)
-        buffer = struct.pack(f'<I{config_len}s', config_len, self.config)
+        config = json.dumps(self.config, separators=(',', ':')).encode('UTF-8')
+        config_len = len(config)
+        buffer = struct.pack(f'<I{config_len}s', config_len, config)
         return buffer
 
     ## Provide the recognition ID for the packet, as used in the binary file
@@ -1708,7 +1709,7 @@ class RawIMU(DataPacket):
     # \param self   Reference for the object
     # \return Bytes array with the binary representation of the packet-specific parameters
     def payload(self) -> bytes:
-        buffer = struct.pack('<Ihhhhhhh', self.elapsed, self.gyro[0], self.gyro[1], self.gyrpo[2], self.accel[0], self.accel[1], self.accel[2])
+        buffer = struct.pack('<Ihhhhhhh', self.elapsed, self.temp, self.gyro[0], self.gyro[1], self.gyro[2], self.accel[0], self.accel[1], self.accel[2])
         return buffer
 
     ## Provide the recognition ID for the packet, as used in the binary file
