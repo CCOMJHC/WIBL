@@ -1,17 +1,19 @@
 {
-    "trustedNode": {
-        "providerOrganizationName": "",
-        "providerEmail": "",
-        "uniqueVesselID": "",
-        "providerLogger": "",
-        "providerLoggerVersion": ""
-    },
-    "platform": {
-        "length":   0,
-        "IDType":   "",
-        "IDNumber": "",
-        "soundSpeedDocumented":     false,
-        "postionOffsetsDocumented": false,
-        "dataProcessed":            false
+    "properties": {
+        "trustedNode": {
+            "providerOrganizationName": "",
+            "providerEmail": "",
+            "uniqueVesselID": "",
+            "providerLogger": "",
+            "providerLoggerVersion": ""
+        },
+        "platform": {
+            "length": 0,
+            "IDType": "",
+            "IDNumber": "",
+            "soundSpeedDocumented": false,
+            "postionOffsetsDocumented": false,
+            "dataProcessed": false
+        }
     }
 }
