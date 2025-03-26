@@ -11,6 +11,7 @@ GDAL==3.8.2
 fsspec[s3]
 pandas>=2.0.0
 geopandas
+deepmerge
 xarray
 netCDF4
 pylint~=3.0.0
