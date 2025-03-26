@@ -22,7 +22,7 @@ Get-ChildItem -Path $wiblPath -Filter *.wibl -File -Recurse |
     Write-Output "Running command: 'wibl procwibl -c $wiblConfig $editedName $processedName'..."
     wibl procwibl -c $wiblConfig $editedName $processedName
     if ( -not ($LASTEXITCODE -eq 0) ) {
-      Write-Error "Error running 'wibl procwibl', exiting..."
-      exit -1
+      Write-Warning "Error running 'wibl procwibl', proceeding with next..."
+      Add-Content -Path $wiblPath\errors.csv -Value $editedName
     }
   }
