@@ -85,8 +85,11 @@
                         class="table">
                     </wibl-detail-table>
                     <div id="map" class="is-hidden" style="width: 100%; height: 500px;"></div>
+                    <div id="popup" class="ol-popup">
+                      <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+                      <div id="popup-content"></div>
+                    </div>
                 </div>
-
             </div>
         </div>
     </section>
@@ -109,6 +112,47 @@
             top: 1rem;
         }
 
+        .ol-popup {
+        position: absolute;
+        background-color: white;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #cccccc;
+        bottom: 12px;
+        left: -50px;
+        min-width: 280px;
+      }
+      .ol-popup:after, .ol-popup:before {
+        top: 100%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+      }
+      .ol-popup:after {
+        border-top-color: white;
+        border-width: 10px;
+        left: 48px;
+        margin-left: -10px;
+      }
+      .ol-popup:before {
+        border-top-color: #cccccc;
+        border-width: 11px;
+        left: 48px;
+        margin-left: -11px;
+      }
+      .ol-popup-closer {
+        text-decoration: none;
+        position: absolute;
+        top: 2px;
+        right: 8px;
+      }
+      .ol-popup-closer:after {
+        content: "✖";
+      }
     </style>
     <script type="module">
 
@@ -117,8 +161,6 @@
 
         const wiblFileTable = document.getElementById("wibl-file-table");
         const geojsonFileTable = document.getElementById("geojson-file-table");
-
-
 
         // Request WIBL file data from the WebSocket once the DOM is ready; do this here instead of in the
         // components to that the request is only sent once.
@@ -138,6 +180,11 @@
         // OpenLayers
         var olMap;
         const mapButton = document.getElementById("mapButton");
+        var overlay;
+
+        const container = document.getElementById('popup');
+        const content = document.getElementById('popup-content');
+        const closer = document.getElementById('popup-closer');
 
         mapButton.addEventListener("click", (event) => {
             const files = geojsonFileTable.getSelectedFiles(3);
@@ -157,6 +204,19 @@
             }
         });
 
+        function renderTable(data, container) {
+            const tableHTML = `
+                <div class="fixed-grid">
+                    <div class="grid">
+                        ${Object.entries(data)
+                            .map(([key, value]) => `<div class="cell has-border">${key}</div><div class="cell has-border">${value}</div>`)
+                            .join("")}
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = tableHTML;
+        }
 
         function getFeaturesExtent(features) {
             let extent = features[0].getGeometry().getExtent();
@@ -230,7 +290,6 @@
                 const zoom = calculateZoom(map, features);
                 map.getView().setZoom(zoom == 0 ? zoom: zoom - 1);
 
-
                 const selectInteraction = new ol.interaction.Select({
                     condition: ol.events.condition.click,
                     layers: [vectorLayer]
@@ -244,21 +303,37 @@
                         const properties = feature.getProperties();
                         delete properties.geometry;
 
-                        console.log("Selected Feature Properties:", properties);
-
-                        alert(JSON.stringify(properties, null, 2));
+                        let coordinates = feature.getGeometry().getCoordinates();
+                        renderTable(properties, content);
+                        overlay.setPosition(coordinates);
                     }
                 });
 
-
+                closer.onclick = function () {
+                    overlay.setPosition(undefined);
+                    closer.blur();
+                    selectInteraction.getFeatures().clear();
+                    return false;
+                };
             } catch (error) {
                 console.error('Error loading GeoJSON:', error);
             }
         }
 
         document.addEventListener("DOMContentLoaded", function () {
+
+            overlay = new ol.Overlay({
+              element: container,
+              autoPan: {
+                animation: {
+                  duration: 250,
+                },
+              },
+            });
+
             olMap = new ol.Map({
                 target: 'map',
+                overlays: [overlay],
                 layers: [
                     new ol.layer.Tile({
                       source: new ol.source.OSM(),
@@ -268,8 +343,9 @@
                     projection: "EPSG:4326",
                     center: [0, 0],
                     zoom: 0,
-                    }),
+                }),
             });
+
 
             const tabs = document.querySelectorAll(".tabs ul li");
             const tables = document.querySelectorAll(".table");
@@ -341,7 +417,6 @@
                 }
             }
         }
-
 
         document.addEventListener("linkFilesEvent", (event) => {
             linkFiles();
