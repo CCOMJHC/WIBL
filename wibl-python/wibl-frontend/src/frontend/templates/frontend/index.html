@@ -147,8 +147,8 @@
       .ol-popup-closer {
         text-decoration: none;
         position: absolute;
-        top: 2px;
-        right: 8px;
+        top: -3px;
+        right: 5px;
       }
       .ol-popup-closer:after {
         content: "✖";
@@ -206,15 +206,22 @@
 
         function renderTable(data, container) {
             const tableHTML = `
-                <div class="fixed-grid">
-                    <div class="grid">
-                        ${Object.entries(data)
-                            .map(([key, value]) => `<div class="cell has-border">${key}</div><div class="cell has-border">${value}</div>`)
-                            .join("")}
-                    </div>
-                </div>
+                <table class="table is-bordered">
+                    <thead class="is-hidden">
+                        <tr>
+                            <th> </th>
+                            <th> </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                            ${Object.entries(data)
+                                .map(([key, value]) => `<tr>
+                                                            <td>${key}</td>
+                                                            <td>${value}</td>
+                                                        </tr>`).join("")}
+                    </tbody>
+                </table>
             `;
-
             container.innerHTML = tableHTML;
         }
 
@@ -272,7 +279,6 @@
                 avg_X = all_X_Coordinates / features.length;
                 avg_Y = all_Y_Coordinates / features.length;
 
-
                 const vectorSource = new ol.source.Vector({
                     features: features
                 });
@@ -284,8 +290,6 @@
 
                 map.addLayer(vectorLayer);
 
-                // const extent = getFeaturesExtent(features);
-                // map.getView().fit(extent, { padding: [50,50,50,50], duration: 1000, constrainResolution: false});
                 map.getView().setCenter([avg_X, avg_Y]);
                 const zoom = calculateZoom(map, features);
                 map.getView().setZoom(zoom == 0 ? zoom: zoom - 1);
