@@ -70,15 +70,18 @@
                     <div class="tabs is-centered is-boxed">
                         <ul>
                             <li class="is-active" data-target="wibl-detail-table"><a>WIBL Details</a></li>
-                            <li data-target="geojson-detail-table"><a>Geojson Details</a></li>
+                            <li data-target="geojson-detail-column"><a>Geojson Details</a></li>
                             <li data-target="map"><a>Geojson Map</a></li>
                         </ul>
                     </div>
-                    <geojson-detail-table id="geojson-detail-table"
+                    <div id="geojson-detail-column" class="is-hidden">
+                        <geojson-detail-table id="geojson-detail-table"
                         url="{{ wsURL }}"
                         stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}"
-                        class="table is-hidden">
-                    </geojson-detail-table>
+                        class="table">
+                        </geojson-detail-table>
+                        <button id="rawButton" class="button">Display File</button>
+                    </div>
                     <wibl-detail-table id="wibl-detail-table"
                         url="{{ wsURL }}"
                         stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}"
@@ -88,6 +91,21 @@
                     <div id="popup" class="ol-popup">
                       <a href="#" id="popup-closer" class="ol-popup-closer"></a>
                       <div id="popup-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="popupModal" class="modal is-large">
+            <div class="modal-background"></div>
+            <div class="modal-content">
+                <div class="modal-box">
+                    <header class="modal-header">
+                        <button class="button is-danger" id="closeModal">Close</button>
+                    </header>
+                    <div class="modal-body">
+                        <div class="block">
+                            <pre id="geojsonFileContent"></pre>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -110,6 +128,36 @@
         .is-sticky {
             position: sticky;
             top: 1rem;
+        }
+
+        .modal-content {
+          width: 90vw;
+          height: 90vh;
+          max-width: none;
+          background: white;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .modal-box {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          overflow: hidden;
+        }
+
+        .modal-header {
+          padding: 1rem;
+          background: #f5f5f5;
+          flex: 0 0 auto;
+          border-bottom: 1px solid #ddd;
+        }
+
+        .modal-body {
+          flex: 1 1 auto;
+          padding: 1rem;
+          overflow-y: auto;
         }
 
         .ol-popup {
@@ -159,6 +207,7 @@
         import { WIBLFileTable } from '/static/frontend/js/WIBLFileTable.js';
         import { GeojsonFileTable } from '/static/frontend/js/GeojsonFileTable.js';
         import { GeojsonMap } from '/static/frontend/js/GeojsonMap.js';
+        import { RawFileRetrieve } from '/static/frontend/js/RawFileRetrieve.js';
 
         const wiblFileTable = document.getElementById("wibl-file-table");
         const geojsonFileTable = document.getElementById("geojson-file-table");
@@ -178,6 +227,25 @@
             geojsonSock.sendRequest("list-geojson-files");
         });
 
+        const closeModal = document.getElementById('closeModal');
+        const popupModal = document.getElementById('popupModal');
+
+        closeModal.addEventListener('click', () => {
+          popupModal.classList.remove('is-active');
+        });
+
+        popupModal.querySelector('.modal-background').addEventListener('click', () => {
+          popupModal.classList.remove('is-active');
+        });
+
+        // Raw Data
+        const rawButton = document.getElementById("rawButton");
+        rawButton.addEventListener("click", async (event) => {
+            const geojsonObject = await RawFileRetrieve.retrieve(geojsonFileTable);
+            RawFileRetrieve.apply(geojsonObject);
+            popupModal.classList.add('is-active');
+        });
+
         // OpenLayers
         const geojsonMap = new GeojsonMap();
 
@@ -187,7 +255,8 @@
 
 
             const tabs = document.querySelectorAll(".tabs ul li");
-            const tables = document.querySelectorAll(".table");
+            const wiblDetailTable = document.getElementById("wibl-detail-table");
+            const geojsonDetailColumn = document.getElementById("geojson-detail-column");
             const map = document.getElementById("map");
 
             tabs.forEach(tab => {
@@ -195,7 +264,8 @@
                     tabs.forEach(t => t.classList.remove("is-active"));
                     this.classList.add("is-active");
 
-                    tables.forEach(table => table.classList.add("is-hidden"));
+                    wiblDetailTable.classList.add("is-hidden");
+                    geojsonDetailColumn.classList.add("is-hidden");
                     map.classList.add("is-hidden");
 
                     const target = this.getAttribute("data-target");
