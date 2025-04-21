@@ -241,19 +241,23 @@
         // Raw Data
         const rawButton = document.getElementById("rawButton");
         rawButton.addEventListener("click", async (event) => {
+            // Queries for the raw JSON from the manager
             const geojsonObject = await RawFileRetrieve.retrieve(geojsonFileTable);
+            // Apply the content to the modal
             RawFileRetrieve.apply(geojsonObject);
+            // Display the Bulma modal
             popupModal.classList.add('is-active');
         });
 
-        // OpenLayers
+        // Create a globally accessible reference to the geojsonMap
         const geojsonMap = new GeojsonMap();
 
         document.addEventListener("DOMContentLoaded", function () {
 
+            // Configure the Open Layers map
             geojsonMap.init(geojsonFileTable);
 
-
+            // Configure the detail tabs
             const tabs = document.querySelectorAll(".tabs ul li");
             const wiblDetailTable = document.getElementById("wibl-detail-table");
             const geojsonDetailColumn = document.getElementById("geojson-detail-column");
@@ -274,8 +278,10 @@
             });
         });
 
-        // Delete button logic
-        // Must be in index so it can use the wsURL context provided by the index view
+        /*
+        * Delete button logic
+        * Must be in index so it can use the wsURL context provided by the index view.
+        */
         const deleteButton = document.getElementById("deleteButton");
         deleteButton.addEventListener("click", (event) => {
             let wiblResult = wiblFileTable.getSelectedFiles(0);
@@ -358,6 +364,11 @@
                                  }
                             });
                         }
+
+                        /*
+                        * This section reuses a large amount of code depending on the file type.
+                        * Can be made cleaner.
+                        */
                         setTimeout(() => {
                             if (fileTable instanceof WIBLFileTable) {
                                 const wiblSockType = "wibl";

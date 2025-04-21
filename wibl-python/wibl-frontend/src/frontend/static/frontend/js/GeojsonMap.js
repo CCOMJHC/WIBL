@@ -8,6 +8,7 @@ export class GeojsonMap {
     content = null;
     closer = null;
 
+    // Places the data inside the detail popup.
     renderTable(data, container) {
         const tableHTML = `
             <table class="table is-bordered">
@@ -29,6 +30,7 @@ export class GeojsonMap {
         container.innerHTML = tableHTML;
     }
 
+    // Returns the "extent" (outer x/y boundary) of the given feature list
     getFeaturesExtent(features) {
         let extent = features[0].getGeometry().getExtent();
 
@@ -39,6 +41,7 @@ export class GeojsonMap {
         return extent;
     }
 
+    // Returns the proper zoom level depending the the given feature list.
     calculateZoom(map, features) {
         const extent = this.getFeaturesExtent(features);
         const mapSize = map.getSize();
@@ -49,8 +52,12 @@ export class GeojsonMap {
         return view.getZoomForResolution(resolution);
     }
 
+
     async loadGeojson(map, fileid) {
+
         let layers = map.getLayers();
+
+        // Reset map back to initial layer.
         for (let layer of layers.array_) {
             if (layer.className_ !== "ol-layer") {
                 map.removeLayer(layer);
@@ -63,7 +70,10 @@ export class GeojsonMap {
             }
             const geojsonObject = await res.json();
 
+            // Configure a geojson formatter tool from OpenLayers
             const geojsonFormat = new ol.format.GeoJSON();
+
+            // Return a list of features based on the manager response
             const features = geojsonFormat.readFeatures(geojsonObject.geojson, {
                 featureProjection: 'EPSG:4326'
             });
@@ -74,6 +84,7 @@ export class GeojsonMap {
             let all_X_Coordinates = 0;
             let all_Y_Coordinates = 0;
 
+            // Calculate the average x and y location
             for (let feature of features) {
                 let coordinates = feature.getGeometry().getCoordinates();
                 all_X_Coordinates += coordinates[0];
@@ -83,6 +94,7 @@ export class GeojsonMap {
             avg_X = all_X_Coordinates / features.length;
             avg_Y = all_Y_Coordinates / features.length;
 
+            // Create the map layer using the feature list.
             const vectorSource = new ol.source.Vector({
                 features: features
             });
@@ -94,10 +106,12 @@ export class GeojsonMap {
 
             map.addLayer(vectorLayer);
 
+            // Configure the map view to match the features.
             map.getView().setCenter([avg_X, avg_Y]);
             const zoom = this.calculateZoom(map, features);
             map.getView().setZoom(zoom == 0 ? zoom: zoom - 1);
 
+            // Add a selection interaction to each map feature.
             const selectInteraction = new ol.interaction.Select({
                 condition: ol.events.condition.click,
                 layers: [vectorLayer]
@@ -107,10 +121,15 @@ export class GeojsonMap {
 
             selectInteraction.on('select', (event) => {
                 if (event.selected.length > 0) {
+                    // Grab the selected feature
                     const feature = event.selected[0];
                     const properties = feature.getProperties();
                     delete properties.geometry;
 
+                    /*
+                     * Place the popup window at the features location
+                     * and fill window with it's properties.
+                    */
                     let coordinates = feature.getGeometry().getCoordinates();
                     this.renderTable(properties, this.content);
                     this.overlay.setPosition(coordinates);
@@ -128,13 +147,14 @@ export class GeojsonMap {
         }
     }
 
+    // Initialization of the geojson map.
     init(geojsonFileTable) {
         this.mapButton = document.getElementById("mapButton");
         this.container = document.getElementById('popup');
         this.content = document.getElementById('popup-content');
         this.closer = document.getElementById('popup-closer');
 
-
+        // If the "map files" button is selected, change the current tab to the map.
         mapButton.addEventListener("click", (event) => {
             const files = geojsonFileTable.getSelectedFiles(3);
 
@@ -153,11 +173,12 @@ export class GeojsonMap {
             }
         });
 
+        // Create the initial map.
         this.overlay = new ol.Overlay({
               element: this.container,
               autoPan: {
                   animation: {
-                    duration: 250,
+                    duration: 1000,
                   },
               },
         });
