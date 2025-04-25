@@ -252,6 +252,9 @@ root of the GeoJSON object to be specified and copied into B-12 GeoJSON encoding
 }
 ```
 
+> Note: The `"crs"` object in the above metadata example is optional. If not supplied, the GeoJSON default
+> CRS of EPSG:4326 (WGS84) will be used.
+
 Starting with `wibl-python` 1.1.0, the OpenVBI-compatible format must be used; using the old `wibl-python` 1.0.4
 format will result in the creation of GeoJSON files that are not valid. See 
 [convert-md-openvbi.py](scripts/convert-md-openvbi.py) to perform automated conversion of existing metadata
