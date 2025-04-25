@@ -159,24 +159,26 @@ $ wibl datasim -f test.bin -d 360 -s
 For more information on simulator, use the `-h` option:
 ```
 $ wibl datasim -h
-usage: wibl datasim [-h] [-f FILENAME] [-d DURATION] [-s] [-b] [--use_buffer_constructor]
-                    [--duplicate_depth_prob DUPLICATE_DEPTH_PROB] [-v]
+usage: wibl datasim [-h] [-f FILENAME] [-d DURATION] [-s] [-b] [--use_buffer_constructor] [--duplicate_depth_prob DUPLICATE_DEPTH_PROB]
+                    [--no_data_prob NO_DATA_PROB] [-v]
 
 Command line user interface for the NMEA data simulator.
 
 options:
   -h, --help            show this help message and exit
-  -f FILENAME, --filename FILENAME
+  -f, --filename FILENAME
                         Simulated data output filename
-  -d DURATION, --duration DURATION
+  -d, --duration DURATION
                         Duration (seconds) of the simulated data
   -s, --emit_serial     Write NMEA0183 simulated strings
   -b, --emit_binary     Write NMEA2000 simulated data packets
   --use_buffer_constructor
-                        Use buffer constructor, rather than data constructor, for data packets. If not specified, data
-                        constructor will be used.
+                        Use buffer constructor, rather than data constructor, for data packets. If not specified, data constructor will
+                        be used.
   --duplicate_depth_prob DUPLICATE_DEPTH_PROB
                         Probability of generating duplicate depth values. Default: 0.0
+  --no_data_prob NO_DATA_PROB
+                        Probability of generating no-data values for system time, position, and depth packets. Default: 0.0
   -v, --verbose         Produce verbose output.
 ```
 
