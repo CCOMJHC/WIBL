@@ -117,8 +117,6 @@ def translate(data: Dict[str,Any], lineage: Lineage, filename: str, config: Dict
                 "uniqueID":                     data['loggername'],
                 "type":                         "Ship",
                 "name":                         data['platform'],
-                "IDType":                       "LoggerName",
-                "IDNumber":                     data['loggername'],
                 "soundSpeedDocumented":         False,
                 "positionOffsetsDocumented":    False,
                 "dataProcessed":                False
@@ -132,7 +130,7 @@ def translate(data: Dict[str,Any], lineage: Lineage, filename: str, config: Dict
         if 'crs' in meta:
             # If 'crs' metadata have been provided, use that instead of the default defined above in ``final_json_dict``.
             # Note: we can't just blindly merge elements from the root of ``data['metadata']``
-            # as it could contain a GeoJSON metadata, such as "type" != "FeatureCollection", which would not be valid.
+            # as it could contain GeoJSON metadata that would not be valid, such as "type" != "FeatureCollection".
             final_json_dict['crs'] = meta['crs']
         if 'properties' in meta:
             # For the remaining metadata objects stored in properties, simply deep merge these with the defaults
