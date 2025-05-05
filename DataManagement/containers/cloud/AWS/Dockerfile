@@ -5,16 +5,17 @@ RUN dnf -y install wget tar gzip bzip2 clang cmake ninja-build m4 boost-devel bo
     libxml2-devel sqlite-devel expat-devel libcurl-devel zlib-devel libtiff-devel libpng-devel libjpeg-turbo-devel
 # Note: for runtime, only boost-program-options should be needed.
 
+ENV CC=/usr/bin/clang
+ENV CXX=/usr/bin/clang++
+
 # Checkout WIBL repo so that we can build LogConvert and install wibl-python
-ENV WIBL_COMMIT_ID=4db290d2e89e498010b85b6d61f8249d3a370c4f
-ENV WIBL_COMMIT_ID_SHORT=4db290d2e89e
+ENV version=1.1.0
 WORKDIR /usr/src/wibl
-RUN wget https://bitbucket.org/ccomjhc/wibl/get/${WIBL_COMMIT_ID}.tar.gz \
-    -O wibl-${WIBL_COMMIT_ID}.tar.gz
-RUN echo "b969b403100f5fec31337f600cfe8bc0fe4c85889f2439a619bc6fda7a75852c  wibl-4db290d2e89e498010b85b6d61f8249d3a370c4f.tar.gz" > wibl-${WIBL_COMMIT_ID}.tar.gz.sum
-RUN sha256sum -c wibl-${WIBL_COMMIT_ID}.tar.gz.sum
-RUN tar xf wibl-${WIBL_COMMIT_ID}.tar.gz
-ENV WIBL_SRC=/usr/src/wibl/ccomjhc-wibl-${WIBL_COMMIT_ID_SHORT}
+RUN wget https://github.com/CCOMJHC/WIBL/archive/refs/tags/wibl-python-${version}.tar.gz
+RUN echo "3243a97b9b38c0a7270e09e70890cc006d7eb40f605ef259f3ced81c51f10974  wibl-python-1.1.0.tar.gz" > wibl-python-${version}.tar.gz.sum
+RUN sha256sum -c wibl-python-${version}.tar.gz.sum
+RUN tar xf wibl-python-${version}.tar.gz
+ENV WIBL_SRC=/usr/src/wibl/WIBL-wibl-python-${version}
 
 # Install NMEA200 library
 WORKDIR /usr/src/NMEA2000
@@ -48,7 +49,7 @@ RUN tar xf geos-3.12.1.tar.bz2
 WORKDIR /usr/src/geos/geos-3.12.1
 RUN mkdir build
 WORKDIR /usr/src/geos/geos-3.12.1/build
-RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_POSITION_INDEPENDENT_CODE=ON && \
     cmake --build . -j && \
     cmake --build . --target install
 
@@ -61,7 +62,7 @@ RUN tar xf proj-9.3.1.tar.gz
 WORKDIR /usr/src/proj/proj-9.3.1
 RUN mkdir build
 WORKDIR /usr/src/proj/proj-9.3.1/build
-RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_POSITION_INDEPENDENT_CODE=ON && \
     cmake --build . -j && \
     cmake --build . --target install
 
@@ -74,7 +75,7 @@ RUN tar xf hdf5-1.14.3.tar.bz2
 WORKDIR /usr/src/hdf5/hdf5-1.14.3
 RUN mkdir build
 WORKDIR /usr/src/hdf5/hdf5-1.14.3/build
-RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_POSITION_INDEPENDENT_CODE=ON && \
     cmake --build . -j && \
     cmake --build . --target install
 
@@ -87,7 +88,7 @@ RUN tar xf netcdf-c-4.9.2.tar.gz
 WORKDIR /usr/src/netcdf/netcdf-c-4.9.2
 RUN mkdir build
 WORKDIR /usr/src/netcdf/netcdf-c-4.9.2/build
-RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_POSITION_INDEPENDENT_CODE=ON && \
     cmake --build . -j && \
     cmake --build . --target install
 
@@ -100,21 +101,20 @@ RUN tar xf libgeotiff-1.7.1.tar.gz
 WORKDIR /usr/src/libgeotiff/libgeotiff-1.7.1
 RUN mkdir build
 WORKDIR /usr/src/libgeotiff/libgeotiff-1.7.1/build
-RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_POSITION_INDEPENDENT_CODE=ON && \
     cmake --build . -j && \
     cmake --build . --target install
 
 # Download, build, and install GDAL
 WORKDIR /usr/src/gdal
-RUN wget https://github.com/OSGeo/gdal/releases/download/v3.8.2/gdal-3.8.2.tar.gz
-RUN echo "e914690d2694671d75bab15b451a42c2f115d7267a5b600eb361e94b58a089d6  gdal-3.8.2.tar.gz" > gdal-3.8.2.tar.gz.sum
-RUN sha256sum -c gdal-3.8.2.tar.gz.sum
-RUN tar xf gdal-3.8.2.tar.gz
-WORKDIR /usr/src/gdal/gdal-3.8.2
+RUN wget https://github.com/OSGeo/gdal/releases/download/v3.10.3/gdal-3.10.3.tar.gz
+RUN echo "e4bf7f104acbcb3e2d16c97fd1af2b92b28d0ba59d17d976e3ef08b794f4153b  gdal-3.10.3.tar.gz" > gdal-3.10.3.tar.gz.sum
+RUN sha256sum -c gdal-3.10.3.tar.gz.sum
+RUN tar xf gdal-3.10.3.tar.gz
+WORKDIR /usr/src/gdal/gdal-3.10.3
 RUN mkdir build
-WORKDIR /usr/src/gdal/gdal-3.8.2/build
-# Don't build GDAL with -j (parallel) as it seems to break
-RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+WORKDIR /usr/src/gdal/gdal-3.10.3/build
+RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_POSITION_INDEPENDENT_CODE=ON && \
     cmake --build . -j && \
     cmake --build . --target install
 
@@ -140,7 +140,7 @@ RUN tar xf gmt-6.5.0-src.tar.gz
 WORKDIR /usr/src/gmt/gmt-6.5.0
 RUN mkdir build
 WORKDIR /usr/src/gmt/gmt-6.5.0/build
-RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_PREFIX=/usr \
+RUN cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
       -DDCW_ROOT=$DCW_ROOT -DGSHHG_ROOT=$GSHHG_ROOT && \
     cmake --build . -j && \
     cmake --build . --target install
