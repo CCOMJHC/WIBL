@@ -2,8 +2,8 @@
 This page describes how to use WIBL base container imagers for running WIBL
 in Docker or other container runtime environments.
 
-There are currently two tags for the WIBL container image: `1.0.4-amazonlinux`
-and `1.0.4`, which at present reference the same image. For more information
+There are currently two tags for the WIBL container image: `1.1.0-amazonlinux`
+and `1.1.0`, which at present reference the same image. For more information
 see [here](https://github.com/CCOMJHC/WIBL/pkgs/container/wibl). In the 
 future these may be separated into distinct images for those not using
 Amazon Linux.
@@ -19,13 +19,13 @@ To see how the WIBL container image was built, see [BUILDING.md](BUILDING.md).
 To run a `wibl-python` command within the container while reading and
 writing data from a directory on your host computer, do the following:
 ```shell
-$ docker run -v ./:/var/wibl -ti ghcr.io/ccomjhc/wibl:1.0.4 'wibl datasim -f test.bin -d 360 -b'
+$ docker run -v ./:/var/wibl -ti ghcr.io/ccomjhc/wibl:1.1.0 'wibl datasim -f test.bin -d 360 -b'
 ...
 INFO:wibl.command.datasim:Step to time: 359000000
 INFO:wibl.command.datasim:Step to time: 359157800
 INFO:wibl.command.datasim:Step to time: 360000000
 INFO:wibl.command.datasim:Total iterations: 600
-$ docker run -v ./:/var/wibl -ti ghcr.io/ccomjhc/wibl:1.0.4 'wibl editwibl -m sensor-inject.json test.bin test-inject.bin'
+$ docker run -v ./:/var/wibl -ti ghcr.io/ccomjhc/wibl:1.1.0 'wibl editwibl -m sensor-inject.json test.bin test-inject.bin'
 ...
 ```
 
@@ -39,7 +39,7 @@ Since it can be error-prone to specify the full `docker run` command each
 time you run a `wibl-python` command, it can be easier to open a shell
 in the `wibl-base` container, then run multiple `wibl` commands:
 ```shell
-$ docker run -v ./:/var/wibl -ti ghcr.io/ccomjhc/wibl:1.0.4
+$ docker run -v ./:/var/wibl -ti ghcr.io/ccomjhc/wibl:1.1.0
 bash-5.2# wibl datasim -f test.bin -d 360 -b
 ...
 INFO:wibl.command.datasim:Step to time: 359000000
@@ -56,7 +56,7 @@ exit
 To build your own image based off of the WIBL image, make a `Dockerfile` that
 begins with the following:
 ```Dockerfile
-FROM ghcr.io/ccomjhc/wibl:1.0.4
+FROM ghcr.io/ccomjhc/wibl:1.1.0
 ...
 ```
 
@@ -65,7 +65,7 @@ Assuming you have a Zip file named `ydvr-test.zip` (containing one or more YDVR 
 of your host computer, you can batch convert these files to WIBL format using the `convertToWibl.ps1` PowerShell
 script:
 ```shell
-$ docker run -v ./:/var/wibl -ti ghcr.io/ccomjhc/wibl:1.0.4
+$ docker run -v ./:/var/wibl -ti ghcr.io/ccomjhc/wibl:1.1.0
 bash-5.2# pwsh /opt/bin/convertToWibl.ps1 -Source ydvr-test.zip -OutputFolder wibl-test -LogConvertPath /usr/local/bin/logconvert -Format YDVR -verbose -debug
 VERBOSE: Preparing to expand...
 VERBOSE: Created '/var/wibl/test/wibl-test/00020001.DAT'.                                                             
