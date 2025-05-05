@@ -35,6 +35,8 @@ import json
 from datetime import datetime, timezone
 from typing import Dict, Any
 
+import deepmerge
+
 from wibl.core import getenv, Lineage
 from wibl.core.algorithm import AlgorithmPhase
 from wibl.core.algorithm.runner import run_algorithms
@@ -115,8 +117,6 @@ def translate(data: Dict[str,Any], lineage: Lineage, filename: str, config: Dict
                 "uniqueID":                     data['loggername'],
                 "type":                         "Ship",
                 "name":                         data['platform'],
-                "IDType":                       "LoggerName",
-                "IDNumber":                     data['loggername'],
                 "soundSpeedDocumented":         False,
                 "positionOffsetsDocumented":    False,
                 "dataProcessed":                False
@@ -127,19 +127,16 @@ def translate(data: Dict[str,Any], lineage: Lineage, filename: str, config: Dict
 
     if data['metadata'] is not None:
         meta = json.loads(data['metadata'])
-        if 'platform' in meta:
-            for k,v in meta['platform'].items():
-                final_json_dict['properties']['platform'][k] = v
-        if 'trustedNode' in meta:
-            for k,v in meta['trustedNode'].items():
-                final_json_dict['properties']['trustedNode'][k] = v
-        if 'processing' in meta:
-            final_json_dict['properties']['processing'] = []
-            for event in meta['processing']:
-                final_json_dict['properties']['processing'].append(event)
-        if 'processing' in final_json_dict['properties'] and len(final_json_dict['properties']['processing']) > 0:
-            final_json_dict['properties']['platform']['dataProcessed'] = True
-    
+        if 'crs' in meta:
+            # If 'crs' metadata have been provided, use that instead of the default defined above in ``final_json_dict``.
+            # Note: we can't just blindly merge elements from the root of ``data['metadata']``
+            # as it could contain GeoJSON metadata that would not be valid, such as "type" != "FeatureCollection".
+            final_json_dict['crs'] = meta['crs']
+        if 'properties' in meta:
+            # For the remaining metadata objects stored in properties, simply deep merge these with the defaults
+            # defined above in ``final_json_dict``.
+            deepmerge.always_merger.merge(final_json_dict['properties'], meta['properties'])
+
     # The database requires that the unique ID contains the provider's ID, presumably to avoid
     # namespace clashes.  We therefore check now (after the platform metadata is finalised) to make
     # sure that this is the case.
@@ -168,5 +165,10 @@ def translate(data: Dict[str,Any], lineage: Lineage, filename: str, config: Dict
         if 'processing' not in final_json_dict['properties']:
             final_json_dict['properties']['processing'] = []
         final_json_dict['properties']['processing'] += data['lineage']
+
+    if 'processing' in final_json_dict['properties'] and len(final_json_dict['properties']['processing']) > 0:
+        # Make sure /properties/platform/dataProcessed flag reflects the presence of /properties/processing children
+        # after all potential processing has been done.
+        final_json_dict['properties']['platform']['dataProcessed'] = True
 
     return final_json_dict

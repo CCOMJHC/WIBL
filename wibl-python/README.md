@@ -159,24 +159,26 @@ $ wibl datasim -f test.bin -d 360 -s
 For more information on simulator, use the `-h` option:
 ```
 $ wibl datasim -h
-usage: wibl datasim [-h] [-f FILENAME] [-d DURATION] [-s] [-b] [--use_buffer_constructor]
-                    [--duplicate_depth_prob DUPLICATE_DEPTH_PROB] [-v]
+usage: wibl datasim [-h] [-f FILENAME] [-d DURATION] [-s] [-b] [--use_buffer_constructor] [--duplicate_depth_prob DUPLICATE_DEPTH_PROB]
+                    [--no_data_prob NO_DATA_PROB] [-v]
 
 Command line user interface for the NMEA data simulator.
 
 options:
   -h, --help            show this help message and exit
-  -f FILENAME, --filename FILENAME
+  -f, --filename FILENAME
                         Simulated data output filename
-  -d DURATION, --duration DURATION
+  -d, --duration DURATION
                         Duration (seconds) of the simulated data
   -s, --emit_serial     Write NMEA0183 simulated strings
   -b, --emit_binary     Write NMEA2000 simulated data packets
   --use_buffer_constructor
-                        Use buffer constructor, rather than data constructor, for data packets. If not specified, data
-                        constructor will be used.
+                        Use buffer constructor, rather than data constructor, for data packets. If not specified, data constructor will
+                        be used.
   --duplicate_depth_prob DUPLICATE_DEPTH_PROB
                         Probability of generating duplicate depth values. Default: 0.0
+  --no_data_prob NO_DATA_PROB
+                        Probability of generating no-data values for system time, position, and depth packets. Default: 0.0
   -v, --verbose         Produce verbose output.
 ```
 
@@ -195,6 +197,89 @@ $ wibl procwibl -c tests/data/configure.local.json test-inject.bin test-inject.g
 > Note: It is necessary to supply a configuration JSON file with the `local` attribute
 > set to `true`, such as `tests/data/configure.local.json`, because `procwibl` uses
 > the same code as the conversion processing lambda code run in the cloud.
+
+#### Note on metadata format
+In versions of `wibl-python` previous to 1.1.0 (run `wibl --version` to find out what version you have), B-12 metadata 
+elements embedded in WIBL files (whether included by a WIBL logger or added later using `editwibl`) were stored at the 
+root, so:
+```json
+{
+    "trustedNode": {
+        "providerOrganizationName": "",
+        "providerEmail": "",
+        "uniqueVesselID": "",
+        "providerLogger": "",
+        "providerLoggerVersion": ""
+    },
+    "platform": {
+        "length":   0,
+        "IDType":   "",
+        "IDNumber": "",
+        "soundSpeedDocumented":     false,
+        "postionOffsetsDocumented": false,
+        "dataProcessed":            false
+    }
+}
+```
+
+However, this is not compatible with how metadata are handled by OpenVBI, which expects B-12 metadata 
+that are to be included in GeoJSON representations to be nested in the "properties" object at the root 
+of the GeoJSON object. Further, OpenVBI allows non-B-12 GeoJSON metadata (namely "crs") stored at the 
+root of the GeoJSON object to be specified and copied into B-12 GeoJSON encoding. For example:
+```json
+{
+    "crs": {
+        "type": "name",
+        "properties": {
+          "name": "EPSG:4269"
+        }
+    },
+    "properties": {
+        "trustedNode": {
+            "providerOrganizationName": "",
+            "providerEmail": "",
+            "uniqueVesselID": "",
+            "providerLogger": "",
+            "providerLoggerVersion": ""
+        },
+        "platform": {
+            "length": 0,
+            "IDType": "",
+            "IDNumber": "",
+            "soundSpeedDocumented": false,
+            "postionOffsetsDocumented": false,
+            "dataProcessed": false
+        }
+    }
+}
+```
+
+> Note: The `"crs"` object in the above metadata example is optional. If not supplied, the GeoJSON default
+> CRS of EPSG:4326 (WGS84) will be used.
+
+Starting with `wibl-python` 1.1.0, the OpenVBI-compatible format must be used; using the old `wibl-python` 1.0.4
+format will result in the creation of GeoJSON files that are not valid. See 
+[convert-md-openvbi.py](scripts/convert-md-openvbi.py) to perform automated conversion of existing metadata
+JSON templates into the new format, for example:
+```shell
+$ python3 scripts/convert-md-openvbi.py --help
+usage: convert-md-openvbi.py [-h] input_dir output_dir
+
+Convert JSON files in a directory to OpenVBI B-12 metadata format
+
+positional arguments:
+  input_dir   Input directory containing B-12 JSON metadata in WIBL 1.0.4 format
+  output_dir  Name of directory to write B-12 JSON metadata in OpenVBI/WIBL 1.1.0 format. If directory does not exist it will be created.
+
+options:
+  -h, --help  show this help message and exit
+```
+
+Assuming you have B-12 metadata JSON files to be converted in a directory called 'my_metadata' in the current 
+directory and want to store converted files in a directory called 'my_new_metadata':
+```shell
+$ python3 scripts/convert-md-openvbi.py my_metadata my_new_metadata
+```
 
 ### Upload WIBL files into AWS S3 Buckets for processing
 Instead of using the mobile app (and for testing), WIBL binary files can be uploaded into a given S3 bucket to trigger processing.  If the file is being uploaded into the staging bucket (i.e., to test transfer to DCDB), a '.json' extension must be added (``-j|--json``), and the SourceID tag must be set (``-s|--source``) so that the submission Lambda can find this information.
