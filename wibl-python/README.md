@@ -188,16 +188,6 @@ Add platform metadata to existing binary WIBL file (e.g., from data simulator or
 $ wibl editwibl -m examples/ship-metadata-simple.json test.bin test-inject.bin
 ```
 
-### Process WIBL file into GeoJSON
-Convert a binary WIBL file into GeoJSON:
-```
-$ wibl procwibl -c tests/data/configure.local.json test-inject.bin test-inject.geojson
-```
-
-> Note: It is necessary to supply a configuration JSON file with the `local` attribute
-> set to `true`, such as `tests/data/configure.local.json`, because `procwibl` uses
-> the same code as the conversion processing lambda code run in the cloud.
-
 #### Note on metadata format
 In versions of `wibl-python` previous to 1.1.0 (run `wibl --version` to find out what version you have), B-12 metadata 
 elements embedded in WIBL files (whether included by a WIBL logger or added later using `editwibl`) were stored at the 
@@ -280,6 +270,16 @@ directory and want to store converted files in a directory called 'my_new_metada
 ```shell
 $ python3 scripts/convert-md-openvbi.py my_metadata my_new_metadata
 ```
+
+### Process WIBL file into GeoJSON
+Convert a binary WIBL file into GeoJSON:
+```
+$ wibl procwibl -c tests/data/configure.local.json test-inject.bin test-inject.geojson
+```
+
+> Note: It is necessary to supply a configuration JSON file with the `local` attribute
+> set to `true`, such as `tests/data/configure.local.json`, because `procwibl` uses
+> the same code as the conversion processing lambda code run in the cloud.
 
 ### Upload WIBL files into AWS S3 Buckets for processing
 Instead of using the mobile app (and for testing), WIBL binary files can be uploaded into a given S3 bucket to trigger processing.  If the file is being uploaded into the staging bucket (i.e., to test transfer to DCDB), a '.json' extension must be added (``-j|--json``), and the SourceID tag must be set (``-s|--source``) so that the submission Lambda can find this information.
