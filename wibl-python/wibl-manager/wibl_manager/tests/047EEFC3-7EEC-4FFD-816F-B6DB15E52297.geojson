@@ -1,0 +1,137 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "properties": {
+    "trustedNode": {
+      "providerOrganizationName": "Sea-ID",
+      "providerEmail": "support@sea-id.org",
+      "uniqueVesselID": "SEAID-e8c469f8-df38-11e5-b86d-9a79f06e9478",
+      "convention": "GeoJSON CSB 3.1",
+      "dataLicense": "CC0 1.0",
+      "providerLogger": "Rose Point ECS",
+      "providerLoggerVersion": "1.0",
+      "navigationCRS": "EPSG:4326",
+      "verticalReferenceOfDepth": "Transducer",
+      "vesselPositionReferencePoint": "GNSS"
+    },
+    "platform": {
+      "uniqueID": "SEAID-e8c469f8-df38-11e5-b86d-9a79f06e9478",
+      "type": "Private vessel",
+      "name": "White Rose of Drachs",
+      "length": 65,
+      "IDType": "MMSI",
+      "IDNumber": "369958000",
+      "sensors": [
+        {
+          "type": "Sounder",
+          "make": "Garmin",
+          "model": "GT-50",
+          "position": [
+            4.2,
+            0.0,
+            5.4
+          ],
+          "draft": 1.4,
+          "draftUncert": 0.2,
+          "frequency": 200000
+        },
+        {
+          "type": "GNSS",
+          "make": "Litton Marine Systems",
+          "model": "LMX420"
+        }
+      ],
+      "soundSpeedDocumented": true,
+      "positionOffsetsDocumented": true,
+      "dataProcessed": true,
+      "contributorComments": "On 2022-03-08, at 20:30 UTC, the echo sounder lost bottom tracking after the vessel crossed another vessel's wake."
+    },
+    "processing": [
+      {
+        "type": "CRSChange",
+        "timestamp": "2023-02-14T02:00:00.0000Z",
+        "original": "EPSG:4326",
+        "destination": "EPSG:8252",
+        "method": "GeoTrans"
+      },
+      {
+        "type": "VerticalReduction",
+        "timestamp": "2023-02-14T03:00:00.0000Z",
+        "reference": "ChartDatum",
+        "datum": "CANNORTH2016v1HyVSEP_NAD83v6_CD",
+        "method": "Predicted Waterlevel",
+        "model": "CANNORTH2016v1HyVSEP_NAD83v6_CD"
+      },
+      {
+        "type": "GNSS",
+        "timestamp": "2023-02-14T04:00:00.0000Z",
+        "algorithm": "RTKLib",
+        "version": "1.2.0"
+      },
+      {
+        "type": "SoundSpeed",
+        "timestamp": "2023-02-14T05:00:00.0000Z",
+        "source": "Model",
+        "method": "CIDCO-Ocean",
+        "version": "1.1.0"
+      },
+      {
+        "type": "Algorithm",
+        "timestamp": "2023-02-14T06:00:00.0000Z",
+        "name": "Deduplicate",
+        "parameters": {"a": 1.234, "b": 5.678},
+        "version": "1.0.0",
+        "comment": "A hypothetical deduplication algorithm."
+      }
+    ]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          41.914832,
+          18.005296
+        ]
+      },
+      "properties": {
+        "depth": 15.8,
+        "time": "2016-03-03T18:41:49.000Z"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          40.914789,
+          19.005552
+        ]
+      },
+      "properties": {
+        "depth": 15.2,
+        "time": "2016-03-03T18:41:50Z"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          40.941789,
+          19.105552
+        ]
+      },
+      "properties": {
+        "depth": 16.7,
+        "time": "2016-03-03T18:41:52.2342z"
+      }
+    }
+  ]
+}
