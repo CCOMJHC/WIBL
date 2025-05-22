@@ -103,11 +103,10 @@ function createJSONConfig() {
 }
 
 function parseConfigJSON(config) {
-    document.getElementById("unique-id").value = config.uniqueID;
-    document.getElementById("ship-name").value = config.shipname;
-
-    document.getElementById("bridge-port").value = config.udpbridge;
-
+    /* Checking the enable components first will cause the parse to fail if the JSON isn't
+     * in the right format, and therefore avoid the system resetting other components in
+     * the configuration and over-writing correct values.
+     */
     document.getElementById("nmea0183").checked = config.enable.nmea0183;
     document.getElementById("nmea2000").checked = config.enable.nmea2000;
     document.getElementById("imu").checked = config.enable.imu;
@@ -116,7 +115,12 @@ function parseConfigJSON(config) {
     document.getElementById("nmeabridge").checked = config.enable.udpbridge;
     document.getElementById("webserveronboot").checked = config.enable.webserver;
     document.getElementById("autoupload").value = config.enable.upload;
+    
+    document.getElementById("unique-id").value = config.uniqueID;
+    document.getElementById("ship-name").value = config.shipname;
 
+    document.getElementById("bridge-port").value = config.udpbridge;
+    
     document.getElementById("wifimode").value = config.wifi.mode;
     document.getElementById("retry-delay").value = config.wifi.station.delay;
     document.getElementById("retry-count").value = config.wifi.station.retries;
@@ -172,9 +176,18 @@ function loadConfigLocally() {
     updateText = function() {
         let reader = new FileReader();
         reader.readAsText(input.files[0]);
+        reader.onerror = function() {
+            console.log(reader.error);
+            window.alert('Failed on read: ' + reader.error.message);
+        }
         reader.onload = function() {
-            json = JSON.parse(reader.result);
-            parseConfigJSON(json);
+            try {
+                json = JSON.parse(reader.result);
+                parseConfigJSON(json);
+            } catch (error) {
+                console.log(error);
+                window.alert('Failed on load: ' + error.message);
+            }
         }
     }
     input.onchange = function() {
