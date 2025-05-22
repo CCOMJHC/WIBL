@@ -1,5 +1,5 @@
 async function sendCommand(cmdstr, timeout = 10) {
-    const url = 'http://192.168.4.1/command';
+    const url = 'http://' + location.host + '/command';
     let data = new FormData();
     data.append("command", cmdstr);
     let response = await fetch(url, {

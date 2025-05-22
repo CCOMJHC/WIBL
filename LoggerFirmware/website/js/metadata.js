@@ -7,14 +7,20 @@ function onUpload() {
     contents.readAsText(selectedFile);
     contents.onerror = function() {
         console.log(contents.error);
+        window.alert('Failed on read: ' + contents.error.message);
     }
     contents.onload = function() {
-        let dict = JSON.parse(contents.result);
-        let mapDict = JSON.stringify(dict);
-        sendCommand('metadata ' + mapDict).then((data) => {
-            mapDict = JSON.stringify(data, null, 2);
-            document.getElementById("metadata-output").innerHTML = mapDict;
-        });
+        try {
+            let dict = JSON.parse(contents.result);
+            let mapDict = JSON.stringify(dict);
+            sendCommand('metadata ' + mapDict).then((data) => {
+                mapDict = JSON.stringify(data, null, 2);
+                document.getElementById("metadata-output").innerHTML = mapDict;
+            });
+        } catch (error) {
+            console.error(error);
+            window.alert('Failed to upload JSON: ' + error.message);
+        }
     }
 }
 
