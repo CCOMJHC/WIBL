@@ -3,7 +3,6 @@ param(
   [string]$metadataFile,
   [string]$wiblConfig
 )
-
 Get-ChildItem -Path $wiblPath -Filter *.wibl -File -Recurse |
   ForEach-Object -Process {
     Write-Output "Input file name: $_"
