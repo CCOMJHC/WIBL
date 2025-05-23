@@ -28,6 +28,7 @@
 
 #include <WiFi.h>
 #include <WiFiAP.h>
+#include "ESPmDNS.h"
 #include <WebServer.h>
 #include <LittleFS.h>
 
@@ -160,6 +161,7 @@ public:
                 if (m_verbose) {
                     Serial.print("DBG: station connected to network, setting state to Connected.\n");
                 }
+                completeStationJoin();
                 break;
             case CONNECTION_CHECK:
                 // Once connected, we need to periodically check that we're still connected,
@@ -207,12 +209,21 @@ private:
         // logger first boots, the WIFi comes up with known SSID and password.
         if (ssid.length() == 0) ssid = "wibl-config";
         if (ssid.length() == 0) password = "wibl-config-password";
+        WiFi.softAPsetHostname("WIBL");
         WiFi.softAP(ssid.c_str(), password.c_str());
         WiFi.setSleep(false);
         IPAddress server_address = WiFi.softAPIP();
         logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WIFIIP_S, server_address.toString());
         if (m_verbose) {
             Serial.printf("DBG: started AP mode on %s:%s with IP %s.\n", ssid.c_str(), password.c_str(), server_address.toString().c_str());
+        }
+        startMBNSResponder();
+    }
+
+    void startMBNSResponder(void)
+    {
+        if (!MDNS.begin("logger")) {
+            Serial.print("ERR: failed to start mDNS responder ... you'll have to find the IP on your own!");
         }
     }
 
@@ -228,6 +239,7 @@ private:
             Serial.print("ERR: attempting to join a WiFi network as a station without a specified SSID\n");
             return false;
         }
+        WiFi.setHostname("WIBL");
         wl_status_t status = WiFi.begin(ssid.c_str(), password.c_str());
         WiFi.setSleep(false);
         m_lastConnectAttempt = millis();
@@ -237,13 +249,15 @@ private:
         return status == WL_CONNECTED;
     }
 
-    void completeStationJoint(void)
+    void completeStationJoin(void)
     {
-        IPAddress server_address = WiFi.softAPIP();
+        IPAddress server_address = WiFi.localIP();
+        const char *hostname = WiFi.getHostname();
         logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WIFIIP_S, server_address.toString());
         if (m_verbose) {
-            Serial.printf("DBG: completing station join at IP %s\n", server_address.toString().c_str());
+            Serial.printf("DBG: completing station join at IP %s, hostname reported as |%s|\n", server_address.toString().c_str(), hostname);
         }
+        startMBNSResponder();
     }
 
     bool isConnected(void)
