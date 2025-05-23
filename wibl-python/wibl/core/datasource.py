@@ -572,7 +572,10 @@ class LocalController(CloudController):
                             if self.verbose:
                                 print('error: unrecognised CSB metadata convention.')
                 info['sourceID'] = sourceID
-                info['logger'] = data['properties']['platform']['IDNumber']
+                if 'platform' in data['properties'] and 'IDNumber' in data['properties']['platform']:
+                    info['logger'] = data['properties']['platform']['IDNumber']
+                else:
+                    info['logger'] = 'wibl-logger'
                 info['soundings'] = len(data['features'])
         return meta.localname, info
 
