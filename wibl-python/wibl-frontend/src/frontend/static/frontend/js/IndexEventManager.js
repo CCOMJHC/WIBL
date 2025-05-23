@@ -47,3 +47,4 @@ downloadButton.addEventListener("click", (event) => {
         }
     }
 })
+
