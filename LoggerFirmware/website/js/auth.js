@@ -25,6 +25,7 @@ function onCertUpload() {
     contents.readAsText(selectedFile);
     contents.onerror = function() {
         console.log(contents.error);
+        window.alert('Failed on load: ' + contents.error.message);
     }
     contents.onload = function() {
         sendCommand('auth cert ' + contents.result).then((data) => {

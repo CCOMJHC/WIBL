@@ -1,5 +1,13 @@
 # Release Notes: Logger Firmware
 
+## Firmware 1.5.4
+
+Firmware 1.5.4 includes the following changes.
+
+* __Management Website Error Reporting__.  This adds reporting of errors (as modal dialog boxes) to the management website so that, e.g., bad JSON files don't cause silent failure in the JavaScript (the JSON is parsed so that it can be stringified) that causes confusion for the user (i.e., the upload appears to fail, but there's no clue as to why).
+* __Management Website Consistency__.  With previous versions of the management website, the configuration JSON was parsed in order from top to bottom of the HTML page.  If the JSON was not in the correct format, this could cause some of the elements in the display to be replaced with default values (often "undefined"), invalidating the configuration, before the parsing failed.  This version of the firmware parses the enable elements first, making it much more likely that a bad configuration file will be detected early.
+* __Consistent Logger Addressing__.  Previous version of the management website JavaScript used a fixed address for the logger when attempting to connect to the REST endpoint for commands.  On the logger's own WAP, this was sufficient, but it fails when the logger joins another WAP as a station.  The code now uses the `location.host` property in JavaScript to parse out the host's name or IP address, and assembles the endpoint URL from there, ensuring that the code adapts to the logger's environment.
+
 ## Firmware 1.5.3
 
 Firmware 1.5.3 includes the following changes:
