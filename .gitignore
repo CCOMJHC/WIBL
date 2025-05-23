@@ -51,3 +51,7 @@ Builds
 *.dep
 AWS/AWS-invite.eml
 AWS/Repo-information.eml
+
+# Local data and files
+**/local/
+**/tmp/

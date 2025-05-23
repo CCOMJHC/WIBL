@@ -18,7 +18,7 @@ Get-ChildItem -Path $inPath -Filter "*.$extension" -File -Recurse |
     Write-Output "Submitting file $_ to DCDB..."
     wibl dcdbupload $_ -a $authFile -c $configFile
     if ( -not ($LASTEXITCODE -eq 0) ) {
-      Write-Error "Error validating $_, exiting..."
+      Write-Error "Error submitting $_, exiting..."
       exit -1
     }
   }

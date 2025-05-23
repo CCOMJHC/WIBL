@@ -124,6 +124,9 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
         if config['verbose']:
             print(f'Transmitting for source ID {source_info["sourceID"]} to {upload_point} as destination ID {dest_uniqueID}.')
         response = requests.post(upload_point, headers=headers, files=files)
+        if config['verbose']:
+            print(f'Submission status for file {local_file} was {response.status_code}')
+            print(f'\tResponse text was: {response.text}')
         json_response = response.json()
         if config['verbose']:
             print(f'POST response is {json_response}')
