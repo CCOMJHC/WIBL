@@ -1,9 +1,9 @@
 {
     "version": {
-        "firmware":     "1.5.0",
+        "firmware":     "1.5.5",
         "commandproc":  "1.4.0",
         "nmea0183":     "1.0.1",
-        "nmea2000":     "1.0.0",
+        "nmea2000":     "1.1.0",
         "imu":          "1.0.0",
 		"serialiser":	"1.3"
     },
@@ -23,7 +23,8 @@
         "station": {
             "delay":    20,
             "retries":  5,
-            "timeout":  5
+            "timeout":  5,
+            "mdns":     "wibl"
         },
         "ssids": {
             "ap":       "wibl-config",

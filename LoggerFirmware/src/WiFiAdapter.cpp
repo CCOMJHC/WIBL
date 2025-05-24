@@ -209,20 +209,21 @@ private:
         // logger first boots, the WIFi comes up with known SSID and password.
         if (ssid.length() == 0) ssid = "wibl-config";
         if (ssid.length() == 0) password = "wibl-config-password";
-        WiFi.softAPsetHostname("WIBL");
         WiFi.softAP(ssid.c_str(), password.c_str());
         WiFi.setSleep(false);
         IPAddress server_address = WiFi.softAPIP();
         logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WIFIIP_S, server_address.toString());
         if (m_verbose) {
-            Serial.printf("DBG: started AP mode on %s:%s with IP %s.\n", ssid.c_str(), password.c_str(), server_address.toString().c_str());
+            Serial.printf("DBG: started AP mode on %s:%s with IP %s and hostname |%s|.\n", ssid.c_str(), password.c_str(), server_address.toString().c_str(), WiFi.softAPgetHostname());
         }
-        startMBNSResponder();
+        startMDNSResponder();
     }
 
-    void startMBNSResponder(void)
+    void startMDNSResponder(void)
     {
-        if (!MDNS.begin("logger")) {
+        String logger_name;
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_MDNS_NAME_S, logger_name);
+        if (!MDNS.begin(logger_name)) {
             Serial.print("ERR: failed to start mDNS responder ... you'll have to find the IP on your own!");
         }
     }
@@ -239,7 +240,6 @@ private:
             Serial.print("ERR: attempting to join a WiFi network as a station without a specified SSID\n");
             return false;
         }
-        WiFi.setHostname("WIBL");
         wl_status_t status = WiFi.begin(ssid.c_str(), password.c_str());
         WiFi.setSleep(false);
         m_lastConnectAttempt = millis();
@@ -252,12 +252,11 @@ private:
     void completeStationJoin(void)
     {
         IPAddress server_address = WiFi.localIP();
-        const char *hostname = WiFi.getHostname();
         logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WIFIIP_S, server_address.toString());
         if (m_verbose) {
-            Serial.printf("DBG: completing station join at IP %s, hostname reported as |%s|\n", server_address.toString().c_str(), hostname);
+            Serial.printf("DBG: completing station join at IP %s, hostname reported as |%s|\n", server_address.toString().c_str(), WiFi.getHostname());
         }
-        startMBNSResponder();
+        startMDNSResponder();
     }
 
     bool isConnected(void)
