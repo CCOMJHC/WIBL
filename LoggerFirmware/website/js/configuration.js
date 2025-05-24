@@ -42,6 +42,7 @@ function createJSONConfig() {
     const stationDelay = document.getElementById("retry-delay").value;
     const stationRetries = document.getElementById("retry-count").value;
     const stationTimeout = document.getElementById("join-timeout").value;
+    const mdnsName = document.getElementById("mdns-name").value;
     const apSSID = document.getElementById("ap-ssid").value;
     const stationSSID = document.getElementById("station-ssid").value;
     const apPassword = document.getElementById("ap-password").value;
@@ -75,7 +76,8 @@ function createJSONConfig() {
             "station": {
                 "delay": ${stationDelay},
                 "retries": ${stationRetries},
-                "timeout": ${stationTimeout}
+                "timeout": ${stationTimeout},
+                "mdns": "${mdnsName}"
             },
             "ssids": {
                 "ap": "${apSSID}",
@@ -125,6 +127,7 @@ function parseConfigJSON(config) {
     document.getElementById("retry-delay").value = config.wifi.station.delay;
     document.getElementById("retry-count").value = config.wifi.station.retries;
     document.getElementById("join-timeout").value = config.wifi.station.timeout;
+    document.getElementById("mdns-name").value = config.wifi.station.mdns;
     document.getElementById("ap-ssid").value = config.wifi.ssids.ap;
     document.getElementById("station-ssid").value = config.wifi.ssids.station;
     document.getElementById("ap-password").value = config.wifi.passwords.ap;

@@ -85,7 +85,8 @@ const String lookup[] = {
     "UploadTimeout",    ///< Timeout (seconds) for the upload server to respond to probe
     "UploadInterval",   ///< Interval (seconds) between upload attempts
     "UploadDuration",   ///< Time (seconds) for upload activity before diverting back to other efforts
-    "UploadCert"        ///< Certificate to pass to the upload server for TLS
+    "UploadCert",       ///< Certificate to pass to the upload server for TLS
+    "mDNSName"
 };
 
 /// Default constructor.  This sets up for a dummy parameter store, which is configured
@@ -227,7 +228,7 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
 
     // String configurations for the various parameters in configuration
     String wifi_station_delay, wifi_station_retries, wifi_station_timeout, wifi_ip_address, wifi_mode;
-    String wifi_ap_ssid, wifi_ap_password, wifi_station_ssid, wifi_station_password;
+    String wifi_ap_ssid, wifi_ap_password, wifi_station_ssid, wifi_station_password, wifi_station_mdns_name;
     String moduleid, shipname, baudrate_port1, baudrate_port2, udp_bridge_port;
 
     LoggerConfig.GetConfigString(Config::CONFIG_STATION_DELAY_S, wifi_station_delay);
@@ -239,6 +240,7 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     LoggerConfig.GetConfigString(Config::CONFIG_AP_PASSWD_S, wifi_ap_password);
     LoggerConfig.GetConfigString(Config::CONFIG_STATION_SSID_S, wifi_station_ssid);
     LoggerConfig.GetConfigString(Config::CONFIG_STATION_PASSWD_S, wifi_station_password);
+    LoggerConfig.GetConfigString(Config::CONFIG_MDNS_NAME_S, wifi_station_mdns_name);
     LoggerConfig.GetConfigString(Config::CONFIG_WIFIIP_S, wifi_ip_address);
     LoggerConfig.GetConfigString(Config::CONFIG_WIFIMODE_S, wifi_mode);
     LoggerConfig.GetConfigString(Config::CONFIG_BAUDRATE_1_S, baudrate_port1);
@@ -249,6 +251,7 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     params["wifi"]["station"]["delay"] = wifi_station_delay.toInt();
     params["wifi"]["station"]["retries"] = wifi_station_retries.toInt();
     params["wifi"]["station"]["timeout"] = wifi_station_timeout.toInt();
+    params["wifi"]["station"]["mdns"] = wifi_station_mdns_name;
     params["wifi"]["ssids"]["ap"] = wifi_ap_ssid;
     params["wifi"]["ssids"]["station"] = wifi_station_ssid;
     if (!secure) {
@@ -326,6 +329,8 @@ bool ConfigJSON::SetConfig(String const& json_string)
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_RETRIES_S, params["wifi"]["station"]["retries"]);
                 if (params["wifi"]["station"].containsKey("timeout"))
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_TIMEOUT_S, params["wifi"]["station"]["timeout"]);
+                if (params["wifi"]["station"].containsKey("mdns"))
+                    LoggerConfig.SetConfigString(Config::CONFIG_MDNS_NAME_S, params["wifi"]["station"]["mdns"]);
             }
             if (params["wifi"].containsKey("ssids")) {
                 if (params["wifi"]["ssids"].containsKey("ap"))
@@ -370,7 +375,7 @@ bool ConfigJSON::SetConfig(String const& json_string)
     return true;
 }
 
-static const char *stable_config = "{\"version\": {\"commandproc\": \"1.4.0\"}, \"enable\": {\"nmea0183\": true, \"nmea2000\": true, \"imu\": false, \"powermonitor\": false, \"sdmmc\": false, \"udpbridge\": false, \"webserver\": true, \"upload\": false}, \"wifi\": {\"mode\": \"AP\", \"address\": \"192.168.4.1\", \"station\": {\"delay\": 20, \"retries\": 5, \"timeout\": 5}, \"ssids\": {\"ap\": \"wibl-config\", \"station\": \"wibl-logger\"}, \"passwords\": {\"ap\": \"wibl-config-password\", \"station\": \"wibl-logger-password\"}}, \"uniqueID\": \"wibl-logger\", \"shipname\": \"Anonymous\", \"baudrate\": {\"port1\": 4800, \"port2\": 4800}, \"udpbridge\": 12345, \"upload\": {\"server\": \"192.168.4.2\", \"port\": 80, \"timeout\": 5.0, \"interval\": 1800.0, \"duration\": 10.0}}";
+static const char *stable_config = "{\"version\": {\"commandproc\": \"1.4.0\"}, \"enable\": {\"nmea0183\": true, \"nmea2000\": true, \"imu\": false, \"powermonitor\": false, \"sdmmc\": false, \"udpbridge\": false, \"webserver\": true, \"upload\": false}, \"wifi\": {\"mode\": \"AP\", \"address\": \"192.168.4.1\", \"station\": {\"delay\": 20, \"retries\": 5, \"timeout\": 5, \"mdns\": \"wibl\"}, \"ssids\": {\"ap\": \"wibl-config\", \"station\": \"wibl-logger\"}, \"passwords\": {\"ap\": \"wibl-config-password\", \"station\": \"wibl-logger-password\"}}, \"uniqueID\": \"TNODEID\", \"shipname\": \"Anonymous\", \"baudrate\": {\"port1\": 4800, \"port2\": 4800}, \"udpbridge\": 12345, \"upload\": {\"server\": \"192.168.4.2\", \"port\": 80, \"timeout\": 5.0, \"interval\": 1800.0, \"duration\": 10.0}}";
 
 bool ConfigJSON::SetStableConfig(void)
 {

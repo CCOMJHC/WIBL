@@ -172,6 +172,7 @@ class ConfigDBox:
         self.ap_passwd_var = tk.StringVar()
         self.station_ssid_var = tk.StringVar()
         self.station_passwd_var = tk.StringVar()
+        self.mdns_name_var = tk.StringVar()
         self.udpbridge_port_var = tk.IntVar()
 
         self.mode_label = tk.Label(self.wifi_frame, text='Mode')
@@ -216,6 +217,10 @@ class ConfigDBox:
         self.station_passwd_entry = tk.Entry(self.identity_frame, textvariable=self.station_passwd_var)
         self.station_passwd_label.grid(row=3, column=0, sticky='e')
         self.station_passwd_entry.grid(row=3, column=1, sticky='w')
+        self.mdns_name_label = tk.Label(self.identity_frame, text='mDNS Responder Name')
+        self.mdns_name_entry = tk.Entry(self.identity_frame, textvariable=self.mdns_name_var)
+        self.mdns_name_label.grid(row=4, column=0, sticky='e')
+        self.mdns_name_entry.grid(row=4, column=1, sticky='w')
 
         self.udpbridge_port_label = tk.Label(self.wifi_frame, text='UDP Bridge Port')
         self.udpbridge_port_entry = tk.Entry(self.wifi_frame, textvariable=self.udpbridge_port_var)
@@ -354,7 +359,8 @@ class ConfigDBox:
                 'station': {
                     'delay':    self.retry_delay_var.get(),
                     'retries':  self.retry_count_var.get(),
-                    'timeout':  self.join_timeout_var.get()
+                    'timeout':  self.join_timeout_var.get(),
+                    'mdns':     self.mdns_name_var.get()
                 },
                 'ssids': {
                     'ap':       self.ap_ssid_var.get(),
@@ -418,6 +424,7 @@ class ConfigDBox:
         self.retry_delay_var.set(config['wifi']['station']['delay'])
         self.retry_count_var.set(config['wifi']['station']['retries'])
         self.join_timeout_var.set(config['wifi']['station']['timeout'])
+        self.mdns_name_var.set(config['wifi']['station']['mdns'])
         self.ap_ssid_var.set(config['wifi']['ssids']['ap'])
         self.ap_passwd_var.set(config['wifi']['passwords']['ap'])
         self.station_ssid_var.set(config['wifi']['ssids']['station'])

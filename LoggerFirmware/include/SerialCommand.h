@@ -122,6 +122,10 @@ private:
     void SetWiFiPassword(String const& params, CommandSource src);
     /// \brief Get the WiFi password string
     void GetWiFiPassword(CommandSource src);
+    /// \brief Set the mDNS responder name for the WiFi system
+    void SetMDNSName(String const& params, CommandSource src);
+    /// \brief Get the mDNS responder name for the WiFi system
+    void GetMDNSName(CommandSource src);
     /// \brief Turn the WiFi interface either on or off
     void ManageWireless(String const& command, CommandSource src);
     /// \brief Send a log file to the client
