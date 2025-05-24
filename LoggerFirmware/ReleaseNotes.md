@@ -1,8 +1,16 @@
 # Release Notes: Logger Firmware
 
+## Firmware 1.5.5
+
+Firmware 1.5.5 includes the following changes:
+
+* __Multicast DNS Support__.  The firmware instantiates a multicast DNS responder when the WiFi interface starts, so that the logger can be found using the `name.local` protocol on any supporting browser (that's most of them now).  This works in AP or Station mode, and means that you don't need to know the IP address of the logger to find it.  The mDNS name is a parameter (set with `mdns` command to the logger, or the firmware website configuration page, or corresponding JSON).
+* __Default Unique ID__.  The logger now declares the unique ID for the logger to be a fixed (but invalid) string (`TNODEID` by default), since the previous version (`wibl-logger`) caused apparent failure of the generation mechanism in the firmware website (detail: having a hyphen in the name tells the JavaScript that it's a valid UUID and therefore shouldn't be changed!).
+* __Website Icon__.  The firmware website now includes a mechanism to store a small icon (favicon.ico) that most browsers will attempt to show in the tab used for the logger pages.
+
 ## Firmware 1.5.4
 
-Firmware 1.5.4 includes the following changes.
+Firmware 1.5.4 includes the following changes:
 
 * __Management Website Error Reporting__.  This adds reporting of errors (as modal dialog boxes) to the management website so that, e.g., bad JSON files don't cause silent failure in the JavaScript (the JSON is parsed so that it can be stringified) that causes confusion for the user (i.e., the upload appears to fail, but there's no clue as to why).
 * __Management Website Consistency__.  With previous versions of the management website, the configuration JSON was parsed in order from top to bottom of the HTML page.  If the JSON was not in the correct format, this could cause some of the elements in the display to be replaced with default values (often "undefined"), invalidating the configuration, before the parsing failed.  This version of the firmware parses the enable elements first, making it much more likely that a bad configuration file will be detected early.
