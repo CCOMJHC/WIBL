@@ -1,3 +1,5 @@
+
+# Conversion Lambda
 resource "aws_lambda_function" "conversion_lambda" {
     filename = "test_payload.zip"
     function_name = var.conversion_lambda_name
@@ -30,9 +32,13 @@ resource "aws_lambda_permission" "conversion_allow_sns" {
   principal = "sns.amazonaws.com"
   source_arn = var.conversion_topic_arn
   action = "lambda:InvokeFunction"
+  source_account = var.account_number
 }
 
+
+# Validation Lambda
 resource "aws_lambda_function" "validation_lambda" {
+  filename = "test_payload.zip"
   function_name = var.validation_lambda_name
   role = aws_iam_role.validation_lambda_role.arn
   handler = "wibl.validation.cloud.aws.lambda_function.lambda_handler"
@@ -63,9 +69,12 @@ resource "aws_lambda_permission" "validation_allow_sns" {
   principal = "sns.amazonaws.com"
   source_arn = var.validation_topic_arn
   action = "lambda:InvokeFunction"
+  source_account = var.account_number
 }
 
+# Submission Lambda
 resource "aws_lambda_function" "submission_lambda" {
+  filename = "test_payload.zip"
   function_name = var.submission_lambda_name
   role = aws_iam_role.submission_lambda_role.arn
   handler = "wibl.submission.cloud.aws.lambda_function.lambda_handler"
@@ -97,9 +106,12 @@ resource "aws_lambda_permission" "submission_allow_sns" {
   principal = "sns.amazonaws.com"
   source_arn = var.submission_topic_arn
   action = "lambda:InvokeFunction"
+  source_account = var.account_number
 }
 
+# Conversion Start Lambda
 resource "aws_lambda_function" "conversion_start_lambda" {
+  filename = "test_payload.zip"
   function_name = var.conversion_start_lambda_name
   role = aws_iam_role.conversion_start_lambda_role.arn
   handler = "wibl.upload.cloud.aws.lambda_function.lambda_handler"
@@ -138,5 +150,36 @@ resource "aws_lambda_function_url" "conversion_start_lambda_url" {
   authorization_type = "NONE"
 }
 
+resource "aws_s3_bucket_notification" "s3-notification" {
+  bucket = var.incoming_bucket_arn
 
+  topic {
+    events = ["s3:ObjectCreated:Put",
+              "s3:ObjectCreated:CompleteMultipartUpload"]
+    topic_arn = var.conversion_topic_arn
+  }
+}
+
+resource "aws_sns_topic_policy" "sns_policy_attach" {
+  arn    = var.conversion_topic_arn
+  policy = aws_sns_topic_policy.conversion-topic-access-policy.arn
+}
+
+resource "aws_sns_topic_subscription" "sns_conversion_subscribe" {
+    protocol = "lambda"
+    topic_arn = var.conversion_topic_arn
+    endpoint = aws_lambda_function.conversion_lambda.arn
+}
+
+resource "aws_sns_topic_subscription" "sns_validation_subscribe" {
+    protocol = "lambda"
+    topic_arn = var.validation_topic_arn
+    endpoint = aws_lambda_function.validation_lambda.arn
+}
+
+resource "aws_sns_topic_subscription" "sns_submission_subscribe" {
+    protocol = "lambda"
+    topic_arn = var.submission_topic_arn
+    endpoint = aws_lambda_function.submission_lambda.arn
+}
 

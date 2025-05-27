@@ -69,7 +69,7 @@ variable "python_version" {
 
 variable "lambda_memory_size" {
     type = number
-    default = 0
+    default = 128
 }
 
 variable "staging_bucket_arn" {
@@ -140,4 +140,9 @@ variable "submitted_topic_arn" {
 variable "provider_auth" {
     type = string
     default = ""
+}
+
+variable "account_number" {
+    type = string
+    default = "111111111110"
 }

@@ -89,6 +89,29 @@ data "aws_iam_policy_document" "lambda-sns-access-conversion-doc" {
     }
 }
 
+data "aws_iam_policy_document" "conversion-topic-access-doc" {
+    statement {
+        sid = "S3 SNS topic policy"
+        effect = "Allow"
+        principals {
+          identifiers = ["s3.amazonaws.com"]
+          type = "Service"
+        }
+        actions = ["SNS:Publish"]
+        resources = [var.conversion_topic_arn]
+        condition {
+          test     = "ArnLike"
+          values = [var.incoming_bucket_arn]
+          variable = "aws:SourceArn"
+        }
+        condition {
+          test     = "StringEquals"
+          values = [var.account_number]
+          variable = "aws:SourceAccount"
+        }
+    }
+}
+
 resource "aws_iam_policy" "lambda-trust-policy" {
     name = "lambda-trust-policy"
     policy = data.aws_iam_policy_document.lambda-trust-policy-doc.json
@@ -114,22 +137,27 @@ resource "aws_iam_policy" "lambda-s3-access-incoming-policy" {
     policy = data.aws_iam_policy_document.lambda-s3-access-incoming-doc.json
 }
 
-resource "aws_iam_policy" "lamda-sns-access-validation" {
+resource "aws_iam_policy" "lambda-sns-access-validation" {
     name = "lambda-sns-access-validation"
     policy = data.aws_iam_policy_document.lambda-sns-access-validation-doc.json
 }
 
-resource "aws_iam_policy" "lamda-sns-access-submission" {
+resource "aws_iam_policy" "lambda-sns-access-submission" {
     name = "lambda-sns-access-submission"
     policy = data.aws_iam_policy_document.lambda-sns-access-submission-doc.json
 }
 
-resource "aws_iam_policy" "lamda-sns-access-submitted" {
+resource "aws_iam_policy" "lambda-sns-access-submitted" {
     name = "lambda-sns-access-submitted"
     policy = data.aws_iam_policy_document.lambda-sns-access-submitted-doc.json
 }
 
-resource "aws_iam_policy" "lamda-sns-access-conversion" {
+resource "aws_iam_policy" "lambda-sns-access-conversion" {
     name = "lambda-sns-access-conversion"
     policy = data.aws_iam_policy_document.lambda-sns-access-conversion-doc.json
+}
+
+resource "aws_sns_topic_policy" "conversion-topic-access-policy" {
+    arn = var.conversion_topic_arn
+    policy = data.aws_iam_policy_document.conversion-topic-access-doc.json
 }
