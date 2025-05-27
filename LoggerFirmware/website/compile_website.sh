@@ -13,8 +13,10 @@ python inline_flatten.py
 
 rm js/*_compiled.js
 
+magick favicon.png -resize 64x64 -define icon:auto-resize=64,48,32,16 favicon.ico
+
 mkdir -p ../data/website/images
 cp images/* ../data/website/images
-cp favicon.png ../data/website
+cp favicon.ico ../data/website
 
 exit 0

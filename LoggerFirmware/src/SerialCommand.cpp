@@ -431,6 +431,43 @@ void SerialCommand::GetWiFiPassword(CommandSource src)
     }
 }
 
+/// Set the mDNS responder name for the WiFi system
+///
+/// \param params   String containing the remainder of the parameters from the command
+/// \param src      Stream by which the command arrived
+
+void SerialCommand::SetMDNSName(String const& params, CommandSource src)
+{
+    if (params.length() < 2) {
+        EmitMessage("ERR: mDNS responder name must be two or more characters.\n", src);
+        if (src == CommandSource::WirelessPort && m_wifi != nullptr) {
+            m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
+        }
+        return;
+    }
+    logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_MDNS_NAME_S, params);
+    if (src == CommandSource::WirelessPort) {
+        ReportConfigurationJSON(src, true);
+    }
+}
+
+/// Report the mDNS responder name for the WiFi system
+///
+/// \param src  Stream by which the command arrived
+
+void SerialCommand::GetMDNSName(CommandSource src)
+{
+    if (src == CommandSource::SerialPort) {
+        String mdns_name;
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_MDNS_NAME_S, mdns_name);
+        EmitMessage("WiFi mDNS responder name: " + mdns_name + "\n", src);
+    } else if (src == CommandSource::WirelessPort) {
+        ReportConfigurationJSON(src, true);
+    } else {
+        EmitMessage("ERR: command source not recognised - who are you?!\n", src);
+    }
+}
+
 /// Turn the WiFi interface on and off, as required by the user
 ///
 /// \param  command     The remnant of the command string from the user
@@ -1455,6 +1492,7 @@ void SerialCommand::Syntax(CommandSource src)
     EmitMessage("  led normal|error|initialising|full|data|stopped\n", src);
     EmitMessage("                                      [Debug] Set the indicator LED status.\n", src);
     EmitMessage("  log                                 Output the contents of the console log.\n", src);
+    EmitMessage("  mdns [name]                         Report or set the mDNS responder name for the logger.\n", src);
     EmitMessage("  metadata [platform-specific]        Store or report a platform-specific metadata JSON element.\n", src);
     EmitMessage("  ota                                 Start Over-the-Air update sequence for the logger.\n", src);
     EmitMessage("  password ap|station [wifi-password] Set the WiFi password.\n", src);
@@ -1540,6 +1578,12 @@ void SerialCommand::Execute(String const& cmd, CommandSource src)
         ModifyLEDState(cmd.substring(4));
     } else if (cmd == "log") {
         ReportConsoleLog(src);
+    } else if (cmd.startsWith("mdns")) {
+        if (cmd.length() == 4) {
+            GetMDNSName(src);
+        } else {
+            SetMDNSName(cmd.substring(5), src);
+        }
     } else if (cmd.startsWith("metadata")) {
         if (cmd.length() == 8) {
             ReportMetadataElement(src);

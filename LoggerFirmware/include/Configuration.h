@@ -38,7 +38,7 @@ namespace logger {
 // Firmware software version (i.e., overall firmware, rather than components like Command Processor, etc.)
 const int firmware_major = 1;
 const int firmware_minor = 5;
-const int firmware_patch = 4;
+const int firmware_patch = 5;
 
 /// @brief Stringify the version information for the firmware itself
 String FirmwareVersion(void);
@@ -98,7 +98,8 @@ class Config {
             CONFIG_UPLOAD_TIMEOUT_S,/* String: timeout (seconds) before deciding that the server isn't available */
             CONFIG_UPLOAD_INTERVAL_S,/* String: interval (seconds) between upload attempts */
             CONFIG_UPLOAD_DURATION_S,/* String: duration (seconds) for each upload event */
-            CONFIG_UPLOAD_CERT_S    /* String: certificate to pass to upload server for authentication */
+            CONFIG_UPLOAD_CERT_S,   /* String: certificate to pass to upload server for authentication */
+            CONFIG_MDNS_NAME_S      /* String: recognition name for mDNS responder (hostname: name.local) */
         };
 
         /// \brief Extract a configuration string for the specified parameter

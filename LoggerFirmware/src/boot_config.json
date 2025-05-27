@@ -18,7 +18,8 @@
         "station": {
             "delay":    20,
             "retries":  5,
-            "timeout":  5
+            "timeout":  5,
+            "mdns":     "wibl"
         },
         "ssids": {
             "ap":       "wibl-config",
@@ -29,7 +30,7 @@
             "station":  "wibl-logger-password"
         }
     },
-    "uniqueID": "wibl-logger",
+    "uniqueID": "TNODEID",
     "shipname": "Anonymous",
     "baudrate": {
         "port1":    4800,
