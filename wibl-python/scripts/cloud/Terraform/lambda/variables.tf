@@ -67,6 +67,11 @@ variable "python_version" {
     default = "python3.12"
 }
 
+variable "lambda_memory_size" {
+    type = number
+    default = 0
+}
+
 variable "staging_bucket_arn" {
     type = string
     default = "wefwnefjkew"
@@ -128,6 +133,11 @@ variable "submission_topic_arn" {
 }
 
 variable "submitted_topic_arn" {
+    type = string
+    default = ""
+}
+
+variable "provider_auth" {
     type = string
     default = ""
 }
