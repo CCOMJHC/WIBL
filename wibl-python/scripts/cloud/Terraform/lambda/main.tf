@@ -1,14 +1,14 @@
 
 # Conversion Lambda
 resource "aws_lambda_function" "conversion_lambda" {
-    filename = "test_payload.zip"
+    filename = var.package_path
     function_name = var.conversion_lambda_name
     role = aws_iam_role.conversion_lambda_role.arn
     handler = "wibl.processing.cloud.aws.lambda_function.lambda_handler"
     timeout = var.lambda_timeout
-    runtime = var.python_version
+    runtime = "python${var.python_version}"
     memory_size = var.lambda_memory_size
-    source_code_hash = filebase64sha256("./lambda/test_payload.zip")
+    source_code_hash = filebase64sha256(var.package_path)
     layers = [var.numpy_layer_name]
     architectures = [var.architecture]
     environment {
@@ -38,14 +38,14 @@ resource "aws_lambda_permission" "conversion_allow_sns" {
 
 # Validation Lambda
 resource "aws_lambda_function" "validation_lambda" {
-  filename = "test_payload.zip"
+  filename = var.package_path
   function_name = var.validation_lambda_name
   role = aws_iam_role.validation_lambda_role.arn
   handler = "wibl.validation.cloud.aws.lambda_function.lambda_handler"
   timeout = var.lambda_timeout
-  runtime = var.python_version
+  runtime = "python${var.python_version}"
   memory_size = var.lambda_memory_size
-  source_code_hash = filebase64sha256("./lambda/test_payload.zip")
+  source_code_hash = filebase64sha256(var.package_path)
   layers = [var.numpy_layer_name]
   architectures = [var.architecture]
   environment {
@@ -74,14 +74,14 @@ resource "aws_lambda_permission" "validation_allow_sns" {
 
 # Submission Lambda
 resource "aws_lambda_function" "submission_lambda" {
-  filename = "test_payload.zip"
+  filename = var.package_path
   function_name = var.submission_lambda_name
   role = aws_iam_role.submission_lambda_role.arn
   handler = "wibl.submission.cloud.aws.lambda_function.lambda_handler"
   timeout = var.lambda_timeout
-  runtime = var.python_version
+  runtime = "python${var.python_version}"
   memory_size = var.lambda_memory_size
-  source_code_hash = filebase64sha256("./lambda/test_payload.zip")
+  source_code_hash = filebase64sha256(var.package_path)
   layers = [var.numpy_layer_name]
   architectures = [var.architecture]
   environment {
@@ -111,14 +111,14 @@ resource "aws_lambda_permission" "submission_allow_sns" {
 
 # Conversion Start Lambda
 resource "aws_lambda_function" "conversion_start_lambda" {
-  filename = "test_payload.zip"
+  filename = var.package_path
   function_name = var.conversion_start_lambda_name
   role = aws_iam_role.conversion_start_lambda_role.arn
   handler = "wibl.upload.cloud.aws.lambda_function.lambda_handler"
   timeout = var.lambda_timeout
-  runtime = var.python_version
+  runtime = "python${var.python_version}"
   memory_size = var.lambda_memory_size
-  source_code_hash = filebase64sha256("./lambda/test_payload.zip")
+  source_code_hash = filebase64sha256(var.package_path)
   layers = [var.numpy_layer_name]
   architectures = [var.architecture]
   environment {
@@ -148,16 +148,18 @@ resource "aws_lambda_permission" "submission_allow_url_access" {
 resource "aws_lambda_function_url" "conversion_start_lambda_url" {
   function_name = var.conversion_start_lambda_name
   authorization_type = "NONE"
+  depends_on = [aws_lambda_function.conversion_start_lambda]
 }
 
 resource "aws_s3_bucket_notification" "s3-notification" {
-  bucket = var.incoming_bucket_arn
+  bucket = var.incoming_bucket_id
 
   topic {
     events = ["s3:ObjectCreated:Put",
               "s3:ObjectCreated:CompleteMultipartUpload"]
     topic_arn = var.conversion_topic_arn
   }
+  depends_on = [aws_sns_topic_policy.conversion-topic-access-policy]
 }
 
 resource "aws_sns_topic_subscription" "sns_conversion_subscribe" {

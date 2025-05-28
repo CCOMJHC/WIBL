@@ -36,21 +36,24 @@ module "configure-lambda" {
     source = "./lambda"
 
     aws_region = var.region
-
+    package_path = "${var.wibl_build_path}/wibl-package-py${var.python_version}-${var.architecture}.zip"
     conversion_lambda_name = var.conversion_lambda_name
     conversion_start_lambda_name = var.conversion_start_lambda_name
     validation_lambda_name = var.validation_lambda_name
     submission_lambda_name = var.submission_lambda_name
     viz_lambda_name = var.viz_lambda_name
 
-    conversion_lambda_role_name = var.viz_lambda_role_name
+    account_number = var.account_number
+
+    conversion_lambda_role_name = var.conversion_lambda_role_name
     conversion_start_lambda_role_name = var.conversion_start_lambda_role_name
     validation_lambda_role_name = var.validation_lambda_role_name
     submission_lambda_role_name = var.submission_lambda_role_name
-    viz_lambda_role_name = var.viz_lambda_name
+    viz_lambda_role_name = var.viz_lambda_role_name
 
     staging_bucket_arn = module.configure-buckets.staging_bucket_arn
     incoming_bucket_arn = module.configure-buckets.incoming_bucket_arn
+    incoming_bucket_id = module.configure-buckets.incoming_bucket_id
     viz_bucket_arn = module.configure-buckets.viz_bucket_arn
 
     private_subnet = module.configure-subnets_efs.private_subnet
@@ -60,4 +63,5 @@ module "configure-lambda" {
     validation_topic_arn = module.configure-sns.validation_topic_arn
     submission_topic_arn = module.configure-sns.submission_topic_arn
     submitted_topic_arn = module.configure-sns.submitted_topic_arn
+    depends_on = [module.configure-buckets, module.configure-sns, module.configure-subnets_efs]
 }

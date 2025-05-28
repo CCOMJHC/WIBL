@@ -42,11 +42,6 @@ variable "aws_region" {
     type = string
 }
 
-variable "lambda_size" {
-    type = number
-    default = 1600
-}
-
 variable "lambda_timeout" {
     type = number
     default = 10
@@ -59,12 +54,12 @@ variable "architecture" {
 
 variable "numpy_layer_name" {
     type = string
-    default = "arn:aws:lambda:us-east-2:336392948345:layer:AWSSDKPandas-Python312-Arm64:4"
+    default = "arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python312-Arm64:4"
 }
 
 variable "python_version" {
     type = string
-    default = "python3.12"
+    default = "3.12"
 }
 
 variable "lambda_memory_size" {
@@ -80,6 +75,10 @@ variable "staging_bucket_arn" {
 variable "incoming_bucket_arn" {
     type = string
     default = "wefwnefjkew"
+}
+
+variable "incoming_bucket_id" {
+    type = string
 }
 
 variable "viz_bucket_arn" {
@@ -146,3 +145,8 @@ variable "account_number" {
     type = string
     default = "111111111110"
 }
+
+variable "package_path" {
+    type = string
+}
+

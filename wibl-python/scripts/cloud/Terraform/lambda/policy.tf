@@ -97,7 +97,7 @@ data "aws_iam_policy_document" "conversion-topic-access-doc" {
           identifiers = ["s3.amazonaws.com"]
           type = "Service"
         }
-        actions = ["SNS:Publish"]
+        actions = ["sns:Publish"]
         resources = [var.conversion_topic_arn]
         condition {
           test     = "ArnLike"
