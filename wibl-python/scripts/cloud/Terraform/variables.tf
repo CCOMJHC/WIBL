@@ -93,3 +93,21 @@ variable "submitted_topic_name" {
     type = string
     default = ""
 }
+
+variable "wibl_build_path" {
+    type = string
+}
+
+variable "architecture" {
+    type = string
+    default = "arm64"
+}
+
+variable "python_version" {
+    type = string
+    default = "3.12"
+}
+
+variable "account_number" {
+    type = string
+}
