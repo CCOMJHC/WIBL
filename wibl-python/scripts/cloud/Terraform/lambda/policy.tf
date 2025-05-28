@@ -112,10 +112,6 @@ data "aws_iam_policy_document" "conversion-topic-access-doc" {
     }
 }
 
-resource "aws_iam_policy" "lambda-trust-policy" {
-    name = "lambda-trust-policy"
-    policy = data.aws_iam_policy_document.lambda-trust-policy-doc.json
-}
 
 resource "aws_iam_policy" "lambda-nic-policy" {
     name = "lambda-nic-policy"

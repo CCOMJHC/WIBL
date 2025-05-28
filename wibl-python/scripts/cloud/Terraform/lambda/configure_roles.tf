@@ -1,26 +1,26 @@
 resource "aws_iam_role" "conversion_lambda_role" {
   name = var.conversion_lambda_role_name
-  assume_role_policy = aws_iam_policy.lambda-trust-policy.arn
+  assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy-doc.json
 }
 
 resource "aws_iam_role" "validation_lambda_role" {
   name = var.validation_lambda_role_name
-  assume_role_policy = aws_iam_policy.lambda-trust-policy.arn
+  assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy-doc.json
 }
 
 resource "aws_iam_role" "submission_lambda_role" {
   name = var.submission_lambda_role_name
-  assume_role_policy = aws_iam_policy.lambda-trust-policy.arn
+  assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy-doc.json
 }
 
 resource "aws_iam_role" "conversion_start_lambda_role" {
   name = var.conversion_start_lambda_role_name
-  assume_role_policy = aws_iam_policy.lambda-trust-policy.arn
+  assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy-doc.json
 }
 
 resource "aws_iam_role" "viz_lambda_role" {
   name = var.viz_lambda_role_name
-  assume_role_policy = aws_iam_policy.lambda-trust-policy.arn
+  assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy-doc.json
 }
 
 resource "aws_iam_policy_attachment" "lambda_basic_policy_attach" {

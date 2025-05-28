@@ -6,7 +6,7 @@ resource "aws_vpc" "main_vpc" {
 resource "aws_subnet" "public_subnet_1" {
     vpc_id = aws_vpc.main_vpc.id
     cidr_block = "10.0.2.0/24"
-    availability_zone = "us-east-2b"
+    availability_zone = "us-east-1b"
     tags = {
       Name = "wibl-public"
     }
@@ -15,7 +15,7 @@ resource "aws_subnet" "public_subnet_1" {
 resource "aws_subnet" "public_subnet_2" {
     vpc_id = aws_vpc.main_vpc.id
     cidr_block = "10.0.4.0/24"
-    availability_zone = "us-east-2a"
+    availability_zone = "us-east-1a"
     tags = {
       Name = "wibl-public2"
     }
@@ -96,7 +96,7 @@ resource "aws_vpc_security_group_ingress_rule" "public_sg_rule2" {
 resource "aws_subnet" "private_subnet_1" {
     vpc_id = aws_vpc.main_vpc.id
     cidr_block = "10.0.0.0/24"
-    availability_zone = "us-east-2b"
+    availability_zone = "us-east-1b"
     tags = {
       Name = "wibl-private-ecs"
     }
@@ -175,20 +175,23 @@ resource "aws_vpc_endpoint" "vpc_s3_endpoint" {
     }
 }
 
+# Hard coded for us-east-1
+data "aws_prefix_list" "s3" {
+  name = "com.amazonaws.us-east-1.s3"
+}
+
 resource "aws_vpc_security_group_ingress_rule" "private_sg_rule4" {
   security_group_id = aws_security_group.private_sg.id
 
   from_port   = 0
   ip_protocol = "tcp"
   to_port     = 65535
-  prefix_list_id = var.aws_region_s3_pl
+  prefix_list_id = data.aws_prefix_list.s3.id
 
   tags = {
     Name = "wibl-ecs-s3"
   }
 }
-
-
 
 resource "aws_efs_file_system" "manager-efs" {
   creation_token = "wibl-manager-ecs-task-efs"

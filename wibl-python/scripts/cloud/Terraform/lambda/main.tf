@@ -160,11 +160,6 @@ resource "aws_s3_bucket_notification" "s3-notification" {
   }
 }
 
-resource "aws_sns_topic_policy" "sns_policy_attach" {
-  arn    = var.conversion_topic_arn
-  policy = aws_sns_topic_policy.conversion-topic-access-policy.arn
-}
-
 resource "aws_sns_topic_subscription" "sns_conversion_subscribe" {
     protocol = "lambda"
     topic_arn = var.conversion_topic_arn
