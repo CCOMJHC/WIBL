@@ -48,8 +48,5 @@ test = [
 [project.scripts]
 wibl = "wibl.command.__main__:main"
 
-[tool.setuptools]
-packages = ["wibl"]
-
 [tool.setuptools.dynamic]
 version = {attr = "wibl.__version__"}
