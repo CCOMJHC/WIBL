@@ -43,8 +43,24 @@ downloadButton.addEventListener("click", (event) => {
             return;
         } else {
             const url = `/downloadWiblFile/${result[0]}`;
-            window.location.href = url;
+            fetch(url, {
+                method: 'GET'
+            }).then(async response => {
+                const contentType = response.headers.get("content-type") || "";
+                if (!response.ok) {
+                    if (contentType.includes("application/json")) {
+                        const errorData = await response.json();
+                        alert(JSON.stringify(errorData, null, 2));
+                    } else {
+                        alert(`Unexpected error: ${response.status}`);
+                    }
+                } else {
+                    window.location.href = url;
+                }
+            })
+            .catch(err => {
+                alert(`Network error: ${err}`);
+            });
         }
     }
 })
-

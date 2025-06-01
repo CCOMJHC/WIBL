@@ -14,25 +14,32 @@ import os
 
 @login_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-def downloadWiblFile(request, fileid):
+async def downloadWiblFile(request, fileid):
     manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
     full_url = f"{manager_url}/wibl/download/{fileid}"
     try:
-        # Create an async iterable function
-        async def create_stream():
-            client = httpx.AsyncClient()
-            async with client.stream('GET', full_url) as response:
-                async for chunk in response.aiter_bytes():
-                    yield chunk
-        # Stream the function to the user
-        return StreamingHttpResponse(create_stream(),
-                                     content_type='application/octet-stream',
-                                     headers={"Content-Disposition": f'attachment; filename="{fileid}"'})
+        client = httpx.AsyncClient()
+        async with client.stream('GET', full_url) as response:
+            if response.status_code >= 400:
+                error_body = await response.aread()
+                return JsonResponse(
+                    {"error": f"Manager Error, {response.status_code}: {error_body.decode()}"},
+                    status=response.status_code
+                )
+            # Create an async iterable function
+            async def create_stream():
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+            # Stream the function to the user
+            return StreamingHttpResponse(create_stream(),
+                                         content_type='application/octet-stream',
+                                         headers={"Content-Disposition": f'attachment; filename="{fileid}"'})
+
     except Exception as e:
         # TODO: Create consistent frontend error logging
         return JsonResponse({'error': str(e)}, status=500)
 
-
+@login_required
 async def saveGeojsonFile(request, fileid):
     manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
     full_url = f"{manager_url}/geojson/save/{fileid}"

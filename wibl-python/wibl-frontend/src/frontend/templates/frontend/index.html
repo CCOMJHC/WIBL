@@ -371,6 +371,17 @@
                         */
                         setTimeout(() => {
                             if (fileTable instanceof WIBLFileTable) {
+
+                                // Select the correct tab
+                                const tabs = document.querySelectorAll(".tabs ul li");
+                                let wiblTab;
+                                tabs.forEach((tab) => {
+                                    if (tab.getAttribute("data-target") === "wibl-detail-table") {
+                                        wiblTab = tab;
+                                    }
+                                });
+                                wiblTab.click();
+
                                 const wiblSockType = "wibl";
                                 const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/detail";
                                 const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
@@ -397,6 +408,17 @@
                                 wiblSock.sendRequest("list-wibl-details", {"file_id" : wiblFileId});
 
                             } else if (fileTable instanceof GeojsonFileTable) {
+
+                                // Select the correct tab
+                                let geoTab;
+                                const tabs = document.querySelectorAll(".tabs ul li");
+                                tabs.forEach((tab) => {
+                                    if (tab.getAttribute("data-target") === "geojson-detail-column") {
+                                        geoTab = tab;
+                                    }
+                                });
+                                geoTab.click();
+
                                 const geojsonSockType = "geojson";
                                 const geojsonSockUrl = "{{ wsURL }}" + geojsonSockType + "/detail";
                                 const geojsonSock = SocketManager.getInstance(geojsonSockUrl, geojsonSockType);
@@ -428,13 +450,13 @@
             }
         }
 
-
         wiblFileTable.addEventListener("click", (event) => {
             tableSelectEvent(wiblFileTable, event);
         });
 
         //Detail File Table Logic
         geojsonFileTable.addEventListener("click", (event) => {
+
             tableSelectEvent(geojsonFileTable, event);
         });
 
