@@ -64,6 +64,18 @@ async def saveGeojsonFile(request, fileid):
         return JsonResponse({}, status=404)
 
 
+async def saveGeojsonFile(request, fileid):
+    manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+    full_url = f"{manager_url}/geojson/save/{fileid}"
+
+    client = httpx.AsyncClient()
+    response = await client.get(full_url)
+    if response.status_code == 200:
+        return JsonResponse({'geojson': response.json()})
+    else:
+        return {'error': 'Failed to get geojson'}
+
+
 @login_required
 def index(request: HttpRequest):
     print(f"session key: {request.session.session_key}")
