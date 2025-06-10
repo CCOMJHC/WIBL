@@ -44,42 +44,13 @@ downloadButton.addEventListener("click", (event) => {
 
     var result = wiblResult.concat(geojsonResult);
 
-    if (result.length != 0) {
+    if (result != 0) {
         if (result.length > 1) {
             alert("Multiple files selected. Please select only one file to download.");
             return;
         } else {
             const url = `/downloadFile/${result[0]}`;
-            fetch(url, {
-                method: 'GET'
-            }).then(async response => {
-                const contentType = response.headers.get("content-type") || "";
-                if (!response.ok) {
-                    if (contentType.includes("application/json")) {
-                        const errorData = await response.json();
-                        alert(JSON.stringify(errorData, null, 2));
-                    } else {
-                        alert(`Unexpected error: ${response.status}`);
-                    }
-                } else {
-                    const disposition = response.headers.get("Content-Disposition") || "";
-                    const filenameMatch = disposition.match(/filename\s*=\s*(?:"([^"]+)"|([^;\n]+))/);
-                    const filename = filenameMatch[1];
-
-                    const blob = await response.blob();
-
-                    const blobUrl = window.URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = blobUrl;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    window.URL.revokeObjectURL(blobUrl);
-                }
-            }).catch(err => {
-                alert(`Network error: ${err}`);
-            });
+            window.location.href = url;
         }
     } else {
         alert("No Files Selected.")
