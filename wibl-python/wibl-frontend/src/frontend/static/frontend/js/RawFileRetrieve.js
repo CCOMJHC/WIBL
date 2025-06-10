@@ -18,12 +18,13 @@ export class RawFileRetrieve {
         const fileid = tableData.id;
 
         const res = await fetch(`./saveGeojsonFile/${fileid}`);
-        if (!res.ok) {
-            throw new Error(`HTTP error! Status: ${res.status}`);
+        if (res.ok) {
+            const geojsonObject = await res.json();
+            return geojsonObject;
+        } else {
+            alert("Could not retrieve raw file.")
+            return null;
         }
-
-        const geojsonObject = await res.json();
-        return geojsonObject;
     }
 
     // Write the contents of the provided jsonObject to an html element.

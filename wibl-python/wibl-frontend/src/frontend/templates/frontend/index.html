@@ -243,10 +243,12 @@
         rawButton.addEventListener("click", async (event) => {
             // Queries for the raw JSON from the manager
             const geojsonObject = await RawFileRetrieve.retrieve(geojsonFileTable);
-            // Apply the content to the modal
-            RawFileRetrieve.apply(geojsonObject);
-            // Display the Bulma modal
-            popupModal.classList.add('is-active');
+            if (geojsonObject != null) {
+                // Apply the content to the modal
+                RawFileRetrieve.apply(geojsonObject);
+                // Display the Bulma modal
+                popupModal.classList.add('is-active');
+            }
         });
 
         // Create a globally accessible reference to the geojsonMap
@@ -286,7 +288,7 @@
         deleteButton.addEventListener("click", (event) => {
             let wiblResult = wiblFileTable.getSelectedFiles(0);
             let geojsonResult = geojsonFileTable.getSelectedFiles(0);
-            if (wiblResult != 0) {
+            if (wiblResult.length != 0) {
                 const wiblSockType = "wibl";
                 const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/table";
                 const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
@@ -294,13 +296,17 @@
                 wiblSock.sendRequest("list-wibl-files");
             }
 
-            if (geojsonResult != 0) {
+            if (geojsonResult.length != 0) {
                 const geojsonSockType = "geojson";
                 const geojsonSockUrl = "{{wsURL}}" + geojsonSockType +"/table";
                 const geojsonSock = SocketManager.getInstance(geojsonSockUrl, geojsonSockType);
                 geojsonSock.sendRequest("delete-geojson-files", {"file_ids" : geojsonResult});
                 geojsonSock.sendRequest("list-geojson-files");
+            } else {
+                alert("No Files Selected");
             }
+
+
         })
 
         const linkBox = document.getElementById("linkBox");

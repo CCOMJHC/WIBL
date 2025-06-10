@@ -222,10 +222,10 @@ export class FileTable extends HTMLElement {
                 return selectedNames;
             } else {
                 console.log("Delete canceled");
-                return 0;
+                return;
             }
         } else {
-            return 0;
+            return selectedNames;
         }
     }
 

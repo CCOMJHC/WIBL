@@ -5,6 +5,6 @@ from . import views
 urlpatterns = [
     path("", views.index, name="index"),
     path("logout", views.logout, name="logout"),
-    path('downloadWiblFile/<str:fileid>', views.downloadWiblFile, name="downloadWiblFile"),
+    path('downloadFile/<str:fileid>', views.downloadFile, name="downloadFile"),
     path('saveGeojsonFile/<str:fileid>', views.saveGeojsonFile, name="saveGeojsonFile")
 ]
