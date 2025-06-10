@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const clearButton = document.getElementById("clearButton");
 clearButton.addEventListener("click", (event) => {
     let wiblFileTable = document.getElementById("wibl-file-table");
-    wiblFileTable.clearCSS();
+    wiblFileTable.clearAll();
 })
 
 // Filter/search button in the filter menu

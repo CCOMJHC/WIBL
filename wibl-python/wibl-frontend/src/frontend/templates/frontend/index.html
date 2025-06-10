@@ -212,6 +212,10 @@
         const wiblFileTable = document.getElementById("wibl-file-table");
         const geojsonFileTable = document.getElementById("geojson-file-table");
 
+        const wiblDetailTable = document.getElementById("wibl-detail-table");
+        const geojsonDetailTable = document.getElementById("geojson-detail-table");
+
+
         // Request WIBL file data from the WebSocket once the DOM is ready; do this here instead of in the
         // components to that the request is only sent once.
         setTimeout(() => {
@@ -261,8 +265,8 @@
 
             // Configure the detail tabs
             const tabs = document.querySelectorAll(".tabs ul li");
-            const wiblDetailTable = document.getElementById("wibl-detail-table");
-            const geojsonDetailColumn = document.getElementById("geojson-detail-column");
+            const wiblDetailTable2 = document.getElementById("wibl-detail-table");
+            const geojsonDetailColumn2 = document.getElementById("geojson-detail-column");
             const map = document.getElementById("map");
 
             tabs.forEach(tab => {
@@ -270,8 +274,8 @@
                     tabs.forEach(t => t.classList.remove("is-active"));
                     this.classList.add("is-active");
 
-                    wiblDetailTable.classList.add("is-hidden");
-                    geojsonDetailColumn.classList.add("is-hidden");
+                    wiblDetailTable2.classList.add("is-hidden");
+                    geojsonDetailColumn2.classList.add("is-hidden");
                     map.classList.add("is-hidden");
 
                     const target = this.getAttribute("data-target");
@@ -305,8 +309,6 @@
             } else {
                 alert("No Files Selected");
             }
-
-
         })
 
         const linkBox = document.getElementById("linkBox");
@@ -357,7 +359,7 @@
                 const row = path.find(el => el.tagName === "TR");
                 if (row) {
                     if (row.className !== "headerRow") {
-                        fileTable.clearCSS();
+                        fileTable.clearSelected();
 
                         row.setAttribute("class", "is-selected");
 
@@ -393,9 +395,11 @@
                                 const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
 
                                 const wiblFileId = row.id;
-
+                                const rawButton = document.getElementById("rawButton");
                                 if (linkFlag) {
-                                    geojsonFileTable.clearCSS();
+                                    geojsonFileTable.clearSelected();
+                                } else {
+                                    rawButton.classList.remove("is-hidden");
                                 }
 
                                 if (linked_file_exists) {
@@ -403,13 +407,25 @@
                                     geojsonFileId += ".geojson";
 
                                     const geojsonRow = geojsonFileTable._shadow.getElementById(geojsonFileId);
-                                    geojsonRow.setAttribute("class", "is-selected");
 
-                                    const geojsonSockType = "geojson";
-                                    const geojsonSockUrl = "{{wsURL}}" + geojsonSockType + "/detail";
-                                    const geojsonSock = SocketManager.getInstance(geojsonSockUrl, geojsonSockType);
+                                    if (geojsonRow.classList.contains("is-hidden")) {
+                                        geojsonDetailTable.clear();
+                                        rawButton.classList.add("is-hidden");
+                                    } else {
+                                        geojsonRow.classList.add("is-selected");
+                                        rawButton.classList.remove("is-hidden");
 
-                                    geojsonSock.sendRequest("list-geojson-details", {"file_id" : geojsonFileId});
+                                        const geojsonSockType = "geojson";
+                                        const geojsonSockUrl = "{{wsURL}}" + geojsonSockType + "/detail";
+                                        const geojsonSock = SocketManager.getInstance(geojsonSockUrl, geojsonSockType);
+
+                                        geojsonSock.sendRequest("list-geojson-details", {"file_id" : geojsonFileId});
+                                    }
+                                } else {
+                                    if (linkFlag) {
+                                        geojsonDetailTable.clear();
+                                        rawButton.classList.add("is-hidden");
+                                    }
                                 }
                                 wiblSock.sendRequest("list-wibl-details", {"file_id" : wiblFileId});
 
@@ -432,7 +448,10 @@
                                 const geojsonFileId = row.id;
 
                                 if (linkFlag) {
-                                    wiblFileTable.clearCSS();
+                                    wiblFileTable.clearSelected();
+                                } else {
+                                    const rawButton = document.getElementById("rawButton");
+                                    rawButton.classList.remove("is-hidden");
                                 }
 
                                 if (linked_file_exists) {
@@ -440,12 +459,20 @@
                                     wiblFileId += ".wibl";
 
                                     const wiblRow = wiblFileTable._shadow.getElementById(wiblFileId);
-                                    wiblRow.setAttribute("class", "is-selected");
+                                    if (wiblRow.classList.contains("is-hidden")) {
+                                        wiblDetailTable.clear();
+                                    } else {
+                                        wiblRow.classList.add("is-selected");
 
-                                    const wiblSockType = "wibl";
-                                    const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/detail";
-                                    const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
-                                    wiblSock.sendRequest("list-wibl-details", {"file_id" : wiblFileId});
+                                        const wiblSockType = "wibl";
+                                        const wiblSockUrl = "{{ wsURL }}" + wiblSockType + "/detail";
+                                        const wiblSock = SocketManager.getInstance(wiblSockUrl, wiblSockType);
+                                        wiblSock.sendRequest("list-wibl-details", {"file_id" : wiblFileId});
+                                    }
+                                } else {
+                                    if (linkFlag) {
+                                        wiblDetailTable.clear();
+                                    }
                                 }
 
                                 geojsonSock.sendRequest("list-geojson-details", {"file_id" : geojsonFileId});
