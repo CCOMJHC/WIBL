@@ -33,7 +33,8 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 MANAGER_DATABASE_URI = os.environ.get('MANAGER_DATABASE_URI', 'sqlite:///database.db')
-S3_BUCKET_NAME = "wibl-test"
+S3_WIBL_BUCKET_NAME = "wibl-test"
+S3_GEOJSON_BUCKET_NAME = "geojson-test"
 app = Flask('WIBL-Manager')
 app.config['SQLALCHEMY_DATABASE_URI'] = MANAGER_DATABASE_URI
 
