@@ -14,9 +14,16 @@ import os
 
 @login_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-def downloadWiblFile(request, fileid):
+async def downloadFile(request, fileid):
     manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
-    full_url = f"{manager_url}/wibl/download/{fileid}"
+    extension = fileid.split(".")[-1]
+
+    if extension == "wibl":
+        full_url = f"{manager_url}/wibl/download/{fileid}"
+    else:
+        full_url = f"{manager_url}/geojson/download/{fileid}"
+    print(f"{full_url}")
+
     try:
         # Create an async iterable function
         async def create_stream():
@@ -24,6 +31,7 @@ def downloadWiblFile(request, fileid):
             async with client.stream('GET', full_url) as response:
                 async for chunk in response.aiter_bytes():
                     yield chunk
+
         # Stream the function to the user
         return StreamingHttpResponse(create_stream(),
                                      content_type='application/octet-stream',
@@ -31,6 +39,18 @@ def downloadWiblFile(request, fileid):
     except Exception as e:
         # TODO: Create consistent frontend error logging
         return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+async def saveGeojsonFile(request, fileid):
+    manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+    full_url = f"{manager_url}/geojson/save/{fileid}"
+
+    client = httpx.AsyncClient()
+    response = await client.get(full_url)
+    if response.status_code == 200:
+        return JsonResponse({'geojson': response.json()}, status=200)
+    else:
+        return JsonResponse({}, status=404)
 
 
 @login_required
