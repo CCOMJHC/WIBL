@@ -30,13 +30,13 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
-
+import os
 from datetime import datetime, timezone
 from flask import abort
 from flask_restful import Resource, reqparse, fields, marshal_with
 import boto3
-
-from wibl_manager.app_globals import db
+import requests
+from wibl_manager.app_globals import db, dashData
 from wibl_manager import ReturnCodes, ProcessingStatus
 
 
@@ -129,6 +129,9 @@ wibl_resource_fields = {
     'messages':         fields.String
 }
 
+
+data_rest_url = os.environ['MANAGEMENT_URL'] + 'data/'
+
 class WIBLData(Resource):
     """
     RESTful end-point for manipulating the WIBL data file database component.  The design here assumes
@@ -180,6 +183,9 @@ class WIBLData(Resource):
         db.session.add(wibl_file)
         db.session.commit()
 
+        # Add to the dashboard statistics
+        requests.post(data_rest_url + "WiblFileCount")
+        requests.post(data_rest_url + "SizeTotal", json={'count': args['size']})
         # post on the cloud
         # s3_client.put_object(Body=wibl_file, Bucket='wibl-test', Key=fileid)
         return wibl_file, ReturnCodes.RECORD_CREATED.value
@@ -210,7 +216,11 @@ class WIBLData(Resource):
         if args['platform']:
             wibl_file.platform = args['platform']
         if args['size']:
+            # If the size of the file changes,
+            # remove its old size from the total and add the new one
+            requests.delete(data_rest_url + "SizeTotal", json={'count': wibl_file.size})
             wibl_file.size = args['size']
+            requests.post(data_rest_url + "SizeTotal", json={'count': args['size']})
         if args['observations']:
             wibl_file.observations = args['observations']
         if args['soundings']:
@@ -220,6 +230,13 @@ class WIBLData(Resource):
         if args['endTime']:
             wibl_file.endtime = args['endTime']
         if args['status']:
+            # File always starts with status 0
+            # So if the status changes to 1 or 2, add it to the data.
+            match args['status']:
+                case 1:
+                    requests.post(data_rest_url + "ConvertedTotal")
+                case 2:
+                    requests.post(data_rest_url + "ProcessingFailedTotal")
             wibl_file.status = args['status']
         if args['messages']:
             wibl_file.messages = args['messages'][:1024]
@@ -250,7 +267,6 @@ class WIBLData(Resource):
             abort(ReturnCodes.FILE_NOT_FOUND.value, description='That WIBL file does not exist in the database, and therefore cannot be deleted.')
         db.session.delete(wibl_file)
         db.session.commit()
-
         # delete on the cloud
         # s3_client.delete_object(Bucket='wibl-test', Key=fileid)
 

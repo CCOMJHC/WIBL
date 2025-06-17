@@ -52,6 +52,8 @@ async def saveGeojsonFile(request, fileid):
     else:
         return JsonResponse({}, status=404)
 
+@login_required
+def dashboard()
 
 @login_required
 def index(request: HttpRequest):

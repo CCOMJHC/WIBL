@@ -40,6 +40,7 @@ from wibl_manager.heartbeat import Heartbeat
 from wibl_manager.wibl_download import WIBLDownload
 from wibl_manager.geojson_download import GeoJSONDownload
 from wibl_manager.geojson_save import GeoJSONSave
+from wibl_manager.dashboard_data import DashboardData
 
 with app.app_context():
     db.create_all()
@@ -51,6 +52,7 @@ api.add_resource(WIBLDownload, '/wibl/download/<string:fileid>')
 api.add_resource(GeoJSONDownload, '/geojson/download/<string:fileid>')
 api.add_resource(GeoJSONData, '/geojson/<string:fileid>')
 api.add_resource(GeoJSONSave, '/geojson/save/<string:fileid>')
+api.add_resource(DashboardData, '/data/<string:value>')
 api.add_resource(Heartbeat, '/heartbeat')
 
 

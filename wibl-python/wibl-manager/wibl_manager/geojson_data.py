@@ -31,6 +31,8 @@
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
 import boto3
+import os
+import requests
 from datetime import datetime, timezone
 from flask import abort
 from flask_restful import Resource, reqparse, fields, marshal_with
@@ -108,6 +110,8 @@ geojson_resource_fields = {
     'messages':     fields.String
 }
 
+data_rest_url = os.environ['MANAGEMENT_URL'] + 'data/'
+
 class GeoJSONData(Resource):
     """
     A RESTful endpoint for manipulating metadata on GeoJSON files in a local database.  The design here
@@ -153,8 +157,12 @@ class GeoJSONData(Resource):
         geojson_file = GeoJSONDataModel(fileid=fileid, uploadtime=timestamp, updatetime='Unknown', notifytime='Unknown',
                                         logger='Unknown', size=args['size'],
                                         soundings=-1, status=UploadStatus.UPLOAD_STARTED.value)
+        # Add to the dashboard statistics
+        requests.post(data_rest_url + "GeojsonFileCount")
+
         db.session.add(geojson_file)
         db.session.commit()
+
         return geojson_file, ReturnCodes.RECORD_CREATED.value
 
     @marshal_with(geojson_resource_fields)
@@ -185,6 +193,13 @@ class GeoJSONData(Resource):
         if args['soundings']:
             geojson_file.soundings = args['soundings']
         if args['status']:
+            # File always starts with status 0
+            # So if the status changes to 1 or 2, add it to the data.
+            match args['status']:
+                case 1:
+                    requests.post(data_rest_url + "SubmittedTotal")
+                case 2:
+                    requests.post(data_rest_url + "UploadFailedTotal")
             geojson_file.status = args['status']
         if args['messages']:
             geojson_file.messages = args['messages'][:1024]
