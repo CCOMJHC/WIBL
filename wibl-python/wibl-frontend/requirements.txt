@@ -5,3 +5,5 @@ redis~=5.1.1
 channels[daphne]
 channels-redis
 httpx[http2,brotli,zstd]
+dash~=3.0.4
+django-plotly-dash~=2.4.6

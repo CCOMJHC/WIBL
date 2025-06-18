@@ -16,9 +16,27 @@ export class WIBLFileTable extends FileTable {
         super.connectedCallback();
     }
 
-    // Resets every rows class so they are visible.
-    // Hide the message that shows if there was a search that returned no results.
-    clearCSS() {
+    // Clears only which row is selected, keeping the search filters
+    clearSelected() {
+        const table_rows = this._shadow.querySelectorAll("tr");
+
+        const hiddenMessage = document.querySelector("#filterErrorMessage");
+
+        const table = document.querySelector("#wibl-file-table");
+        table.setAttribute("class", "");
+
+        hiddenMessage.textContent = "";
+        hiddenMessage.setAttribute("class", "is-hidden");
+
+        for (let i = 0; i < table_rows.length; i++) {
+            const row = table_rows[i];
+            row.classList.remove("is-selected");
+        }
+    }
+
+    // Clears all row classes
+    // Used before every new filter
+    clearAll() {
         const table_rows = this._shadow.querySelectorAll("tr");
 
         const hiddenMessage = document.querySelector("#filterErrorMessage");
@@ -40,7 +58,7 @@ export class WIBLFileTable extends FileTable {
     filterTable(date, time, platform, logger) {
 
         // Reset previous filter
-        this.clearCSS();
+        this.clearAll();
 
         // Grab the value of each attribute
         date = date.value;

@@ -183,6 +183,7 @@ export class FileTable extends HTMLElement {
     // Option changes certain log messages depending on functionality.
     // 0: delete
     // 1: download
+    // 2: map
     getSelectedFiles(option) {
         const checkedBoxes = this._shadow.querySelectorAll('.row-checkbox:checked');
 
@@ -209,7 +210,7 @@ export class FileTable extends HTMLElement {
             } else if (option == 1){
                 promptText = `Would you like to download files: \n${selectedNames.join('\n')}?`;
             } else {
-                return 0;
+                return selectedNames;
             }
 
             if (confirm(promptText)) {
@@ -221,10 +222,10 @@ export class FileTable extends HTMLElement {
                 return selectedNames;
             } else {
                 console.log("Delete canceled");
-                return 0;
+                return;
             }
         } else {
-            return 0;
+            return selectedNames;
         }
     }
 
