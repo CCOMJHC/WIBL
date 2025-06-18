@@ -3,6 +3,7 @@ from flask_restful import Resource
 from flask_sqlalchemy import SQLAlchemy
 from threading import Lock
 from enum import Enum
+from app_globals import dashData
 
 class DashboardDataModel:
     def __init__(self):
@@ -29,15 +30,21 @@ class DashboardDataModel:
         with self._lock:
             return self._data[value].get(value, 0)
 
+    def getAll(self):
+        with self._lock:
+            return self._data
+
     def subtract(self, value, count):
         with self._lock:
             self._data[value] = self._data[value] - count
 
 
-
 class DashboardData(Resource):
     def get(self, value):
-        return {value: dashData.get(value)}, 200
+        if value == "all":
+            return dashData.getAll(), 200
+        else:
+            return {value: dashData.get(value)}, 200
 
     def post(self, value):
         data = request.get_json(silent=True) or {}
