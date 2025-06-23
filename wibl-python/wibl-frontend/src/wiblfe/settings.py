@@ -57,6 +57,8 @@ MIDDLEWARE = [
     'django_plotly_dash.middleware.BaseMiddleware'
 ]
 
+STATICFILES_FINDERS = ['django_plotly_dash.finders.DashComponentFinder']
+
 ROOT_URLCONF = 'wiblfe.urls'
 
 LOGIN_REDIRECT_URL = '/'

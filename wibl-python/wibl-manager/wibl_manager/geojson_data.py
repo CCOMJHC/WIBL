@@ -37,7 +37,7 @@ from datetime import datetime, timezone
 from flask import abort
 from flask_restful import Resource, reqparse, fields, marshal_with
 
-from wibl_manager.app_globals import db
+from wibl_manager.app_globals import db, dashData
 from wibl_manager import ReturnCodes, UploadStatus
 
 
@@ -110,8 +110,6 @@ geojson_resource_fields = {
     'messages':     fields.String
 }
 
-data_rest_url = os.environ['MANAGEMENT_URL'] + 'data/'
-
 class GeoJSONData(Resource):
     """
     A RESTful endpoint for manipulating metadata on GeoJSON files in a local database.  The design here
@@ -158,7 +156,7 @@ class GeoJSONData(Resource):
                                         logger='Unknown', size=args['size'],
                                         soundings=-1, status=UploadStatus.UPLOAD_STARTED.value)
         # Add to the dashboard statistics
-        requests.post(data_rest_url + "GeojsonFileCount")
+        dashData.add("GeojsonFileCount", 1)
 
         db.session.add(geojson_file)
         db.session.commit()
@@ -197,9 +195,9 @@ class GeoJSONData(Resource):
             # So if the status changes to 1 or 2, add it to the data.
             match args['status']:
                 case 1:
-                    requests.post(data_rest_url + "SubmittedTotal")
+                    dashData.add("SubmittedTotal", 1)
                 case 2:
-                    requests.post(data_rest_url + "UploadFailedTotal")
+                    dashData.add("UploadFailedTotal", 1)
             geojson_file.status = args['status']
         if args['messages']:
             geojson_file.messages = args['messages'][:1024]

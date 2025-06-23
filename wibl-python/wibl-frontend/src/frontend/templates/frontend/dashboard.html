@@ -1,13 +1,10 @@
 {% extends "base_nav.html" %}
 
 {% load static %}
-{% load plotly-dash %}
+{% load plotly_dash %}
 
 {% block content %}
 
-<div class=" {% plotly_class name='DjangoSessionState' %}">
-  {% plotly_app name="DjangoSessionState" ratio=0.3 %}
-</div>
-
+{% plotly_app name="Dashboard" ratio=.4%}
 
 {% endblock %}

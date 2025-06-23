@@ -28,7 +28,7 @@
 # OR OTHER DEALINGS IN THE SOFTWARE.
 import os
 import boto3
-from dashboard_data import DashboardData
+from wibl_manager.dashboard_data import DashboardDataInternal
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
@@ -41,4 +41,4 @@ app.config['SQLALCHEMY_DATABASE_URI'] = MANAGER_DATABASE_URI
 
 db = SQLAlchemy(app)
 
-dashData = DashboardData()
+dashData = DashboardDataInternal()
