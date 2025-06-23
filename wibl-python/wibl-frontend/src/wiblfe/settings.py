@@ -57,7 +57,10 @@ MIDDLEWARE = [
     'django_plotly_dash.middleware.BaseMiddleware'
 ]
 
-STATICFILES_FINDERS = ['django_plotly_dash.finders.DashComponentFinder']
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'django_plotly_dash.finders.DashComponentFinder']
 
 ROOT_URLCONF = 'wiblfe.urls'
 
