@@ -36,12 +36,14 @@ from flask import abort, url_for
 from flask_restful import Resource, reqparse, fields, marshal_with
 import boto3
 import requests
+from sqlalchemy import Column, String, Integer, Float
 # noinspection PyInterpreter
-from wibl_manager.app_globals import db, dashData
-from wibl_manager import ReturnCodes, ProcessingStatus
+from src.wibl_manager.app_globals import db, dashData
+from src.wibl_manager import ReturnCodes, ProcessingStatus
+from .database import Base
 
 
-class WIBLDataModel(db.Model):
+class WIBLDataModel(Base):
     """
     Data model for WIBL file metadata during processing, held in a suitable database (controlled externally)
 
@@ -76,19 +78,22 @@ class WIBLDataModel(db.Model):
     :param messages:        Messages returned during processing (usually error/warnings)
     :type messages:         str, optional
     """
-    fileid = db.Column(db.String(40), primary_key=True)
-    processtime = db.Column(db.String(30))
-    updatetime = db.Column(db.String(30))
-    notifytime = db.Column(db.String(30))
-    logger = db.Column(db.String(80))
-    platform = db.Column(db.String(80))
-    size = db.Column(db.Float, nullable=False)
-    observations = db.Column(db.Integer)
-    soundings = db.Column(db.Integer)
-    starttime = db.Column(db.String(30))
-    endtime = db.Column(db.String(30))
-    status = db.Column(db.Integer)
-    messages = db.Column(db.String(1024))
+
+    __tablename__ = 'WIBLDataTable'
+
+    fileid = Column(String(40), primary_key=True)
+    processtime = Column(String(30))
+    updatetime = Column(String(30))
+    notifytime = Column(String(30))
+    logger = Column(String(80))
+    platform = Column(String(80))
+    size = Column(Float, nullable=False)
+    observations = Column(Integer)
+    soundings = Column(Integer)
+    starttime = Column(String(30))
+    endtime = Column(String(30))
+    status = Column(Integer)
+    messages = Column(String(1024))
 
     def __repr__(self):
         """
@@ -179,12 +184,12 @@ class WIBLData(Resource):
                                   logger='Unknown', platform='Unknown', size=args['size'],
                                   observations=-1, soundings=-1, starttime='Unknown', endtime='Unknown',
                                   status=ProcessingStatus.PROCESSING_STARTED.value, messages='')
-        db.session.add(wibl_file)
+        db.session.addGeneral(wibl_file)
         db.session.commit()
 
         # Add to the dashboard statistics
-        dashData.add("WiblFileCount", 1)
-        dashData.add("SizeTotal", args['size'])
+        dashData.addGeneral("WiblFileCount", 1)
+        dashData.addGeneral("SizeTotal", args['size'])
         # post on the cloud
         # s3_client.put_object(Body=wibl_file, Bucket='wibl-test', Key=fileid)
         return wibl_file, ReturnCodes.RECORD_CREATED.value
@@ -213,13 +218,19 @@ class WIBLData(Resource):
         if args['logger']:
             wibl_file.logger = args['logger']
         if args['platform']:
+            if wibl_file.platform:
+                dashData.subtractObserverStat("fileCount", 1, wibl_file.platform)
+                dashData.addObserverStat("fileCount", 1, args['platform'])
+            else:
+                dashData.addObserverStat("fileCount", 1, args['platform'])
+
             wibl_file.platform = args['platform']
         if args['size']:
             # If the size of the file changes,
             # remove its old size from the total and add the new one
-            dashData.subtract("SizeTotal", wibl_file.size)
+            dashData.subtractGeneral("SizeTotal", wibl_file.size)
             wibl_file.size = args['size']
-            dashData.add("SizeTotal", args['size'])
+            dashData.addGeneral("SizeTotal", args['size'])
         if args['observations']:
             wibl_file.observations = args['observations']
         if args['soundings']:
@@ -233,9 +244,9 @@ class WIBLData(Resource):
             # So if the status changes to 1 or 2, add it to the data.
             match args['status']:
                 case 1:
-                    dashData.add("ConvertedTotal", 1)
+                    dashData.addGeneral("ConvertedTotal", 1)
                 case 2:
-                    dashData.add("ProcessingFailedTotal", 1)
+                    dashData.addGeneral("ProcessingFailedTotal", 1)
             wibl_file.status = args['status']
         if args['messages']:
             wibl_file.messages = args['messages'][:1024]

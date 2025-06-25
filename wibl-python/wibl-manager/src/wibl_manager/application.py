@@ -33,14 +33,14 @@
 from flask_restful import Api
 from typing import NoReturn
 
-from wibl_manager.app_globals import app, db
-from wibl_manager.wibl_data import WIBLData
-from wibl_manager.geojson_data import GeoJSONData
-from wibl_manager.heartbeat import Heartbeat
-from wibl_manager.wibl_download import WIBLDownload
-from wibl_manager.geojson_download import GeoJSONDownload
-from wibl_manager.geojson_save import GeoJSONSave
-from wibl_manager.dashboard_data import DashboardDataExternal
+from src.wibl_manager.app_globals import app, db
+from src.wibl_manager.wibl_data import WIBLData
+from src.wibl_manager.geojson_data import GeoJSONData
+from src.wibl_manager.heartbeat import Heartbeat
+from src.wibl_manager.wibl_download import WIBLDownload
+from src.wibl_manager.geojson_download import GeoJSONDownload
+from src.wibl_manager.geojson_save import GeoJSONSave
+from src.wibl_manager.dashboard_data import DashboardDataExternal
 
 with app.app_context():
     db.create_all()

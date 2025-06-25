@@ -60,19 +60,6 @@ services:
       - frontend
       - redis
 
-  db:
-    image: postgres:17-bookworm
-    container_name: db
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-    expose:
-      - '6432'
-    volumes:
-      - pgdata:/var/lib/postgresql/data/
-    command: -p 6432
-
   redis:
     image: redis:7-bookworm
 

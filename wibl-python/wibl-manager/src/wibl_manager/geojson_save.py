@@ -3,7 +3,7 @@ from flask import Response, jsonify
 import boto3
 import botocore
 import json
-import wibl_manager.app_globals as globals
+from src import wibl_manager as globals
 
 #TODO: Configure the boto client from environment variables
 

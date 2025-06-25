@@ -12,6 +12,31 @@ graphHeight=200
 n_observers = 186
 n_submit_days = 60
 
+def getData():
+    test_json_response = {
+        "WiblFileCount" : 20,
+        "GeojsonFileCount": 10,
+        "SizeTotal" : 200,
+        "DepthTotal" : 100,
+        "ConvertedTotal" : 10,
+        "ProcessingFailedTotal" : 0,
+        "UploadFailedTotal" : 0,
+        "ValidatedTotal" : 0,
+        "SubmittedTotal" : 0,
+        "ObserverTotal": 120,
+        "SoundingTotal" : 10
+    }
+    obs_x_axis = np.arange(test_json_response['ObserverTotal'])
+    Observer_df = pd.DataFrame(data={'observer': obs_x_axis, 'files': test_json_response['WiblFileCount'],
+                                     'soundings': test_json_response['SoundingTotal']})
+
+    sub_x_axis = x_axis = -n_submit_days + 1 + np.arange(n_submit_days)
+    Submit_df = pd.DataFrame(data = {'date' : sub_x_axis, 'submissions': test_json_response['WiblFileCount']})
+
+
+
+
+
 def generateObserverFileData(nobs: int) -> pd.DataFrame:
     x_axis = np.arange(nobs)
     rng = np.random.default_rng()
@@ -188,3 +213,4 @@ app.layout = html.Div([
         ])
     ], style={'display': 'flex'})
 ])
+

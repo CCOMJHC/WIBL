@@ -36,13 +36,13 @@ import requests
 from datetime import datetime, timezone
 from flask import abort
 from flask_restful import Resource, reqparse, fields, marshal_with
-
-from wibl_manager.app_globals import db, dashData
-from wibl_manager import ReturnCodes, UploadStatus
-
+from sqlalchemy import Column, String, Integer, Float
+from src.wibl_manager.app_globals import db, dashData
+from src.wibl_manager import ReturnCodes, UploadStatus
+from .database import Base
 
 # Data model for GeoJSON metadata stored in the database
-class GeoJSONDataModel(db.Model):
+class GeoJSONDataModel(Base):
     """
     Data model for GeoJSON file metadata in the database.
 
@@ -68,15 +68,19 @@ class GeoJSONDataModel(db.Model):
     :param messages:    Messages returned during processing (usually error/warnings)
     :type messages:     str, optional  
     """
-    fileid = db.Column(db.String(40), primary_key=True)
-    uploadtime = db.Column(db.String(30))
-    updatetime = db.Column(db.String(30))
-    notifytime = db.Column(db.String(30))
-    logger = db.Column(db.String(80))
-    size = db.Column(db.Float, nullable=False)
-    soundings = db.Column(db.Integer)
-    status = db.Column(db.Integer)
-    messages = db.Column(db.String(1024))
+
+    __tablename__ = 'GeoJSONDataTable'
+
+
+    fileid = Column(String(40), primary_key=True)
+    uploadtime = Column(String(30))
+    updatetime = Column(String(30))
+    notifytime = Column(String(30))
+    logger = Column(String(80))
+    size = Column(Float, nullable=False)
+    soundings = Column(Integer)
+    status = Column(Integer)
+    messages = Column(String(1024))
 
     def __repr__(self):
         """
@@ -156,9 +160,9 @@ class GeoJSONData(Resource):
                                         logger='Unknown', size=args['size'],
                                         soundings=-1, status=UploadStatus.UPLOAD_STARTED.value)
         # Add to the dashboard statistics
-        dashData.add("GeojsonFileCount", 1)
+        dashData.addGeneral("GeojsonFileCount", 1)
 
-        db.session.add(geojson_file)
+        db.session.addGeneral(geojson_file)
         db.session.commit()
 
         return geojson_file, ReturnCodes.RECORD_CREATED.value
@@ -189,15 +193,17 @@ class GeoJSONData(Resource):
         if args['size']:
             geojson_file.size = args['size']
         if args['soundings']:
+            dashData.addGeneral("SoundingTotal", args['soundings'])
+            dashData.addObserverStat('soundings', args['soundings'], )
             geojson_file.soundings = args['soundings']
         if args['status']:
             # File always starts with status 0
             # So if the status changes to 1 or 2, add it to the data.
             match args['status']:
                 case 1:
-                    dashData.add("SubmittedTotal", 1)
+                    dashData.addGeneral("SubmittedTotal", 1)
                 case 2:
-                    dashData.add("UploadFailedTotal", 1)
+                    dashData.addGeneral("UploadFailedTotal", 1)
             geojson_file.status = args['status']
         if args['messages']:
             geojson_file.messages = args['messages'][:1024]
