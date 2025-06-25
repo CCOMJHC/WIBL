@@ -31,6 +31,8 @@ import boto3
 from src.wibl_manager.dashboard_data import DashboardDataInternal
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, scoped_session
 
 MANAGER_DATABASE_URI = os.environ.get('MANAGER_DATABASE_URI', 'postgresql://postgres:postgres@localhost:6432/db')
 S3_WIBL_BUCKET_NAME = "wibl-test"
@@ -38,6 +40,11 @@ S3_GEOJSON_BUCKET_NAME = "geojson-test"
 
 app = Flask('WIBL-Manager')
 app.config['SQLALCHEMY_DATABASE_URI'] = MANAGER_DATABASE_URI
+
+DATABASE_URL = "postgresql://postgres:postgres@localhost/postgres"
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
 
 db = SQLAlchemy(app)
 

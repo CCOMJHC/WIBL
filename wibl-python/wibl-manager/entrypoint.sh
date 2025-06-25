@@ -8,7 +8,7 @@ until pg_isready -h db -p 6432 -U postgres; do
 done
 
 echo "Run Alembic Migrations"
-alembic upgrade head
+alembic upgrade head --sqlalchemy-url=postgresql://postgres:postgres@db:6432/postgres
 
 echo "Migration Finished"
 
