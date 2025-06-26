@@ -40,7 +40,7 @@ from sqlalchemy import Column, String, Integer, Float
 # noinspection PyInterpreter
 from src.wibl_manager.app_globals import dashData
 from src.wibl_manager import ReturnCodes, ProcessingStatus
-from .model_base import Base
+from .database import Base
 
 
 class WIBLDataModel(Base):

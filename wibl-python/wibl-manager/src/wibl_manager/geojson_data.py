@@ -39,7 +39,7 @@ from flask_restful import Resource, reqparse, fields, marshal_with
 from sqlalchemy import Column, String, Integer, Float
 from src.wibl_manager.app_globals import dashData
 from src.wibl_manager import ReturnCodes, UploadStatus
-from .model_base import Base
+from .database import Base
 
 # Data model for GeoJSON metadata stored in the database
 class GeoJSONDataModel(Base):

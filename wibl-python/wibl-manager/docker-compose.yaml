@@ -6,8 +6,6 @@ services:
     restart: always
     env_file:
       - manager.env
-    environment:
-      MANAGER_DATABASE_URI: 'postgresql://postgres:postgres@db:6432/postgres'
     ports:
       #- '8001:8000'
       - '6080:5000'
@@ -25,7 +23,9 @@ services:
           path: ./wibl_manager
           target: /usr/src/wibl/wibl_manager
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+        restart: true
   localstack:
     image: localstack/localstack
     environment:
@@ -51,9 +51,9 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     ports:
-      - "6432:6432"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data/
-    command: -p 6432
+    command: -p 5432
 volumes:
   pgdata:
