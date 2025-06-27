@@ -6,13 +6,11 @@ services:
     restart: always
     env_file:
       - manager.env
-    environment:
-      MANAGER_DATABASE_URI: 'sqlite:////var/wibl/database.db'
     ports:
       #- '8001:8000'
       - '6080:5000'
     volumes:
-      - 'dbdata_mgr:/var/wibl'
+      - 'pgdata:/var/lib/postgresql/data/'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/heartbeat"]
       interval: 30s
@@ -24,6 +22,10 @@ services:
         - action: sync+restart
           path: ./wibl_manager
           target: /usr/src/wibl/wibl_manager
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
   localstack:
     image: localstack/localstack
     environment:
@@ -39,6 +41,19 @@ services:
       - "14510-14559:4510-4559"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./s3-test-load.bash:/opt/code/localstack/s3-test-load.bash"
+      - "./wibl_manager/tests/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson:/opt/code/localstack/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson"
+      - "./scripts/s3-test-load.sh:/etc/localstack/init/ready.d/s3-test-load.sh"
+  db:
+    image: postgres:17-bookworm
+    container_name: db
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+    command: -p 5432
 volumes:
-  dbdata_mgr:
+  pgdata:

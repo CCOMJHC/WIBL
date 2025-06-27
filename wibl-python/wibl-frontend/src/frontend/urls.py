@@ -1,9 +1,12 @@
-from django.urls import path
-
+from django.urls import path, include
+from frontend import Dashboard
 from . import views
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("dashboard", views.dashboard, name="dashboard"),
     path("logout", views.logout, name="logout"),
-    path('downloadWiblFile/<str:fileid>', views.downloadWiblFile, name="downloadWiblFile")
+    path('downloadFile/<str:fileid>', views.downloadFile, name="downloadFile"),
+    path('saveGeojsonFile/<str:fileid>', views.saveGeojsonFile, name="saveGeojsonFile"),
+    path('django_plotly_dash/', include('django_plotly_dash.urls'))
 ]

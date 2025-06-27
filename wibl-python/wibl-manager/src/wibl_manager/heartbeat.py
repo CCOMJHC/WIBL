@@ -1,9 +1,8 @@
-# Application global variables needed to bring up the whole app, and the database
+# Health check endpoint to allow service managers to ensure that the system is up
 #
-# In the Flask environment, it is expected that the app variable is a global, and the
-# SQLAlchemy instance variable has to be constructed before the data models can be
-# specified (since they need an embedded type from the instance of the database).  This
-# file provides these two variables so that they can be imported into other modules.
+# Once cloud-deployed, most systems will want to know whether the local REST endpoint
+# is still up and running.  This provides a simple GET interface that allows for a quick
+# check that the service is still responding.
 #
 # Copyright 2023 Center for Coastal and Ocean Mapping & NOAA-UNH Joint
 # Hydrographic Center, University of New Hampshire.
@@ -26,17 +25,18 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
-import os
-import boto3
 
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from flask_restful import Resource
 
-MANAGER_DATABASE_URI = os.environ.get('MANAGER_DATABASE_URI', 'sqlite:///database.db')
-S3_BUCKET_NAME = "wibl-test"
-app = Flask('WIBL-Manager')
-app.config['SQLALCHEMY_DATABASE_URI'] = MANAGER_DATABASE_URI
+from src.wibl_manager import ReturnCodes
 
 
+class Heartbeat(Resource):
+    """
+    A simple check on whether the service is still running.  This returns a status code
+    for the service, but no other information.
 
-db = SQLAlchemy(app)
+    TODO: The heartbeat should import the DB and make sure it functions.
+    """
+    def get(self):
+        return ReturnCodes.OK.value
