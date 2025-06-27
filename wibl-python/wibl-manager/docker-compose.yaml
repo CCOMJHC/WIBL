@@ -42,7 +42,7 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./wibl_manager/tests/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson:/opt/code/localstack/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson"
-      - "./s3-test-load.sh:/etc/localstack/init/ready.d/s3-test-load.sh"
+      - "./scripts/s3-test-load.sh:/etc/localstack/init/ready.d/s3-test-load.sh"
   db:
     image: postgres:17-bookworm
     container_name: db
