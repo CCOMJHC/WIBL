@@ -37,8 +37,4 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 S3_WIBL_BUCKET_NAME = "wibl-test"
 S3_GEOJSON_BUCKET_NAME = "geojson-test"
 
-app = Flask('WIBL-Manager')
-app.config['SQLALCHEMY_DATABASE_URI'] = MANAGER_DATABASE_URI
-
-db = SQLAlchemy(app)
 dashData = DashboardDataInternal()

@@ -1,5 +1,7 @@
 #!/bin/bash
-while getopts u:p:h:a:n: flag
+# ./generate-env.sh -u postgres -p postgres -a 5432 -n postgres
+
+while getopts u:p:a:n: flag
 do
     case "${flag}" in
         u) DB_USER=${OPTARG};;
@@ -10,7 +12,7 @@ do
     esac
 done
 
-DATABASE_URI="postgresql://${DB_USER}:${DB_USER}@db:${DB_PORT}/${DB_NAME}"
+DATABASE_URI="postgresql+psycopg://${DB_USER}:${DB_USER}@db:${DB_PORT}/${DB_NAME}"
 
 echo "Writing these values to manager.env..."
 echo "Username: $DB_USER"

@@ -5,18 +5,18 @@ import os
 
 Base = declarative_base()
 
-MANAGER_DATABASE_URI = os.environ.get('MANAGER_DATABASE_URI', "postgresql://postgres:postgres@db:5432/postgres")
+MANAGER_DATABASE_URI = os.environ.get('MANAGER_DATABASE_URI', "postgresql+psycopg://postgres:postgres@db:5432/postgres")
 
 engine = create_async_engine(MANAGER_DATABASE_URI)
 SessionLocal = async_sessionmaker(expire_on_commit=False, class_=AsyncSession, bind=engine)
 
 def get_db_url():
-    return f"postgresql://{os.environ['DATABASE_USER']}:{os.environ['DATABASE_PASSWORD']}@" \
+    return f"postgresql+psycopg://{os.environ['DATABASE_USER']}:{os.environ['DATABASE_PASSWORD']}@" \
                f"{os.environ['DATABASE_HOST']}:{os.environ['DATABASE_PORT']}/" \
                f"{os.environ['DATABASE_NAME']}"
 
 
-async def get_async_db():
-    with SessionLocal() as session:
+async def get_async_db() -> AsyncSession:
+    async with SessionLocal() as session:
         yield session
 

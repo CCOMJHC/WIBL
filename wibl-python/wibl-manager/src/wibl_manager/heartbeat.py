@@ -30,13 +30,22 @@ from flask_restful import Resource
 
 from src.wibl_manager import ReturnCodes
 
+from fastapi import APIRouter
 
-class Heartbeat(Resource):
+heartbeatRouter = APIRouter()
+
+@heartbeatRouter.get("/heartbeat")
+def getHeartbeat():
     """
     A simple check on whether the service is still running.  This returns a status code
     for the service, but no other information.
 
     TODO: The heartbeat should import the DB and make sure it functions.
     """
+    return ReturnCodes.OK.value
+
+
+class Heartbeat(Resource):
+
     def get(self):
         return ReturnCodes.OK.value

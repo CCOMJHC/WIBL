@@ -74,7 +74,6 @@ class DashboardDataModel:
 
 dashDataModel = DashboardDataModel()
 
-
 class DashboardDataInternal:
     def addGeneral(self, value, count):
         dashDataModel.add(value, count)
@@ -97,14 +96,3 @@ class DashboardDataExternal(Resource):
             return dashDataModel.getObservers(), 200
         else:
             return {value: dashDataModel.get(value)}, 200
-
-    # def post(self, value):
-    #     data = request.get_json(silent=True) or {}
-    #     count = data.get("count", 1)
-    #     return {value: dashDataModel.add(value, count)}, 200
-    #
-    # def delete(self, value):
-    #     data = request.get_json(silent=True) or {}
-    #     count = data.get("count", 1)
-    #     return {value: dashDataModel.subtract(value, count)}, 204
-

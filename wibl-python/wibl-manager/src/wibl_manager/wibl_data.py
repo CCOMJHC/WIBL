@@ -36,6 +36,7 @@ from http.client import HTTPException
 
 import boto3
 import requests
+from pydantic.v1.schema import schema
 from sqlalchemy import Column, String, Integer, Float, select, Delete
 # noinspection PyInterpreter
 from src.wibl_manager.app_globals import dashData
@@ -43,83 +44,8 @@ from src.wibl_manager import ReturnCodes, ProcessingStatus
 from .database import Base, get_async_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException
-
-
-class WIBLDataModel(Base):
-    """
-    Data model for WIBL file metadata during processing, held in a suitable database (controlled externally)
-
-    Attributes:
-    :param fileid:          Primary key, usually the file's name (assuming that it's a UUID)
-    :type fileid:           str
-    :param processtime:     String representation (ISO format) for when the file was first picked up for processing.  Added
-                            automatically by the REST server on POST.
-    :type processtime:      str
-    :param updatetime:      String representation (ISO format) for when the PUT update to the metadata is received. Added
-                            automatically by the REST server.
-    :type updatetime:       str, optional
-    :param notifytime:      String representation (ISO format) for when a notification about any processing failure is sent out.
-    :type notifytime:       str, optional
-    :param logger:          Unique identifier used for the logger generating the data.
-    :type logger:           str, optional
-    :param platform:        Name of the platform being used to host the logger (may be anonymous).
-    :type platform:         str, optional
-    :param size:            Size of the file in MB.
-    :type size:             float
-    :param observations:    Number of raw observations of depth in the file.
-    :type observations:     int, optional
-    :param soundings:       Number of processed (output) soundings in the converted file.
-    :type soundings:        int, optional
-    :param starttime:       String representation (ISO format) for the earliest output sounding in the processed file.
-    :type starttime:        str, optional
-    :param endtime:         String representation (ISO format) for the latest output sounding in the processed file.
-    :type endtime:          str, optional
-    :param status:          Status indicator for processing of the file to GeoJSON.  Set to 'started' on POST, but can then be
-                            updated through PUT to reflect the results of processing.
-    :type status:           :enum: `return_codes.ProcessStatus`
-    :param messages:        Messages returned during processing (usually error/warnings)
-    :type messages:         str, optional
-    """
-
-    __tablename__ = 'WIBLDataTable'
-
-    fileid = Column(String(40), primary_key=True)
-    processtime = Column(String(30))
-    updatetime = Column(String(30))
-    notifytime = Column(String(30))
-    logger = Column(String(80))
-    platform = Column(String(80))
-    size = Column(Float, nullable=False)
-    observations = Column(Integer)
-    soundings = Column(Integer)
-    starttime = Column(String(30))
-    endtime = Column(String(30))
-    status = Column(Integer)
-    messages = Column(String(1024))
-
-    def __repr__(self):
-        """
-        Generate a simple string representation of the data model for debugging purposes.
-        """
-        return f'file {self.fileid} at {self.processtime} for logger {self.logger} on {self.platform} size {self.size} MB, status={self.status}.'
-
-
-class WIBLMarshModel(BaseModel):
-    fileid: str
-    processtime: str
-    updatetime: str
-    notifytime: str
-    logger: str
-    platform: str
-    size: float
-    observations: int
-    soundings: int
-    starttime: str
-    endtime: str
-    status: int
-    messages: str
-
+from fastapi import APIRouter, HTTPException, Depends
+from src.wibl_manager.schemas import WIBLDataModel
 
 class WIBLPostParse(BaseModel):
     size: str
@@ -137,6 +63,23 @@ class WIBLPutParse(BaseModel):
     status: int
     messages: str
 
+class WIBLMarshModel(BaseModel):
+    fileid: str
+    processtime: str
+    updatetime: str
+    notifytime: str
+    logger: str
+    platform: str
+    size: float
+    observations: int
+    soundings: int
+    starttime: str
+    endtime: str
+    status: int
+    messages: str
+
+    class Config:
+        from_attributes = True
 
 WIBLDataRouter = APIRouter()
 url = "/wibl/{fileid}"
@@ -151,8 +94,8 @@ class WIBLData:
     """
 
     @staticmethod
-    @WIBLDataRouter.get(url)
-    async def get(fileid: str, db: AsyncSession):
+    @WIBLDataRouter.get(url, response_model=WIBLMarshModel)
+    async def get(fileid: str, db = Depends(get_async_db)):
         """
         Lookup for a single file's metadata, or all files if :param: `fileid` is "all".
 
@@ -161,20 +104,31 @@ class WIBLData:
         :return:        Metadata instance for the file or list of all file, or NOT_FOUND if the record doesn't exist
         :rtype:         tuple  The marshalling decorator should convert to JSON-serialisable form.
         """
-        if fileid == 'all':
-            result = await db.execute(select(WIBLDataModel))
-            return result.scalars().all()
-        else:
-            stmt = (
-                select(WIBLDataModel)
-                .where(WIBLDataModel.fileid == fileid)
-            )
-            result = await db.execute(stmt)
-            return result.scalars().first()
+
+        stmt = (
+            select(WIBLDataModel)
+            .where(WIBLDataModel.fileid == fileid)
+        )
+        result = await db.execute(stmt)
+        return result.scalars().first()
 
     @staticmethod
-    @WIBLDataRouter.post(url)
-    async def post(fileid: str, data: WIBLPostParse, db: AsyncSession):
+    @WIBLDataRouter.get("/wibl/", response_model=list[WIBLMarshModel])
+    async def getall(db = Depends(get_async_db)):
+        """
+        Lookup for a single file's metadata, or all files if :param: `fileid` is "all".
+
+        :param fileid:  Filename to look up (typically a UUID)
+        :type fileid:   str
+        :return:        Metadata instance for the file or list of all file, or NOT_FOUND if the record doesn't exist
+        :rtype:         tuple  The marshalling decorator should convert to JSON-serialisable form.
+        """
+        result = await db.execute(select(WIBLDataModel))
+        return result.scalars().all()
+
+    @staticmethod
+    @WIBLDataRouter.post(url, response_model=WIBLMarshModel, status_code=ReturnCodes.RECORD_CREATED.value)
+    async def post(fileid: str, data: WIBLPostParse, db = Depends(get_async_db)):
         """
         Initial creation of a metadata entry for a WIBL file being processed.  Only the 'size' parameter is
         required at creation time; the server automatically sets the 'processtime' element to the current time
@@ -200,11 +154,11 @@ class WIBLData:
 
         db.add(wibl_file)
         await db.commit()
-        return wibl_file, ReturnCodes.RECORD_CREATED.value
+        return wibl_file
 
     @staticmethod
-    @WIBLDataRouter.put(url)
-    async def put(fileid: str, data: WIBLPutParse, db: AsyncSession):
+    @WIBLDataRouter.put(url, response_model=WIBLMarshModel, status_code=ReturnCodes.RECORD_CREATED.value)
+    async def put(fileid: str, data: WIBLPutParse, db = Depends(get_async_db)):
         """
         Update of the metadata for a single WIBL file after processing.  All variables can be set through the data
         parameters in the request, although the server automatically sets the 'updatetime' component to the current
@@ -264,11 +218,11 @@ class WIBLData:
             wibl_file.messages = data.messages[:1024]
         await db.commit()
 
-        return wibl_file, ReturnCodes.RECORD_CREATED.value
+        return wibl_file
 
     @staticmethod
-    @WIBLDataRouter.delete(url)
-    async def delete(fileid: str, db: AsyncSession):
+    @WIBLDataRouter.delete(url, status_code=ReturnCodes.RECORD_DELETED.value)
+    async def delete(fileid: str, db = Depends(get_async_db)):
         """
         Remove a metadata record from the database for a single file.
 
@@ -279,9 +233,9 @@ class WIBLData:
 
         """
         if fileid == "all":
-            result = await db.execute(Delete(WIBLDataModel))
+            await db.execute(Delete(WIBLDataModel))
             await db.commit()
-            return ReturnCodes.RECORD_DELETED.value
+            return
         else:
             result = await db.execute(select(WIBLDataModel).where(WIBLDataModel.fileid == fileid))
             wibl_file = result.scalars().first()
@@ -291,4 +245,4 @@ class WIBLData:
 
             await db.execute(Delete(WIBLDataModel).where(WIBLDataModel.fileid == fileid))
             await db.commit()
-            return ReturnCodes.RECORD_DELETED.value
+            return

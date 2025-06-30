@@ -30,64 +30,190 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
-import boto3
-import os
-import requests
 from datetime import datetime, timezone
-from flask import abort
-from flask_restful import Resource, reqparse, fields, marshal_with
-from sqlalchemy import Column, String, Integer, Float
+from http.client import HTTPException
+
+from sqlalchemy import select, Delete
+# noinspection PyInterpreter
 from src.wibl_manager.app_globals import dashData
-from src.wibl_manager import ReturnCodes, UploadStatus
-from .database import Base
+from src.wibl_manager import ReturnCodes, ProcessingStatus, UploadStatus
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException, Depends
+from .database import Base, get_async_db
+from src.wibl_manager.schemas import WIBLDataModel
+from src.wibl_manager.schemas import GeoJSONDataModel
+from pydantic import BaseModel
 
-# Data model for GeoJSON metadata stored in the database
-class GeoJSONDataModel(Base):
+url = "geojson/{fileid}"
+GeoJSONRouter = APIRouter()
+
+
+class GeoJSONPostParse(BaseModel):
+    size: str
+
+
+class GeoJSONPutParse(BaseModel):
+    logger: str
+    size: float
+    soundings: int
+    notifytime: str
+    status: int
+    messages: str
+
+class GeoJSONMarshModel(BaseModel):
+    fileid: str
+    uploadtime: str
+    updatetime: str
+    notifytime: str
+    logger: str
+    size: float
+    soundings: int
+    status: int
+    messages: str
+
+    class Config:
+        from_attributes = True
+
+#TODO: Update the doc strings
+class GeoJSONData:
     """
-    Data model for GeoJSON file metadata in the database.
+     A RESTful endpoint for manipulating metadata on GeoJSON files in a local database.  The design here
+     expects that the client will generate a POST when the file is first picked up for upload to the archive,
+     and then update with PUT when the upload is complete (and update the status indicator).  GET is provided
+     for individual file extraction (or "all" for an index of all files currently in the database), and
+     DELETE is provided to remove metadata entries.
+     """
 
-    :param fileid:      Primary key, usually the file's name (assuming that it's a UUID)
-    :type fileid:       str
-    :param uploadtime:  String representation (ISO format) for when the file was first picked up for upload.  Added
-                        automatically by the REST server on POST.
-    :type uploadtime:   str
-    :param updatetime:  String representation (ISO format) for when the PUT update to the metadata is received. Added
-                        automatically by the REST server.
-    :type updatetime:   str, optional
-    :param notifytime:  String representation (ISO format) for when a notification about any processing failure is sent out.
-    :type notifytime:   str, optional
-    :param logger:      Unique identifier used for the logger generating the data.
-    :type logger:       str, optional
-    :param size:        Size of the file in MB.
-    :type size:         float
-    :param soundings:   Number of processed (output) soundings in the converted file.
-    :type soundings:    int, optional
-    :param status:      Status indicator for upload of the file to the archive.  Set to 'started' on POST, but can then be
-                        updated through PUT to reflect the results of processing.
-    :type status:       :enum: `return_codes.UploadStatus`
-    :param messages:    Messages returned during processing (usually error/warnings)
-    :type messages:     str, optional  
-    """
-
-    __tablename__ = 'GeoJSONDataTable'
-
-
-    fileid = Column(String(40), primary_key=True)
-    uploadtime = Column(String(30))
-    updatetime = Column(String(30))
-    notifytime = Column(String(30))
-    logger = Column(String(80))
-    size = Column(Float, nullable=False)
-    soundings = Column(Integer)
-    status = Column(Integer)
-    messages = Column(String(1024))
-
-    def __repr__(self):
+    @staticmethod
+    @GeoJSONRouter.get(url, response_model=GeoJSONMarshModel)
+    async def get(fileid: str, db = Depends(get_async_db)):
         """
-        Generate a simple text version of the data model for debugging.
+         Lookup for a single file's metadata, or all files if :param: `fileid` is "all"
+
+         :param fileid:  Filename to look up (typically a UUID)
+         :type fileid:   str
+         :return:        Metadata instance for the file or list of all file, or NOT_FOUND if the record doesn't exist
+         :rtype:         tuple   The marshalling decorator should convert to JSON-serialisable form.
+         """
+
+        stmt = (
+            select(GeoJSONDataModel)
+            .where(GeoJSONDataModel.fileid == fileid)
+        )
+        result = await db.execute(stmt)
+        return result.scalars().first()
+
+    @staticmethod
+    @GeoJSONRouter.get("/geojson/", response_model=list[GeoJSONMarshModel])
+    async def getall(db = Depends(get_async_db)):
+
+        result = await db.execute(select(WIBLDataModel))
+        return result.scalars().all()
+
+    @staticmethod
+    @GeoJSONRouter.post(url, response_model=GeoJSONMarshModel, status_code=ReturnCodes.RECORD_CREATED.value)
+    async def post(fileid: str, data: GeoJSONPostParse, db = Depends(get_async_db)):
         """
-        return f'file {self.fileid}, size {self.size} MB at {self.uploadtime} for logger {self.logger} with {self.soundings} observations, status={self.status}'
-#
+         Initial creation of a metadata entry for a GeoJSON file being uploaded.  Only the 'size' parameter is
+         required at creation time; the server automatically sets the 'uploadtime' element to the current time
+         and defaults the other values in the metadata to "unknown" states that are recognisable.
+
+         :param fileid:  Filename to look up (typically a UUID)
+         :type fileid:   str
+         :return:        The initial state of the metadata for the file and RECORD_CREATED, or RECORD_CONFLICT if
+                         the record already exists.
+         :rtype:         tuple   The marchalling decorator should convert to JSON-serliasable form.
+         """
+
+        result = await db.execute(select(GeoJSONDataModel).where(GeoJSONDataModel.fileid == fileid))
+        if result:
+            raise HTTPException(status_code=ReturnCodes.RECORD_CONFLICT.value,
+                                detail='That GeoJSON file already exists in the database; use PUT to update.')
+
+        timestamp = datetime.now(timezone.utc).isoformat()
+        geojson_file = GeoJSONDataModel(fileid=fileid, uploadtime=timestamp, updatetime='Unknown', notifytime='Unknown',
+                                        logger='Unknown', size=data.size,
+                                        soundings=-1, status=UploadStatus.UPLOAD_STARTED.value)
+
+        db.add(geojson_file)
+        await db.commit()
+        return geojson_file
+
+
+    @staticmethod
+    @GeoJSONRouter.put(url, response_model=GeoJSONMarshModel, status_code=ReturnCodes.RECORD_CREATED.value)
+    async def put(fileid: str, data: GeoJSONPutParse, db = Depends(get_async_db)):
+        """
+         Update of the metadata for a single GeoJSON file after upload.  All variables can be set through the data
+         parameters in the request, although the server automatically sets the 'updatetime' component to the current
+         UTC time for the call. All the metadata elements are optional.
+
+         :param fileid:  Filename to look up (typically a UUID)
+         :type fileid:   str
+         :return:        The updated state of the metadata for the file and RECORD_CREATED, or NOT_FOUND if the
+                         record doesn't exist.
+         :rtype:         tuple   The marshalling decorator should convert to JSON-serliasable form.
+         """
+
+        result = await db.execute(select(GeoJSONDataModel).where(GeoJSONDataModel.fileid == fileid))
+        geojson_file = result.scalars().first()
+        if not geojson_file:
+            raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
+                                detail='That GeoJSON file does not exist in database; use POST to add.')
+        timestamp = datetime.now(timezone.utc).isoformat()
+        geojson_file.updatetime = timestamp
+
+        if data.notifytime:
+            geojson_file.notifytime = data.notifytime
+        if data.logger:
+            geojson_file.logger = data.logger
+        if data.size:
+            geojson_file.size = data.size
+        if data.soundings:
+            geojson_file.soundings = data.soundings
+        if data.status:
+            # File always starts with status 0
+            # So if the status changes to 1 or 2, add it to the data.
+
+            match data.status:
+                case 1:
+                    dashData.addGeneral("SubmittedTotal", 1)
+                case 2:
+                    dashData.addGeneral("UploadFailedTotal", 1)
+            geojson_file.status = data.status
+        if data.messages:
+            geojson_file.messages = data.messages[:1024]
+        await db.commit()
+
+        return geojson_file
+
+    @staticmethod
+    @GeoJSONRouter.delete(url, status_code=ReturnCodes.RECORD_DELETED.value)
+    async def delete(fileid: str, db = Depends(get_async_db)):
+        """
+         Remove a metadata record from the database for a single file.
+
+         :param fileid:  Filename to look up (typically a UUID)
+         :type fileid:   str
+         :return:        RECORD_DELETED or NOT_FOUHD if the record doesn't exist.
+         :rtype:         int   The marshalling decorator should convert to JSON-serliasable form.
+
+         """
+        if fileid == "all":
+            await db.execute(Delete(GeoJSONDataModel))
+            await db.commit()
+            return
+        else:
+            result = await db.execute(select(GeoJSONDataModel).where(GeoJSONDataModel.fileid == fileid))
+            geojson_file = result.scalars().first()
+            if not geojson_file:
+                raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
+                                    detail='That GeoJSON file does not exist in the database, and therefore cannot be deleted.')
+
+            await db.execute(Delete(GeoJSONDataModel).where(GeoJSONDataModel.fileid == fileid))
+            await db.commit()
+            return
+
 # # Arguments passable to the GeoJSON end-point to POST a new record's metadata
 # GeoJSON_Args = reqparse.RequestParser()
 # GeoJSON_Args.add_argument('size', type=float, help='Size of the GeoJSON file in MB.', required=True)
@@ -115,13 +241,7 @@ class GeoJSONDataModel(Base):
 # }
 #
 # class GeoJSONData(Resource):
-#     """
-#     A RESTful endpoint for manipulating metadata on GeoJSON files in a local database.  The design here
-#     expects that the client will generate a POST when the file is first picked up for upload to the archive,
-#     and then update with PUT when the upload is complete (and update the status indicator).  GET is provided
-#     for individual file extraction (or "all" for an index of all files currently in the database), and
-#     DELETE is provided to remove metadata entries.
-#     """
+#
 #     @marshal_with(geojson_resource_fields)
 #     def get(self, fileid):
 #         """

@@ -29,36 +29,16 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
-
-from flask_restful import Api
-from typing import NoReturn
-
-from src.wibl_manager.app_globals import app, db
-from src.wibl_manager.wibl_data import WIBLData
-from src.wibl_manager.geojson_data import GeoJSONData
-from src.wibl_manager.heartbeat import Heartbeat
-from src.wibl_manager.wibl_download import WIBLDownload
-from src.wibl_manager.geojson_download import GeoJSONDownload
-from src.wibl_manager.geojson_save import GeoJSONSave
-from src.wibl_manager.dashboard_data import DashboardDataExternal
-
-with app.app_context():
-    db.create_all()
+from fastapi import FastAPI
 
 
-api = Api(app)
-api.add_resource(WIBLData, '/wibl/<string:fileid>')
-api.add_resource(WIBLDownload, '/wibl/download/<string:fileid>')
-api.add_resource(GeoJSONDownload, '/geojson/download/<string:fileid>')
-api.add_resource(GeoJSONData, '/geojson/<string:fileid>')
-api.add_resource(GeoJSONSave, '/geojson/save/<string:fileid>')
-api.add_resource(DashboardDataExternal, '/data/<string:value>')
-api.add_resource(Heartbeat, '/heartbeat')
+from src.wibl_manager.wibl_data import WIBLDataRouter
+from src.wibl_manager.geojson_data import GeoJSONRouter
+from src.wibl_manager.heartbeat import heartbeatRouter
 
+app = FastAPI()
 
-def main() -> NoReturn:
-    app.run(debug=True)
+app.include_router(WIBLDataRouter) # /wibl/{fileid}
+app.include_router(heartbeatRouter) # /heartbeat
+app.include_router(GeoJSONRouter) # /geojson/{fileid}
 
-
-if __name__ == "__main__":
-    main()

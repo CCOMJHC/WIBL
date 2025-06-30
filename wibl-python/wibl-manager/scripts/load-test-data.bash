@@ -2,7 +2,7 @@
 set -eu -o pipefail
 
 data_loaded_flag=/usr/src/wibl/test-data-loaded
-manager_url='http://127.0.0.1:5000'
+manager_url='http://0.0.0.0:5000'
 
 if [[ -f $data_loaded_flag ]]; then
   echo "Test already loaded."
