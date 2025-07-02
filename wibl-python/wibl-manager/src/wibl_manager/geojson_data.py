@@ -42,7 +42,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from .database import Base, get_async_db
 from src.wibl_manager.schemas import WIBLDataModel
 from src.wibl_manager.schemas import GeoJSONDataModel
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 url = "geojson/{fileid}"
 GeoJSONRouter = APIRouter()
@@ -71,9 +71,6 @@ class GeoJSONMarshModel(BaseModel):
     status: int
     messages: str
 
-    class Config:
-        from_attributes = True
-
 #TODO: Update the doc strings
 class GeoJSONData:
     """
@@ -101,11 +98,12 @@ class GeoJSONData:
             .where(GeoJSONDataModel.fileid == fileid)
         )
         result = await db.execute(stmt)
-        return result.scalars().first()
+        geojson_file = result.scalars().first()
+        return GeoJSONMarshModel.model_validate(geojson_file)
 
     @staticmethod
-    @GeoJSONRouter.get("/geojson/", response_model=list[GeoJSONMarshModel])
-    async def getall(db = Depends(get_async_db)):
+    @GeoJSONRouter.get("/geojson/")
+    async def getall(db=Depends(get_async_db)):
 
         result = await db.execute(select(WIBLDataModel))
         return result.scalars().all()
@@ -126,7 +124,8 @@ class GeoJSONData:
          """
 
         result = await db.execute(select(GeoJSONDataModel).where(GeoJSONDataModel.fileid == fileid))
-        if result:
+        test_file = result.scalars().first()
+        if test_file:
             raise HTTPException(status_code=ReturnCodes.RECORD_CONFLICT.value,
                                 detail='That GeoJSON file already exists in the database; use PUT to update.')
 
@@ -137,7 +136,7 @@ class GeoJSONData:
 
         db.add(geojson_file)
         await db.commit()
-        return geojson_file
+        return GeoJSONMarshModel.model_validate(geojson_file)
 
 
     @staticmethod
@@ -185,7 +184,7 @@ class GeoJSONData:
             geojson_file.messages = data.messages[:1024]
         await db.commit()
 
-        return geojson_file
+        return GeoJSONMarshModel.model_validate(geojson_file)
 
     @staticmethod
     @GeoJSONRouter.delete(url, status_code=ReturnCodes.RECORD_DELETED.value)

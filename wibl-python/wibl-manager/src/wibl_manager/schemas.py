@@ -52,17 +52,17 @@ class WIBLDataModel(Base):
 
     __tablename__ = 'WIBLDataTable'
 
-    fileid = Column(String(40), primary_key=True)
-    processtime = Column(String(30))
-    updatetime = Column(String(30))
-    notifytime = Column(String(30))
+    fileid = Column(String(60), primary_key=True)
+    processtime = Column(String(40))
+    updatetime = Column(String(40))
+    notifytime = Column(String(40))
     logger = Column(String(80))
     platform = Column(String(80))
     size = Column(Float, nullable=False)
     observations = Column(Integer)
     soundings = Column(Integer)
-    starttime = Column(String(30))
-    endtime = Column(String(30))
+    starttime = Column(String(40))
+    endtime = Column(String(40))
     status = Column(Integer)
     messages = Column(String(1024))
 
@@ -101,10 +101,10 @@ class GeoJSONDataModel(Base):
 
     __tablename__ = 'GeoJSONDataTable'
 
-    fileid = Column(String(40), primary_key=True)
-    uploadtime = Column(String(30))
-    updatetime = Column(String(30))
-    notifytime = Column(String(30))
+    fileid = Column(String(60), primary_key=True)
+    uploadtime = Column(String(40))
+    updatetime = Column(String(40))
+    notifytime = Column(String(40))
     logger = Column(String(80))
     size = Column(Float, nullable=False)
     soundings = Column(Integer)

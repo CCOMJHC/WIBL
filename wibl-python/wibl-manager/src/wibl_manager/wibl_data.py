@@ -33,35 +33,32 @@
 import os
 from datetime import datetime, timezone
 from http.client import HTTPException
+from typing import Optional
 
-import boto3
-import requests
-from pydantic.v1.schema import schema
-from sqlalchemy import Column, String, Integer, Float, select, Delete
+from sqlalchemy import select, Delete
 # noinspection PyInterpreter
 from src.wibl_manager.app_globals import dashData
 from src.wibl_manager import ReturnCodes, ProcessingStatus
 from .database import Base, get_async_db
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Depends
 from src.wibl_manager.schemas import WIBLDataModel
 
+
 class WIBLPostParse(BaseModel):
-    size: str
+    size: float
 
 
 class WIBLPutParse(BaseModel):
-    logger: str
-    platform: str
-    size: float
-    observations: int
-    soundings: int
-    starttime: str
-    endtime: str
-    notifytime: str
-    status: int
-    messages: str
+    logger: Optional[str]
+    platform: Optional[str]
+    observations: Optional[int]
+    soundings: Optional[int]
+    starttime: Optional[str]
+    endtime: Optional[str]
+    status: Optional[int]
+    messages: Optional[str]
+
 
 class WIBLMarshModel(BaseModel):
     fileid: str
@@ -78,11 +75,11 @@ class WIBLMarshModel(BaseModel):
     status: int
     messages: str
 
-    class Config:
-        from_attributes = True
+
 
 WIBLDataRouter = APIRouter()
 url = "/wibl/{fileid}"
+
 
 #TODO: Update the doc strings
 class WIBLData:
@@ -95,7 +92,7 @@ class WIBLData:
 
     @staticmethod
     @WIBLDataRouter.get(url, response_model=WIBLMarshModel)
-    async def get(fileid: str, db = Depends(get_async_db)):
+    async def get(fileid: str, db=Depends(get_async_db)):
         """
         Lookup for a single file's metadata, or all files if :param: `fileid` is "all".
 
@@ -110,11 +107,12 @@ class WIBLData:
             .where(WIBLDataModel.fileid == fileid)
         )
         result = await db.execute(stmt)
-        return result.scalars().first()
+        wibl_file = result.scalars().first()
+        return wibl_file
 
     @staticmethod
-    @WIBLDataRouter.get("/wibl/", response_model=list[WIBLMarshModel])
-    async def getall(db = Depends(get_async_db)):
+    @WIBLDataRouter.get("/wibl/")
+    async def getall(db=Depends(get_async_db)):
         """
         Lookup for a single file's metadata, or all files if :param: `fileid` is "all".
 
@@ -128,7 +126,7 @@ class WIBLData:
 
     @staticmethod
     @WIBLDataRouter.post(url, response_model=WIBLMarshModel, status_code=ReturnCodes.RECORD_CREATED.value)
-    async def post(fileid: str, data: WIBLPostParse, db = Depends(get_async_db)):
+    async def post(fileid: str, data: WIBLPostParse, db=Depends(get_async_db)):
         """
         Initial creation of a metadata entry for a WIBL file being processed.  Only the 'size' parameter is
         required at creation time; the server automatically sets the 'processtime' element to the current time
@@ -142,7 +140,8 @@ class WIBLData:
         """
 
         result = await db.execute(select(WIBLDataModel).where(WIBLDataModel.fileid == fileid))
-        if result:
+        test_file = result.scalars().first()
+        if test_file:
             raise HTTPException(status_code=ReturnCodes.RECORD_CONFLICT.value,
                                 detail='That WIBL file already exists in the database; use PUT to update.')
 
@@ -158,7 +157,7 @@ class WIBLData:
 
     @staticmethod
     @WIBLDataRouter.put(url, response_model=WIBLMarshModel, status_code=ReturnCodes.RECORD_CREATED.value)
-    async def put(fileid: str, data: WIBLPutParse, db = Depends(get_async_db)):
+    async def put(fileid: str, data: WIBLPutParse, db=Depends(get_async_db)):
         """
         Update of the metadata for a single WIBL file after processing.  All variables can be set through the data
         parameters in the request, although the server automatically sets the 'updatetime' component to the current
@@ -217,12 +216,11 @@ class WIBLData:
         if data.messages:
             wibl_file.messages = data.messages[:1024]
         await db.commit()
-
         return wibl_file
 
     @staticmethod
     @WIBLDataRouter.delete(url, status_code=ReturnCodes.RECORD_DELETED.value)
-    async def delete(fileid: str, db = Depends(get_async_db)):
+    async def delete(fileid: str, db=Depends(get_async_db)):
         """
         Remove a metadata record from the database for a single file.
 
