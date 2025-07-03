@@ -10,9 +10,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: frontend
     command: >
-      bash -c "python manage.py makemigrations &&
-                  python manage.py migrate &&
-                  python manage.py collectstatic --noinput &&
+      bash -c "python manage.py collectstatic --noinput &&
                   daphne -b 0.0.0.0 -p 8000 wiblfe.asgi:application"
     depends_on:
       - db
@@ -59,19 +57,6 @@ services:
       - manager
       - frontend
       - redis
-
-  db:
-    image: postgres:17-bookworm
-    container_name: db
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-    expose:
-      - '6432'
-    volumes:
-      - pgdata:/var/lib/postgresql/data/
-    command: -p 6432
 
   redis:
     image: redis:7-bookworm

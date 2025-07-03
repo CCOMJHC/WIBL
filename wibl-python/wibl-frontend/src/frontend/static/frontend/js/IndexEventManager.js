@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const clearButton = document.getElementById("clearButton");
 clearButton.addEventListener("click", (event) => {
     let wiblFileTable = document.getElementById("wibl-file-table");
-    wiblFileTable.clearCSS();
+    wiblFileTable.clearAll();
 })
 
 // Filter/search button in the filter menu
@@ -35,15 +35,25 @@ filterButton.addEventListener("click", (event) => {
 // Can only download one file at a time currently
 const downloadButton = document.getElementById("downloadButton");
 downloadButton.addEventListener("click", (event) => {
+
     var wiblFileTable = document.getElementById("wibl-file-table");
-    var result = wiblFileTable.getSelectedFiles(1);
+    var geojsonFileTable = document.getElementById("geojson-file-table");
+
+    var wiblResult = wiblFileTable.getSelectedFiles(1);
+    var geojsonResult = geojsonFileTable.getSelectedFiles(1);
+
+    var result = wiblResult.concat(geojsonResult);
+
     if (result != 0) {
         if (result.length > 1) {
             alert("Multiple files selected. Please select only one file to download.");
             return;
         } else {
-            const url = `/downloadWiblFile/${result[0]}`;
+            const url = `/downloadFile/${result[0]}`;
             window.location.href = url;
         }
+    } else {
+        alert("No Files Selected.")
     }
 })
+

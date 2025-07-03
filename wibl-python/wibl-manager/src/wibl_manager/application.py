@@ -1,8 +1,12 @@
-# Health check endpoint to allow service managers to ensure that the system is up
+# Main application code for a Flask-based RESTful interface to a metadata database
 #
-# Once cloud-deployed, most systems will want to know whether the local REST endpoint
-# is still up and running.  This provides a simple GET interface that allows for a quick
-# check that the service is still responding.
+# Once data is being uploaded into the WIBL cloud segment, the Trusted node (and potentially
+# data collectors) will want to know that the files have been correctly processed, and then
+# uploaded.  This code builds a Flask-based application that exposes a REST API for update
+# and management of the metadata in a SQLite database, so that the processing and upload code
+# can provide information on the files being manipulated, and another website can be used to
+# front this information for the Trusted Node, and provide manipulation tools.  This is
+# intentionally very minimal, since we want it to run on as limited a resource as possible.
 #
 # Copyright 2023 Center for Coastal and Ocean Mapping & NOAA-UNH Joint
 # Hydrographic Center, University of New Hampshire.
@@ -25,18 +29,16 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
-
-from flask_restful import Resource
-
-from wibl_manager import ReturnCodes
+from fastapi import FastAPI
 
 
-class Heartbeat(Resource):
-    """
-    A simple check on whether the service is still running.  This returns a status code
-    for the service, but no other information.
+from src.wibl_manager.wibl_data import WIBLDataRouter
+from src.wibl_manager.geojson_data import GeoJSONRouter
+from src.wibl_manager.heartbeat import heartbeatRouter
 
-    TODO: The heartbeat should import the DB and make sure it functions.
-    """
-    def get(self):
-        return ReturnCodes.OK.value
+app = FastAPI()
+
+app.include_router(WIBLDataRouter) # /wibl/{fileid}
+app.include_router(heartbeatRouter) # /heartbeat
+app.include_router(GeoJSONRouter) # /geojson/{fileid}
+

@@ -62,7 +62,7 @@ export class DetailTable extends HTMLElement {
                     td.textContent = messageFile[inputHeaders[i]];
                 }
             } else {
-                shadow.getElementById("defaultText").remove();
+                shadow.getElementById("defaultText").classList.add("is-hidden")
                 const thead = document.createElement("thead");
                 const headerRow = document.createElement("tr");
                 const header1 = document.createElement("th");
@@ -115,6 +115,15 @@ export class DetailTable extends HTMLElement {
             default:
                 console.warn(`Unknown attribute ${name}`);
         }
+    }
+
+    clear() {
+        const table = this._shadow.getElementById(`${this._fileType}-detail-table`);
+        table.innerHTML = "";
+        this._active.value = false;
+        const defaultText = this._shadow.getElementById("defaultText");
+        defaultText.textContent = "No Linked File";
+        defaultText.classList.remove("is-hidden");
     }
 }
 
