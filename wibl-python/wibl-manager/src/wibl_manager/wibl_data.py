@@ -50,14 +50,16 @@ class WIBLPostParse(BaseModel):
 
 
 class WIBLPutParse(BaseModel):
-    logger: Optional[str]
-    platform: Optional[str]
-    observations: Optional[int]
-    soundings: Optional[int]
-    starttime: Optional[str]
-    endtime: Optional[str]
-    status: Optional[int]
-    messages: Optional[str]
+    logger: str = None
+    platform: str = None
+    size: float = None
+    observations: int = None
+    soundings: int = None
+    notifytime: str = None
+    starttime: str = None
+    endtime: str = None
+    status: int = None
+    messages: str = None
 
 
 class WIBLMarshModel(BaseModel):
@@ -107,12 +109,11 @@ class WIBLData:
             .where(WIBLDataModel.fileid == fileid)
         )
         result = await db.execute(stmt)
-        wibl_file = result.scalars().first()
-        return wibl_file
+        return result.scalars().first()
 
     @staticmethod
-    @WIBLDataRouter.get("/wibl/")
-    async def getall(db=Depends(get_async_db)):
+    @WIBLDataRouter.get("/wibl/", response_model=list[WIBLMarshModel])
+    async def getAll(db=Depends(get_async_db)):
         """
         Lookup for a single file's metadata, or all files if :param: `fileid` is "all".
 

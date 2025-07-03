@@ -44,21 +44,18 @@ from src.wibl_manager.schemas import WIBLDataModel
 from src.wibl_manager.schemas import GeoJSONDataModel
 from pydantic import BaseModel, ConfigDict
 
-url = "geojson/{fileid}"
-GeoJSONRouter = APIRouter()
-
 
 class GeoJSONPostParse(BaseModel):
-    size: str
+    size: float
 
 
 class GeoJSONPutParse(BaseModel):
-    logger: str
-    size: float
-    soundings: int
-    notifytime: str
-    status: int
-    messages: str
+    logger: str = None
+    size: float = None
+    soundings: int = None
+    notifytime: str = None
+    status: int = None
+    messages: str = None
 
 class GeoJSONMarshModel(BaseModel):
     fileid: str
@@ -70,6 +67,12 @@ class GeoJSONMarshModel(BaseModel):
     soundings: int
     status: int
     messages: str
+
+
+
+
+url = "/geojson/{fileid}"
+GeoJSONRouter = APIRouter()
 
 #TODO: Update the doc strings
 class GeoJSONData:
@@ -98,14 +101,13 @@ class GeoJSONData:
             .where(GeoJSONDataModel.fileid == fileid)
         )
         result = await db.execute(stmt)
-        geojson_file = result.scalars().first()
-        return GeoJSONMarshModel.model_validate(geojson_file)
+        return result.scalars().first()
 
     @staticmethod
-    @GeoJSONRouter.get("/geojson/")
+    @GeoJSONRouter.get("/geojson/", response_model=list[GeoJSONMarshModel])
     async def getall(db=Depends(get_async_db)):
 
-        result = await db.execute(select(WIBLDataModel))
+        result = await db.execute(select(GeoJSONDataModel))
         return result.scalars().all()
 
     @staticmethod
@@ -132,11 +134,11 @@ class GeoJSONData:
         timestamp = datetime.now(timezone.utc).isoformat()
         geojson_file = GeoJSONDataModel(fileid=fileid, uploadtime=timestamp, updatetime='Unknown', notifytime='Unknown',
                                         logger='Unknown', size=data.size,
-                                        soundings=-1, status=UploadStatus.UPLOAD_STARTED.value)
+                                        soundings=-1, status=UploadStatus.UPLOAD_STARTED.value, messages='')
 
         db.add(geojson_file)
         await db.commit()
-        return GeoJSONMarshModel.model_validate(geojson_file)
+        return geojson_file
 
 
     @staticmethod
@@ -183,8 +185,7 @@ class GeoJSONData:
         if data.messages:
             geojson_file.messages = data.messages[:1024]
         await db.commit()
-
-        return GeoJSONMarshModel.model_validate(geojson_file)
+        return geojson_file
 
     @staticmethod
     @GeoJSONRouter.delete(url, status_code=ReturnCodes.RECORD_DELETED.value)
