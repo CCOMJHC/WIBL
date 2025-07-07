@@ -25,16 +25,13 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
-
-from flask_restful import Resource
-
 from src.wibl_manager import ReturnCodes
 
 from fastapi import APIRouter
 
-heartbeatRouter = APIRouter()
+HeartbeatRouter = APIRouter()
 
-@heartbeatRouter.get("/heartbeat")
+@HeartbeatRouter.get("/heartbeat")
 def getHeartbeat():
     """
     A simple check on whether the service is still running.  This returns a status code
@@ -44,8 +41,3 @@ def getHeartbeat():
     """
     return ReturnCodes.OK.value
 
-
-class Heartbeat(Resource):
-
-    def get(self):
-        return ReturnCodes.OK.value

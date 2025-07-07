@@ -30,15 +30,24 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 from fastapi import FastAPI
-
-
 from src.wibl_manager.wibl_data import WIBLDataRouter
 from src.wibl_manager.geojson_data import GeoJSONRouter
-from src.wibl_manager.heartbeat import heartbeatRouter
+from src.wibl_manager.heartbeat import HeartbeatRouter
+from src.wibl_manager.download import DownloadRouter
 
 app = FastAPI()
 
-app.include_router(WIBLDataRouter) # /wibl/{fileid}
-app.include_router(heartbeatRouter) # /heartbeat
-app.include_router(GeoJSONRouter) # /geojson/{fileid}
+# /wibl/{fileid}
+app.include_router(WIBLDataRouter)
+
+# /heartbeat
+app.include_router(HeartbeatRouter)
+
+# /geojson/{fileid}
+app.include_router(GeoJSONRouter)
+
+# /wibl/download/{fileid}
+# /geojson/download/{fileid}
+# /geojson/save/{fileid}
+app.include_router(DownloadRouter)
 

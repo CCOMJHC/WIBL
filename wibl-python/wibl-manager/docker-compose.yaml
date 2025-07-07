@@ -20,7 +20,7 @@ services:
     develop:
       watch:
         - action: sync+restart
-          path: ./wibl_manager
+          path: ./src/wibl_manager
           target: /usr/src/wibl/wibl_manager
     depends_on:
       db:
@@ -41,7 +41,7 @@ services:
       - "14510-14559:4510-4559"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./wibl_manager/tests/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson:/opt/code/localstack/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson"
+      - "./src/wibl_manager/tests/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson:/opt/code/localstack/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson"
       - "./scripts/s3-test-load.sh:/etc/localstack/init/ready.d/s3-test-load.sh"
   db:
     image: postgres:17-bookworm
@@ -60,5 +60,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
 volumes:
   pgdata:
