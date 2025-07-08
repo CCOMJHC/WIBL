@@ -28,7 +28,7 @@
 import os
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
-from enum import Enum
+from enum import Enum, IntFlag
 from typing import Tuple, List
 import requests
 
@@ -43,15 +43,20 @@ class ReturnCodes(Enum):
     FILE_NOT_FOUND = 404
     RECORD_CONFLICT = 409
 
-class ProcessingStatus(Enum):
+
+class WIBLStatus(Enum):
     PROCESSING_STARTED = 0
     PROCESSING_SUCCESSFUL = 1
     PROCESSING_FAILED = 2
 
-class UploadStatus(Enum):
-    UPLOAD_STARTED = 0
-    UPLOAD_SUCCESSFUL = 1
-    UPLOAD_FAILED = 2
+class GeoJSONStatus(IntFlag):
+    VALIDATION_STARTED = 0b000000001
+    VALIDATION_SUCCESSFUL = 0b000000010
+    VALIDATION_FAILED = 0b000000100
+
+    UPLOAD_STARTED = 0b000001000
+    UPLOAD_SUCCESSFUL = 0b000010000
+    UPLOAD_FAILED = 0b000100000
 
 @dataclass_json
 @dataclass
@@ -68,7 +73,7 @@ class WIBLMetadata(FileMetadata):
     soundings: int = -1
     starttime: str = 'Unknown'
     endtime: str = 'Unknown'
-    status: int = ProcessingStatus.PROCESSING_STARTED.value
+    status: int = WIBLStatus.PROCESSING_STARTED.value
 
 @dataclass_json
 @dataclass
@@ -76,7 +81,7 @@ class GeoJSONMetadata(FileMetadata):
     logger: str = 'Unknown'
     size: float = -1.0
     soundings: int = -1
-    status: int = UploadStatus.UPLOAD_STARTED.value
+    status: int = GeoJSONStatus.VALIDATION_STARTED.value
 
 
 class MessageStore:

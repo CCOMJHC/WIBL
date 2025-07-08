@@ -4,10 +4,8 @@ from http.client import HTTPException
 import boto3
 import requests
 from pydantic.v1.schema import schema
-from sqlalchemy import Column, String, Integer, Float, select, Delete
+from sqlalchemy import Column, String, Integer, Float, Date
 # noinspection PyInterpreter
-from src.wibl_manager.app_globals import dashData
-from src.wibl_manager import ReturnCodes, ProcessingStatus
 from .database import Base, get_async_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel

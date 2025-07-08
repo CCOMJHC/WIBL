@@ -35,8 +35,7 @@ from http.client import HTTPException
 
 from sqlalchemy import select, Delete
 # noinspection PyInterpreter
-from src.wibl_manager.app_globals import dashData
-from src.wibl_manager import ReturnCodes, ProcessingStatus, UploadStatus
+from src.wibl_manager import ReturnCodes, GeoJSONStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, HTTPException, Depends
 from .database import Base, get_async_db
@@ -135,7 +134,7 @@ class GeoJSONData:
         timestamp = datetime.now(timezone.utc).isoformat()
         geojson_file = GeoJSONDataModel(fileid=fileid, uploadtime=timestamp, updatetime='Unknown', notifytime='Unknown',
                                         logger='Unknown', size=data.size,
-                                        soundings=-1, status=UploadStatus.UPLOAD_STARTED.value, messages='')
+                                        soundings=-1, status=GeoJSONStatus.UPLOAD_STARTED.value, messages='')
 
         db.add(geojson_file)
         await db.commit()
@@ -174,14 +173,6 @@ class GeoJSONData:
         if data.soundings:
             geojson_file.soundings = data.soundings
         if data.status:
-            # File always starts with status 0
-            # So if the status changes to 1 or 2, add it to the data.
-
-            match data.status:
-                case 1:
-                    dashData.addGeneral("SubmittedTotal", 1)
-                case 2:
-                    dashData.addGeneral("UploadFailedTotal", 1)
             geojson_file.status = data.status
         if data.messages:
             geojson_file.messages = data.messages[:1024]

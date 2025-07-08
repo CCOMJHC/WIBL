@@ -102,7 +102,9 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
     meta.size = filesize
     meta.logger = source_info["logger"]
     meta.soundings = source_info["soundings"]
-    meta.status = UploadStatus.UPLOAD_STARTED.value
+
+    emptyStatus = meta.status & 0b111000111
+    meta.status = emptyStatus | UploadStatus.UPLOAD_STARTED.value
     
     if config['verbose']:
         print(f'Source ID is: {source_info["sourceID"]}; ' + 
@@ -134,15 +136,15 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
             json_code = json_response['success']
             if json_code:
                 rc = True
-                meta.status = UploadStatus.UPLOAD_SUCCESSFUL.value
+                meta.status = emptyStatus | UploadStatus.UPLOAD_SUCCESSFUL.value
             else:
                 rc = False
-                meta.status = UploadStatus.UPLOAD_FAILED.value
+                meta.status = emptyStatus | UploadStatus.UPLOAD_FAILED.value
                 manager.logmsg(f'error: DCDB responded {json_response}')
                 
         except json.decoder.JSONDecodeError:
             rc = False
-            meta.status = UploadStatus.UPLOAD_FAILED.value
+            meta.status = emptyStatus | UploadStatus.UPLOAD_FAILED.value
             manager.logmsg(f'error: DCDB responded {json_response}')
 
     manager.update(meta)

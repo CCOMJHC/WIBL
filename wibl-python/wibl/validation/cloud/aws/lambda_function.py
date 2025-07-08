@@ -33,7 +33,7 @@ from csbschema import validate_data, DEFAULT_VALIDATOR_VERSION
 
 import wibl.core.datasource as ds
 import wibl.core.notification as nt
-from wibl_manager import ManagerInterface, ReturnCodes, ProcessingStatus, MetadataType
+from wibl_manager import ManagerInterface, ReturnCodes, GeoJSONStatus, MetadataType
 from wibl.core import getenv
 import wibl.core.config as conf
 from wibl.validation.cloud.aws import get_config_file
@@ -60,11 +60,13 @@ def validate_metadata(local_file: str, config: Dict[str,Any]) -> bool:
         print(f'info: Validating metadata in {source_file_name} for schema version {DEFAULT_VALIDATOR_VERSION}.')
     
     rc, validate_info = validate_data(local_file)
+    clearedStatus = meta.status & 0b111111000
     if rc:
-        meta.status = ProcessingStatus.PROCESSING_SUCCESSFUL.value
+        newStatus = clearedStatus | GeoJSONStatus.VALIDATION_SUCCESSFUL.value
     else:
-        meta.status = ProcessingStatus.PROCESSING_FAILED.value
+        newStatus = clearedStatus | GeoJSONStatus.VALIDATION_FAILED.value
         manager.logmsg(validate_info.__str__())
+    meta.status = newStatus
     manager.update(meta)
     return rc
 

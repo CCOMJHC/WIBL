@@ -26,9 +26,8 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
-from src.wibl_manager.dashboard_data import DashboardDataInternal
+
 
 S3_WIBL_BUCKET_NAME = "wibl-test"
 S3_GEOJSON_BUCKET_NAME = "geojson-test"
 
-dashData = DashboardDataInternal()

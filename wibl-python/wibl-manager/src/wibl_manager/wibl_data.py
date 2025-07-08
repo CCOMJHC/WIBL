@@ -37,8 +37,7 @@ from typing import Optional
 
 from sqlalchemy import select, Delete
 # noinspection PyInterpreter
-from src.wibl_manager.app_globals import dashData
-from src.wibl_manager import ReturnCodes, ProcessingStatus
+from src.wibl_manager import ReturnCodes, WIBLStatus
 from .database import Base, get_async_db
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Depends
@@ -150,7 +149,7 @@ class WIBLData:
         wibl_file = WIBLDataModel(fileid=fileid, processtime=timestamp, updatetime='Unknown', notifytime='Unknown',
                                   logger='Unknown', platform='Unknown', size=data.size,
                                   observations=-1, soundings=-1, starttime='Unknown', endtime='Unknown',
-                                  status=ProcessingStatus.PROCESSING_STARTED.value, messages='')
+                                  status=WIBLStatus.PROCESSING_STARTED.value, messages='')
 
         db.add(wibl_file)
         await db.commit()
@@ -184,19 +183,9 @@ class WIBLData:
         if data.logger:
             wibl_file.logger = data.logger
         if data.platform:
-            if wibl_file.platform:
-                dashData.subtractObserverStat("fileCount", 1, wibl_file.platform)
-                dashData.addObserverStat("fileCount", 1, data.platform)
-            else:
-                dashData.addObserverStat("fileCount", 1, data.platform)
-
             wibl_file.platform = data.platform
         if data.size:
-            # If the size of the file changes,
-            # remove its old size from the total and add the new one
-            dashData.subtractGeneral("SizeTotal", wibl_file.size)
             wibl_file.size = data.size
-            dashData.addGeneral("SizeTotal", data.size)
         if data.observations:
             wibl_file.observations = data.observations
         if data.soundings:
@@ -206,13 +195,6 @@ class WIBLData:
         if data.endtime:
             wibl_file.endtime = data.endtime
         if data.status:
-            # File always starts with status 0
-            # So if the status changes to 1 or 2, add it to the data.
-            match data.status:
-                case 1:
-                    dashData.addGeneral("ConvertedTotal", 1)
-                case 2:
-                    dashData.addGeneral("ProcessingFailedTotal", 1)
             wibl_file.status = data.status
         if data.messages:
             wibl_file.messages = data.messages[:1024]

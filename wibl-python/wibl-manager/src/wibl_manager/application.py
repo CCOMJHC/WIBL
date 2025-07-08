@@ -34,7 +34,7 @@ from src.wibl_manager.wibl_data import WIBLDataRouter
 from src.wibl_manager.geojson_data import GeoJSONRouter
 from src.wibl_manager.heartbeat import HeartbeatRouter
 from src.wibl_manager.download import DownloadRouter
-
+from src.wibl_manager.statistics import StatsRouter
 app = FastAPI()
 
 # /wibl/{fileid}
@@ -50,4 +50,7 @@ app.include_router(GeoJSONRouter)
 # /geojson/download/{fileid}
 # /geojson/save/{fileid}
 app.include_router(DownloadRouter)
+
+# /statistics
+app.include_router(StatsRouter)
 
