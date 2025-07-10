@@ -13,19 +13,132 @@ lr_margin=50
 graphWidth=300
 graphHeight=200
 
-empty_graph = go.Figure()
-empty_gauge = go.Figure()
-empty_number = go.Figure()
+# Create placeholder values
+uploadNumber = go.Figure(go.Indicator(
+        mode='number+delta',
+        value=0,
+        delta={'reference': 0, 'valueformat': '.0f'},
+        title={'text': 'Uploaded', 'font': {'size': 20}},
+        domain={'x': [0, 1], 'y': [0, 1]},
+        number={'valueformat': '.0f', 'font': {'size': 60}}
+    ))
+uploadNumber.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
+                           margin=dict(l=0, r=0, b=0, t=0))
 
+emptySubmissionsDf = pd.DataFrame(columns=['date', 'submissions'])
+submissionGraph = px.line(emptySubmissionsDf, x='date', y='submissions')
+submissionGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
+                              margin=dict(l=0, r=0, t=0, b=0),
+                              xaxis_title='Days', yaxis_title='Files Submitted')
 
-# empty_graph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
-#                                margin=dict(l=0, r=0, b=0, t=0))
-#
-# empty_gauge.update_layout(autosize=False, width=graphWidth, height=1.25 * graphHeight,
-#                                  margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
-#
-# empty_number.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-#                                        margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
+convertedGauge = go.Figure(go.Indicator(
+    mode="gauge+number+delta",
+    value=0,
+    title={'text': 'Converted'},
+    number={'suffix': '%'},
+    delta={'reference': 0, 'valueformat': '0.1f', 'suffix': '%'},
+    domain={'x': [0, 1], 'y': [0, 1]},
+    gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
+))
+convertedGauge.update_layout(autosize=False, width=graphWidth, height=1.25 * graphHeight,
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+
+emptyLocationDf = pd.DataFrame(columns=['longitude', 'latitude'])
+locationGraph = px.scatter_geo(emptyLocationDf, lon='longitude', lat='latitude', projection='natural earth')
+locationGraph.update_layout(autosize=False, height=1.2 * graphHeight, margin=dict(l=0, r=0, t=0, b=0))
+
+validatedGauge = go.Figure(go.Indicator(
+    mode='gauge+number+delta',
+    value=0,
+    title={'text': 'Validated'},
+    number={'suffix': '%'},
+    delta={'reference': 0, 'valueformat': '.1f', 'suffix': '%'},
+    domain={'x': [0, 1], 'y': [0, 1]},
+    gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
+))
+validatedGauge.update_layout(autosize=False, width=graphWidth, height=1.25 * graphHeight,
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+
+submittedGauge = go.Figure(go.Indicator(
+    mode='gauge+number+delta',
+    value=0,
+    title={'text': 'Submitted'},
+    number={'suffix': '%'},
+    delta={'reference': 0, 'valueformat': '.1f', 'suffix': '%'},
+    domain={'x': [0, 1], 'y': [0, 1]},
+    gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
+))
+submittedGauge.update_layout(autosize=False, width=graphWidth, height=1.25 * graphHeight,
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+
+totalSizeNumber = go.Figure(go.Indicator(
+    mode='number+delta',
+    value=0,
+    delta={'reference': 0, 'valueformat': '.2f', 'suffix': 'GB'},
+    title={'text': 'Total Size', 'font': {'size': 20}},
+    number={'valueformat': '.2f', 'suffix': 'GB', 'font': {'size': 60}},
+    domain={'x': [0, 1], 'y': [0, 1]}
+))
+totalSizeNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
+                              margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+
+totalObsNumber = go.Figure(go.Indicator(
+    mode='number+delta',
+    value=0,
+    delta={'reference': 0, 'valueformat': '.2f', 'suffix': 'M'},
+    title={'text': 'Total Observations', 'font': {'size': 20}},
+    number={'valueformat': '.2f', 'suffix': 'M', 'font': {'size': 60}},
+    domain={'x': [0, 1], 'y': [0, 1]}
+))
+totalObsNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
+                             margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
+
+obsUsedGauge = go.Figure(go.Indicator(
+    mode='gauge+number+delta',
+    value=0,
+    title={'text': 'Observations Used'},
+    number={'suffix': '%'},
+    delta={'reference': 0, 'valueformat': '.1f', 'suffix': '%'},
+    domain={'x': [0, 1], 'y': [0, 1]},
+    gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
+))
+obsUsedGauge.update_layout(autosize=False, width=graphWidth, height=graphHeight,
+                           margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+
+totalObserversNumber = go.Figure(go.Indicator(
+    mode='number+delta',
+    value=0,
+    delta={'reference': 0, 'valueformat': '.0f'},
+    title={'text': 'Total Observers', 'font': {'size': 20}},
+    number={'valueformat': '.0f', 'font': {'size': 60}},
+    domain={'x': [0, 1], 'y': [0, 1]}
+))
+totalObserversNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
+                                   margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
+
+noReportsNumber = go.Figure(go.Indicator(
+    mode='number+delta',
+    value=0,
+    delta={'reference': 20, 'valueformat': '.0f'},
+    title={'text': 'Zero Reports/Last Month', 'font': {'size': 20}},
+    number={'valueformat': '.0f', 'font': {'size': 60}},
+    domain={'x': [0, 1], 'y': [0, 1]}
+))
+noReportsNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
+                              margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
+
+emptyObserverDf = pd.DataFrame(columns=['observer', 'files','soundings'])
+
+observerFileCountGraph = px.line(emptyObserverDf, x='observer', y='files')
+observerFileCountGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
+                                     margin=dict(l=lr_margin, r=lr_margin, t=0, b=0),
+                                     xaxis_title='Observer Name', yaxis_title='Files Submitted')
+
+observerSndCountGraph = px.line(emptyObserverDf, x='observer', y='soundings')
+observerSndCountGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
+                                    margin=dict(l=lr_margin,r=lr_margin,t=0,b=0),
+                                    xaxis_title='Observer Name', yaxis_title='Soundings Submitted')
+
 app = DjangoDash("Dashboard")
 
 app.layout = html.Div([
@@ -33,30 +146,30 @@ app.layout = html.Div([
     html.H1(children='Current Status', style={'textAlign': 'center', 'font-family': 'Verdana'}),
     html.Div([
         html.Div([
-            dcc.Graph(id="upload-Number", figure=empty_number),
-            dcc.Graph(id = "submission-Graph", figure=empty_graph),
-            dcc.Graph(id = "location-Graph", figure=empty_graph)
+            dcc.Graph(id="upload-Number", figure=uploadNumber),
+            dcc.Graph(id = "submission-Graph", figure=submissionGraph),
+            dcc.Graph(id = "location-Graph", figure=locationGraph)
         ], style={'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center'}),
         html.Div([
-            dcc.Graph(id="converted-Gauge", figure=empty_gauge),
-            dcc.Graph(id="validated-Gauge", figure=empty_gauge),
-            dcc.Graph(id="submitted-Gauge", figure=empty_gauge)
+            dcc.Graph(id="converted-Gauge", figure=convertedGauge),
+            dcc.Graph(id="validated-Gauge", figure=validatedGauge),
+            dcc.Graph(id="submitted-Gauge", figure=submittedGauge)
         ], style={'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center'}),
         html.Div([
             html.Fieldset([
                 html.Legend('WIBL Files', style={'font-size': 20, 'font-family': 'Verdana'}),
                 html.Div([
-                    dcc.Graph(id="total-Size-Number", figure=empty_number),
-                    dcc.Graph(id="total-Obs-Number", figure=empty_number),
-                    dcc.Graph(id="obs-Used-Gauge", figure=empty_gauge)
+                    dcc.Graph(id="total-Size-Number", figure=totalSizeNumber),
+                    dcc.Graph(id="total-Obs-Number", figure=totalObsNumber),
+                    dcc.Graph(id="obs-Used-Gauge", figure=obsUsedGauge)
                 ], style={'display': 'flex'})
             ], style={'border-width': '5px'}),
             html.Fieldset([
                 html.Legend('Observers', style={'font-size': 20, 'font-family': 'Verdana'}),
                 html.Div([
                 html.Div([
-                    dcc.Graph(id="total-Observers-Number", figure=empty_number),
-                    dcc.Graph(id="no-Reports-Number", figure=empty_number)
+                    dcc.Graph(id="total-Observers-Number", figure=totalObserversNumber),
+                    dcc.Graph(id="no-Reports-Number", figure=noReportsNumber)
                 ], style={
                     'flex': '1',
                     'height': '100%',
@@ -64,8 +177,8 @@ app.layout = html.Div([
                     'flexDirection': 'column'
                 }),
                 html.Div([
-                    dcc.Graph(id="observer-File-Count", figure=empty_number),
-                    dcc.Graph(id="observer-Snd-Count", figure=empty_number)
+                    dcc.Graph(id="observer-File-Count-Graph", figure=observerFileCountGraph),
+                    dcc.Graph(id="observer-Snd-Count-Graph", figure=observerSndCountGraph)
                 ], style={
                     'flex': '1',
                     'height': '100%',
@@ -110,135 +223,51 @@ async def createApp():
     submitted_total = manager_res['SubmittedTotal']
     size_total = manager_res['SizeTotal']
     depth_total = manager_res['DepthTotal']
+    zero_reports_total = manager_res['ObserverZeroReportsTotal']
     observer_total = manager_res['ObserverTotal']
+    location_data = pd.DataFrame(manager_res['LocationData'])
 
-    uploadNumber = go.Figure(go.Indicator(
-        mode='number+delta',
-        value=wibl_file_count,
-        delta={'reference': 0, 'valueformat': '.0f'},
-        title={'text': 'Uploaded', 'font': {'size': 20}},
-        domain={'x': [0, 1], 'y': [0, 1]},
-        number={'valueformat': '.0f', 'font': {'size': 60}}
-    ))
-    uploadNumber.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
-                               margin=dict(l=0, r=0, b=0, t=0))
+    uploadNumber.data[0].value = wibl_file_count
 
-    submissionGraph = px.line(file_date_df, x='date', y='submissions')
-    submissionGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
+
+    newSubmissionGraph = px.line(file_date_df, x='date', y='submissions')
+    newSubmissionGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
                                   margin=dict(l=0, r=0, t=0, b=0),
                                   xaxis_title='Days', yaxis_title='Files Submitted')
 
-    convertedGauge = go.Figure(go.Indicator(
-        mode="gauge+number+delta",
-        value=(converted_total / wibl_file_count) * 100,
-        title={'text': 'Converted'},
-        number={'suffix': '%'},
-        delta={'reference': 0, 'valueformat': '0.1f', 'suffix': '%'},
-        domain={'x': [0, 1], 'y': [0, 1]},
-        gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
-    ))
-    convertedGauge.update_layout(autosize=False, width=graphWidth, height=1.25 * graphHeight,
-                                 margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+    convertedGauge.data[0].value = (converted_total / wibl_file_count) * 100
 
-    locationData = generateLocationData(file_date_df['submissions'].iloc[-1])
+    newLocationGraph = px.scatter_geo(location_data, lon='longitude', lat='latitude', projection='natural earth')
+    newLocationGraph.update_layout(autosize=False, height=1.2 * graphHeight, margin=dict(l=0, r=0, t=0, b=0))
 
-    locationGraph = px.scatter_geo(locationData, lon='longitude', lat='latitude', projection='natural earth')
-    locationGraph.update_layout(autosize=False, height=1.2 * graphHeight, margin=dict(l=0, r=0, t=0, b=0))
+    validatedGauge.data[0].value = (validated_total / geojson_file_count) * 100
 
-    validatedGauge = go.Figure(go.Indicator(
-        mode='gauge+number+delta',
-        value=(validated_total / geojson_file_count) * 100,
-        title={'text': 'Validated'},
-        number={'suffix': '%'},
-        delta={'reference': 0, 'valueformat': '.1f', 'suffix': '%'},
-        domain={'x': [0, 1], 'y': [0, 1]},
-        gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
-    ))
-    validatedGauge.update_layout(autosize=False, width=graphWidth, height=1.25 * graphHeight,
-                                 margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+    submittedGauge.data[0].value = (submitted_total / geojson_file_count) * 100
 
-    submittedGauge = go.Figure(go.Indicator(
-        mode='gauge+number+delta',
-        value=(submitted_total / geojson_file_count) * 100,
-        title={'text': 'Submitted'},
-        number={'suffix': '%'},
-        delta={'reference': 0, 'valueformat': '.1f', 'suffix': '%'},
-        domain={'x': [0, 1], 'y': [0, 1]},
-        gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
-    ))
-    submittedGauge.update_layout(autosize=False, width=graphWidth, height=1.25 * graphHeight,
-                                 margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+    totalSizeNumber.data[0].value = size_total
 
-    totalSizeNumber = go.Figure(go.Indicator(
-        mode='number+delta',
-        value=size_total,
-        delta={'reference': 0, 'valueformat': '.2f', 'suffix': 'GB'},
-        title={'text': 'Total Size', 'font': {'size': 20}},
-        number={'valueformat': '.2f', 'suffix': 'GB', 'font': {'size': 60}},
-        domain={'x': [0, 1], 'y': [0, 1]}
-    ))
-    totalSizeNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                                  margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+    totalObsNumber.data[0].value = depth_total
 
-    totalObsNumber = go.Figure(go.Indicator(
-        mode='number+delta',
-        value=depth_total,
-        delta={'reference': 0, 'valueformat': '.2f', 'suffix': 'M'},
-        title={'text': 'Total Observations', 'font': {'size': 20}},
-        number={'valueformat': '.2f', 'suffix': 'M', 'font': {'size': 60}},
-        domain={'x': [0, 1], 'y': [0, 1]}
-    ))
-    totalObsNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                                 margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
+    obsUsedGauge.data[0].value = 10
 
-    obsUsedGauge = go.Figure(go.Indicator(
-        mode='gauge+number+delta',
-        value=10,
-        title={'text': 'Observations Used'},
-        number={'suffix': '%'},
-        delta={'reference': 0, 'valueformat': '.1f', 'suffix': '%'},
-        domain={'x': [0, 1], 'y': [0, 1]},
-        gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
-    ))
-    obsUsedGauge.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                               margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+    totalObserversNumber.data[0].value = observer_total
 
-    totalObserversNumber = go.Figure(go.Indicator(
-        mode='number+delta',
-        value=observer_total,
-        delta={'reference': 0, 'valueformat': '.0f'},
-        title={'text': 'Total Observers', 'font': {'size': 20}},
-        number={'valueformat': '.0f', 'font': {'size': 60}},
-        domain={'x': [0, 1], 'y': [0, 1]}
-    ))
-    totalObserversNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                                       margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
+    noReportsNumber.data[0].value = zero_reports_total
 
-    noReportsNumber = go.Figure(go.Indicator(
-        mode='number+delta',
-        value=13,
-        delta={'reference': 20, 'valueformat': '.0f'},
-        title={'text': 'Zero Reports/Last Month', 'font': {'size': 20}},
-        number={'valueformat': '.0f', 'font': {'size': 60}},
-        domain={'x': [0, 1], 'y': [0, 1]}
-    ))
-    noReportsNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                                  margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
+    newObserverFileCountGraph = px.line(observer_file_total_df, x='observer', y='files')
+    observerFileCountGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
+                                         margin=dict(l=lr_margin, r=lr_margin, t=0, b=0),
+                                         xaxis_title='Observer Name', yaxis_title='Files Submitted')
 
-    observerFileCount = px.line(observer_file_total_df, x='observer', y='files')
-    observerFileCount.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
-                                    margin=dict(l=lr_margin, r=lr_margin, t=0, b=0),
-                                    xaxis_title='Observer Name', yaxis_title='Files Submitted')
-
-    observerSndCount = px.line(observer_file_total_df, x='observer', y='soundings')
-    observerSndCount.update_layout(autosize=False, width=2*graphWidth, height=graphHeight,
-                                   margin=dict(l=lr_margin,r=lr_margin,t=0,b=0),
-                                    xaxis_title='Observer Name', yaxis_title='Soundings Submitted')
+    newObserverSndCountGraph = px.line(observer_file_total_df, x='observer', y='soundings')
+    observerSndCountGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
+                                        margin=dict(l=lr_margin,r=lr_margin,t=0,b=0),
+                                        xaxis_title='Observer Name', yaxis_title='Soundings Submitted')
 
     return {
         "uploadNumber": uploadNumber,
-        "submissionGraph" : submissionGraph,
-        "locationGraph" : locationGraph,
+        "submissionGraph" : newSubmissionGraph,
+        "locationGraph" : newLocationGraph,
         "convertedGauge" : convertedGauge,
         "validatedGauge" : validatedGauge,
         "submittedGauge" : submittedGauge,
@@ -246,9 +275,9 @@ async def createApp():
         "totalObsNumber" : totalObsNumber,
         "obsUsedGauge" : obsUsedGauge,
         "noReportsNumber" : noReportsNumber,
-        "observerFileCount" : observerFileCount,
+        "observerFileCountGraph" : newObserverFileCountGraph,
         "totalObserversNumber" : totalObserversNumber,
-        "observerSndCount" : observerSndCount
+        "observerSndCountGraph" : newObserverSndCountGraph
     }
 
 
@@ -264,16 +293,16 @@ async def createApp():
     dash.dependencies.Output('obs-Used-Gauge', 'figure'),
     dash.dependencies.Output('total-Observers-Number', 'figure'),
     dash.dependencies.Output('no-Reports-Number', 'figure'),
-    dash.dependencies.Output('observer-File-Count', 'figure'),
-    dash.dependencies.Output('observer-Snd-Count', 'figure'),
+    dash.dependencies.Output('observer-File-Count-Graph', 'figure'),
+    dash.dependencies.Output('observer-Snd-Count-Graph', 'figure'),
     [dash.dependencies.Input('refresh-button', 'n_clicks')]
 )
 def update_dashboard(click):
     figures = asyncio.run(createApp())
     return (figures['uploadNumber'], figures['submissionGraph'], figures['locationGraph'], figures['convertedGauge'],
             figures['validatedGauge'], figures['submittedGauge'], figures['totalSizeNumber'], figures['totalObsNumber'],
-            figures['obsUsedGauge'], figures['totalObserversNumber'], figures['noReportsNumber'], figures['observerFileCount'],
-            figures['observerSndCount'])
+            figures['obsUsedGauge'], figures['totalObserversNumber'], figures['noReportsNumber'],
+            figures['observerFileCountGraph'], figures['observerSndCountGraph'])
 
 
 

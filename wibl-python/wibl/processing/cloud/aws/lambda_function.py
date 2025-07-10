@@ -36,7 +36,7 @@ from typing import Dict, Any
 from datetime import datetime
 
 import boto3
-
+import numpy as np
 import wibl.core.config as conf
 import wibl.core.logger_file as lf
 import wibl.core.datasource as ds
@@ -97,6 +97,26 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         meta.soundings = meta.observations
         meta.starttime = datetime.fromtimestamp(source_data['depth']['t'][0]).isoformat()
         meta.endtime = datetime.fromtimestamp(source_data['depth']['t'][-1]).isoformat()
+
+        # Add total depth and average coordinates to the metadata
+        # This process assumes all features lie on the same side of the equator
+        lat_total = 0
+        long_total = 0
+
+        depths = np.sum(source_data['depth']['z'])
+        i = 0
+        size = len(source_data['depth']['z'])
+        while i < size:
+            lat_total += source_data['depth']['lat'][i]
+            long_total += source_data['depth']['lon'][i]
+            i += 1
+        bounding_lat = lat_total / size
+        bounding_lon = long_total / size
+
+        meta.depths = depths
+        meta.boundinglat = bounding_lat
+        meta.boundinglon = bounding_lon
+
     except lf.PacketTranscriptionError as e:
         print(f"Error reading packet from WIBL file: {str(e)}")
     except ts.NoTimeSource:
@@ -123,7 +143,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
     except UnknownAlgorithm as e:
         manager.logmsg(str(e))
         manager.update(meta)
-        print(f"Aborting pocessing due to error: {str(e)}")
+        print(f"Aborting processing due to error: {str(e)}")
         return False
 
     try:

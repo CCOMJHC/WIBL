@@ -1,25 +1,15 @@
+from calendar import month
+
 from src.wibl_manager import ReturnCodes, WIBLStatus, GeoJSONStatus
 from .database import Base, get_async_db
 from pydantic import BaseModel
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from http.client import HTTPException
 from typing import Optional
 from sqlalchemy import select, func, cast, Date
 from fastapi import APIRouter, HTTPException, Depends
 from src.wibl_manager.schemas import WIBLDataModel, GeoJSONDataModel
 import asyncio
-
-class StatsMarsh(BaseModel):
-    WIBLFileCount: int
-    GeoJSONFileCount: int
-    FileSizeTotal: int
-    DepthTotal: int
-    ConvertedTotal: int
-    ValidatedTotal: int
-    SubmittedTotal: int
-    ObserverTotal: int
-    ObserverStats: int
-
 
 StatsRouter = APIRouter()
 
@@ -48,6 +38,7 @@ async def getStats(db=Depends(get_async_db)):
         .group_by(cast(WIBLDataModel.processtime, Date))
     )
 
+
     ConvertedTotalStmt = (
         select(func.count())
         .select_from(WIBLDataModel)
@@ -70,20 +61,46 @@ async def getStats(db=Depends(get_async_db)):
         select(func.count(func.distinct(WIBLDataModel.platform)))
     )
 
+    previousMonthData = datetime.now(timezone.utc) - timedelta(days=30)
+    mostRecentUpload = (
+        select(WIBLDataModel.platform,
+               func.max(cast(WIBLDataModel.processtime, Date)).label('latest_upload'))
+        .group_by(WIBLDataModel.platform)
+        .subquery()
+    )
+
+    ObserverZeroReportsStmt = (
+        select(func.count())
+        .select_from(mostRecentUpload)
+        .where(
+            mostRecentUpload.c.latest_upload < previousMonthData
+        )
+    )
+
     ObserverFileTotalStmt = (
         select(WIBLDataModel.platform.label("observer"), func.count(func.distinct(WIBLDataModel.fileid)).label("files"),
                func.sum(WIBLDataModel.soundings).label("soundings"))
         .group_by(WIBLDataModel.platform)
     )
 
+    LocationDataStmt = (
+        select(WIBLDataModel.boundinglat.label("latitude"), WIBLDataModel.boundinglon.label("longitude"))
+    )
+
+    DepthTotalStmt = (
+        select(func.sum(WIBLDataModel.depthtotal))
+    )
+
     WIBLTotal = (await db.execute(WIBLTotalStmt)).scalar()
     GeoJSONTotal = (await db.execute(GeoJSONTotalStmt)).scalar()
     SizeTotal = (await db.execute(SizeTotalStmt)).scalar()
-    DepthTotal = 0
+    DepthTotal = (await db.execute(DepthTotalStmt)).scalar()
+    LocationData = (await db.execute(LocationDataStmt)).mappings().all()
     FileDateTotal = (await db.execute(FileDateTotalStmt)).mappings().all()
     ConvertedTotal = (await db.execute(ConvertedTotalStmt)).scalar()
     ValidatedTotal = (await db.execute(ValidatedTotalStmt)).scalar()
-    SubmittedTotal =(await db.execute(SubmittedTotalStmt)).scalar()
+    SubmittedTotal = (await db.execute(SubmittedTotalStmt)).scalar()
+    ObserverZeroReports = (await db.execute(ObserverZeroReportsStmt)).scalar()
     ObserverTotal = (await db.execute(ObserverTotalStmt)).scalar()
     ObserverFileTotal = (await db.execute(ObserverFileTotalStmt)).mappings().all()
 
@@ -107,6 +124,8 @@ async def getStats(db=Depends(get_async_db)):
         "ConvertedTotal": ConvertedTotal,
         "ValidatedTotal": ValidatedTotal,
         "SubmittedTotal": SubmittedTotal,
+        "ObserverZeroReportsTotal": ObserverZeroReports,
         "ObserverTotal": ObserverTotal,
-        "ObserverFileTotal": ObserverFileTotal
+        "ObserverFileTotal": ObserverFileTotal,
+        "LocationData": LocationData
     }

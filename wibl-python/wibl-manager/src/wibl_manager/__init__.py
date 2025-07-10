@@ -50,13 +50,13 @@ class WIBLStatus(Enum):
     PROCESSING_FAILED = 2
 
 class GeoJSONStatus(IntFlag):
-    VALIDATION_STARTED = 0b000000001
-    VALIDATION_SUCCESSFUL = 0b000000010
-    VALIDATION_FAILED = 0b000000100
+    VALIDATION_STARTED = 0x1
+    VALIDATION_SUCCESSFUL = 0x2
+    VALIDATION_FAILED = 0x4
 
-    UPLOAD_STARTED = 0b000001000
-    UPLOAD_SUCCESSFUL = 0b000010000
-    UPLOAD_FAILED = 0b000100000
+    UPLOAD_STARTED = 0x8
+    UPLOAD_SUCCESSFUL = 0x10
+    UPLOAD_FAILED = 0x20
 
 @dataclass_json
 @dataclass
@@ -71,6 +71,9 @@ class WIBLMetadata(FileMetadata):
     size: float = -1.0
     observations: int = -1
     soundings: int = -1
+    depthtotal: float = -1.0
+    boundinglon: float = -1.0
+    boundinglat: float = -1.0
     starttime: str = 'Unknown'
     endtime: str = 'Unknown'
     status: int = WIBLStatus.PROCESSING_STARTED.value

@@ -60,7 +60,7 @@ def validate_metadata(local_file: str, config: Dict[str,Any]) -> bool:
         print(f'info: Validating metadata in {source_file_name} for schema version {DEFAULT_VALIDATOR_VERSION}.')
     
     rc, validate_info = validate_data(local_file)
-    clearedStatus = meta.status & 0b111111000
+    clearedStatus = meta.status & 0x1F8
     if rc:
         newStatus = clearedStatus | GeoJSONStatus.VALIDATION_SUCCESSFUL.value
     else:

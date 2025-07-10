@@ -54,6 +54,9 @@ class WIBLPutParse(BaseModel):
     size: float = None
     observations: int = None
     soundings: int = None
+    boundinglat: float = None
+    boundinglon: float = None
+    depthtotal: float = None
     notifytime: str = None
     starttime: str = None
     endtime: str = None
@@ -71,6 +74,9 @@ class WIBLMarshModel(BaseModel):
     size: float
     observations: int
     soundings: int
+    boundinglat: float
+    boundinglon: float
+    depthtotal: float
     starttime: str
     endtime: str
     status: int
@@ -148,8 +154,9 @@ class WIBLData:
         timestamp = datetime.now(timezone.utc).isoformat()
         wibl_file = WIBLDataModel(fileid=fileid, processtime=timestamp, updatetime='Unknown', notifytime='Unknown',
                                   logger='Unknown', platform='Unknown', size=data.size,
-                                  observations=-1, soundings=-1, starttime='Unknown', endtime='Unknown',
-                                  status=WIBLStatus.PROCESSING_STARTED.value, messages='')
+                                  observations=-1, soundings=-1, boundinglat=-1.0, boundinglon=-1.0, depthtotal=-1.0,
+                                  starttime='Unknown', endtime='Unknown', status=WIBLStatus.PROCESSING_STARTED.value,
+                                  messages='')
 
         db.add(wibl_file)
         await db.commit()
@@ -188,6 +195,12 @@ class WIBLData:
             wibl_file.size = data.size
         if data.observations:
             wibl_file.observations = data.observations
+        if data.boundinglat:
+            wibl_file.boundinglat = data.boundinglat
+        if data.boundinglon:
+            wibl_file.boundinglon = data.boundinglon
+        if data.depthtotal:
+            wibl_file.depthtotal = data.depthtotal
         if data.soundings:
             wibl_file.soundings = data.soundings
         if data.starttime:
