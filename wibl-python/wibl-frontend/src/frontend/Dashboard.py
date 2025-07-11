@@ -22,14 +22,13 @@ uploadNumber = go.Figure(go.Indicator(
         domain={'x': [0, 1], 'y': [0, 1]},
         number={'valueformat': '.0f', 'font': {'size': 60}}
     ))
-uploadNumber.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
-                           margin=dict(l=0, r=0, b=0, t=0))
+# width=2 * graphWidth, height=graphHeight, margin=dict(l=0, r=0, b=0, t=0)
+uploadNumber.update_layout(autosize=True)
 
 emptySubmissionsDf = pd.DataFrame(columns=['date', 'submissions'])
 submissionGraph = px.line(emptySubmissionsDf, x='date', y='submissions')
-submissionGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
-                              margin=dict(l=0, r=0, t=0, b=0),
-                              xaxis_title='Days', yaxis_title='Files Submitted')
+#, width=2 * graphWidth, height=graphHeight, margin=dict(l=0, r=0, t=0, b=0)
+submissionGraph.update_layout(autosize=True, xaxis_title='Days', yaxis_title='Files Submitted')
 
 convertedGauge = go.Figure(go.Indicator(
     mode="gauge+number+delta",
@@ -40,12 +39,13 @@ convertedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-convertedGauge.update_layout(autosize=False, width=graphWidth, height=1.25 * graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+#width=graphWidth, height=1.25 * graphHeight, margin=dict(l=lr_margin, r=lr_margin, b=0, t=0)
+convertedGauge.update_layout(autosize=True)
 
 emptyLocationDf = pd.DataFrame(columns=['longitude', 'latitude'])
 locationGraph = px.scatter_geo(emptyLocationDf, lon='longitude', lat='latitude', projection='natural earth')
-locationGraph.update_layout(autosize=False, height=1.2 * graphHeight, margin=dict(l=0, r=0, t=0, b=0))
+#height=1.2 * graphHeight,  margin=dict(l=0, r=0, t=0, b=0)
+locationGraph.update_layout(autosize=True)
 
 validatedGauge = go.Figure(go.Indicator(
     mode='gauge+number+delta',
@@ -56,8 +56,8 @@ validatedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-validatedGauge.update_layout(autosize=False, width=graphWidth, height=1.25 * graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+#width=graphWidth, height=1.25 * graphHeight, margin=dict(l=lr_margin, r=lr_margin, b=0, t=0)
+validatedGauge.update_layout(autosize=True)
 
 submittedGauge = go.Figure(go.Indicator(
     mode='gauge+number+delta',
@@ -68,8 +68,8 @@ submittedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-submittedGauge.update_layout(autosize=False, width=graphWidth, height=1.25 * graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+#width=graphWidth, height=1.25 * graphHeight,margin=dict(l=lr_margin, r=lr_margin, b=0, t=0)
+submittedGauge.update_layout(autosize=True)
 
 totalSizeNumber = go.Figure(go.Indicator(
     mode='number+delta',
@@ -79,8 +79,8 @@ totalSizeNumber = go.Figure(go.Indicator(
     number={'valueformat': '.2f', 'suffix': 'GB', 'font': {'size': 60}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
-totalSizeNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                              margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+#width=graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, b=0, t=0)
+totalSizeNumber.update_layout(autosize=True)
 
 totalObsNumber = go.Figure(go.Indicator(
     mode='number+delta',
@@ -90,8 +90,8 @@ totalObsNumber = go.Figure(go.Indicator(
     number={'valueformat': '.2f', 'suffix': 'M', 'font': {'size': 60}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
-totalObsNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
+#width=graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, t=0, b=0)
+totalObsNumber.update_layout(autosize=True)
 
 obsUsedGauge = go.Figure(go.Indicator(
     mode='gauge+number+delta',
@@ -102,8 +102,8 @@ obsUsedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-obsUsedGauge.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                           margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+#width=graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, b=0, t=0)
+obsUsedGauge.update_layout(autosize=True)
 
 totalObserversNumber = go.Figure(go.Indicator(
     mode='number+delta',
@@ -113,8 +113,8 @@ totalObserversNumber = go.Figure(go.Indicator(
     number={'valueformat': '.0f', 'font': {'size': 60}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
-totalObserversNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                                   margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
+# width=graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, t=0, b=0)
+totalObserversNumber.update_layout(autosize=True)
 
 noReportsNumber = go.Figure(go.Indicator(
     mode='number+delta',
@@ -124,22 +124,21 @@ noReportsNumber = go.Figure(go.Indicator(
     number={'valueformat': '.0f', 'font': {'size': 60}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
-noReportsNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                              margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
+# width=graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, t=0, b=0)
+noReportsNumber.update_layout(autosize=True)
 
 emptyObserverDf = pd.DataFrame(columns=['observer', 'files','soundings'])
 
 observerFileCountGraph = px.line(emptyObserverDf, x='observer', y='files')
-observerFileCountGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
-                                     margin=dict(l=lr_margin, r=lr_margin, t=0, b=0),
-                                     xaxis_title='Observer Name', yaxis_title='Files Submitted')
+#width=2 * graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, t=0, b=0)
+observerFileCountGraph.update_layout(autosize=True, xaxis_title='Observer Name', yaxis_title='Files Submitted')
 
 observerSndCountGraph = px.line(emptyObserverDf, x='observer', y='soundings')
-observerSndCountGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
-                                    margin=dict(l=lr_margin,r=lr_margin,t=0,b=0),
-                                    xaxis_title='Observer Name', yaxis_title='Soundings Submitted')
+#width=2 * graphWidth, height=graphHeight,
+#margin=dict(l=lr_margin,r=lr_margin,t=0,b=0)
+observerSndCountGraph.update_layout(autosize=True, xaxis_title='Observer Name', yaxis_title='Soundings Submitted')
 
-app = DjangoDash("Dashboard")
+app = DjangoDash("Dashboard", )
 
 app.layout = html.Div([
     html.Button("Refresh Data", id="refresh-button"),
@@ -225,7 +224,11 @@ async def createApp():
     depth_total = manager_res['DepthTotal']
     zero_reports_total = manager_res['ObserverZeroReportsTotal']
     observer_total = manager_res['ObserverTotal']
-    location_data = pd.DataFrame(manager_res['LocationData'])
+
+    # Filter the dataframe to remove any points that are (-1, -1), the managers default
+    unfiltered_location_data = pd.DataFrame(manager_res['LocationData'])
+    location_data = unfiltered_location_data[~((unfiltered_location_data['longitude'] == -1) &
+                                               (unfiltered_location_data['latitude'] == -1))]
 
     uploadNumber.data[0].value = wibl_file_count
 

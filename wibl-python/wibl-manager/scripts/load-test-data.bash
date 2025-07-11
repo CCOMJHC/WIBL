@@ -134,4 +134,4 @@ EOF
 EOF
 
   echo "Finished loading test data."
-fi
+
