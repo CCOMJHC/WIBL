@@ -1,3 +1,4 @@
+import time
 from dash import Dash, dcc, html
 from django_plotly_dash import DjangoDash
 import dash
@@ -9,26 +10,26 @@ import numpy as np
 import httpx
 import asyncio
 
-lr_margin=50
-graphWidth=300
-graphHeight=200
+lr_margin = 50
+graphWidth = 300
+graphHeight = 200
 
 # Create placeholder values
 uploadNumber = go.Figure(go.Indicator(
-        mode='number+delta',
-        value=0,
-        delta={'reference': 0, 'valueformat': '.0f'},
-        title={'text': 'Uploaded', 'font': {'size': 20}},
-        domain={'x': [0, 1], 'y': [0, 1]},
-        number={'valueformat': '.0f', 'font': {'size': 60}}
-    ))
-# width=2 * graphWidth, height=graphHeight, margin=dict(l=0, r=0, b=0, t=0)
-uploadNumber.update_layout(autosize=True)
+    mode='number+delta',
+    value=0,
+    delta={'reference': 0, 'valueformat': '.0f'},
+    title={'text': 'Uploaded', 'font': {'size': 20}},
+    domain={'x': [0, 1], 'y': [0, 1]},
+    number={'valueformat': '.0f', 'font': {'size': 60}}
+))
+uploadNumber.update_layout(autosize=True, width=2 * graphWidth, height=graphHeight, margin=dict(l=0, r=0, b=0, t=0))
 
 emptySubmissionsDf = pd.DataFrame(columns=['date', 'submissions'])
 submissionGraph = px.line(emptySubmissionsDf, x='date', y='submissions')
-#, width=2 * graphWidth, height=graphHeight, margin=dict(l=0, r=0, t=0, b=0)
-submissionGraph.update_layout(autosize=True, xaxis_title='Days', yaxis_title='Files Submitted')
+#
+submissionGraph.update_layout(autosize=True, xaxis_title='Days', yaxis_title='Files Submitted',
+                              width=2 * graphWidth, height=graphHeight, margin=dict(l=0, r=0, t=0, b=0))
 
 convertedGauge = go.Figure(go.Indicator(
     mode="gauge+number+delta",
@@ -39,13 +40,14 @@ convertedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-#width=graphWidth, height=1.25 * graphHeight, margin=dict(l=lr_margin, r=lr_margin, b=0, t=0)
-convertedGauge.update_layout(autosize=True)
+#
+convertedGauge.update_layout(autosize=True, width=graphWidth, height=1.25 * graphHeight,
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
 
 emptyLocationDf = pd.DataFrame(columns=['longitude', 'latitude'])
 locationGraph = px.scatter_geo(emptyLocationDf, lon='longitude', lat='latitude', projection='natural earth')
-#height=1.2 * graphHeight,  margin=dict(l=0, r=0, t=0, b=0)
-locationGraph.update_layout(autosize=True)
+
+locationGraph.update_layout(autosize=True, height=1.2 * graphHeight, margin=dict(l=0, r=0, t=0, b=0))
 
 validatedGauge = go.Figure(go.Indicator(
     mode='gauge+number+delta',
@@ -56,8 +58,9 @@ validatedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-#width=graphWidth, height=1.25 * graphHeight, margin=dict(l=lr_margin, r=lr_margin, b=0, t=0)
-validatedGauge.update_layout(autosize=True)
+
+validatedGauge.update_layout(autosize=True, width=graphWidth, height=1.25 * graphHeight,
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
 
 submittedGauge = go.Figure(go.Indicator(
     mode='gauge+number+delta',
@@ -68,8 +71,9 @@ submittedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-#width=graphWidth, height=1.25 * graphHeight,margin=dict(l=lr_margin, r=lr_margin, b=0, t=0)
-submittedGauge.update_layout(autosize=True)
+
+submittedGauge.update_layout(autosize=True, width=graphWidth, height=1.25 * graphHeight,
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
 
 totalSizeNumber = go.Figure(go.Indicator(
     mode='number+delta',
@@ -79,8 +83,9 @@ totalSizeNumber = go.Figure(go.Indicator(
     number={'valueformat': '.2f', 'suffix': 'GB', 'font': {'size': 60}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
-#width=graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, b=0, t=0)
-totalSizeNumber.update_layout(autosize=True)
+
+totalSizeNumber.update_layout(autosize=True, width=graphWidth, height=graphHeight,
+                              margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
 
 totalObsNumber = go.Figure(go.Indicator(
     mode='number+delta',
@@ -90,8 +95,9 @@ totalObsNumber = go.Figure(go.Indicator(
     number={'valueformat': '.2f', 'suffix': 'M', 'font': {'size': 60}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
-#width=graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, t=0, b=0)
-totalObsNumber.update_layout(autosize=True)
+
+totalObsNumber.update_layout(autosize=True, width=graphWidth, height=graphHeight,
+                             margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
 
 obsUsedGauge = go.Figure(go.Indicator(
     mode='gauge+number+delta',
@@ -102,8 +108,9 @@ obsUsedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-#width=graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, b=0, t=0)
-obsUsedGauge.update_layout(autosize=True)
+
+obsUsedGauge.update_layout(autosize=True, width=graphWidth, height=graphHeight,
+                           margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
 
 totalObserversNumber = go.Figure(go.Indicator(
     mode='number+delta',
@@ -113,8 +120,9 @@ totalObserversNumber = go.Figure(go.Indicator(
     number={'valueformat': '.0f', 'font': {'size': 60}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
-# width=graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, t=0, b=0)
-totalObserversNumber.update_layout(autosize=True)
+
+totalObserversNumber.update_layout(autosize=True, width=graphWidth, height=graphHeight,
+                                   margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
 
 noReportsNumber = go.Figure(go.Indicator(
     mode='number+delta',
@@ -124,30 +132,62 @@ noReportsNumber = go.Figure(go.Indicator(
     number={'valueformat': '.0f', 'font': {'size': 60}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
-# width=graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, t=0, b=0)
-noReportsNumber.update_layout(autosize=True)
 
-emptyObserverDf = pd.DataFrame(columns=['observer', 'files','soundings'])
+noReportsNumber.update_layout(autosize=True, width=graphWidth, height=graphHeight,
+                              margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
+
+emptyObserverDf = pd.DataFrame(columns=['observer', 'files', 'soundings'])
 
 observerFileCountGraph = px.line(emptyObserverDf, x='observer', y='files')
-#width=2 * graphWidth, height=graphHeight, margin=dict(l=lr_margin, r=lr_margin, t=0, b=0)
-observerFileCountGraph.update_layout(autosize=True, xaxis_title='Observer Name', yaxis_title='Files Submitted')
+
+observerFileCountGraph.update_layout(autosize=True, xaxis_title='Observer Name', yaxis_title='Files Submitted',
+                                     width=2 * graphWidth, height=graphHeight,
+                                     margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
 
 observerSndCountGraph = px.line(emptyObserverDf, x='observer', y='soundings')
-#width=2 * graphWidth, height=graphHeight,
-#margin=dict(l=lr_margin,r=lr_margin,t=0,b=0)
-observerSndCountGraph.update_layout(autosize=True, xaxis_title='Observer Name', yaxis_title='Soundings Submitted')
+
+observerSndCountGraph.update_layout(autosize=True, xaxis_title='Observer Name', yaxis_title='Soundings Submitted',
+                                    width=2 * graphWidth, height=graphHeight,
+                                    margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
 
 app = DjangoDash("Dashboard", )
 
 app.layout = html.Div([
-    html.Button("Refresh Data", id="refresh-button"),
+    dcc.Interval(
+        id='interval-component',
+        interval=5000,
+        n_intervals=0
+    ),
     html.H1(children='Current Status', style={'textAlign': 'center', 'font-family': 'Verdana'}),
     html.Div([
         html.Div([
+            html.Label("Update Interval"),
+            dcc.Dropdown(
+                id='interval-dropdown',
+                options=[
+                    {'label': '5 seconds', 'value': 5000},
+                    {'label': '30 seconds', 'value': 30000},
+                    {'label': '1 minute', 'value': 60000},
+                    {'label': '5 minutes', 'value': 300000},
+                ],
+                value=60000
+            )
+        ], style={'margin-right': 50, 'width': 170}),
+        html.Div([
+            html.Div(id="countdown-display"),
+            dcc.Interval(
+                id='countdown-tick',
+                interval=1000,
+                n_intervals=0
+            ),
+            html.Div(id='update-output')
+        ])
+    ], style={'display': 'flex', 'font-family': 'Verdana', 'font-size': 15}),
+    html.Div([
+        html.Div([
             dcc.Graph(id="upload-Number", figure=uploadNumber),
-            dcc.Graph(id = "submission-Graph", figure=submissionGraph),
-            dcc.Graph(id = "location-Graph", figure=locationGraph)
+            dcc.Graph(id="submission-Graph", figure=submissionGraph),
+            dcc.Graph(id="location-Graph", figure=locationGraph)
         ], style={'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center'}),
         html.Div([
             dcc.Graph(id="converted-Gauge", figure=convertedGauge),
@@ -166,29 +206,30 @@ app.layout = html.Div([
             html.Fieldset([
                 html.Legend('Observers', style={'font-size': 20, 'font-family': 'Verdana'}),
                 html.Div([
-                html.Div([
-                    dcc.Graph(id="total-Observers-Number", figure=totalObserversNumber),
-                    dcc.Graph(id="no-Reports-Number", figure=noReportsNumber)
-                ], style={
-                    'flex': '1',
-                    'height': '100%',
-                    'display': 'flex',
-                    'flexDirection': 'column'
-                }),
-                html.Div([
-                    dcc.Graph(id="observer-File-Count-Graph", figure=observerFileCountGraph),
-                    dcc.Graph(id="observer-Snd-Count-Graph", figure=observerSndCountGraph)
-                ], style={
-                    'flex': '1',
-                    'height': '100%',
-                    'display': 'flex',
-                    'flexDirection': 'column'
-                })
-                ], style={'display': 'flex', 'height' : '500px'})
+                    html.Div([
+                        dcc.Graph(id="total-Observers-Number", figure=totalObserversNumber),
+                        dcc.Graph(id="no-Reports-Number", figure=noReportsNumber)
+                    ], style={
+                        'flex': '1',
+                        'height': '100%',
+                        'display': 'flex',
+                        'flexDirection': 'column'
+                    }),
+                    html.Div([
+                        dcc.Graph(id="observer-File-Count-Graph", figure=observerFileCountGraph),
+                        dcc.Graph(id="observer-Snd-Count-Graph", figure=observerSndCountGraph)
+                    ], style={
+                        'flex': '1',
+                        'height': '100%',
+                        'display': 'flex',
+                        'flexDirection': 'column'
+                    })
+                ], style={'display': 'flex', 'height': '500px'})
             ], style={'border-width': '5px'})
         ])
     ], style={'display': 'flex'})
 ])
+
 
 async def getData():
     manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
@@ -199,6 +240,7 @@ async def getData():
         return response.json()
     else:
         return None
+
 
 def generateLocationData(nobs: int) -> pd.DataFrame:
     rng = np.random.default_rng()
@@ -232,11 +274,10 @@ async def createApp():
 
     uploadNumber.data[0].value = wibl_file_count
 
-
     newSubmissionGraph = px.line(file_date_df, x='date', y='submissions')
     newSubmissionGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
-                                  margin=dict(l=0, r=0, t=0, b=0),
-                                  xaxis_title='Days', yaxis_title='Files Submitted')
+                                     margin=dict(l=0, r=0, t=0, b=0),
+                                     xaxis_title='Days', yaxis_title='Files Submitted')
 
     convertedGauge.data[0].value = (converted_total / wibl_file_count) * 100
 
@@ -264,23 +305,23 @@ async def createApp():
 
     newObserverSndCountGraph = px.line(observer_file_total_df, x='observer', y='soundings')
     observerSndCountGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
-                                        margin=dict(l=lr_margin,r=lr_margin,t=0,b=0),
+                                        margin=dict(l=lr_margin, r=lr_margin, t=0, b=0),
                                         xaxis_title='Observer Name', yaxis_title='Soundings Submitted')
 
     return {
         "uploadNumber": uploadNumber,
-        "submissionGraph" : newSubmissionGraph,
-        "locationGraph" : newLocationGraph,
-        "convertedGauge" : convertedGauge,
-        "validatedGauge" : validatedGauge,
-        "submittedGauge" : submittedGauge,
-        "totalSizeNumber" : totalSizeNumber,
-        "totalObsNumber" : totalObsNumber,
-        "obsUsedGauge" : obsUsedGauge,
-        "noReportsNumber" : noReportsNumber,
-        "observerFileCountGraph" : newObserverFileCountGraph,
-        "totalObserversNumber" : totalObserversNumber,
-        "observerSndCountGraph" : newObserverSndCountGraph
+        "submissionGraph": newSubmissionGraph,
+        "locationGraph": newLocationGraph,
+        "convertedGauge": convertedGauge,
+        "validatedGauge": validatedGauge,
+        "submittedGauge": submittedGauge,
+        "totalSizeNumber": totalSizeNumber,
+        "totalObsNumber": totalObsNumber,
+        "obsUsedGauge": obsUsedGauge,
+        "noReportsNumber": noReportsNumber,
+        "observerFileCountGraph": newObserverFileCountGraph,
+        "totalObserversNumber": totalObserversNumber,
+        "observerSndCountGraph": newObserverSndCountGraph
     }
 
 
@@ -298,9 +339,9 @@ async def createApp():
     dash.dependencies.Output('no-Reports-Number', 'figure'),
     dash.dependencies.Output('observer-File-Count-Graph', 'figure'),
     dash.dependencies.Output('observer-Snd-Count-Graph', 'figure'),
-    [dash.dependencies.Input('refresh-button', 'n_clicks')]
+    [dash.dependencies.Input('interval-component', 'n_intervals')]
 )
-def update_dashboard(click):
+def update_dashboard(n):
     figures = asyncio.run(createApp())
     return (figures['uploadNumber'], figures['submissionGraph'], figures['locationGraph'], figures['convertedGauge'],
             figures['validatedGauge'], figures['submittedGauge'], figures['totalSizeNumber'], figures['totalObsNumber'],
@@ -308,4 +349,32 @@ def update_dashboard(click):
             figures['observerFileCountGraph'], figures['observerSndCountGraph'])
 
 
+@app.callback(
+    dash.dependencies.Output('interval-component', 'interval'),
+    [dash.dependencies.Input('interval-dropdown', 'value')]
+)
+def update_interval(val):
+    seconds_left = val // 1000
+    return val
 
+
+@app.callback(
+    dash.dependencies.Output('countdown-display', 'children'),
+    [dash.dependencies.Input('countdown-tick', 'n_intervals'),
+     dash.dependencies.State('interval-component', 'interval'),
+     dash.dependencies.State('interval-component', 'n_intervals')]
+)
+def update_countdown(tick, current_interval, update_count):
+    seconds = current_interval // 1000
+
+    elapsed = tick % seconds
+    seconds_left = seconds - elapsed
+    return f"Next update in {seconds_left} seconds."
+
+
+@app.callback(
+    dash.dependencies.Output('update-output', 'children'),
+    [dash.dependencies.Input('interval-component', 'n_intervals')]
+)
+def report_update(n):
+    return f"Last Update at {time.strftime('%X')}"
