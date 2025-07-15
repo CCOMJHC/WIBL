@@ -7,7 +7,7 @@ Base = declarative_base()
 
 MANAGER_DATABASE_URI = os.environ.get('MANAGER_DATABASE_URI', "postgresql+psycopg://postgres:postgres@db:5432/postgres")
 
-engine = create_async_engine(MANAGER_DATABASE_URI)
+engine = create_async_engine(MANAGER_DATABASE_URI, plugins=['geoalchemy2'])
 SessionLocal = async_sessionmaker(expire_on_commit=False, class_=AsyncSession, bind=engine)
 
 def get_db_url():

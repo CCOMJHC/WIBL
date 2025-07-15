@@ -8,8 +8,10 @@ from http.client import HTTPException
 from typing import Optional
 from sqlalchemy import select, func, cast, Date
 from fastapi import APIRouter, HTTPException, Depends
+from src.wibl_manager import GeoJSONStatus
 from src.wibl_manager.schemas import WIBLDataModel, GeoJSONDataModel
 import asyncio
+from geoalchemy2 import functions
 
 StatsRouter = APIRouter()
 
@@ -38,23 +40,30 @@ async def getStats(db=Depends(get_async_db)):
         .group_by(cast(WIBLDataModel.processtime, Date))
     )
 
-
     ConvertedTotalStmt = (
         select(func.count())
         .select_from(WIBLDataModel)
         .where(WIBLDataModel.status == 2)
     )
 
+    ObservationTotalStmt = (
+        select(func.sum(WIBLDataModel.observations))
+    )
+
+    validatedBitmask = 0b000000111
+
     ValidatedTotalStmt = (
         select(func.count())
         .select_from(GeoJSONDataModel)
-        .where(GeoJSONDataModel.status.op('&')(0b000000111) == 0b000000010)
+        .where(GeoJSONDataModel.status.op('&')(validatedBitmask) == GeoJSONStatus.VALIDATION_SUCCESSFUL)
     )
+
+    submitBitmask = 0b000111000
 
     SubmittedTotalStmt = (
         select(func.count())
         .select_from(GeoJSONDataModel)
-        .where(GeoJSONDataModel.status.op('&')(0b000111000) == 0b000010000)
+        .where(GeoJSONDataModel.status.op('&')(submitBitmask) == GeoJSONStatus.UPLOAD_SUCCESSFUL)
     )
 
     ObserverTotalStmt = (
@@ -84,17 +93,13 @@ async def getStats(db=Depends(get_async_db)):
     )
 
     LocationDataStmt = (
-        select(WIBLDataModel.boundinglat.label("latitude"), WIBLDataModel.boundinglon.label("longitude"))
-    )
-
-    DepthTotalStmt = (
-        select(func.sum(WIBLDataModel.depthtotal))
+        select(func.ST_ASGeoJSON(WIBLDataModel.boundingbox))
     )
 
     WIBLTotal = (await db.execute(WIBLTotalStmt)).scalar()
     GeoJSONTotal = (await db.execute(GeoJSONTotalStmt)).scalar()
     SizeTotal = (await db.execute(SizeTotalStmt)).scalar()
-    DepthTotal = (await db.execute(DepthTotalStmt)).scalar()
+    ObservationsTotal = (await db.execute(ObservationTotalStmt)).scalar()
     LocationData = (await db.execute(LocationDataStmt)).mappings().all()
     FileDateTotal = (await db.execute(FileDateTotalStmt)).mappings().all()
     ConvertedTotal = (await db.execute(ConvertedTotalStmt)).scalar()
@@ -119,13 +124,13 @@ async def getStats(db=Depends(get_async_db)):
         "WIBLFileCount": WIBLTotal,
         "GeoJSONFileCount": GeoJSONTotal,
         "SizeTotal": SizeTotal,
-        "DepthTotal": DepthTotal,
         "FileDateTotal": FileDateTotal,
         "ConvertedTotal": ConvertedTotal,
         "ValidatedTotal": ValidatedTotal,
         "SubmittedTotal": SubmittedTotal,
         "ObserverZeroReportsTotal": ObserverZeroReports,
         "ObserverTotal": ObserverTotal,
+        "ObservationsTotal": ObservationsTotal,
         "ObserverFileTotal": ObserverFileTotal,
         "LocationData": LocationData
     }

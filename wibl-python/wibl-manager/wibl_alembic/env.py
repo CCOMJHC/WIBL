@@ -2,6 +2,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, create_engine
 from sqlalchemy import pool
+from geoalchemy2 import alembic_helpers
 
 from alembic import context
 from src.wibl_manager.database import Base, get_db_url
@@ -54,6 +55,9 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=alembic_helpers.include_object,
+        process_revision_directives=alembic_helpers.writer,
+        render_item=alembic_helpers.render_item,
     )
 
     with context.begin_transaction():
@@ -75,7 +79,9 @@ def run_migrations_online() -> None:
             target_metadata=target_metadata,
             include_object=include_table,
             compare_type=True,
-            compare_server_default=True
+            compare_server_default=True,
+            process_revision_directives=alembic_helpers.writer,
+            render_item=alembic_helpers.render_item,
         )
 
         with context.begin_transaction():

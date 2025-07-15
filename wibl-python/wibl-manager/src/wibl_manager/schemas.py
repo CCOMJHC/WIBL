@@ -10,6 +10,7 @@ from .database import Base, get_async_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
+from geoalchemy2 import Geometry
 
 
 class WIBLDataModel(Base):
@@ -37,12 +38,6 @@ class WIBLDataModel(Base):
     :type observations:     int, optional
     :param soundings:       Number of processed (output) soundings in the converted file.
     :type soundings:        int, optional
-    :param totaldepth:      Total number of metres read from the converted file.
-    :type totaldepth:       float, optional
-    :param boundinglat:     Average latitude coordinate of all features in the converted file.
-    :type boundinglat:      float, optional
-    :param boundinglon:     Average longitude coordinate of all features in the converted file.
-    :type boundinglon:      float, optional
     :param starttime:       String representation (ISO format) for the earliest output sounding in the processed file.
     :type starttime:        str, optional
     :param endtime:         String representation (ISO format) for the latest output sounding in the processed file.
@@ -64,9 +59,7 @@ class WIBLDataModel(Base):
     platform = Column(String(80))
     size = Column(Float, nullable=False)
     observations = Column(Integer)
-    depthtotal = Column(Float)
-    boundinglat = Column(Float)
-    boundinglon = Column(Float)
+    boudingbox = Column(Geometry('POLYGON'))
     soundings = Column(Integer)
     starttime = Column(String(40))
     endtime = Column(String(40))

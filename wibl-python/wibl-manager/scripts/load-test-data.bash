@@ -22,9 +22,10 @@ EOF
   "observations": 100232, "soundings": 8023,
   "startTime": "2023-01-23T12:34:45.142",
   "endTime": "2023-01-24T01:45:23.012",
-  "boundinglat": -15.3985,
-  "boundinglon": 28.2938,
-  "depthtotal": 12.8,
+  "max_lat": -15.3985,
+  "min_lat": -20.0000,
+  "max_lon": -17.3335,
+  "min_lon": -25.3454,
   "status": 0
 }
 EOF
@@ -45,9 +46,10 @@ EOF
   "observations": 200231, "soundings": 3028,
   "startTime": "2023-02-23T12:43:45.142",
   "endTime": "2023-02-24T01:54:23.012",
-  "boundinglat": 37.7749,
-  "boundinglon": -122.4194,
-  "depthtotal": 54.8,
+  "max_lat": 14.3985,
+  "min_lat": 5.0000,
+  "max_lon": 30.3335,
+  "min_lon": -25.3454,
   "status": 1
 }
 EOF
@@ -68,9 +70,10 @@ EOF
   "observations": 300230, "soundings": 4027,
   "startTime": "2023-03-23T12:44:45.142",
   "endTime": "2023-03-24T01:53:23.012",
-  "boundinglat": 48.8566,
-  "boundinglon": 2.3522,
-  "depthtotal": 43.2,
+  "max_lat": 120.3985,
+  "min_lat": 100.0000,
+  "max_lon": -12.3335,
+  "min_lon": -25.3454,
   "status": 1
 }
 EOF
@@ -91,9 +94,10 @@ EOF
   "observations": 999999, "soundings": 99999,
   "startTime": "2023-03-23T12:44:45.142",
   "endTime": "2023-03-24T01:53:23.012",
-  "boundinglat": 12.8797,
-  "boundinglon": 121.7740,
-  "depthtotal": 17.7,
+  "max_lat": -110.3985,
+  "min_lat": -140.0000,
+  "max_lon": -110.3335,
+  "min_lon": -140.3454,
   "status": 2
 }
 EOF

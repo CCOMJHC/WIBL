@@ -26,10 +26,11 @@
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 from enum import Enum, IntFlag
-from typing import Tuple, List
+from typing import Tuple, List, Dict, Any
+from geoalchemy2 import Geometry
 import requests
 
 
@@ -71,9 +72,10 @@ class WIBLMetadata(FileMetadata):
     size: float = -1.0
     observations: int = -1
     soundings: int = -1
-    depthtotal: float = -1.0
-    boundinglon: float = -1.0
-    boundinglat: float = -1.0
+    max_lat: float = -1.0
+    min_lat: float = -1.0
+    max_lon: float = -1.0
+    min_lon: float = -1.0
     starttime: str = 'Unknown'
     endtime: str = 'Unknown'
     status: int = WIBLStatus.PROCESSING_STARTED.value

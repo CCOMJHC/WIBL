@@ -98,25 +98,33 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         meta.starttime = datetime.fromtimestamp(source_data['depth']['t'][0]).isoformat()
         meta.endtime = datetime.fromtimestamp(source_data['depth']['t'][-1]).isoformat()
 
-        # Add total depth and average coordinates to the metadata
-        # This process assumes all features lie on the same side of the equator
-        lat_total = 0
-        long_total = 0
+        # Get the max and min coordinates to create a bounding box
+        max_lat = -2000.0
+        min_lat = 2000.0
 
-        depths = np.sum(source_data['depth']['z'])
+        max_lon = -2000.0
+        min_lon = 2000.0
         i = 0
         size = len(source_data['depth']['z'])
         while i < size:
-            lat_total += source_data['depth']['lat'][i]
-            long_total += source_data['depth']['lon'][i]
+            temp_lat = source_data['depth']['lat'][i]
+            temp_lon = source_data['depth']['lon'][i]
+
+            if temp_lat < min_lat:
+                min_lat = temp_lat
+            if temp_lat > max_lat:
+                max_lat = temp_lat
+
+            if temp_lon < min_lon:
+                min_lon = temp_lon
+            if temp_lon > max_lon:
+                max_lon = temp_lon
             i += 1
-        bounding_lat = lat_total / size
-        bounding_lon = long_total / size
 
-        meta.depths = depths
-        meta.boundinglat = bounding_lat
-        meta.boundinglon = bounding_lon
-
+        meta.max_lat = max_lat
+        meta.min_lat = min_lat
+        meta.max_lon = max_lon
+        meta.low_lon = min_lon
     except lf.PacketTranscriptionError as e:
         print(f"Error reading packet from WIBL file: {str(e)}")
     except ts.NoTimeSource:

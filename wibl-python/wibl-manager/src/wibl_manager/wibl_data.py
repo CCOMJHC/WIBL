@@ -54,9 +54,10 @@ class WIBLPutParse(BaseModel):
     size: float = None
     observations: int = None
     soundings: int = None
-    boundinglat: float = None
-    boundinglon: float = None
-    depthtotal: float = None
+    max_lat: float = None
+    min_lat: float = None
+    max_lon: float = None
+    min_lon: float = None
     notifytime: str = None
     starttime: str = None
     endtime: str = None
@@ -74,9 +75,6 @@ class WIBLMarshModel(BaseModel):
     size: float
     observations: int
     soundings: int
-    boundinglat: float
-    boundinglon: float
-    depthtotal: float
     starttime: str
     endtime: str
     status: int
@@ -97,8 +95,9 @@ class WIBLData:
     provided for metadata lookup (GET 'all' for everything) and DELETE for file removal.
     """
 
+    # response_model=WIBLMarshModel
     @staticmethod
-    @WIBLDataRouter.get(url, response_model=WIBLMarshModel)
+    @WIBLDataRouter.get(url)
     async def get(fileid: str, db=Depends(get_async_db)):
         """
         Lookup for a single file's metadata, or all files if :param: `fileid` is "all".
@@ -116,8 +115,9 @@ class WIBLData:
         result = await db.execute(stmt)
         return result.scalars().first()
 
+    # response_model=list[WIBLMarshModel]
     @staticmethod
-    @WIBLDataRouter.get("/wibl/", response_model=list[WIBLMarshModel])
+    @WIBLDataRouter.get("/wibl/")
     async def getAll(db=Depends(get_async_db)):
         """
         Lookup for a single file's metadata, or all files if :param: `fileid` is "all".
@@ -131,7 +131,7 @@ class WIBLData:
         return result.scalars().all()
 
     @staticmethod
-    @WIBLDataRouter.post(url, response_model=WIBLMarshModel, status_code=ReturnCodes.RECORD_CREATED.value)
+    @WIBLDataRouter.post(url, status_code=ReturnCodes.RECORD_CREATED.value)
     async def post(fileid: str, data: WIBLPostParse, db=Depends(get_async_db)):
         """
         Initial creation of a metadata entry for a WIBL file being processed.  Only the 'size' parameter is
@@ -154,7 +154,7 @@ class WIBLData:
         timestamp = datetime.now(timezone.utc).isoformat()
         wibl_file = WIBLDataModel(fileid=fileid, processtime=timestamp, updatetime='Unknown', notifytime='Unknown',
                                   logger='Unknown', platform='Unknown', size=data.size,
-                                  observations=-1, soundings=-1, boundinglat=-1.0, boundinglon=-1.0, depthtotal=-1.0,
+                                  observations=-1, soundings=-1, boundingbox=None,
                                   starttime='Unknown', endtime='Unknown', status=WIBLStatus.PROCESSING_STARTED.value,
                                   messages='')
 
@@ -163,7 +163,7 @@ class WIBLData:
         return wibl_file
 
     @staticmethod
-    @WIBLDataRouter.put(url, response_model=WIBLMarshModel, status_code=ReturnCodes.RECORD_CREATED.value)
+    @WIBLDataRouter.put(url, status_code=ReturnCodes.RECORD_CREATED.value)
     async def put(fileid: str, data: WIBLPutParse, db=Depends(get_async_db)):
         """
         Update of the metadata for a single WIBL file after processing.  All variables can be set through the data
@@ -195,12 +195,10 @@ class WIBLData:
             wibl_file.size = data.size
         if data.observations:
             wibl_file.observations = data.observations
-        if data.boundinglat:
-            wibl_file.boundinglat = data.boundinglat
-        if data.boundinglon:
-            wibl_file.boundinglon = data.boundinglon
-        if data.depthtotal:
-            wibl_file.depthtotal = data.depthtotal
+        if data.max_lat and data.min_lat and data.max_lon and data.min_lon:
+            wibl_file.boundingbox = (f'POLYGON(({data.max_lon} {data.max_lat},{data.max_lon} {data.min_lat},'
+                                     f'{data.min_lon} {data.min_lat}, {data.min_lon} {data.max_lat},'
+                                     f'{data.max_lon} {data.max_lat}))')
         if data.soundings:
             wibl_file.soundings = data.soundings
         if data.starttime:

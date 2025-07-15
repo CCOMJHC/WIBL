@@ -150,7 +150,7 @@ observerSndCountGraph.update_layout(autosize=True, xaxis_title='Observer Name', 
                                     width=2 * graphWidth, height=graphHeight,
                                     margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
 
-app = DjangoDash("Dashboard", )
+app = DjangoDash("Dashboard")
 
 app.layout = html.Div([
     dcc.Interval(
@@ -250,7 +250,7 @@ def generateLocationData(nobs: int) -> pd.DataFrame:
     return df
 
 
-async def createApp():
+async def loadData():
     manager_res = await getData()
     if not manager_res:
         return
@@ -263,15 +263,12 @@ async def createApp():
     validated_total = manager_res['ValidatedTotal']
     submitted_total = manager_res['SubmittedTotal']
     size_total = manager_res['SizeTotal']
-    depth_total = manager_res['DepthTotal']
+    observations_total = manager_res['ObservationsTotal']
     zero_reports_total = manager_res['ObserverZeroReportsTotal']
     observer_total = manager_res['ObserverTotal']
 
-    # Filter the dataframe to remove any points that are (-1, -1), the managers default
-    unfiltered_location_data = pd.DataFrame(manager_res['LocationData'])
-    location_data = unfiltered_location_data[~((unfiltered_location_data['longitude'] == -1) &
-                                               (unfiltered_location_data['latitude'] == -1))]
-
+    location_geojson = manager_res['LocationData']
+    print(location_geojson)
     uploadNumber.data[0].value = wibl_file_count
 
     newSubmissionGraph = px.line(file_date_df, x='date', y='submissions')
@@ -281,7 +278,7 @@ async def createApp():
 
     convertedGauge.data[0].value = (converted_total / wibl_file_count) * 100
 
-    newLocationGraph = px.scatter_geo(location_data, lon='longitude', lat='latitude', projection='natural earth')
+    newLocationGraph = px.scatter_geo(emptyLocationDf, lon='longitude', lat='latitude', projection='natural earth')
     newLocationGraph.update_layout(autosize=False, height=1.2 * graphHeight, margin=dict(l=0, r=0, t=0, b=0))
 
     validatedGauge.data[0].value = (validated_total / geojson_file_count) * 100
@@ -290,7 +287,7 @@ async def createApp():
 
     totalSizeNumber.data[0].value = size_total
 
-    totalObsNumber.data[0].value = depth_total
+    totalObsNumber.data[0].value = observations_total
 
     obsUsedGauge.data[0].value = 10
 
@@ -309,51 +306,31 @@ async def createApp():
                                         xaxis_title='Observer Name', yaxis_title='Soundings Submitted')
 
     return {
-        "uploadNumber": uploadNumber,
         "submissionGraph": newSubmissionGraph,
         "locationGraph": newLocationGraph,
-        "convertedGauge": convertedGauge,
-        "validatedGauge": validatedGauge,
-        "submittedGauge": submittedGauge,
-        "totalSizeNumber": totalSizeNumber,
-        "totalObsNumber": totalObsNumber,
-        "obsUsedGauge": obsUsedGauge,
-        "noReportsNumber": noReportsNumber,
         "observerFileCountGraph": newObserverFileCountGraph,
-        "totalObserversNumber": totalObserversNumber,
         "observerSndCountGraph": newObserverSndCountGraph
     }
 
 
 @app.callback(
-    dash.dependencies.Output('upload-Number', 'figure'),
     dash.dependencies.Output('submission-Graph', 'figure'),
     dash.dependencies.Output('location-Graph', 'figure'),
-    dash.dependencies.Output('converted-Gauge', 'figure'),
-    dash.dependencies.Output('validated-Gauge', 'figure'),
-    dash.dependencies.Output('submitted-Gauge', 'figure'),
-    dash.dependencies.Output('total-Size-Number', 'figure'),
-    dash.dependencies.Output('total-Obs-Number', 'figure'),
-    dash.dependencies.Output('obs-Used-Gauge', 'figure'),
-    dash.dependencies.Output('total-Observers-Number', 'figure'),
-    dash.dependencies.Output('no-Reports-Number', 'figure'),
     dash.dependencies.Output('observer-File-Count-Graph', 'figure'),
     dash.dependencies.Output('observer-Snd-Count-Graph', 'figure'),
     [dash.dependencies.Input('interval-component', 'n_intervals')]
 )
 def update_dashboard(n):
-    figures = asyncio.run(createApp())
-    return (figures['uploadNumber'], figures['submissionGraph'], figures['locationGraph'], figures['convertedGauge'],
-            figures['validatedGauge'], figures['submittedGauge'], figures['totalSizeNumber'], figures['totalObsNumber'],
-            figures['obsUsedGauge'], figures['totalObserversNumber'], figures['noReportsNumber'],
-            figures['observerFileCountGraph'], figures['observerSndCountGraph'])
+    figures = asyncio.run(loadData())
+    return (figures['submissionGraph'], figures['locationGraph'], figures['observerFileCountGraph'],
+            figures['observerSndCountGraph'])
 
 
 @app.callback(
     dash.dependencies.Output('interval-component', 'interval'),
     [dash.dependencies.Input('interval-dropdown', 'value')]
 )
-def update_interval(val):
+def change_interval(val):
     seconds_left = val // 1000
     return val
 
