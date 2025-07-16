@@ -59,7 +59,7 @@ class WIBLDataModel(Base):
     platform = Column(String(80))
     size = Column(Float, nullable=False)
     observations = Column(Integer)
-    boudingbox = Column(Geometry('POLYGON'))
+    boundingbox = Column(Geometry('POLYGON'))
     soundings = Column(Integer)
     starttime = Column(String(40))
     endtime = Column(String(40))

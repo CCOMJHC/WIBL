@@ -97,7 +97,7 @@ class WIBLData:
 
     # response_model=WIBLMarshModel
     @staticmethod
-    @WIBLDataRouter.get(url)
+    @WIBLDataRouter.get(url, response_model=WIBLMarshModel)
     async def get(fileid: str, db=Depends(get_async_db)):
         """
         Lookup for a single file's metadata, or all files if :param: `fileid` is "all".
@@ -115,9 +115,8 @@ class WIBLData:
         result = await db.execute(stmt)
         return result.scalars().first()
 
-    # response_model=list[WIBLMarshModel]
     @staticmethod
-    @WIBLDataRouter.get("/wibl/")
+    @WIBLDataRouter.get("/wibl/", response_model=list[WIBLMarshModel])
     async def getAll(db=Depends(get_async_db)):
         """
         Lookup for a single file's metadata, or all files if :param: `fileid` is "all".
@@ -131,7 +130,7 @@ class WIBLData:
         return result.scalars().all()
 
     @staticmethod
-    @WIBLDataRouter.post(url, status_code=ReturnCodes.RECORD_CREATED.value)
+    @WIBLDataRouter.post(url, response_model=WIBLMarshModel, status_code=ReturnCodes.RECORD_CREATED.value)
     async def post(fileid: str, data: WIBLPostParse, db=Depends(get_async_db)):
         """
         Initial creation of a metadata entry for a WIBL file being processed.  Only the 'size' parameter is
@@ -163,7 +162,7 @@ class WIBLData:
         return wibl_file
 
     @staticmethod
-    @WIBLDataRouter.put(url, status_code=ReturnCodes.RECORD_CREATED.value)
+    @WIBLDataRouter.put(url, response_model=WIBLMarshModel, status_code=ReturnCodes.RECORD_CREATED.value)
     async def put(fileid: str, data: WIBLPutParse, db=Depends(get_async_db)):
         """
         Update of the metadata for a single WIBL file after processing.  All variables can be set through the data

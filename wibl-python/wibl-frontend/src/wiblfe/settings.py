@@ -95,7 +95,7 @@ DATABASES = {
         'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
-        'HOST': 'db',
+        'HOST': 'frontendDB',
         'PORT': '5432',
     },
 }

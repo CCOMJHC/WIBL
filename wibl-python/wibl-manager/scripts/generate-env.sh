@@ -12,7 +12,7 @@ do
     esac
 done
 
-DATABASE_URI="postgresql+psycopg://${DB_USER}:${DB_USER}@db:${DB_PORT}/${DB_NAME}"
+DATABASE_URI="postgresql+psycopg://${DB_USER}:${DB_USER}@managerDB:${DB_PORT}/${DB_NAME}"
 
 echo "Writing these values to manager.env..."
 echo "Username: $DB_USER"
