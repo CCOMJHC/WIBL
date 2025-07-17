@@ -11,8 +11,8 @@ import httpx
 import asyncio
 
 lr_margin = 50
-graphWidth = 300
-graphHeight = 200
+graphWidth = 200
+graphHeight = 100
 
 # Create placeholder values
 uploadNumber = go.Figure(go.Indicator(
@@ -21,15 +21,15 @@ uploadNumber = go.Figure(go.Indicator(
     delta={'reference': 0, 'valueformat': '.0f'},
     title={'text': 'Uploaded', 'font': {'size': 20}},
     domain={'x': [0, 1], 'y': [0, 1]},
-    number={'valueformat': '.0f', 'font': {'size': 60}}
+    number={'valueformat': '.0f', 'font': {'size': 50}}
 ))
-uploadNumber.update_layout(autosize=True, width=2 * graphWidth, height=graphHeight, margin=dict(l=0, r=0, b=0, t=0))
+uploadNumber.update_layout(autosize=True, width=2 * graphWidth, height= 1.2 * graphHeight, margin=dict(l=0, r=0, b=0, t=30))
 
 emptySubmissionsDf = pd.DataFrame(columns=['date', 'submissions'])
 submissionGraph = px.line(emptySubmissionsDf, x='date', y='submissions')
 #
 submissionGraph.update_layout(autosize=True, xaxis_title='Days', yaxis_title='Files Submitted',
-                              width=2 * graphWidth, height=graphHeight, margin=dict(l=0, r=0, t=0, b=0))
+                              width=2 * graphWidth, height=5 * graphHeight, margin=dict(l=0, r=0, t=0, b=0))
 
 convertedGauge = go.Figure(go.Indicator(
     mode="gauge+number+delta",
@@ -40,9 +40,9 @@ convertedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-#
-convertedGauge.update_layout(autosize=True, width=graphWidth, height=1.25 * graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+
+convertedGauge.update_layout(autosize=True, width=graphWidth, height=1.15 * graphHeight,
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=30))
 
 emptyLocationDf = pd.DataFrame(columns=['longitude', 'latitude'])
 locationGraph = px.scatter_geo(emptyLocationDf, lon='longitude', lat='latitude', projection='natural earth')
@@ -59,8 +59,8 @@ validatedGauge = go.Figure(go.Indicator(
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
 
-validatedGauge.update_layout(autosize=True, width=graphWidth, height=1.25 * graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+validatedGauge.update_layout(autosize=True, width=graphWidth, height=1.15 * graphHeight,
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=30))
 
 submittedGauge = go.Figure(go.Indicator(
     mode='gauge+number+delta',
@@ -72,15 +72,15 @@ submittedGauge = go.Figure(go.Indicator(
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
 
-submittedGauge.update_layout(autosize=True, width=graphWidth, height=1.25 * graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=0))
+submittedGauge.update_layout(autosize=True, width=graphWidth, height=1.15 * graphHeight,
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=30))
 
 totalSizeNumber = go.Figure(go.Indicator(
     mode='number+delta',
     value=0,
     delta={'reference': 0, 'valueformat': '.2f', 'suffix': 'GB'},
-    title={'text': 'Total Size', 'font': {'size': 20}},
-    number={'valueformat': '.2f', 'suffix': 'GB', 'font': {'size': 60}},
+    title={'text': 'Total Size', 'font': {'size': 15}},
+    number={'valueformat': '.2f', 'suffix': 'GB', 'font': {'size': 30}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
 
@@ -91,8 +91,8 @@ totalObsNumber = go.Figure(go.Indicator(
     mode='number+delta',
     value=0,
     delta={'reference': 0, 'valueformat': '.2f', 'suffix': 'M'},
-    title={'text': 'Total Observations', 'font': {'size': 20}},
-    number={'valueformat': '.2f', 'suffix': 'M', 'font': {'size': 60}},
+    title={'text': 'Total Observations', 'font': {'size': 15}},
+    number={'valueformat': '.2f', 'suffix': 'M', 'font': {'size': 30}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
 
@@ -116,8 +116,8 @@ totalObserversNumber = go.Figure(go.Indicator(
     mode='number+delta',
     value=0,
     delta={'reference': 0, 'valueformat': '.0f'},
-    title={'text': 'Total Observers', 'font': {'size': 20}},
-    number={'valueformat': '.0f', 'font': {'size': 60}},
+    title={'text': 'Total Observers', 'font': {'size': 15}},
+    number={'valueformat': '.0f', 'font': {'size': 30}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
 
@@ -128,8 +128,8 @@ noReportsNumber = go.Figure(go.Indicator(
     mode='number+delta',
     value=0,
     delta={'reference': 20, 'valueformat': '.0f'},
-    title={'text': 'Zero Reports/Last Month', 'font': {'size': 20}},
-    number={'valueformat': '.0f', 'font': {'size': 60}},
+    title={'text': 'Zero Reports/Last Month', 'font': {'size': 15}},
+    number={'valueformat': '.0f', 'font': {'size': 30}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
 
@@ -158,7 +158,6 @@ app.layout = html.Div([
         interval=5000,
         n_intervals=0
     ),
-    html.H1(children='Current Status', style={'textAlign': 'center', 'font-family': 'Verdana'}),
     html.Div([
         html.Div([
             html.Label("Update Interval"),
@@ -182,13 +181,13 @@ app.layout = html.Div([
             ),
             html.Div(id='update-output')
         ])
-    ], style={'display': 'flex', 'font-family': 'Verdana', 'font-size': 15}),
+    ], style={'display': 'flex', 'font-family': 'Verdana', 'font-size': 10}),
     html.Div([
         html.Div([
             dcc.Graph(id="upload-Number", figure=uploadNumber),
             dcc.Graph(id="submission-Graph", figure=submissionGraph),
             dcc.Graph(id="location-Graph", figure=locationGraph)
-        ], style={'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center'}),
+        ], style={'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center', 'height' : '65vh'}),
         html.Div([
             dcc.Graph(id="converted-Gauge", figure=convertedGauge),
             dcc.Graph(id="validated-Gauge", figure=validatedGauge),
@@ -196,7 +195,7 @@ app.layout = html.Div([
         ], style={'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center'}),
         html.Div([
             html.Fieldset([
-                html.Legend('WIBL Files', style={'font-size': 20, 'font-family': 'Verdana'}),
+                html.Legend('WIBL Files', style={'font-size': 10, 'font-family': 'Verdana'}),
                 html.Div([
                     dcc.Graph(id="total-Size-Number", figure=totalSizeNumber),
                     dcc.Graph(id="total-Obs-Number", figure=totalObsNumber),
@@ -204,7 +203,7 @@ app.layout = html.Div([
                 ], style={'display': 'flex'})
             ], style={'border-width': '5px'}),
             html.Fieldset([
-                html.Legend('Observers', style={'font-size': 20, 'font-family': 'Verdana'}),
+                html.Legend('Observers', style={'font-size': 10, 'font-family': 'Verdana'}),
                 html.Div([
                     html.Div([
                         dcc.Graph(id="total-Observers-Number", figure=totalObserversNumber),
@@ -224,11 +223,11 @@ app.layout = html.Div([
                         'display': 'flex',
                         'flexDirection': 'column'
                     })
-                ], style={'display': 'flex', 'height': '500px'})
+                ], style={'display': 'flex', 'height': '50vh'})
             ], style={'border-width': '5px'})
         ])
-    ], style={'display': 'flex'})
-])
+    ], style={'display': 'flex', 'margin-top' : '10px'})
+], style={'overflow' : 'hidden'})
 
 
 async def getData():
@@ -268,11 +267,30 @@ async def loadData():
     observer_total = manager_res['ObserverTotal']
 
     location_geojson = manager_res['LocationData']
-    print(location_geojson)
+    example_location_data = [{'ST_AsGeoJSON':
+                                  {"type": "Polygon", "coordinates": [
+                                      [[-17.3335, -15.3985], [-17.3335, -20], [-25.3454, -20], [-25.3454, -15.3985],
+                                       [-17.3335, -15.3985]]]}},
+                             {'ST_AsGeoJSON':
+                                  {"type": "Polygon",
+                                   "coordinates": [
+                                       [[30.3335, 14.3985], [30.3335, 5], [-25.3454, 5], [-25.3454, 14.3985],
+                                        [30.3335, 14.3985]]]}},
+                             {'ST_AsGeoJSON':
+                                  {"type": "Polygon",
+                                   "coordinates": [
+                                       [[-12.3335, 120.3985], [-12.3335, 100], [-25.3454, 100], [-25.3454, 120.3985],
+                                        [-12.3335, 120.3985]]]}},
+                             {'ST_AsGeoJSON':
+                                  {"type": "Polygon",
+                                   "coordinates": [[[-110.3335, -110.3985], [-110.3335, -140], [-140.3454, -140],
+                                                    [-140.3454, -110.3985], [-110.3335, -110.3985]]]}}]
+
+
     uploadNumber.data[0].value = wibl_file_count
 
     newSubmissionGraph = px.line(file_date_df, x='date', y='submissions')
-    newSubmissionGraph.update_layout(autosize=False, width=2 * graphWidth, height=graphHeight,
+    newSubmissionGraph.update_layout(autosize=False, width=2 * graphWidth, height=2 * graphHeight,
                                      margin=dict(l=0, r=0, t=0, b=0),
                                      xaxis_title='Days', yaxis_title='Files Submitted')
 
@@ -287,7 +305,7 @@ async def loadData():
 
     totalSizeNumber.data[0].value = size_total
 
-    totalObsNumber.data[0].value = observations_total
+    totalObsNumber.data[0].value = (observations_total / 100000)
 
     obsUsedGauge.data[0].value = 10
 

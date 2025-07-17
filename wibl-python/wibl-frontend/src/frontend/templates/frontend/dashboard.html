@@ -5,17 +5,37 @@
 
 {% block content %}
 
-{% plotly_app name="Dashboard" ratio=.4%}
-<style>
-    .dash-container {
-        width: 100vw;
-        height: 100vh;
-    }
+<script>
+    window.addEventListener('DOMContentLoaded', function () {
 
-    .dash-container iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
-    }
-</style>
+        const topMargin = 26;
+        const heightIncrease = 29;
+
+        const iframe = document.querySelector('iframe[src^="/django_plotly_dash/app/"]');
+        if (iframe) {
+            // Fix the iframe
+            iframe.style.position = "absolute";
+            iframe.style.top = `${topMargin}px`;
+            iframe.style.left = "10px";
+            iframe.style.right = "10px";
+            iframe.style.width = "100vw";
+            iframe.style.height = "130vh";
+            iframe.style.border = "none";
+
+            // Fix the outer div
+            const wrapper = iframe.parentElement;
+            if (wrapper) {
+                wrapper.style.position = "absolute";
+                wrapper.style.top = `${topMargin}px`;
+                wrapper.style.width = "100vw";
+                wrapper.style.height = "140vh";
+                wrapper.style.padding = "0";
+            }
+        }
+    });
+</script>
+<div id="dash-container">
+    {% plotly_app name="Dashboard" %}
+</div>
+
 {% endblock %}
