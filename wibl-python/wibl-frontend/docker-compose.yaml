@@ -10,12 +10,11 @@ services:
       dockerfile: Dockerfile.dev
     container_name: frontend
     command: >
-      bash -c "python manage.py makemigrations &&
-                  python manage.py migrate &&
+      bash -c "set -e && 
                   python manage.py collectstatic --noinput &&
                   daphne -b 0.0.0.0 -p 8000 wiblfe.asgi:application"
     depends_on:
-      - db
+      - frontendDB
       - redis
       - manager
     restart: always
@@ -32,7 +31,7 @@ services:
       - '6081:8000'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/heartbeat" ]
-      interval: 30s
+      interval: 10s
       timeout: 1s
       retries: 5
     develop:
@@ -60,22 +59,26 @@ services:
       - frontend
       - redis
 
-  db:
+  frontendDB:
     image: postgres:17-bookworm
-    container_name: db
+    container_name: frontendDB
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-    expose:
-      - '6432'
+    ports:
+      - "6432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data/
-    command: -p 6432
-
+      - frontendpgdata:/var/lib/postgresql/data/
+    command: -p 5432
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   redis:
     image: redis:7-bookworm
 
 # Enable db persistence with a volume definition
 volumes:
-  pgdata:
+  frontendpgdata:

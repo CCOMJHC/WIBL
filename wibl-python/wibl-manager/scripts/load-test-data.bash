@@ -1,13 +1,9 @@
 #!/bin/bash
 set -eu -o pipefail
 
-data_loaded_flag=/usr/src/wibl/test-data-loaded
-manager_url='http://127.0.0.1:5000'
+manager_url='http://0.0.0.0:6080'
 
-if [[ -f $data_loaded_flag ]]; then
-  echo "Test already loaded."
-else
-  echo "Loading test data..."
+echo "Loading test data..."
 
   # Some WIBL files
   file_id='0A998589-D21F-4C16-9DC7-7316780E1DD0.wibl'
@@ -26,6 +22,10 @@ EOF
   "observations": 100232, "soundings": 8023,
   "startTime": "2023-01-23T12:34:45.142",
   "endTime": "2023-01-24T01:45:23.012",
+  "max_lat": -15.3985,
+  "min_lat": -20.0000,
+  "max_lon": -17.3335,
+  "min_lon": -25.3454,
   "status": 0
 }
 EOF
@@ -46,6 +46,10 @@ EOF
   "observations": 200231, "soundings": 3028,
   "startTime": "2023-02-23T12:43:45.142",
   "endTime": "2023-02-24T01:54:23.012",
+  "max_lat": 14.3985,
+  "min_lat": 5.0000,
+  "max_lon": 30.3335,
+  "min_lon": -25.3454,
   "status": 1
 }
 EOF
@@ -66,6 +70,10 @@ EOF
   "observations": 300230, "soundings": 4027,
   "startTime": "2023-03-23T12:44:45.142",
   "endTime": "2023-03-24T01:53:23.012",
+  "max_lat": 120.3985,
+  "min_lat": 100.0000,
+  "max_lon": -12.3335,
+  "min_lon": -25.3454,
   "status": 1
 }
 EOF
@@ -86,6 +94,10 @@ EOF
   "observations": 999999, "soundings": 99999,
   "startTime": "2023-03-23T12:44:45.142",
   "endTime": "2023-03-24T01:53:23.012",
+  "max_lat": -110.3985,
+  "min_lat": -140.0000,
+  "max_lon": -110.3335,
+  "min_lon": -140.3454,
   "status": 2
 }
 EOF
@@ -125,6 +137,5 @@ EOF
 }
 EOF
 
-  touch $data_loaded_flag
   echo "Finished loading test data."
-fi
+

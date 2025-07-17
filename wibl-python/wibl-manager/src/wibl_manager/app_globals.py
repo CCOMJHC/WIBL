@@ -1,8 +1,9 @@
-# Health check endpoint to allow service managers to ensure that the system is up
+# Application global variables needed to bring up the whole app, and the database
 #
-# Once cloud-deployed, most systems will want to know whether the local REST endpoint
-# is still up and running.  This provides a simple GET interface that allows for a quick
-# check that the service is still responding.
+# In the Flask environment, it is expected that the app variable is a global, and the
+# SQLAlchemy instance variable has to be constructed before the data models can be
+# specified (since they need an embedded type from the instance of the database).  This
+# file provides these two variables so that they can be imported into other modules.
 #
 # Copyright 2023 Center for Coastal and Ocean Mapping & NOAA-UNH Joint
 # Hydrographic Center, University of New Hampshire.
@@ -26,17 +27,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
-from flask_restful import Resource
 
-from wibl_manager import ReturnCodes
+S3_WIBL_BUCKET_NAME = "wibl-test"
+S3_GEOJSON_BUCKET_NAME = "geojson-test"
 
-
-class Heartbeat(Resource):
-    """
-    A simple check on whether the service is still running.  This returns a status code
-    for the service, but no other information.
-
-    TODO: The heartbeat should import the DB and make sure it functions.
-    """
-    def get(self):
-        return ReturnCodes.OK.value

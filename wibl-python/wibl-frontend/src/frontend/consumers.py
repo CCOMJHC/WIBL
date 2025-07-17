@@ -44,7 +44,7 @@ class WiblFileConsumer(FileConsumer):
 
         # Make call to WIBL manager
         manager_url: str = os.environ.get('MANAGEMENT_URL', 'http://manager:5000')
-        wibl_url: str = f"{manager_url}/wibl/all"
+        wibl_url: str = f"{manager_url}/wibl/"
         async with httpx.AsyncClient() as client:
             response = await client.get(wibl_url)
         if response.status_code != 200:
@@ -247,7 +247,7 @@ class GeojsonFileConsumer(FileConsumer):
 
         # Make call to WIBL manager
         manager_url: str = os.environ.get('MANAGEMENT_URL', 'http://manager:5000')
-        wibl_url: str = f"{manager_url}/geojson/all"
+        wibl_url: str = f"{manager_url}/geojson/"
         async with httpx.AsyncClient() as client:
             response = await client.get(wibl_url)
         if response.status_code != 200:

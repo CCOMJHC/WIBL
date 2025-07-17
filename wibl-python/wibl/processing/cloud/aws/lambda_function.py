@@ -36,7 +36,7 @@ from typing import Dict, Any
 from datetime import datetime
 
 import boto3
-
+import numpy as np
 import wibl.core.config as conf
 import wibl.core.logger_file as lf
 import wibl.core.datasource as ds
@@ -97,6 +97,34 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         meta.soundings = meta.observations
         meta.starttime = datetime.fromtimestamp(source_data['depth']['t'][0]).isoformat()
         meta.endtime = datetime.fromtimestamp(source_data['depth']['t'][-1]).isoformat()
+
+        # Get the max and min coordinates to create a bounding box
+        max_lat = -2000.0
+        min_lat = 2000.0
+
+        max_lon = -2000.0
+        min_lon = 2000.0
+        i = 0
+        size = len(source_data['depth']['z'])
+        while i < size:
+            temp_lat = source_data['depth']['lat'][i]
+            temp_lon = source_data['depth']['lon'][i]
+
+            if temp_lat < min_lat:
+                min_lat = temp_lat
+            if temp_lat > max_lat:
+                max_lat = temp_lat
+
+            if temp_lon < min_lon:
+                min_lon = temp_lon
+            if temp_lon > max_lon:
+                max_lon = temp_lon
+            i += 1
+
+        meta.max_lat = max_lat
+        meta.min_lat = min_lat
+        meta.max_lon = max_lon
+        meta.low_lon = min_lon
     except lf.PacketTranscriptionError as e:
         print(f"Error reading packet from WIBL file: {str(e)}")
     except ts.NoTimeSource:
@@ -123,7 +151,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
     except UnknownAlgorithm as e:
         manager.logmsg(str(e))
         manager.update(meta)
-        print(f"Aborting pocessing due to error: {str(e)}")
+        print(f"Aborting processing due to error: {str(e)}")
         return False
 
     try:

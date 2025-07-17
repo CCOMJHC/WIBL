@@ -26,10 +26,11 @@
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
-from enum import Enum
-from typing import Tuple, List
+from enum import Enum, IntFlag
+from typing import Tuple, List, Dict, Any
+from geoalchemy2 import Geometry
 import requests
 
 
@@ -43,15 +44,20 @@ class ReturnCodes(Enum):
     FILE_NOT_FOUND = 404
     RECORD_CONFLICT = 409
 
-class ProcessingStatus(Enum):
+
+class WIBLStatus(Enum):
     PROCESSING_STARTED = 0
     PROCESSING_SUCCESSFUL = 1
     PROCESSING_FAILED = 2
 
-class UploadStatus(Enum):
-    UPLOAD_STARTED = 0
-    UPLOAD_SUCCESSFUL = 1
-    UPLOAD_FAILED = 2
+class GeoJSONStatus(IntFlag):
+    VALIDATION_STARTED = 0x1
+    VALIDATION_SUCCESSFUL = 0x2
+    VALIDATION_FAILED = 0x4
+
+    UPLOAD_STARTED = 0x8
+    UPLOAD_SUCCESSFUL = 0x10
+    UPLOAD_FAILED = 0x20
 
 @dataclass_json
 @dataclass
@@ -66,9 +72,13 @@ class WIBLMetadata(FileMetadata):
     size: float = -1.0
     observations: int = -1
     soundings: int = -1
+    max_lat: float = -1.0
+    min_lat: float = -1.0
+    max_lon: float = -1.0
+    min_lon: float = -1.0
     starttime: str = 'Unknown'
     endtime: str = 'Unknown'
-    status: int = ProcessingStatus.PROCESSING_STARTED.value
+    status: int = WIBLStatus.PROCESSING_STARTED.value
 
 @dataclass_json
 @dataclass
@@ -76,7 +86,7 @@ class GeoJSONMetadata(FileMetadata):
     logger: str = 'Unknown'
     size: float = -1.0
     soundings: int = -1
-    status: int = UploadStatus.UPLOAD_STARTED.value
+    status: int = GeoJSONStatus.VALIDATION_STARTED.value
 
 
 class MessageStore:
