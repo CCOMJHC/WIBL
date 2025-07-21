@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_plotly_dash.apps.DjangoPlotlyDashConfig'
+    'viewflow',
 ]
 
 ASGI_APPLICATION = 'wiblfe.asgi.application'
@@ -54,8 +54,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_plotly_dash.middleware.BaseMiddleware',
-    'django_plotly_dash.middleware.ExternalRedirectionMiddleware'
 ]
 
 
@@ -63,10 +61,6 @@ MIDDLEWARE = [
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-
-    'django_plotly_dash.finders.DashAssetFinder',
-    'django_plotly_dash.finders.DashComponentFinder',
-    'django_plotly_dash.finders.DashAppDirectoryFinder'
 ]
 
 ROOT_URLCONF = 'wiblfe.urls'
@@ -161,17 +155,5 @@ CHANNEL_LAYERS = {
         },
     },
 }
-
-PLOTLY_DASH = {
-    "serve_locally": True,
-    "insert_demo_migrations": False,
-    "cache_timeout_initial_arguments": 60,
-    "use_iframe": False
-}
-
-PLOTLY_COMPONENTS = [
-    # django-plotly-dash components
-    'dpd_components',
-]
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'

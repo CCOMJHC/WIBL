@@ -6,7 +6,7 @@ channels[daphne]
 channels-redis
 httpx[http2,brotli,zstd]
 dash
-django-plotly-dash
+django-viewflow
 plotly
 pandas
 numpy
