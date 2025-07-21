@@ -1,7 +1,5 @@
 from django.urls import path, include
 from . import views
-from viewflow.urls import Site, Application
-from frontend import Dashboard
 
 urlpatterns = [
     path("", views.index, name="index"),

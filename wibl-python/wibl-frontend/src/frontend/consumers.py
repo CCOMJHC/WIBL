@@ -315,7 +315,7 @@ class GeojsonFileDetailConsumer(FileConsumer):
     async def send_geojson_details(self, file_id: str):
         HEADERS = ["fileid", "uploadtime", "updatetime", "notifytime", "logger", "size",
                    "soundings", "status", "messages"]
-        print("send_wibl_details called")
+        print("send_geojson_details called")
         geojson_file_data = {"fileid": "",
                           "uploadtime": "",
                           "updatetime": "",
@@ -369,6 +369,56 @@ class GeojsonFileDetailConsumer(FileConsumer):
             case 'list-geojson-details':
                 print(f"GeojsonDetailConsumer.receive: calling send_geojson_details()...")
                 await self.send_geojson_details(message['file_id'])
+            case _:
+                await self.send(text_data=json.dumps({
+                    'type': 'error',
+                    'message': f"Unknown type '{message['type']}' in message: {message}"
+                }))
+
+class DashboardStatisticsConsumer(FileConsumer):
+    async def send_dashboard_statistics(self):
+        print("send_wibl_details called")
+
+        # Make call to WIBL manager
+        manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+        geojson_url: str = f"{manager_url}/statistics"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(geojson_url)
+        if response.status_code != 200:
+            mesg = f"Received status code {response.status_code} when querying manager."
+            print(mesg)
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': mesg
+            }))
+
+        raw_json = response.json()
+
+        print(f"Got response from manager: {raw_json}")
+
+        print("sending to websocket...")
+        await self.send(text_data=json.dumps({
+            'type': 'dashboard',
+            'event': 'list-dashboard-statistics',
+            'message': raw_json
+        }))
+
+    async def receive(self, text_data, **kwargs):
+        message = json.loads(text_data)
+
+        print(f"DashboardStatisticsConsumer.receive: Got message: {message}")
+        if 'type' not in message:
+            # TODO: Properly handle error
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': f"Missing type indicator in message: {message}"
+            }))
+            return
+
+        match message['type']:
+            case 'list-dashboard-statistics':
+                print(f"DashboardStatisticsConsumer.receive: calling send_dashboard_statistics()...")
+                await self.send_dashboard_statistics()
             case _:
                 await self.send(text_data=json.dumps({
                     'type': 'error',

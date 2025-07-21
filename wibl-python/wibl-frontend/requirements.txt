@@ -5,8 +5,5 @@ redis~=5.1.1
 channels[daphne]
 channels-redis
 httpx[http2,brotli,zstd]
-dash
-django-viewflow
-plotly
 pandas
 numpy

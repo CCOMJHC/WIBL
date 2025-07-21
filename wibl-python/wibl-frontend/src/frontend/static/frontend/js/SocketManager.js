@@ -16,6 +16,9 @@ class SocketManager {
             "list-geojson-files",
             "list-geojson-details",
             "delete-geojson-files"
+        ],
+        "dashboard": [
+            "list-dashboard-statistics"
         ]
     };
     // Class object to track singleton instances by URL

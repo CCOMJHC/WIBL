@@ -1,41 +1,24 @@
 {% extends "base_nav.html" %}
 
 {% load static %}
-{% load plotly_dash %}
 
 {% block content %}
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+    <script type="module" src="{% static 'frontend/js/Dashboard.js' %}"></script>
+    <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
 
-<script>
-    window.addEventListener('DOMContentLoaded', function () {
+    <section class="container is-fluid" style="height: 100vh; overflow: hidden;">
+        <wibl-dashboard id="wibl-dashboard"
+                       url="{{ wsURL }}"
+                       stylesheet="{% static 'css/bulma-no-dark-mode.min.css' %}">
+        </wibl-dashboard>
+    </section>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const dashSockURL = "{{ wsURL }}" + "dashboard/statistics";
+            const dashSock = SocketManager.getInstance(dashSockURL, "dashboard");
 
-        const topMargin = 26;
-        const heightIncrease = 29;
-
-        const iframe = document.querySelector('iframe[src^="/django_plotly_dash/app/"]');
-        if (iframe) {
-            // Fix the iframe
-            iframe.style.position = "absolute";
-            iframe.style.top = `${topMargin}px`;
-            iframe.style.left = "10px";
-            iframe.style.right = "10px";
-            iframe.style.width = "100vw";
-            iframe.style.height = "100vh";
-            iframe.style.border = "none";
-
-            // Fix the outer div
-            const wrapper = iframe.parentElement;
-            if (wrapper) {
-                wrapper.style.position = "absolute";
-                wrapper.style.top = `${topMargin}px`;
-                wrapper.style.width = "100vw";
-                wrapper.style.height = "100vh";
-                wrapper.style.padding = "0";
-            }
-        }
-    });
-</script>
-<div id="dash-container">
-    {% plotly_app name="Dashboard" %}
-</div>
-
+            dashSock.sendRequest("list-dashboard-statistics");
+        });
+    </script>
 {% endblock %}
