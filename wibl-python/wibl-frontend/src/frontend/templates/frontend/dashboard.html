@@ -19,7 +19,7 @@
             iframe.style.left = "10px";
             iframe.style.right = "10px";
             iframe.style.width = "100vw";
-            iframe.style.height = "130vh";
+            iframe.style.height = "120vh";
             iframe.style.border = "none";
 
             // Fix the outer div
@@ -28,13 +28,13 @@
                 wrapper.style.position = "absolute";
                 wrapper.style.top = `${topMargin}px`;
                 wrapper.style.width = "100vw";
-                wrapper.style.height = "140vh";
+                wrapper.style.height = "130vh";
                 wrapper.style.padding = "0";
             }
         }
     });
 </script>
-<div id="dash-container">
+<div id="dash-container" style="overflow: hidden;">
     {% plotly_app name="Dashboard" %}
 </div>
 
