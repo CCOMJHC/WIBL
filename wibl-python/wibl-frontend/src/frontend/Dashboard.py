@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import httpx
 import asyncio
+import json
 
 lr_margin = 50
 graphWidth = 200
@@ -292,8 +293,25 @@ async def loadData():
 
     convertedGauge.data[0].value = (converted_total / wibl_file_count) * 100
 
+
+
     newLocationGraph = px.scatter_geo(emptyLocationDf, lon='longitude', lat='latitude', projection='natural earth')
     newLocationGraph.update_layout(autosize=False, height=2 * graphHeight, width=2 * graphWidth, margin=dict(l=15, r=0, t=20, b=0))
+
+    for item in location_geojson:
+        file_name = item['fileid']
+        geometry = json.loads(item['ST_AsGeoJSON'])
+
+        coordinates = geometry['coordinates'][0]
+        box_lons, box_lats = zip(*coordinates)
+        newLocationGraph.add_trace(go.Scattergeo(
+            lat=box_lats,
+            lon=box_lons,
+            fill="toself",
+            mode="lines",
+            hoverinfo='text',
+            text=file_name,
+            showlegend=False))
 
     validatedGauge.data[0].value = (validated_total / geojson_file_count) * 100
 

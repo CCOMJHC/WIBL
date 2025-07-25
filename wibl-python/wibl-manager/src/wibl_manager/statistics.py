@@ -93,7 +93,7 @@ async def getStats(db=Depends(get_async_db)):
     )
 
     LocationDataStmt = (
-        select(func.ST_ASGeoJSON(WIBLDataModel.boundingbox))
+        select(WIBLDataModel.fileid, func.ST_ASGeoJSON(WIBLDataModel.boundingbox))
     )
 
     WIBLTotal = (await db.execute(WIBLTotalStmt)).scalar()
