@@ -93,13 +93,18 @@ async def getStats(db=Depends(get_async_db)):
     )
 
     LocationDataStmt = (
-        select(WIBLDataModel.fileid, func.ST_ASGeoJSON(WIBLDataModel.boundingbox))
+        select(WIBLDataModel.fileid, func.ST_ASGeoJSON(WIBLDataModel.boundingbox).label("GeoJSON"))
+    )
+
+    SoundingsTotalStmt = (
+        select(func.sum(WIBLDataModel.soundings))
     )
 
     WIBLTotal = (await db.execute(WIBLTotalStmt)).scalar()
     GeoJSONTotal = (await db.execute(GeoJSONTotalStmt)).scalar()
     SizeTotal = (await db.execute(SizeTotalStmt)).scalar()
     ObservationsTotal = (await db.execute(ObservationTotalStmt)).scalar()
+    SoundingsTotal = (await db.execute(SoundingsTotalStmt)).scalar()
     LocationData = (await db.execute(LocationDataStmt)).mappings().all()
     FileDateTotal = (await db.execute(FileDateTotalStmt)).mappings().all()
     ConvertedTotal = (await db.execute(ConvertedTotalStmt)).scalar()
@@ -108,17 +113,6 @@ async def getStats(db=Depends(get_async_db)):
     ObserverZeroReports = (await db.execute(ObserverZeroReportsStmt)).scalar()
     ObserverTotal = (await db.execute(ObserverTotalStmt)).scalar()
     ObserverFileTotal = (await db.execute(ObserverFileTotalStmt)).mappings().all()
-
-    # print(f"WIBL Total SQL: {WIBLTotalStmt.compile(compile_kwargs={'literal_binds': True})}")
-    # print(f"GeoJSON Total SQL: {GeoJSONTotalStmt.compile(compile_kwargs={'literal_binds': True})}")
-    # print(f"File Date Total SQL: {FileDateTotalStmt.compile(compile_kwargs={'literal_binds': True})}")
-    # print(f"File Size Total SQL: {SizeTotalStmt.compile(compile_kwargs={'literal_binds': True})}")
-    # print(f"Converted Total SQL: {ConvertedTotalStmt.compile(compile_kwargs={'literal_binds': True})}")
-    # print(f"Validated Total SQL: {ValidatedTotalStmt.compile(compile_kwargs={'literal_binds': True})}")
-    # print(f"Submitted Total SQL: {SubmittedTotalStmt.compile(compile_kwargs={'literal_binds': True})}")
-    # print(f"Observer Total SQL: {ObserverTotalStmt.compile(compile_kwargs={'literal_binds': True})}")
-    # print(f"Converted List SQL: {ObserverListStmt.compile(compile_kwargs={'literal_binds': True})}")
-    # print(f"Observer File Total SQL: {ObserverFileTotalStmt.compile(compile_kwargs={'literal_binds': True})}")
 
     return {
         "WIBLFileCount": WIBLTotal,
@@ -131,6 +125,7 @@ async def getStats(db=Depends(get_async_db)):
         "ObserverZeroReportsTotal": ObserverZeroReports,
         "ObserverTotal": ObserverTotal,
         "ObservationsTotal": ObservationsTotal,
+        "SoundingsTotal": SoundingsTotal,
         "ObserverFileTotal": ObserverFileTotal,
         "LocationData": LocationData
     }

@@ -6,13 +6,18 @@
 {% block content %}
 
 <script>
-// 1440 x 651.695
+
 window.addEventListener('DOMContentLoaded', function () {
+
+    // The height of the navbar
     const topMargin = 26;
+
+    // Static values to use for initial load
     const originalWidth = 1440;
     const originalHeight = 651.695;
     let resizeTimeout;
 
+    // Scales the Iframe depending on the window size
     function scaleIframe() {
         const iframe = document.querySelector('iframe[src^="/django_plotly_dash/app/"]');
         if (!iframe) return;
@@ -20,10 +25,11 @@ window.addEventListener('DOMContentLoaded', function () {
         const wrapper = iframe.parentElement;
         if (!wrapper) return;
 
-        const scale = Math.min(window.innerWidth / originalWidth, 1); // Don’t upscale
+        const scale = Math.min(window.innerWidth / originalWidth, 1);
         wrapper.style.transform = `scale(${scale})`;
     }
 
+    // Applies initial css changes to the Iframe and its parent Div then calling scaleIframe()
     function initializeAndScale() {
         const iframe = document.querySelector('iframe[src^="/django_plotly_dash/app/"]');
         if (!iframe) return;
