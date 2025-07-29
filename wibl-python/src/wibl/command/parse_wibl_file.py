@@ -59,7 +59,7 @@ def parsewibl(input: str, stats: bool, dump: str):
         try:
             pkt = source.next_packet()
             if pkt is not None:
-                print(pkt)
+                click.echo(pkt)
                 packet_count += 1
                 if dump_file:
                     if pkt.name() == 'SerialString':
