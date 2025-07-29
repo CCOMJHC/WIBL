@@ -51,7 +51,7 @@ import wibl.core.notification as nt
 @click.option('-c', '--config',
               type=click.Path(exists=True),
               help='Specify configuration file for installation')
-def dcdb_upload(auth: Path, input: Path, source_id: str = None, provider: str = None, config_path: Path | None = None):
+def dcdb_upload(auth: Path, input: Path, source_id: str, provider: str, config_path: Path):
     """Upload GeoJSON files to DCDB for archival."""
 
     filename = str(input)
@@ -107,8 +107,8 @@ def dcdb_upload(auth: Path, input: Path, source_id: str = None, provider: str = 
 
     rc = transmit_geojson(source_info, provider_id, provider_auth, localname, config)
     if rc:
-        print(f'Success: transmitted file {filename} with return {rc}.')
+        click.echo(f"Success: transmitted file {filename} with return {rc}.")
         data_item.dest_size = data_item.source_size
         notifier.notify(data_item)
     else:
-        sys.exit(f'Error: failed to transfer file {filename}')
+        sys.exit(f"Error: failed to transfer file {filename}")

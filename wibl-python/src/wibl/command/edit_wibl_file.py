@@ -39,7 +39,7 @@ from wibl.core.logger_file import PacketTranscriptionError
 
 
 @click.command()
-@click.argument('input', type=click.Path(exists=True))
+@click.argument('input', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True))
 @click.argument('output', type=click.Path())
 @click.option('-u', '--uniqueid', type=str,
               help='Set the logger name, which should be a unique identifier')
@@ -53,9 +53,8 @@ from wibl.core.logger_file import PacketTranscriptionError
               help='Specify the serialiser version for the output file (major: int, minor: int)')
 @click.option('-f', '--filter', type=str, multiple=True,
               help='Specify a NMEA0183 sentence filter name')
-def editwibl(input: Path, output: Path, *,
-             uniqueid: str|None=None, shipname: str|None=None,
-             meta: Path|None=None, algo: tuple[str]|None=None, version: str|None=None, filter: tuple[str]|None=None):
+def editwibl(input: Path, output: Path, uniqueid: str, shipname: str,
+             meta: Path, algo: tuple[str], version: str, filter: tuple[str]):
     """Edit INPUT WIBL logger file, writing edited WIBL file to OUTPUT."""
 
     if uniqueid:

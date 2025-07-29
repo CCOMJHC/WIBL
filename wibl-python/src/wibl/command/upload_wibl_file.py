@@ -29,47 +29,42 @@
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
 import uuid
-import argparse as arg
-import sys
+from pathlib import Path
 
 import boto3
+import click
 
-from wibl.command import get_subcommand_prog
 
+@click.command()
+@click.argument('input', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True))
+@click.option('-b', '--bucket', type=str,
+              help='The upload bucket name')
+@click.option('-j', '--json', is_flag=True, default=False,
+              help='Add .json extension to UUID for upload key')
+@click.option('-s', '--source', type=str,
+              help='Set SourceID tag for the S3 object')
+def uploadwibl(input: Path, bucket: str, json: bool, source: str):
+    """Upload a WIBL file INPUT to an S3 bucket for processing."""
+    filename = input
 
-def uploadwibl():
-    parser = arg.ArgumentParser(description='Upload WIBL logger files to an S3 bucket (in a limited capacity)',
-                                prog=get_subcommand_prog())
-    parser.add_argument('-b', '--bucket', type=str, help = 'Set the upload bucket name (string)')
-    parser.add_argument('-j', '--json', action='store_true', help = 'Add .json extension to UUID for upload key')
-    parser.add_argument('-s', '--source', type=str, help='Set SourceID tag for the S3 object (string)')
-    parser.add_argument('input', type=str, help = 'WIBL format input file')
-
-    optargs = parser.parse_args(sys.argv[2:])
-
-    if not optargs.input:
-        sys.exit('Error: must have an input file!')
-    else:
-        filename = optargs.input
-  
-    if optargs.bucket:
-        bucket = optargs.bucket
+    if bucket:
+        bucket = bucket
     else:
         bucket = 'csb-upload-ingest-bucket'
     
-    if optargs.json:
+    if json:
         file_extension = '.json'
     else:
         file_extension = '.wibl'
         
     sourceID = None
-    if optargs.source:
-        sourceID = optargs.source
+    if source:
+        sourceID = source
 
     s3 = boto3.resource('s3')
     dest_bucket = s3.Bucket(bucket)
     try:
-        obj_key = str(uuid.uuid4()) + file_extension
+        obj_key = f"{str(uuid.uuid4())}file_extension"
         dest_bucket.upload_file(Filename=filename, Key=obj_key)
         if sourceID is not None:
             tagset = {
@@ -82,6 +77,6 @@ def uploadwibl():
             }
             boto3.client('s3').put_object_tagging(Bucket=bucket, Key=obj_key, Tagging=tagset)
             
-        print(f'Successfully uploaded {filename} to bucket {bucket} for object {obj_key}.')
-    except:
-        print(f"Failed to upload file to CSB ingest bucket")
+        click.echo(f"Successfully uploaded {filename} to bucket {bucket} for object {obj_key}.")
+    except Exception as e:
+        click(f"Failed to upload file to CSB ingest bucket due to error: {str(e)}")

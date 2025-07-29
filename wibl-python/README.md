@@ -128,25 +128,21 @@ bash ./tests/integration/test_wibl.bash
 Once you've activated the `wibl-env` Python virtual environment where you installed `wibl-python`, you can run the
 `wibl` command, which has several sub-commands that you can discover using the `--help` option:
 ```
-$ wibl --help
-usage: wibl <command> [<arguments>]
+$ wibl --help  
+Usage: wibl [OPTIONS] COMMAND [ARGS]...
 
-    Commands include:
-        datasim     Generate test data using Python-native data simulator.
-        editwibl    Edit WIBL logger files, e.g., add platform metadata.
-        uploadwibl  Upload WIBL logger files to an S3 bucket.
-        parsewibl   Read and report contents of a WIBL file.
-        dcdbupload  Upload a GeoJSON file to DCDB direct.
-        
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
 
-Python tools for WIBL low-cost data logger system
-
-positional arguments:
-  command     Subcommand to run
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --version   print version and exit
+Commands:
+  datasim     Write simulated WIBL data to FILENAME.
+  dcdbupload  Upload GeoJSON files to DCDB for archival.
+  editwibl    Edit INPUT WIBL logger file, writing edited WIBL file to...
+  parsewibl   Parse binary WIBL logger file INPUT and report contents in...
+  procwibl    Process a WIBL file INPUT into GeoJSON file OUTPUT locally.
+  uploadwibl  Upload a WIBL file INPUT to an S3 bucket for processing.
+  validate    Validate GeoJSON metadata stored in INPUT.
 
 ```
 

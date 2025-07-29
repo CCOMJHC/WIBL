@@ -35,7 +35,7 @@ from wibl.simulator.data.writer import Writer, FileWriter
 logger = logging.getLogger(__name__)
 
 @click.command()
-@click.argument('-f',  '--filename',
+@click.option('-f',  '--filename',
               help='Simulated data output filename', required=True)
 @click.option('-d', '--duration',
               help='Duration (seconds) of the simulated data', type=int, required=True)
@@ -51,16 +51,17 @@ logger = logging.getLogger(__name__)
               help='Probability of generating duplicate depth values. Default: 0.0')
 @click.option('--no-data-prob',
               type=PROBABILITY, default=0.0,
-              help='Probability of generating no-data values for system time, position, and depth packets. Default: 0.0',)
+              help='Probability of generating no-data values for system time, position, and depth packets. Default: 0.0')
 @click.option('-v', '--verbose',
               help='Produce verbose output.', is_flag=True, default=False)
-def datasim(filename:str , duration: int, emit_serial: bool, emit_binary: bool, use_buffer_constructor: bool,
+def datasim(filename: str , duration: int, emit_serial: bool, emit_binary: bool, use_buffer_constructor: bool,
             duplicate_depth_prob: float, no_data_prob: float, verbose: bool):
     """
     Write simulated WIBL data to FILENAME. Provides a very simple interface to the simulator for NMEA data so that
     files of a given size can be readily generated for testing data loggers and transfer software.
     """
-    if not
+    if not emit_serial and not emit_binary:
+        raise ValueError("Must emit either NMEA0183 or NMEA2000 data.")
 
     if verbose:
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

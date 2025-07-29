@@ -28,6 +28,10 @@ import click
 from wibl.command.datasim import datasim
 from wibl.command.dcdb_upload import dcdb_upload
 from wibl.command.edit_wibl_file import editwibl
+from wibl.command.parse_wibl_file import parsewibl
+from wibl.command.validate import geojson_validate
+from wibl.command.upload_wibl_file import uploadwibl
+from wibl.command.wibl_proc import wibl_proc
 
 
 @click.version_option()
@@ -38,3 +42,7 @@ def cli():
 cli.add_command(datasim)
 cli.add_command(dcdb_upload)
 cli.add_command(editwibl)
+cli.add_command(parsewibl)
+cli.add_command(geojson_validate)
+cli.add_command(uploadwibl)
+cli.add_command(wibl_proc)
