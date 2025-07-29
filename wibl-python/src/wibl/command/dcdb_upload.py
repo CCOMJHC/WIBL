@@ -51,28 +51,28 @@ import wibl.core.notification as nt
 @click.option('-c', '--config',
               type=click.Path(exists=True),
               help='Specify configuration file for installation')
-def dcdb_upload(auth: Path, input: Path, source_id: str, provider: str, config_path: Path):
+def dcdb_upload(auth: Path, input: Path, source_id: str, provider: str, config: Path):
     """Upload GeoJSON files to DCDB for archival."""
 
     filename = str(input)
 
     try:
-        if config_path:
-            config_filename = str(config_path)
+        if config:
+            config_filename = str(config)
         else:
             config_filename = get_config_file()
         # Make sure we don't try to contact the manager when running in the command line
-        config = conf.read_config(config_filename)
+        cfg = conf.read_config(config_filename)
         if 'notification' not in config:
-            config['notification'] = {}
-        if 'uploaded' not in config['notification']:
-            config['notification']['uploaded'] = ''
+            cfg['notification'] = {}
+        if 'uploaded' not in cfg['notification']:
+            cfg['notification']['uploaded'] = ''
     except conf.BadConfiguration:
         sys.exit('Error: bad configuration file.')
 
     provider_id = None
-    if 'provider_id' in config:
-        provider_id = config['provider_id']
+    if 'provider_id' in cfg:
+        provider_id = cfg['provider_id']
     else:
         if provider:
             provider_id = provider
@@ -85,27 +85,27 @@ def dcdb_upload(auth: Path, input: Path, source_id: str, provider: str, config_p
     if provider_id is None or provider_auth is None:
         sys.exit('Error: you must specify a provider ID and authorisation token.')
 
-    if 'upload_point' not in config:
+    if 'upload_point' not in cfg:
         sys.exit('Error: your configuration must include a DCDB upload point URL.')
     else:
         # We can't modify the cloud-based code that uses environment variables to
         # determine where to send the data, so we need to add this information into
         # the environment directly.
-        os.environ['UPLOAD_POINT'] = config['upload_point']
+        os.environ['UPLOAD_POINT'] = cfg['upload_point']
 
-    if 'management_url' in config and config['management_url']:
-        os.environ['MANAGEMENT_URL'] = config['management_url']
+    if 'management_url' in cfg and cfg['management_url']:
+        os.environ['MANAGEMENT_URL'] = cfg['management_url']
 
-    source = LocalSource(filename, filename, config)
+    source = LocalSource(filename, filename, cfg)
     data_item = source.nextSource()
-    controller = LocalController(config)
-    notifier = nt.LocalNotifier(config['notification']['uploaded'])
+    controller = LocalController(cfg)
+    notifier = nt.LocalNotifier(cfg['notification']['uploaded'])
     localname, source_info = controller.obtain(data_item)
     # Override the sourceID from the file if the user insists ...
     if source_id:
         source_info['sourceID'] = source_id
 
-    rc = transmit_geojson(source_info, provider_id, provider_auth, localname, config)
+    rc = transmit_geojson(source_info, provider_id, provider_auth, localname, cfg)
     if rc:
         click.echo(f"Success: transmitted file {filename} with return {rc}.")
         data_item.dest_size = data_item.source_size

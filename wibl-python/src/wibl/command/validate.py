@@ -40,25 +40,25 @@ from wibl.validation.cloud.aws.lambda_function import validate_metadata
 @click.option('-c', '--config',
               type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True),
               help='Specify configuration file for installation')
-def geojson_validate(input: str, config_path: Path=None):
+def geojson_validate(input: str, config: Path=None):
     """Validate GeoJSON metadata stored in INPUT."""
     infilename = input
 
     try:
-        if config_path:
-            config_filename = config_path
+        if config:
+            config_filename = config
         else:
             config_filename = get_config_file()
-        config = conf.read_config(config_filename)
+        cfg = conf.read_config(config_filename)
     except conf.BadConfiguration:
         sys.exit('Error: bad configuration file.')
     
     # The cloud-based code uses environment variables to provide some of the configuration,
     # so we need to add this to the local environment to compensate.
-    if config['management_url']:
-        os.environ['MANAGEMENT_URL'] = config['management_url']
+    if cfg['management_url']:
+        os.environ['MANAGEMENT_URL'] = cfg['management_url']
 
-    if not validate_metadata(infilename, config):
+    if not validate_metadata(infilename, cfg):
         click.echo(f"error: failed to validate {infilename} metadata.")
     else:
         click.echo(f"info: completed successful validate of {infilename} metadata.")

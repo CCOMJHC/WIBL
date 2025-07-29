@@ -17,16 +17,16 @@ cleanup
 wibl datasim -f /tmp/test-wibl.bin -d 3600 -s -b || exit $?
 
 ## Create some data using `datasim` (use buffer constructor for logger file)
-wibl datasim -f /tmp/test-wibl-buffer-constr.bin -d 3600 -s -b --use_buffer_constructor || exit $?
+wibl datasim -f /tmp/test-wibl-buffer-constr.bin -d 3600 -s -b --use-buffer-constructor || exit $?
 
 ## Parse binary file into text output using `parsewibl`
 wibl parsewibl /tmp/test-wibl.bin || exit $?
 
 ## Add platform metadata to WIBL file using `editwibl`
-wibl editwibl -m tests/fixtures/b12_v3_metadata_example.json /tmp/test-wibl.bin /tmp/test-wibl-inject.bin || exit $?
+wibl editwibl -m tests/data/b12_v3_metadata_example.json /tmp/test-wibl.bin /tmp/test-wibl-inject.bin || exit $?
 
 ## Convert binary WIBL file into GeoJSON using `procwibl`
-wibl procwibl -c tests/fixtures/configure.local.json /tmp/test-wibl-inject.bin /tmp/test-wibl-inject.geojson || exit $?
+wibl procwibl -c tests/data/configure.local.json /tmp/test-wibl-inject.bin /tmp/test-wibl-inject.geojson || exit $?
 
 cleanup
 
