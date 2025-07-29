@@ -29,61 +29,62 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
-import argparse as arg
-import sys
 import json
+from pathlib import Path
 
-from wibl.command import get_subcommand_prog
+import click
+
 from wibl.core import logger_file as lf
+from wibl.core.logger_file import PacketTranscriptionError
 
 
-def editwibl():
-    parser = arg.ArgumentParser(description = 'Edit WIBL logger files (in a limited capacity)',
-                                prog=get_subcommand_prog())
-    parser.add_argument('-u', '--uniqueid', type=str, help = 'Set the logger name (string), which should be a unique identifier')
-    parser.add_argument('-s', '--shipname', type=str, help = 'Set the ship name for the logger (string)')
-    parser.add_argument('-m', '--meta', type=str, help = 'Specify a JSON file for additional metadata elements (filename)')
-    parser.add_argument('-a', '--algo', type=str, action='append', help = 'Add a processing algorithm request (name: str,params: str)')
-    parser.add_argument('-v', '--version', type=str, help = 'Specify the serialiser version for the output file (major: int, minor: int)')
-    parser.add_argument('-f', '--filter', type=str, action='append', help='Specify a NMEA0183 sentence filter name')
-    parser.add_argument('input', type=str, help = 'WIBL format input file')
-    parser.add_argument('output', type=str, help = 'WIBL format output file')
+@click.command()
+@click.argument('input', type=click.Path(exists=True))
+@click.argument('output', type=click.Path())
+@click.option('-u', '--uniqueid', type=str,
+              help='Set the logger name, which should be a unique identifier')
+@click.option('-s', '--shipname', type=str,
+              help ='Set the ship name for the logger')
+@click.option('-m', '--meta', type=click.Path(exists=True),
+              help='Specify a JSON file for additional metadata elements')
+@click.option('-a', '--algo', type=str, multiple=True,
+              help='Add a processing algorithm request (name;params, e.g. -a uncertainty;0.25,IHO_S44_6_Order1)')
+@click.option('-v', '--version', type=str,
+              help='Specify the serialiser version for the output file (major: int, minor: int)')
+@click.option('-f', '--filter', type=str, multiple=True,
+              help='Specify a NMEA0183 sentence filter name')
+def editwibl(input: Path, output: Path, *,
+             uniqueid: str|None=None, shipname: str|None=None,
+             meta: Path|None=None, algo: tuple[str]|None=None, version: str|None=None, filter: tuple[str]|None=None):
+    """Edit INPUT WIBL logger file, writing edited WIBL file to OUTPUT."""
 
-    optargs = parser.parse_args(sys.argv[2:])
-
-    if not optargs.input:
-        sys.exit('Error: must have an input file!')
-    
-    if not optargs.output:
-        sys.exit('Error: must have an output file!')
-
-    if optargs.uniqueid:
-        logger_name = optargs.uniqueid
+    if uniqueid:
+        logger_name = uniqueid
     else:
         logger_name = None
-    if optargs.shipname:
-        shipname = optargs.shipname
+    if shipname:
+        shipname = shipname
     else:
         shipname = None
-    if optargs.meta:
-        with open(optargs.meta) as f:
+    if meta:
+        with open(meta) as f:
             json_meta = json.load(f)
         metadata = json.dumps(json_meta)
     else:
         metadata = None
 
     algorithms = []
-    if optargs.algo:
-        for alg in optargs.algo:
-            name,params = alg.split(',')
+    if algo:
+        for alg in algo:
+            name, params = alg.split(';')
             algorithms.append({ 'name': name, 'params': params})
     
     filters = []
-    if optargs.filter:
-        filters = optargs.filter
+    if filter:
+        filters = filter
 
-    if optargs.version:
-        file_major, file_minor = optargs.version.split(',')
+    if version:
+        file_major, file_minor = version.split(',')
         file_major = int(file_major)
         file_minor = int(file_minor)
     else:
@@ -96,13 +97,18 @@ def editwibl():
     # (it should on most systems), but add it later if there isn't one; with the
     # JSON metadata, the same thing is true: if the packet exists, we replace it
     # at the same location in the file, but otherwise append it at the end.
-    op = open(optargs.output, 'wb')
+    op = open(output, 'wb')
     metadata_out = False
     json_metadata_out = False
-    with open(optargs.input, 'rb') as ip:
+    packet_num: int = 0
+    with open(input, 'rb') as ip:
         source = lf.PacketFactory(ip)
         while source.has_more():
-            packet = source.next_packet()
+            packet_num += 1
+            try:
+                packet = source.next_packet()
+            except PacketTranscriptionError as e:
+                raise PacketTranscriptionError(f'Error reading packet {packet_num}: {e}') from e
             if packet:
                 if isinstance(packet, lf.Metadata):
                     if logger_name or shipname:
