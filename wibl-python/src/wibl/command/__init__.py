@@ -25,6 +25,7 @@
 
 import click
 
+from wibl import __version__ as version
 from wibl.command.datasim import datasim
 from wibl.command.dcdb_upload import dcdb_upload
 from wibl.command.edit_wibl_file import editwibl
@@ -34,9 +35,10 @@ from wibl.command.upload_wibl_file import uploadwibl
 from wibl.command.wibl_proc import wibl_proc
 
 
-@click.version_option()
+@click.version_option(version=version)
 @click.group()
 def cli():
+    """Python tools for WIBL low-cost data logger system."""
     pass
 
 cli.add_command(datasim)

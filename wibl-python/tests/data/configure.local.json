@@ -3,6 +3,7 @@
 	"elapsed_time_width":	32,
 	"fault_limit":			10,
 	"local":				true,
-	"provider_id": 	"SEAID",
-	"management_url": ""
+	"provider_id": 	"UNHJHC",
+	"management_url": "",
+	"upload_point": 		"https://www.ngdc.noaa.gov/ingest-external/upload/csb/test/geojson/"
 }

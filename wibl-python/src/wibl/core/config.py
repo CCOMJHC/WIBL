@@ -118,6 +118,18 @@ def read_config(config_file: Union[Path, str] = None) -> Dict[str, Any]:
         else:
             config['elapsed_time_quantum'] = 1 << 32
 
+        # Set default config parameters
+        if 'verbose' not in config:
+            config['verbose'] = False
+        if 'local' not in config:
+            config['local'] = False
+        if 'fault_limit' not in config:
+            config['fault_limit'] = 10
+        if 'local' not in config:
+            config['local'] = False
+        if 'management_url' not in config:
+            config['management_url'] = ''
+
         return config
 
     except Exception as e:

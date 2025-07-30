@@ -51,7 +51,7 @@ import wibl.core.notification as nt
 @click.option('-c', '--config',
               type=click.Path(exists=True),
               help='Specify configuration file for installation')
-def dcdb_upload(auth: Path, input: Path, source_id: str, provider: str, config: Path):
+def dcdb_upload(auth: Path, input: Path, sourceid: str, provider: str, config: Path):
     """Upload GeoJSON files to DCDB for archival."""
 
     filename = str(input)
@@ -63,7 +63,7 @@ def dcdb_upload(auth: Path, input: Path, source_id: str, provider: str, config: 
             config_filename = get_config_file()
         # Make sure we don't try to contact the manager when running in the command line
         cfg = conf.read_config(config_filename)
-        if 'notification' not in config:
+        if 'notification' not in cfg:
             cfg['notification'] = {}
         if 'uploaded' not in cfg['notification']:
             cfg['notification']['uploaded'] = ''
@@ -102,8 +102,8 @@ def dcdb_upload(auth: Path, input: Path, source_id: str, provider: str, config: 
     notifier = nt.LocalNotifier(cfg['notification']['uploaded'])
     localname, source_info = controller.obtain(data_item)
     # Override the sourceID from the file if the user insists ...
-    if source_id:
-        source_info['sourceID'] = source_id
+    if sourceid:
+        source_info['sourceID'] = sourceid
 
     rc = transmit_geojson(source_info, provider_id, provider_auth, localname, cfg)
     if rc:
