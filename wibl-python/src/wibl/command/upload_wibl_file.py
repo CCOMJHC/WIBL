@@ -27,7 +27,7 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
-
+import os
 import uuid
 from pathlib import Path
 
@@ -61,22 +61,29 @@ def uploadwibl(input: Path, bucket: str, json: bool, source: str):
     if source:
         sourceID = source
 
-    s3 = boto3.resource('s3')
+    if 'S3_ENDPOINT_URL' in os.environ:
+        s3 = boto3.resource('s3', endpoint_url=os.environ['S3_ENDPOINT_URL'])
+    else:
+        s3 = boto3.resource('s3')
     dest_bucket = s3.Bucket(bucket)
     try:
-        obj_key = f"{str(uuid.uuid4())}file_extension"
+        obj_key = f"{str(uuid.uuid4())}{file_extension}"
         dest_bucket.upload_file(Filename=filename, Key=obj_key)
         if sourceID is not None:
             tagset = {
                 'TagSet': [
                     {
-                        'Key':  'SourceID',
-                        'Value':    sourceID
+                        'Key':   'SourceID',
+                        'Value': sourceID
                     },
                 ]
             }
-            boto3.client('s3').put_object_tagging(Bucket=bucket, Key=obj_key, Tagging=tagset)
+            if 'S3_ENDPOINT_URL' in os.environ:
+              client = boto3.client('s3', endpoint_url=os.environ['S3_ENDPOINT_URL'])
+            else:
+                client = boto3.client('s3')
+            client.put_object_tagging(Bucket=bucket, Key=obj_key, Tagging=tagset)
             
         click.echo(f"Successfully uploaded {filename} to bucket {bucket} for object {obj_key}.")
     except Exception as e:
-        click(f"Failed to upload file to CSB ingest bucket due to error: {str(e)}")
+        click.echo(f"Failed to upload file to CSB ingest bucket due to error: {str(e)}")
