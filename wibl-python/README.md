@@ -119,9 +119,14 @@ pytest -n 4 --cov=wibl --cov-branch --cov-report=xml --junitxml=test-results.xml
 ```
 
 To run integration tests exercising much of the functionality of the `wibl` command line tool 
-(except for file upload to S3 and submission DCDB):
+(except for file submission DCDB), first make sure you have the following installed:
+ - [Docker](https://www.docker.com)
+ - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+ - [jq](https://jqlang.org)
+
+Then run:
 ```
-bash ./tests/integration/test_wibl.bash
+./tests/integration/test_wibl.bash
 ```
 
 ## Usage
