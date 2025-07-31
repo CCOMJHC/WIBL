@@ -1884,6 +1884,7 @@ class PacketFactory:
             return None
 
         (pkt_id, pkt_len) = struct.unpack('<II', buffer)
+        last_pos: int = self.file.tell()
         buffer = self.file.read(pkt_len)
         self.packets_read += 1
         rtn = None
@@ -1935,7 +1936,7 @@ class PacketFactory:
                 raise PacketTranscriptionError(str(e))
             else:
                 print(f"WARNING: Unable to read packet number {self.packets_read} with ID {pkt_id} and name "
-                      f"'{PacketTypes(pkt_id).name}' at byte offset {self.file.tell()} of file '{self.file.name}' "
+                      f"'{PacketTypes(pkt_id).name}' at byte offset {last_pos} of file '{self.file.name}' "
                       f"due to error: '{str(e)}'. Ignoring as strict_mode is False.")
 
         return rtn
