@@ -41,7 +41,9 @@ import wibl.core.logger_file as LoggerFile
               help='Provide summary statistics on packets seen')
 @click.option('-d', '--dump', type=click.Path(exists=True),
               help='Dump ASCII representation of NMEA0183 data to file')
-def parsewibl(input: str, stats: bool, dump: str):
+@click.option('--strict-mode', is_flag=True, default=False,
+              help='Strict mode: fail if any packet is not successfully translated')
+def parsewibl(input: str, stats: bool, dump: str, strict_mode: bool):
     """Parse binary WIBL logger file INPUT and report contents in human-readable format to the console."""
     filename = str(input)
     
@@ -52,15 +54,15 @@ def parsewibl(input: str, stats: bool, dump: str):
 
     file = open(filename, 'rb')
 
-    packet_count = 0
-    packet_stats = dict()
-    source = LoggerFile.PacketFactory(file)
+    packet_count: int = 0
+    packet_stats: dict = {}
+    source = LoggerFile.PacketFactory(file, strict_mode=strict_mode)
     while source.has_more():
         try:
             pkt = source.next_packet()
-            if pkt is not None:
-                click.echo(pkt)
+            if pkt:
                 packet_count += 1
+                click.echo(pkt)
                 if dump_file:
                     if pkt.name() == 'SerialString':
                         dump_file.write(f'{pkt.elapsed} {pkt.data.decode("utf-8").strip()}\n')
@@ -68,8 +70,8 @@ def parsewibl(input: str, stats: bool, dump: str):
                     if pkt.name() not in packet_stats:
                         packet_stats[pkt.name()] = 0
                     packet_stats[pkt.name()] += 1
-        except LoggerFile.PacketTranscriptionError:
-            sys.exit(f"Failed to translate packet {packet_count}.")
+        except LoggerFile.PacketTranscriptionError as e:
+            sys.exit(f"Failed to translate packet {packet_count}: {str(e)}.")
 
     click.echo(f"Found {packet_count} packets total")
     if stats:

@@ -48,3 +48,14 @@ cli.add_command(parsewibl)
 cli.add_command(geojson_validate)
 cli.add_command(uploadwibl)
 cli.add_command(wibl_proc)
+
+# To Run a command in a debugger in your IDE, invoke as follows:
+# if __name__ == '__main__':
+#     from click.testing import CliRunner
+#     runner = CliRunner(catch_exceptions=False)
+#     result = runner.invoke(cli,
+#                            ['editwibl',
+#                                  '-m', 'examples/ship-metadata-simple.json',
+#                                  'path/to/wibl/file/foo.wibl',
+#                                  'path/to/wibl/file/foo-edited.wibl'])
+#     print(result.output)

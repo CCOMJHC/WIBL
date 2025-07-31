@@ -1856,11 +1856,15 @@ class PacketFactory:
     #
     # \param self   Pointer to the object
     # \param file   Open file object, which must be opened for binary reads
-    def __init__(self, file):
+    # \param strict_mode If True, raise exception if an error is encountered loading a packet. If False, print a warning message about the packet loading error.
+    def __init__(self, file, *,
+                 strict_mode: bool = False):
         ## File reference from which to read packets
         self.file = file
         ## Flag for end-of-file detection
         self.end_of_file = False
+        self.strict_mode = strict_mode
+        self.packets_read: int = 0
 
     ## Extract the next packet from the binary data file
     #
@@ -1881,6 +1885,8 @@ class PacketFactory:
 
         (pkt_id, pkt_len) = struct.unpack('<II', buffer)
         buffer = self.file.read(pkt_len)
+        self.packets_read += 1
+        rtn = None
         try:
             if pkt_id == PacketTypes.SerialiserVersion.value:
                 rtn = SerialiserVersion(buffer=buffer)
@@ -1921,10 +1927,16 @@ class PacketFactory:
             elif pkt_id == PacketTypes.Setup.value:
                 rtn = Setup(buffer=buffer)
             else:
-                print(f'Unknown packet with ID {pkt_id} in input stream; ignored.')
+                print(f"Unknown packet number {self.packets_read} with ID {pkt_id} and name "
+                      f"'{PacketTypes(pkt_id).name}' in input stream; ignored.")
                 rtn = None
         except struct.error as e:
-            raise PacketTranscriptionError(str(e))
+            if self.strict_mode:
+                raise PacketTranscriptionError(str(e))
+            else:
+                print(f"WARNING: Unable to read packet number {self.packets_read} with ID {pkt_id} and name "
+                      f"'{PacketTypes(pkt_id).name}' at byte offset {self.file.tell()} of file '{self.file.name}' "
+                      f"due to error: '{str(e)}'. Ignoring as strict_mode is False.")
 
         return rtn
 

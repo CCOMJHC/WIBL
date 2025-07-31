@@ -53,8 +53,10 @@ from wibl.core.logger_file import PacketTranscriptionError
               help='Specify the serialiser version for the output file (major: int, minor: int)')
 @click.option('-f', '--filter', type=str, multiple=True,
               help='Specify a NMEA0183 sentence filter name')
+@click.option('--strict-mode', is_flag=True, default=False,
+              help='Strict mode: fail if any packet is not successfully translated')
 def editwibl(input: Path, output: Path, uniqueid: str, shipname: str,
-             meta: Path, algo: tuple[str], version: str, filter: tuple[str]):
+             meta: Path, algo: tuple[str], version: str, filter: tuple[str], strict_mode: bool):
     """Edit INPUT WIBL logger file, writing edited WIBL file to OUTPUT."""
 
     if uniqueid:
@@ -99,15 +101,15 @@ def editwibl(input: Path, output: Path, uniqueid: str, shipname: str,
     op = open(output, 'wb')
     metadata_out = False
     json_metadata_out = False
-    packet_num: int = 0
+    packet_count: int = 0
     with open(input, 'rb') as ip:
-        source = lf.PacketFactory(ip)
+        source = lf.PacketFactory(ip, strict_mode=strict_mode)
         while source.has_more():
-            packet_num += 1
+            packet_count += 1
             try:
                 packet = source.next_packet()
             except PacketTranscriptionError as e:
-                raise PacketTranscriptionError(f'Error reading packet {packet_num}: {e}') from e
+                raise PacketTranscriptionError(f'Error reading packet {packet_count}: {str(e)}') from e
             if packet:
                 if isinstance(packet, lf.Metadata):
                     if logger_name or shipname:
