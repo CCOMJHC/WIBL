@@ -181,7 +181,6 @@ Options:
 ### Edit WIBL file
 Add platform metadata to existing binary WIBL file (e.g., from data simulator or from a real datalogger):
 ```shell
-wibl editwibl --help
 Usage: wibl editwibl [OPTIONS] INPUT OUTPUT
 
   Edit INPUT WIBL logger file, writing edited WIBL file to OUTPUT.
@@ -196,6 +195,8 @@ Options:
   -v, --version TEXT   Specify the serialiser version for the output file
                        (major: int, minor: int)
   -f, --filter TEXT    Specify a NMEA0183 sentence filter name
+  --strict-mode        Strict mode: fail if any packet is not successfully
+                       translated
   --help               Show this message and exit.
 ```
 
@@ -203,6 +204,10 @@ for example:
 ```shell
 $ wibl editwibl -m examples/ship-metadata-simple.json test.bin test-inject.bin
 ```
+
+> Note: if the `--strict-mode` option is set, failure to read a single data packet from the WIBL file will result in
+> processing the stop with an error. The default behavior is to print a warning message detailing each packet that
+> was not successfully decoded.
 
 #### Note on metadata format
 In versions of `wibl-python` previous to 1.1.0 (run `wibl --version` to find out what version you have), B-12 metadata 
@@ -305,9 +310,16 @@ for example:
 $ wibl procwibl -c tests/data/configure.local.json test-inject.bin test-inject.geojson
 ```
 
-> Note: It is necessary to supply a configuration JSON file with the `local` attribute
-> set to `true`, such as `tests/data/configure.local.json`, because `procwibl` uses
-> the same code as the conversion processing lambda code run in the cloud.
+#### Configuration files 
+Example configuration files for local processing can be found [here](examples/configure-submission-test.json) (for 
+the test DCDB endpoint) and [here](examples/configure-submission.json) (for the production DCDB endpoint). To enable
+`strict-mode` processing set the `strict_mode` configuration parameter to `true`. When strict mode is enabled, 
+inability to read data packets from WIBL files will be treated as an error, causing processing to stop. The default 
+behavior of all commands that read WIBL files is to disable strict mode, so that processing will continue if one or
+more data packets cannot be read.
+
+> Note on configuration files: It is no longer necessary to set `local` to `true` when running
+> `procwibl`. This setting is only used by the `validate` command. See below.
 
 ### Upload WIBL files into AWS S3 Buckets for processing
 Instead of using the mobile app (and for testing), WIBL binary files can be uploaded into a given S3 bucket to trigger processing.  If the file is being uploaded into the staging bucket (i.e., to test transfer to DCDB), a '.json' extension must be added (``-j|--json``), and the SourceID tag must be set (``-s|--source``) so that the submission Lambda can find this information.
@@ -336,8 +348,14 @@ Usage: wibl parsewibl [OPTIONS] INPUT
 Options:
   -s, --stats      Provide summary statistics on packets seen
   -d, --dump PATH  Dump ASCII representation of NMEA0183 data to file
+  --strict-mode    Strict mode: fail if any packet is not successfully
+                   translated
   --help           Show this message and exit.
 ```
+
+> Note: if the `--strict-mode` option is set, failure to read a single data packet from the WIBL file will result in
+> processing the stop with an error. The default behavior is to print a warning message detailing each packet that
+> was not successfully decoded.
 
 ### Validate
 The `wibl validate` command allows validation of WIBL-produced GeoJSON data using 
@@ -347,6 +365,11 @@ $ wibl validate -c tests/data/configure.local.json /tmp/test-wibl-inject.geojson
 info: Validating metadata in test-wibl-inject.geojson for schema version 3.1.0-2024-04.
 info: completed successful validate of /tmp/test-wibl-inject.geojson metadata.
 ```
+
+> Note: It is recommended to supply a configuration JSON file with the `local` attribute
+> set to `true`, such as [tests/data/configure.local.json`, because `validate` uses
+> the same code as the validation lambda code run in the cloud. Setting 'local' to `true`
+> results in detailed validation status/errors being reported to the console by `wibl validate`.
 
 For more control over validation (including validating XYZ metadata or validating against previous versions of B-12
 metadata and data), you can use `csbschema validate` directly (which is installed along with wibl-python:
