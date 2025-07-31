@@ -24,41 +24,41 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
-import argparse as arg
 import sys
 import os
+from pathlib import Path
 
-from wibl.command import get_subcommand_prog
+import click
+
 from wibl.validation.cloud.aws import get_config_file
 import wibl.core.config as conf
 from wibl.validation.cloud.aws.lambda_function import validate_metadata
 
 
-def geojson_validate():
-    parser = arg.ArgumentParser(description="Validate GeoJSON file metadata.",
-                prog=get_subcommand_prog())
-    parser.add_argument('-c', '--config', type=str, help='Specify configuration file for installation')
-    parser.add_argument('input', help='GeoJSON format file to validate.')
-    
-    optargs = parser.parse_args(sys.argv[2:])
-
-    infilename = optargs.input
+@click.command(name='validate')
+@click.argument('input')
+@click.option('-c', '--config',
+              type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True),
+              help='Specify configuration file for installation')
+def geojson_validate(input: str, config: Path=None):
+    """Validate GeoJSON metadata stored in INPUT."""
+    infilename = input
 
     try:
-        if hasattr(optargs, 'config'):
-            config_filename = optargs.config
+        if config:
+            config_filename = config
         else:
             config_filename = get_config_file()
-        config = conf.read_config(config_filename)
+        cfg = conf.read_config(config_filename)
     except conf.BadConfiguration:
         sys.exit('Error: bad configuration file.')
     
     # The cloud-based code uses environment variables to provide some of the configuration,
     # so we need to add this to the local environment to compensate.
-    if config['management_url']:
-        os.environ['MANAGEMENT_URL'] = config['management_url']
+    if cfg['management_url']:
+        os.environ['MANAGEMENT_URL'] = cfg['management_url']
 
-    if not validate_metadata(infilename, config):
-        print(f'error: failed to validate {infilename} metadata.')
+    if not validate_metadata(infilename, cfg):
+        click.echo(f"error: failed to validate {infilename} metadata.")
     else:
-        print(f'info: completed successful validate of {infilename} metadata.')
+        click.echo(f"info: completed successful validate of {infilename} metadata.")

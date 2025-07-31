@@ -110,7 +110,7 @@ maximum_version = protocol_version(protocol_version_major, protocol_version_mino
 # \param elapsed_time_quantum   Maximum value that can be represented by the elapsed times in the packets
 # \param lineage                `wibl.core.Lineage` instance used to track any processing done on data from `filename`
 # \param kwargs                 Keyword dictionary for 'verbose' (bool), 'fault_limit' (int),
-#   and 'process_algorithms' (bool).
+#   'process_algorithms' (bool), and 'strict_mode' (bool)
 # \return Dictionary mapping identification names for the various datasets to the interpolated data arrays
 def time_interpolation(filename: str, lineage: Lineage, elapsed_time_quantum: int, **kwargs) -> Dict[str, Any]:
     verbose = False
@@ -122,11 +122,16 @@ def time_interpolation(filename: str, lineage: Lineage, elapsed_time_quantum: in
     process_algorithms: bool = True
     if 'process_algorithms' in kwargs:
         process_algorithms = kwargs['process_algorithms']
+    if 'strict_mode' in kwargs:
+        strict_mode = kwargs['strict_mode']
+    else:
+        strict_mode = False
     
     # Pull all of the packets out of the file, and fix up any preliminary problems
     try:
         stats, time_source, packets, algorithms = load_file(filename, lineage, verbose, fault_limit,
-                                                            process_algorithms=process_algorithms)
+                                                            process_algorithms=process_algorithms,
+                                                            strict_mode=strict_mode)
     except flNoTimeSource as e:
         if verbose:
             print(f'Failed to determine a valid time source from file: {e}')

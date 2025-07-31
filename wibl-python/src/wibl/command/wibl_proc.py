@@ -28,51 +28,49 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
-import argparse as arg
 import sys
 import os
 
-from wibl.command import get_subcommand_prog
+from pathlib import Path
+
+import click
+
 import wibl.core.config as conf
-from wibl.processing.cloud.aws import get_config_file
 from wibl.processing.cloud.aws.lambda_function import process_item
 from wibl.core.datasource import LocalSource, LocalController
 from wibl.core.notification import LocalNotifier
 
-def wibl_proc():
-    parser = arg.ArgumentParser(description="Process WIBL files into GeoJSON locally.",
-                prog=get_subcommand_prog())
-    parser.add_argument('-c', '--config', type=str,
-                        required=False, default=get_config_file(),
-                        help='Specify configuration file for installation')
-    parser.add_argument('input', help='WIBL format file to convert to GeoJSON.')
-    parser.add_argument('output', help='Specify output GeoJSON file location')
-
-    optargs = parser.parse_args(sys.argv[2:])
-
-    infilename = optargs.input
-    outfilename = optargs.output
+@click.command(name='procwibl')
+@click.argument('input', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True))
+@click.argument('output', type=click.Path())
+@click.option('-c', '--config',
+              type=click.Path(exists=True), required=True,
+              help='Specify configuration file for installation')
+def wibl_proc(input: Path, output: Path, config: Path=None):
+    """Process a WIBL file INPUT into GeoJSON file OUTPUT locally."""
+    infilename = str(input)
+    outfilename = str(output)
 
     try:
-        config = conf.read_config(optargs.config)
+        cfg = conf.read_config(config)
         if 'notification' not in config:
-            config['notification'] = {}
-        if 'converted' not in config['notification']:
-            config['notification']['converted'] = ''
+            cfg['notification'] = {}
+        if 'converted' not in cfg['notification']:
+            cfg['notification']['converted'] = ''
 
     except conf.BadConfiguration:
         sys.exit('Error: bad configuration file.')
     
     # The cloud-based code uses environment variables to provide some of the configuration,
     # so we need to add this to the local environment to compensate.
-    os.environ['PROVIDER_ID'] = config['provider_id']
-    if 'management_url' in config:
-        os.environ['MANAGEMENT_URL'] = config['management_url']
+    os.environ['PROVIDER_ID'] = cfg['provider_id']
+    if 'management_url' in cfg:
+        os.environ['MANAGEMENT_URL'] = cfg['management_url']
 
-    source = LocalSource(infilename, outfilename, config)
+    source = LocalSource(infilename, outfilename, cfg)
     data_item = source.nextSource()
-    controller = LocalController(config)
-    notifier = LocalNotifier(config['notification']['converted'])
+    controller = LocalController(cfg)
+    notifier = LocalNotifier(cfg['notification']['converted'])
 
-    if not process_item(data_item, controller, notifier, config):
+    if not process_item(data_item, controller, notifier, cfg):
         sys.exit('Error: failed to process data (try with verbose option for more information).')

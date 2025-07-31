@@ -116,9 +116,11 @@ def determine_time_source(stats: PktStats) -> TimeSource:
 # \param verbose        Flag: set True to report more information on parsing.
 # \param maxreports     Limit on how many errors should be reported before suppressing and summarising
 # \param process_algorithms Flag: set to True to enable execution of algorithms for phase `AlgorithmPhase.ON_LOAD`
+# \param strict_mode If True, raise exception if an error is encountered loading a packet. If False, print a warning message about the packet loading error.
 # \return Tuple of PktStats, TimeSource, a list of DataPacket, and a list of AlgorithmDescriptor entries from the file
 def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *,
-              process_algorithms: bool = True) -> \
+              process_algorithms: bool = True,
+              strict_mode: bool = False) -> \
         Tuple[PktStats, TimeSource, List[LoggerFile.DataPacket], List[AlgorithmDescriptor]]:
     """Load the entirety of a WIBL binary file into memory, in the process determining the type of time
        source that can be used to add timestamps to the data, and fixing up any messages that don't have
@@ -147,7 +149,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
     packets_raw: List[LoggerFile.DataPacket] = []
     algorithms_raw = []
     with open(filename, 'rb') as file:
-        source = LoggerFile.PacketFactory(file)
+        source = LoggerFile.PacketFactory(file, strict_mode=strict_mode)
         while source.has_more():
             pkt = source.next_packet()
             if pkt is not None:

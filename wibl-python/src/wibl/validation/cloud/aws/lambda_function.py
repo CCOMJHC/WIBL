@@ -55,7 +55,7 @@ def validate_metadata(local_file: str, config: Dict[str,Any]) -> bool:
         if verbose:
             print(f'error: failed to find metadata on {source_file_name} from database manager.')
         return rc
-    
+
     if verbose:
         print(f'info: Validating metadata in {source_file_name} for schema version {DEFAULT_VALIDATOR_VERSION}.')
     
@@ -64,7 +64,10 @@ def validate_metadata(local_file: str, config: Dict[str,Any]) -> bool:
         meta.status = ProcessingStatus.PROCESSING_SUCCESSFUL.value
     else:
         meta.status = ProcessingStatus.PROCESSING_FAILED.value
+        if config['local']:
+            print(validate_info.__str__())
         manager.logmsg(validate_info.__str__())
+
     manager.update(meta)
     return rc
 

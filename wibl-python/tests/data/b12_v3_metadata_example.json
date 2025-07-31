@@ -1,17 +1,10 @@
 {
-  "type": "FeatureCollection",
-  "crs": {
-    "type": "name",
-    "properties": {
-      "name": "EPSG:4326"
-    }
-  },
   "properties": {
     "trustedNode": {
-      "providerOrganizationName": "Sea-ID",
-      "providerEmail": "support@sea-id.org",
-      "uniqueVesselID": "SEAID-e8c469f8-df38-11e5-b86d-9a79f06e9478",
-      "convention": "GeoJSON CSB 3.0",
+      "providerOrganizationName": "UNHJHC",
+      "providerEmail": "bmiles@ccom.unh.edu",
+      "uniqueVesselID": "UNHJHC-e8c469f8-df38-11e5-b86d-9a79f06e9478",
+      "convention": "GeoJSON CSB 3.1",
       "dataLicense": "CC0 1.0",
       "providerLogger": "Rose Point ECS",
       "providerLoggerVersion": "1.0",
@@ -25,7 +18,7 @@
       "length": 65,
       "IDType": "MMSI",
       "IDNumber": "369958000",
-      "sensorDescriptions": [
+      "sensors": [
         {
           "type": "Sounder",
           "make": "Garmin",
@@ -50,37 +43,94 @@
       "dataProcessed": true,
       "contributorComments": "On 2022-03-08, at 20:30 UTC, the echo sounder lost bottom tracking after the vessel crossed another vessel's wake."
     },
-    "processing": {
-      "timeStampInterpolation": {
-        "method": "Interpolated RMC Messages",
-        "algorithm": "Unknown",
-        "version": "1.0.0"
+    "processing": [
+      {
+        "type": "TimeStampInterpolation",
+        "timestamp": "2023-02-14T01:00:00.0000Z",
+        "method": "Linear interpolation"
       },
-      "coordinateReferenceChange": {
+      {
+        "type": "CRSChange",
+        "timestamp": "2023-02-14T02:00:00.0000Z",
         "original": "EPSG:4326",
         "destination": "EPSG:8252",
         "method": "GeoTrans"
       },
-      "verticalReduction": {
+      {
+        "type": "VerticalReduction",
+        "timestamp": "2023-02-14T03:00:00.0000Z",
         "reference": "ChartDatum",
         "datum": "CANNORTH2016v1HyVSEP_NAD83v6_CD",
         "method": "Predicted Waterlevel",
         "model": "CANNORTH2016v1HyVSEP_NAD83v6_CD"
       },
-      "GNSSProcessing": {
+      {
+        "type": "GNSS",
+        "timestamp": "2023-02-14T04:00:00.0000Z",
         "algorithm": "RTKLib",
         "version": "1.2.0"
       },
-      "soundSpeedCorrection": {
+      {
+        "type": "SoundSpeed",
+        "timestamp": "2023-02-14T05:00:00.0000Z",
         "source": "Model",
         "method": "CIDCO-Ocean",
         "version": "1.1.0"
       },
-      "dataProcessing": {
+      {
+        "type": "Algorithm",
+        "timestamp": "2023-02-14T06:00:00.0000Z",
         "name": "Deduplicate",
-        "parameters": null,
-        "version": "1.0.0"
+        "parameters": {"a": 1.234, "b": 5.678},
+        "version": "1.0.0",
+        "comment": "A hypothetical deduplication algorithm."
+      },
+      {
+        "type": "Uncertainty",
+        "timestamp": "2023-02-14T06:00:00.0000Z",
+        "name": "CIDCO Vertical Uncertainty Estimator",
+        "parameters": {"a": 1.234, "b": 5.678},
+        "version": "1.0.0",
+        "comment": "FREE TEXT HERE",
+        "reference": "DOI:10.47366/sabia.v5n1a3"
+      },
+      {
+        "type": "VerticalOffsetAnalysis",
+        "timestamp": "2021-11-22T16:10:09.346821Z",
+        "name": "CIDCO Vertical Offset Analysis",
+        "version": "1.0.0",
+        "reference": "DOI:10.47366/sabia.v5n1a3",
+        "comment": "FREE TEXT HERE",
+        "offsets": [
+          {
+            "x": 74.328345,
+            "y": -23.4634,
+            "z": 25.231,
+            "delta": 0.23
+          }
+        ],
+        "analysis": [
+          {
+            "name": "Chi2",
+            "pass": true,
+            "parameters": {
+              "a": 123.456,
+              "b": 789.012,
+              "target": "Normal",
+              "df": 15,
+              "alpha": 0.05,
+              "pmf": {
+                "centers": [-1.0, -0.5, 0, 0.5, 1.0
+                ],
+                "counts": [0, 24, 50, 120, 23, 0
+                ]
+              }
+            },
+            "reference": "DOI:10.47366/sabia.v5n1a3",
+            "comment": "FREE TEXT HERE"
+          }
+        ]
       }
-    }
+    ]
   }
 }

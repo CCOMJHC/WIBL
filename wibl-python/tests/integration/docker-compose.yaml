@@ -1,0 +1,16 @@
+services:
+  wibl-test-uploadwibl-localstack:
+    image: localstack/localstack
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - ENFORCE_IAM=0
+      - SERVICES=s3
+      - DEBUG=0
+      - LS_LOG=info
+    ports:
+      - "24566:4566"
+      - "24510-24559:4510-4559"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
