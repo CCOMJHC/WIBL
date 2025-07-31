@@ -1,4 +1,4 @@
-##\file lambda_function.py
+# \file lambda_function.py
 # \brief Drive the conversion and time-stamping of logger binary files with output in GeoJSON
 #
 # The low-cost data loggers generate data as binary outputs which are time referenced to the logger's

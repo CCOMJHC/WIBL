@@ -80,13 +80,9 @@ class WIBLMarshModel(BaseModel):
     status: int
     messages: str
 
-
-
 WIBLDataRouter = APIRouter()
 url = "/wibl/{fileid}"
 
-
-#TODO: Update the doc strings
 class WIBLData:
     """
     RESTful end-point for manipulating the WIBL data file database component.  The design here assumes
@@ -95,17 +91,18 @@ class WIBLData:
     provided for metadata lookup (GET 'all' for everything) and DELETE for file removal.
     """
 
-    # response_model=WIBLMarshModel
     @staticmethod
     @WIBLDataRouter.get(url, response_model=WIBLMarshModel)
     async def get(fileid: str, db=Depends(get_async_db)):
         """
-        Lookup for a single file's metadata, or all files if :param: `fileid` is "all".
+        Lookup for a single WIBL file's metadata.
 
         :param fileid:  Filename to look up (typically a UUID)
         :type fileid:   str
-        :return:        Metadata instance for the file or list of all file, or NOT_FOUND if the record doesn't exist
-        :rtype:         tuple  The marshalling decorator should convert to JSON-serialisable form.
+        :param db:      Injected FastAPI asynchronous database dependency
+        :type db:       Any
+        :return:        Metadata instance for the file or FILE_NOT_FOUND if the record doesn't exist
+        :rtype:         tuple  The response model should convert to JSON-serialisable form.
         """
 
         stmt = (
@@ -113,18 +110,22 @@ class WIBLData:
             .where(WIBLDataModel.fileid == fileid)
         )
         result = await db.execute(stmt)
-        return result.scalars().first()
+        file = result.scalars().first()
+        if not file:
+            raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
+                                detail=f'The WIBL file {fileid} could not be found.')
+        return file
 
     @staticmethod
     @WIBLDataRouter.get("/wibl/", response_model=list[WIBLMarshModel])
     async def getAll(db=Depends(get_async_db)):
         """
-        Lookup for a single file's metadata, or all files if :param: `fileid` is "all".
+        Lookup for all WIBL files metadata.
 
-        :param fileid:  Filename to look up (typically a UUID)
-        :type fileid:   str
-        :return:        Metadata instance for the file or list of all file, or NOT_FOUND if the record doesn't exist
-        :rtype:         tuple  The marshalling decorator should convert to JSON-serialisable form.
+        :param db:      Injected FastAPI asynchronous database dependency
+        :type db:       Any
+        :return:        List of all files.
+        :rtype:         tuple  The response model should convert to JSON-serialisable form.
         """
         result = await db.execute(select(WIBLDataModel))
         return result.scalars().all()
@@ -139,16 +140,20 @@ class WIBLData:
 
         :param fileid:  Filename to look up (typically a UUID)
         :type fileid:   str
+        :param data:    Dictionary containing the expected json body for a post request.
+        :type data:     WIBLPostParse
+        :param db:      Injected FastAPI asynchronous database dependency
+        :type db:       Any
         :return:        The initial state of the metadata for the file and RECORD_CREATED, or RECORD_CONFLICT if
                         the record already exists.
-        :rtype:         tuple   The marchalling decorator should convert to JSON-serliasable form.
+        :rtype:         tuple  The response model should convert to JSON-serliasable form.
         """
 
         result = await db.execute(select(WIBLDataModel).where(WIBLDataModel.fileid == fileid))
         test_file = result.scalars().first()
         if test_file:
             raise HTTPException(status_code=ReturnCodes.RECORD_CONFLICT.value,
-                                detail='That WIBL file already exists in the database; use PUT to update.')
+                                detail=f'The WIBL file {fileid} already exists in the database; use PUT to update.')
 
         timestamp = datetime.now(timezone.utc).isoformat()
         wibl_file = WIBLDataModel(fileid=fileid, processtime=timestamp, updatetime='Unknown', notifytime='Unknown',
@@ -171,16 +176,20 @@ class WIBLData:
 
         :param fileid:  Filename to look up (typically a UUID)
         :type fileid:   str
-        :return:        The updated state of the metadata for the file and RECORD_CREATED, or NOT_FOUND if the
+        :param data:    Dictionary containing the expected json body for a put request.
+        :type data:     WIBLPutParse
+        :param db:      Injected FastAPI asynchronous database dependency
+        :type db:       Any
+        :return:        The updated state of the metadata for the file and RECORD_CREATED, or FILE_NOT_FOUND if the
                         record doesn't exist.
-        :rtype:         tuple   The marshalling decorator should convert to JSON-serlisable form.
+        :rtype:         tuple   The response model should convert to JSON-serlisable form.
         """
 
         result = await db.execute(select(WIBLDataModel).where(WIBLDataModel.fileid == fileid))
         wibl_file = result.scalars().first()
         if not wibl_file:
             raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
-                                detail='That WIBL file does not exist in database; use POST to add.')
+                                detail=f'The WIBL file {fileid} does not exist in database; use POST to add.')
         timestamp = datetime.now(timezone.utc).isoformat()
         wibl_file.updatetime = timestamp
 
@@ -219,8 +228,9 @@ class WIBLData:
 
         :param fileid:  Filename to look up (typically a UUID)
         :type fileid:   str
-        :return:        RECORD_DELETED or NOT_FOUHD if the record doesn't exist.
-        :rtype:         int   The marshalling decorator should convert to JSON-serliasable form.
+        :param db:      Injected FastAPI asynchronous database dependency
+        :type db:       Any
+        :return:        RECORD_DELETED or FILE_NOT_FOUND if the record doesn't exist.
 
         """
         if fileid == "all":
@@ -232,7 +242,8 @@ class WIBLData:
             wibl_file = result.scalars().first()
             if not wibl_file:
                 raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
-                                    detail='That WIBL file does not exist in the database, and therefore cannot be deleted.')
+                                    detail=f'The WIBL file {fileid} does not exist in the database, '
+                                           f'and therefore cannot be deleted.')
 
             await db.execute(Delete(WIBLDataModel).where(WIBLDataModel.fileid == fileid))
             await db.commit()

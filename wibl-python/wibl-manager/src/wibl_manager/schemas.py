@@ -36,6 +36,8 @@ class WIBLDataModel(Base):
     :type size:             float
     :param observations:    Number of raw observations of depth in the file.
     :type observations:     int, optional
+    :param boundingbox:     Geographic bounding box of the converted GeoJSON
+    :type boundingbox:      :Geometry: `POLYGON`
     :param soundings:       Number of processed (output) soundings in the converted file.
     :type soundings:        int, optional
     :param starttime:       String representation (ISO format) for the earliest output sounding in the processed file.
@@ -44,7 +46,7 @@ class WIBLDataModel(Base):
     :type endtime:          str, optional
     :param status:          Status indicator for processing of the file to GeoJSON.  Set to 'started' on POST, but can then be
                             updated through PUT to reflect the results of processing.
-    :type status:           :enum: `return_codes.ProcessStatus`
+    :type status:           :enum: `WIBLStatus`
     :param messages:        Messages returned during processing (usually error/warnings)
     :type messages:         str, optional
     """
@@ -92,9 +94,9 @@ class GeoJSONDataModel(Base):
     :type size:         float
     :param soundings:   Number of processed (output) soundings in the converted file.
     :type soundings:    int, optional
-    :param status:      Status indicator for upload of the file to the archive.  Set to 'started' on POST, but can then be
-                        updated through PUT to reflect the results of processing.
-    :type status:       :enum: `return_codes.UploadStatus`
+    :param status:      Status bitflag for upload and validation of the file to the archive. Each process
+                        (upload/validation) is represented by three bits.
+    :type status:       :IntFlag: `GeoJSONStatus`
     :param messages:    Messages returned during processing (usually error/warnings)
     :type messages:     str, optional
     """

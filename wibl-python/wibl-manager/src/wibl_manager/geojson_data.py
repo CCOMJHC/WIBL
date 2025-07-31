@@ -86,14 +86,16 @@ class GeoJSONData:
 
     @staticmethod
     @GeoJSONRouter.get(url, response_model=GeoJSONMarshModel)
-    async def get(fileid: str, db = Depends(get_async_db)):
+    async def get(fileid: str, db=Depends(get_async_db)):
         """
-         Lookup for a single file's metadata, or all files if :param: `fileid` is "all"
+         Lookup for a single GeoJSON file's metadata.
 
          :param fileid:  Filename to look up (typically a UUID)
          :type fileid:   str
-         :return:        Metadata instance for the file or list of all file, or NOT_FOUND if the record doesn't exist
-         :rtype:         tuple   The marshalling decorator should convert to JSON-serialisable form.
+         :param db:      Injected FastAPI asynchronous database dependency
+         :type db:       Any
+         :return:        Metadata instance for the file or list of all file, or FILE_NOT_FOUND if the record doesn't exist
+         :rtype:         tuple   The response model should convert to JSON-serialisable form.
          """
 
         stmt = (
@@ -101,18 +103,29 @@ class GeoJSONData:
             .where(GeoJSONDataModel.fileid == fileid)
         )
         result = await db.execute(stmt)
-        return result.scalars().first()
+        file = result.scalars().first()
+        if not file:
+            raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
+                                detail=f'The GeoJSON file {fileid} could not be found.')
+        return
 
     @staticmethod
     @GeoJSONRouter.get("/geojson/", response_model=list[GeoJSONMarshModel])
     async def getall(db=Depends(get_async_db)):
+        """
+        Lookup for all GeoJSON file's metadata.
 
+        :param db:      Injected FastAPI asynchronous database dependency
+        :type db:       Any
+        :return:        List of all files.
+        :rtype:         tuple  The response model should convert to JSON-serialisable form.
+        """
         result = await db.execute(select(GeoJSONDataModel))
         return result.scalars().all()
 
     @staticmethod
     @GeoJSONRouter.post(url, response_model=GeoJSONMarshModel, status_code=ReturnCodes.RECORD_CREATED.value)
-    async def post(fileid: str, data: GeoJSONPostParse, db = Depends(get_async_db)):
+    async def post(fileid: str, data: GeoJSONPostParse, db=Depends(get_async_db)):
         """
          Initial creation of a metadata entry for a GeoJSON file being uploaded.  Only the 'size' parameter is
          required at creation time; the server automatically sets the 'uploadtime' element to the current time
@@ -120,9 +133,13 @@ class GeoJSONData:
 
          :param fileid:  Filename to look up (typically a UUID)
          :type fileid:   str
+         :param data:    Dictionary containing the expected json body for a post request.
+         :type data:     GeoJSONPostParse
+         :param db:      Injected FastAPI asynchronous database dependency
+         :type db:       Any
          :return:        The initial state of the metadata for the file and RECORD_CREATED, or RECORD_CONFLICT if
                          the record already exists.
-         :rtype:         tuple   The marchalling decorator should convert to JSON-serliasable form.
+         :rtype:         tuple   The response model should convert to JSON-serliasable form.
          """
 
         result = await db.execute(select(GeoJSONDataModel).where(GeoJSONDataModel.fileid == fileid))
@@ -151,9 +168,13 @@ class GeoJSONData:
 
          :param fileid:  Filename to look up (typically a UUID)
          :type fileid:   str
-         :return:        The updated state of the metadata for the file and RECORD_CREATED, or NOT_FOUND if the
+         :param data:    Dictionary containing the expected json body for a put request.
+         :type data:     GeoJSONPutParse
+         :param db:      Injected FastAPI asynchronous database dependency
+         :type db:       Any
+         :return:        The updated state of the metadata for the file and RECORD_CREATED, or FILE_NOT_FOUND if the
                          record doesn't exist.
-         :rtype:         tuple   The marshalling decorator should convert to JSON-serliasable form.
+         :rtype:         tuple   The response model should convert to JSON-serliasable form.
          """
 
         result = await db.execute(select(GeoJSONDataModel).where(GeoJSONDataModel.fileid == fileid))
@@ -181,14 +202,16 @@ class GeoJSONData:
 
     @staticmethod
     @GeoJSONRouter.delete(url, status_code=ReturnCodes.RECORD_DELETED.value)
-    async def delete(fileid: str, db = Depends(get_async_db)):
+    async def delete(fileid: str, db=Depends(get_async_db)):
         """
          Remove a metadata record from the database for a single file.
 
          :param fileid:  Filename to look up (typically a UUID)
          :type fileid:   str
-         :return:        RECORD_DELETED or NOT_FOUHD if the record doesn't exist.
-         :rtype:         int   The marshalling decorator should convert to JSON-serliasable form.
+         :param db:      Injected FastAPI asynchronous database dependency
+         :type db:       Any
+         :return:        RECORD_DELETED or FILE_NOT_FOUND if the record doesn't exist.
+         :rtype:         int   The response model should convert to JSON-serliasable form.
 
          """
         if fileid == "all":

@@ -27,17 +27,27 @@
 # OR OTHER DEALINGS IN THE SOFTWARE.
 from src.wibl_manager import ReturnCodes
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+from .database import get_async_db
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 HeartbeatRouter = APIRouter()
 
 @HeartbeatRouter.get("/heartbeat")
-def getHeartbeat():
+async def getHeartbeat(db=Depends(get_async_db)):
     """
-    A simple check on whether the service is still running.  This returns a status code
+    A simple check on whether the service and database is still running.  This returns a status code
     for the service, but no other information.
 
-    TODO: The heartbeat should import the DB and make sure it functions.
     """
-    return ReturnCodes.OK.value
+    try:
+        result = await db.execute(select(1))
+        if not result:
+            raise HTTPException(status_code=500, detail="Failed database connection")
+        else:
+            return ReturnCodes.OK.value
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail="Failed database connection")
 

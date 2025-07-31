@@ -19,6 +19,7 @@ s3_client = boto3.client('s3',
 DownloadRouter = APIRouter()
 
 class Download:
+    # Ensure the existence of a file before attempting download
     @staticmethod
     @DownloadRouter.get("/{extension}/check/{fileid}")
     def check_file(extension, fileid):
@@ -46,11 +47,19 @@ class Download:
             raise HTTPException(status_code=ReturnCodes.FAILED.value,
                                 detail=f"AWS Error")
 
-
     @staticmethod
-    @DownloadRouter.get("/wibl/download/{fileid}")
-    def wibl_download(fileid):
-        s3_file = s3_client.get_object(Bucket=S3_WIBL_BUCKET_NAME, Key=fileid)
+    @DownloadRouter.get("/{extension}/download/{fileid}")
+    def file_download(extension, fileid):
+        if extension == "geojson":
+            bucket = S3_GEOJSON_BUCKET_NAME
+        elif extension == "wibl":
+            bucket = S3_WIBL_BUCKET_NAME
+        else:
+            print(f"Invalid extension {extension}")
+            raise HTTPException(status_code=ReturnCodes.FAILED.value,
+                                detail=f"Invalid extension {extension}")
+
+        s3_file = s3_client.get_object(Bucket=bucket, Key=fileid)
 
         # Define iterable to be returned
         def create_stream():
@@ -60,21 +69,8 @@ class Download:
         return StreamingResponse(create_stream(), headers={'Content-Disposition': f'attachment; filename="{fileid}"'})
 
     @staticmethod
-    @DownloadRouter.get("/geojson/download/{fileid}")
-    def geojson_download(fileid):
-
-        s3_file = s3_client.get_object(Bucket=S3_GEOJSON_BUCKET_NAME, Key=fileid)
-
-        # Define iterable to be returned
-        def create_stream():
-            for chunk in s3_file['Body'].iter_chunks(1024):
-                yield chunk
-
-        return StreamingResponse(create_stream(), headers={'Content-Disposition': f'attachment; filename="{fileid}"'})
-
-    @staticmethod
-    @DownloadRouter.get("/geojson/save/{fileid}")
-    def geojson_save(fileid):
+    @DownloadRouter.get("/geojson/raw/{fileid}")
+    def geojson_raw(fileid):
         try:
             s3_file = s3_client.get_object(Bucket=S3_GEOJSON_BUCKET_NAME, Key=fileid)
             file_content = s3_file['Body'].read().decode('utf-8')

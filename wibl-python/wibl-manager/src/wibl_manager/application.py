@@ -46,9 +46,8 @@ app.include_router(HeartbeatRouter)
 # /geojson/{fileid}
 app.include_router(GeoJSONRouter)
 
-# /wibl/download/{fileid}
-# /geojson/download/{fileid}
-# /geojson/save/{fileid}
+# /{extension}/download/{fileid}
+# /geojson/raw/{fileid}
 app.include_router(DownloadRouter)
 
 # /statistics

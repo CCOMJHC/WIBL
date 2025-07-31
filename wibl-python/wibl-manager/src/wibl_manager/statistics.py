@@ -18,6 +18,12 @@ StatsRouter = APIRouter()
 
 @StatsRouter.get("/statistics")
 async def getStats(db=Depends(get_async_db)):
+    """
+        End-point for obtaining up-to-date information about the WIBL cloud pipeline directly from the database. Each
+        SQLAlchemy statement is defined, then executed against the database. These results are returned to the caller in
+        the for of a json serializable object.
+    """
+
     WIBLTotalStmt = (
         select(func.count())
         .select_from(WIBLDataModel)

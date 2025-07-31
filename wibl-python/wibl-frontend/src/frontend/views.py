@@ -37,9 +37,9 @@ async def downloadFile(request, fileid):
         return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
-async def saveGeojsonFile(request, fileid):
+async def rawGeojsonFile(request, fileid):
     manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
-    full_url = f"{manager_url}/geojson/save/{fileid}"
+    full_url = f"{manager_url}/geojson/raw/{fileid}"
 
     client = httpx.AsyncClient()
     response = await client.get(full_url)
