@@ -8,7 +8,7 @@ from random import randrange
 import argparse
 import logging
 
-__version__ = '1.1.2'
+__version__ = '1.2.0.dev1'
 
 
 LOGGER_NAME: str = 'wibl-python'
