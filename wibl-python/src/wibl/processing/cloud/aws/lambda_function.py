@@ -72,6 +72,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
     """
 
     verbose: bool = config['verbose']
+    strict_mode: bool = config['strict_mode']
 
     meta: WIBLMetadata = WIBLMetadata()
     lineage: Lineage = Lineage()
@@ -89,8 +90,10 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
     try:
         if verbose:
             print(f'Attempting file read/time interpolation on {local_file} ...')
-        source_data = ts.time_interpolation(local_file, lineage,
-                                            config['elapsed_time_quantum'], verbose = config['verbose'], fault_limit = config['fault_limit'])
+        source_data = ts.time_interpolation(local_file, lineage, config['elapsed_time_quantum'],
+                                            verbose=verbose,
+                                            fault_limit=config['fault_limit'],
+                                            strict_mode=strict_mode)
         meta.logger = source_data['loggername']
         meta.platform = source_data['platform']
         meta.observations = len(source_data['depth']['z'])

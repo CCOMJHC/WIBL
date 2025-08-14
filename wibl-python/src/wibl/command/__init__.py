@@ -23,20 +23,39 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
-import os
-import sys
-import argparse
+import click
+
+from wibl import __version__ as version
+from wibl.command.datasim import datasim
+from wibl.command.dcdb_upload import dcdb_upload
+from wibl.command.edit_wibl_file import editwibl
+from wibl.command.parse_wibl_file import parsewibl
+from wibl.command.validate import geojson_validate
+from wibl.command.upload_wibl_file import uploadwibl
+from wibl.command.wibl_proc import wibl_proc
 
 
-def get_subcommand_prog() -> str:
-    return f"{os.path.basename(sys.argv[0])} {sys.argv[1]}"
+@click.version_option(version=version)
+@click.group()
+def cli():
+    """Python tools for WIBL low-cost data logger system."""
+    pass
 
+cli.add_command(datasim)
+cli.add_command(dcdb_upload)
+cli.add_command(editwibl)
+cli.add_command(parsewibl)
+cli.add_command(geojson_validate)
+cli.add_command(uploadwibl)
+cli.add_command(wibl_proc)
 
-def type_probability_float(arg) -> float:
-    try:
-        p = float(arg)
-    except ValueError:
-        raise argparse.ArgumentTypeError(f"Error converting {arg} to float.")
-    if p < 0.0 or p > 1.0:
-        raise argparse.ArgumentTypeError(f"Error: {arg} must be between 0.0 and 1.0.")
-    return p
+# To Run a command in a debugger in your IDE, invoke as follows:
+# if __name__ == '__main__':
+#     from click.testing import CliRunner
+#     runner = CliRunner(catch_exceptions=False)
+#     result = runner.invoke(cli,
+#                            ['editwibl',
+#                                  '-m', 'examples/ship-metadata-simple.json',
+#                                  'path/to/wibl/file/foo.wibl',
+#                                  'path/to/wibl/file/foo-edited.wibl'])
+#     print(result.output)
