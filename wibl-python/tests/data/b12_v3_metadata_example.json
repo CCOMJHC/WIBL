@@ -2,7 +2,7 @@
   "properties": {
     "trustedNode": {
       "providerOrganizationName": "UNHJHC",
-      "providerEmail": "bmiles@ccom.unh.edu",
+      "providerEmail": "wibl@ccom.unh.edu",
       "uniqueVesselID": "UNHJHC-e8c469f8-df38-11e5-b86d-9a79f06e9478",
       "convention": "GeoJSON CSB 3.1",
       "dataLicense": "CC0 1.0",
