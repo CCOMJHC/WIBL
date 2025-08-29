@@ -25,12 +25,14 @@
 
 #include <functional>
 #include <queue>
+#include <vector>
 
 #include <WiFi.h>
 #include <WiFiAP.h>
 #include <ESPmDNS.h>
 #include <WebServer.h>
 #include <LittleFS.h>
+#include <ESP32-targz.h>
 
 #include "LogManager.h"
 #include "WiFiAdapter.h"
@@ -39,6 +41,33 @@
 #include "serial_number.h"
 
 #if defined(ARDUINO_ARCH_ESP32) || defined(ESP32)
+
+class ExtendedWebServer : public WebServer {
+public:
+    ExtendedWebServer(int port = 80)
+    : WebServer(port)
+    {}
+    ~ExtendedWebServer() {}
+
+    size_t StreamArchive(fs::FS *source, const char *path)
+    {
+        // First parse the path to get the list of files that need to be packaged and sent, so
+        // that we know if there is actually anything to send.
+        TAR::dir_entities_t dirEntries;
+        TAR::collectDirEntities(&dirEntries, source, path);
+        if (dirEntries.size() == 0) {
+            return 0;
+        }
+
+        // OK, so there's something to send, so we can build the headers then stream
+        String headers;
+        _prepareHeader(headers, 200, "application/tar+gzip", CONTENT_LENGTH_UNKNOWN);
+        _currentClient.write(headers.c_str(), headers.length());
+
+       size_t compressed_size = TarGzPacker::compress(source, dirEntries, &_currentClient);
+       return compressed_size;
+    }
+};
 
 class ConnectionStateMachine {
 public:
@@ -319,7 +348,7 @@ public:
     
 private:
     mem::MemController  *m_storage;     ///< Pointer to the storage object to use
-    WebServer           *m_server;      ///< Pointer to the server object, if started.
+    ExtendedWebServer   *m_server;      ///< Pointer to the server object, if started.
     std::queue<String>  m_commands;     ///< Queue to handle commands sent by the user
     DynamicJsonDocument *m_messages;    ///< Accumulating message content to be send to the client
     HTTPReturnCodes     m_statusCode;   ///< Status code to return to the user with the transaction response
@@ -353,6 +382,18 @@ private:
     {
         m_commands.push("status");
     }
+    
+    void transferLogs(void)
+    {
+        size_t bytes_sent = m_server->StreamArchive(m_storage->ControllerPtr(), "/logs");
+        if (bytes_sent == 0) {
+            m_server->send(400, "application/json", "{\"error\":\"no logs found; this shouldn't happen since there should always be one on the go!\"}");
+        } else {
+            if (m_state.Verbose()) {
+                Serial.printf("DBG: transferred %d bytes of log data.\n", bytes_sent);
+            }
+        }
+    }
 
     /// Bring up the WiFi adapter, which in this case includes bring up the soft access point.  This
     /// uses the ParamStore to get the information required for the soft-AP, and then interrogates the
@@ -364,13 +405,14 @@ private:
     
     bool start(void)
     {
-        if ((m_server = new WebServer()) == nullptr) {
+        if ((m_server = new ExtendedWebServer()) == nullptr) {
             Serial.println("ERR: failed to start web server.");
             return false;
         } else {
             // Configure the endpoints served by the server
             m_server->on("/heartbeat", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::heartbeat, this));
             m_server->on("/command", HTTPMethod::HTTP_POST, std::bind(&ESP32WiFiAdapter::handleCommand, this));
+            m_server->on("/archive", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::transferLogs, this));
             m_server->serveStatic("/logs", m_storage->Controller(), "/logs/");
             m_server->serveStatic("/", LittleFS, "/website/"); // Note trailing '/' since this is a directory being served.
         }
@@ -380,8 +422,7 @@ private:
         return true;
     }
     
-    /// Stop the WiFi adapter cleanly, and return to BLE only for access to the system.  This attempts to
-    /// disconnect any current client cleanly, to avoid broken pipes.
+    /// Stop the WiFi adapter cleanly.  This attempts to disconnect any current client cleanly, to avoid broken pipes.
     
     void stop(void)
     {
