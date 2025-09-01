@@ -68,13 +68,9 @@ class GeoJSONMarshModel(BaseModel):
     status: int
     messages: str
 
-
-
-
 url = "/geojson/{fileid}"
 GeoJSONRouter = APIRouter()
 
-#TODO: Update the doc strings
 class GeoJSONData:
     """
      A RESTful endpoint for manipulating metadata on GeoJSON files in a local database.  The design here
@@ -107,11 +103,11 @@ class GeoJSONData:
         if not file:
             raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
                                 detail=f'The GeoJSON file {fileid} could not be found.')
-        return
+        return file
 
     @staticmethod
     @GeoJSONRouter.get("/geojson/", response_model=list[GeoJSONMarshModel])
-    async def getall(db=Depends(get_async_db)):
+    async def getAll(db=Depends(get_async_db)):
         """
         Lookup for all GeoJSON file's metadata.
 

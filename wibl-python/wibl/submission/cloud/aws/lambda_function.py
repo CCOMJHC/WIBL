@@ -103,7 +103,8 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
     meta.logger = source_info["logger"]
     meta.soundings = source_info["soundings"]
 
-    clearedStatus = meta.status & 0x1C7
+    emptyUploadFlag = 0x1C7
+    clearedStatus = meta.status & emptyUploadFlag
     meta.status = clearedStatus | UploadStatus.UPLOAD_STARTED.value
     
     if config['verbose']:

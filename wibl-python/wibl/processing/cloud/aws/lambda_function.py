@@ -99,14 +99,14 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         meta.endtime = datetime.fromtimestamp(source_data['depth']['t'][-1]).isoformat()
 
         # Get the max and min coordinates to create a bounding box
-        max_lat = -2000.0
-        min_lat = 2000.0
+        max_lat = -9999.0
+        min_lat = 9999.0
 
-        max_lon = -2000.0
-        min_lon = 2000.0
-        i = 0
+        max_lon = -9999.0
+        min_lon = 9999.0
+
         size = len(source_data['depth']['z'])
-        while i < size:
+        for i in range(size):
             temp_lat = source_data['depth']['lat'][i]
             temp_lon = source_data['depth']['lon'][i]
 
@@ -119,7 +119,6 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
                 min_lon = temp_lon
             if temp_lon > max_lon:
                 max_lon = temp_lon
-            i += 1
 
         meta.max_lat = max_lat
         meta.min_lat = min_lat

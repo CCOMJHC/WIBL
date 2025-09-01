@@ -5,7 +5,7 @@ import uuid
 
 import requests
 
-from src.wibl_manager import ReturnCodes, ProcessingStatus, UploadStatus
+from wibl_manager import ReturnCodes, ProcessingStatus, UploadStatus
 
 logger = logging.getLogger(__name__)
 

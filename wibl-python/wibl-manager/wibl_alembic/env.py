@@ -70,7 +70,6 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    print(get_db_url())
     connectable = create_engine(get_db_url())
 
     with connectable.connect() as connection:

@@ -72,10 +72,10 @@ class WIBLMetadata(FileMetadata):
     size: float = -1.0
     observations: int = -1
     soundings: int = -1
-    max_lat: float = -1.0
-    min_lat: float = -1.0
-    max_lon: float = -1.0
-    min_lon: float = -1.0
+    max_lat: float = -9999.0
+    min_lat: float = 9999.0
+    max_lon: float = -9999.0
+    min_lon: float = 9999.0
     starttime: str = 'Unknown'
     endtime: str = 'Unknown'
     status: int = WIBLStatus.PROCESSING_STARTED.value

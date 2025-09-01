@@ -11,7 +11,7 @@ MANAGER_DATABASE_URI = os.environ.get('MANAGER_DATABASE_URI',
 engine = create_async_engine(MANAGER_DATABASE_URI, plugins=['geoalchemy2'])
 SessionLocal = async_sessionmaker(expire_on_commit=False, class_=AsyncSession, bind=engine)
 
-# This function is called by Alembic when sosos
+# This function is called by Alembic's env.py when running online migrations
 def get_db_url():
     return f"postgresql+psycopg://{os.environ['DATABASE_USER']}:{os.environ['DATABASE_PASSWORD']}@" \
                f"{os.environ['DATABASE_HOST']}:{os.environ['DATABASE_PORT']}/" \

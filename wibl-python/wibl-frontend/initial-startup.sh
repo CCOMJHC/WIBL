@@ -6,5 +6,5 @@ until [ "$(docker inspect -f '{{.State.Health.Status}}' frontend)" == "healthy" 
   sleep 1
 done
 
-docker compose run frontend python manager.py makemigrations && docker compose run frontend python manager.py migrate
+docker compose run frontend python manage.py makemigrations && docker compose run frontend python manage.py migrate
 

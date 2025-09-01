@@ -26,8 +26,9 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
+import os
 
-
-S3_WIBL_BUCKET_NAME = "wibl-test"
-S3_GEOJSON_BUCKET_NAME = "geojson-test"
-
+S3_WIBL_BUCKET_NAME = os.environ.get('S3_WIBL_BUCKET_NAME',
+                                     "Wibl-Metadata-Bucket")
+S3_GEOJSON_BUCKET_NAME = os.environ.get('S3_GEOJSON_BUCKET_NAME',
+                                        "GeoJSON-Metadata-Bucket")
