@@ -31,6 +31,7 @@
 #include <WiFiAP.h>
 #include <ESPmDNS.h>
 #include <WebServer.h>
+#include <WifiClient.h>
 #include <LittleFS.h>
 #include <ESP32-targz.h>
 
@@ -41,6 +42,35 @@
 #include "serial_number.h"
 
 #if defined(ARDUINO_ARCH_ESP32) || defined(ESP32)
+
+class ChunkedStream : public Stream {
+public:
+    ChunkedStream(WebServer *output) {
+        m_output = output;
+    }
+    ~ChunkedStream() {}
+
+    int available() override {
+        return m_output->client().available();
+    }
+
+    int read() override {
+        return m_output->client().read();
+    }
+    int peek() override {
+        return m_output->client().peek();
+    }
+    size_t write(uint8_t b) override {
+        return m_output->client().write(b);
+    }
+    size_t write(const uint8_t *buf, size_t size) override {
+        m_output->sendContent((const char *)buf, size);
+        return size;
+    }
+
+private:
+    WebServer *m_output;
+};
 
 class ExtendedWebServer : public WebServer {
 public:
@@ -58,14 +88,26 @@ public:
         if (dirEntries.size() == 0) {
             return 0;
         }
+        // Due to an oddness in the WebServer library, it ignores the content length set in the
+        // _prepareHeader() method unless the length has never been set (_contentLength ==
+        // CONTENT_LENGTH_NOT_SET), so we have to set the length to CONTENT_LENGTH_UNKNOWN
+        // here to make sure it does into chunked mode...
+        setContentLength(CONTENT_LENGTH_UNKNOWN);
 
         // OK, so there's something to send, so we can build the headers then stream
         String headers;
         _prepareHeader(headers, 200, "application/tar+gzip", CONTENT_LENGTH_UNKNOWN);
+        Serial.printf("DBG: after headers, chunked status is %d\n", _chunked);
         _currentClient.write(headers.c_str(), headers.length());
 
-       size_t compressed_size = TarGzPacker::compress(source, dirEntries, &_currentClient);
-       return compressed_size;
+        // We can now stream the tar/gzipped data to the client, but we can't just direct the
+        // information to the client connection, since we need to use the chunking mechanism
+        // to make sure that the formatting is correct.  The ChunkedStream here provides an
+        // over-ride for the write() method in the Stream class that calls the server's
+        // sendContent() method to do this.
+        ChunkedStream op(this);
+        size_t compressed_size = TarGzPacker::compress(source, dirEntries, &op);
+        return compressed_size;
     }
 };
 
