@@ -53,6 +53,7 @@ public:
     void Stop(void) { stop_interface(); }
     /// \brief Call-through for the file system abstract used by the memory controller
     fs::FS& Controller(void) { return get_interface(); }
+    fs::FS *ControllerPtr(void) { return get_ptr_interface(); }
 
 private:
     /// \brief Implement the code to start the memory interface
@@ -61,6 +62,8 @@ private:
     virtual void stop_interface(void) = 0;
     /// \brief Return a reference for the file system abstraction implemented by the memory sub-system
     virtual fs::FS& get_interface(void) = 0;
+    /// \brief Return a pointer for the file system abstraction implemented by the memory sub-system
+    virtual fs::FS *get_ptr_interface(void) = 0;
 };
 
 /// \class MemControllerFactory
