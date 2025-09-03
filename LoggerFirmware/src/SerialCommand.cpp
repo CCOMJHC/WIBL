@@ -1369,6 +1369,20 @@ void SerialCommand::SnapshotResource(String const& resource, CommandSource src)
         url = "catalog.jsn";
         serializeJson(files, contents);
         rc = m_logManager->WriteSnapshot(url, contents);
+    } else if (resource == "archive") {
+        String contents;
+        DynamicJsonDocument json(logger::ConfigJSON::ExtractConfig());
+        serializeJson(json, contents);
+        m_logManager->WriteSnapshot("config.jsn", contents);
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_DEFAULTS_S, contents);
+        if (contents.isEmpty())
+            contents = String("{}");
+        m_logManager->WriteSnapshot("defaults.jsn", contents);
+        json = DynamicJsonDocument(logger::status::GenerateFilelist(m_logManager));
+        serializeJson(json, contents);
+        m_logManager->WriteSnapshot("catalog.jsn", contents);
+        url = "archive";
+        rc = true;
     } else {
         EmitMessage("ERR: unknown snapshot resource requested.\n", src);
     }

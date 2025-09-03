@@ -657,6 +657,12 @@ bool Manager::WriteSnapshot(String& name, String const& contents)
     return false;
 }
 
+bool Manager::WriteSnapshot(const char *name, String const& contents)
+{
+    String n(name);
+    return WriteSnapshot(n, contents);
+}
+
 /// Reset all indicators used to ensure that any dynamic algorithms are only emitted once
 /// into the output data stream.
 ///

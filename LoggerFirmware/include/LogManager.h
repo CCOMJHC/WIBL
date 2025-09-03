@@ -140,6 +140,7 @@ public:
     void EmitNoDataReject(void);
 
     bool WriteSnapshot(String& name, String const& contents);
+    bool WriteSnapshot(const char *name, String const& contents);
 
 private:
     /// \class Inventory
