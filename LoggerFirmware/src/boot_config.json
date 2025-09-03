@@ -1,6 +1,6 @@
 {
     "version": {
-        "commandproc":  "1.4.0"
+        "commandproc":  "1.4.1"
     },
     "enable": {
         "nmea0183":     true,

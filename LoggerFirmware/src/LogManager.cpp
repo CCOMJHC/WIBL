@@ -641,26 +641,20 @@ void Manager::AddInventory(bool verbose)
     m_inventory = new Inventory(this, verbose);
 }
 
-bool Manager::WriteSnapshot(String& name, String const& contents)
+bool Manager::WriteSnapshot(const char *name, String const& contents, String& url)
 {
     // Since the /logs directory is served out as the second static website, we need to
     // put the snapshots into the same directory so they can be seen.  This causes some
     // complexity in running through the directory (e.g., when making an Inventory from
     // scratch), but avoids other issues.
-    name = String("/logs/") + name;
-    File f = m_storage->Controller().open(name, FILE_WRITE);
+    url = String("/logs/") + name;
+    File f = m_storage->Controller().open(url, FILE_WRITE);
     if (f) {
         f.print(contents);
         f.close();
         return true;
     }
     return false;
-}
-
-bool Manager::WriteSnapshot(const char *name, String const& contents)
-{
-    String n(name);
-    return WriteSnapshot(n, contents);
 }
 
 /// Reset all indicators used to ensure that any dynamic algorithms are only emitted once

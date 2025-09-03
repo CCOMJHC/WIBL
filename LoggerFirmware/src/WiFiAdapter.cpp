@@ -95,9 +95,20 @@ public:
         setContentLength(CONTENT_LENGTH_UNKNOWN);
 
         // OK, so there's something to send, so we can build the headers then stream
-        String headers;
+        String headers, module_id;
+        if (logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_MODULEID_S, module_id)) {
+            if (module_id.startsWith("TNODEID")) {
+                // This is the default configuration, if the user hasn't configured the module yet, but
+                // we don't want to pass it back as the filename, so ...
+                module_id = String("wibl-logs.tgz");
+            } else {
+                module_id += ".tgz";
+            }
+        } else {
+            module_id = String("wibl-logs.tgz");
+        }
+        sendHeader("Content-Disposition", String("attachment; filename=\"") + module_id + "\"");
         _prepareHeader(headers, 200, "application/tar+gzip", CONTENT_LENGTH_UNKNOWN);
-        Serial.printf("DBG: after headers, chunked status is %d\n", _chunked);
         _currentClient.write(headers.c_str(), headers.length());
 
         // We can now stream the tar/gzipped data to the client, but we can't just direct the
