@@ -1512,7 +1512,8 @@ void SerialCommand::Syntax(CommandSource src)
     EmitMessage("  setup [json-specification]          Report the configuration of the logger, or set it, using JSON specifications.\n", src);
     EmitMessage("  shipname name                       Set the name of the host ship carrying the logger.\n", src);
     EmitMessage("  sizes                               Output list of the extant log files, and their sizes in bytes.\n", src);
-    EmitMessage("  snapshot catalog|config|defaults    Prepare a downloadable version of the specified resource in /logs\n", src);
+    EmitMessage("  snapshot catalog|config|defaults|archive\n", src);
+    EmitMessage("                                      Prepare a downloadable version of the specified resource in /logs\n", src);
     EmitMessage("  speed 1|2 baud-rate                 Set the baud rate for the RS-422 input channels.\n", src);
     EmitMessage("  ssid ap|station [wifi-ssid]         Set the WiFi SSID.\n", src);
     EmitMessage("  status                              Generate JSON-format status message for current dynamic configuration\n", src);
