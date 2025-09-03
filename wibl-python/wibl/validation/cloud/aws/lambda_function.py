@@ -38,7 +38,7 @@ from wibl.core import getenv
 import wibl.core.config as conf
 from wibl.validation.cloud.aws import get_config_file
 
-def validate_metadata(local_file: str, config: Dict[str,Any]) -> bool:
+def validate_metadata(local_file: str, config: Dict[str, Any]) -> bool:
     verbose = config['verbose']
 
     # Although we need to check the GeoJSON file for metadata, we need to update the status of the
@@ -60,7 +60,7 @@ def validate_metadata(local_file: str, config: Dict[str,Any]) -> bool:
         print(f'info: Validating metadata in {source_file_name} for schema version {DEFAULT_VALIDATOR_VERSION}.')
     
     rc, validate_info = validate_data(local_file)
-    clearedStatus = meta.status & 0x1F8
+    clearedStatus = meta.status & GeoJSONStatus.EMPTY_VALIDATION.value
     if rc:
         newStatus = clearedStatus | GeoJSONStatus.VALIDATION_SUCCESSFUL.value
     else:

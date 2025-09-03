@@ -40,7 +40,7 @@ import wibl.core.config as conf
 import wibl.core.datasource as ds
 import wibl.core.notification as nt
 from wibl.submission.cloud.aws import get_config_file
-from wibl_manager import ManagerInterface, MetadataType, GeoJSONMetadata, ReturnCodes, UploadStatus
+from wibl_manager import ManagerInterface, MetadataType, GeoJSONMetadata, ReturnCodes, GeoJSONStatus
 
 s3 = boto3.resource('s3')
 
@@ -103,9 +103,8 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
     meta.logger = source_info["logger"]
     meta.soundings = source_info["soundings"]
 
-    emptyUploadFlag = 0x1C7
-    clearedStatus = meta.status & emptyUploadFlag
-    meta.status = clearedStatus | UploadStatus.UPLOAD_STARTED.value
+    clearedStatus = meta.status & GeoJSONStatus.EMPTY_UPLOAD.value
+    meta.status = clearedStatus | GeoJSONStatus.UPLOAD_STARTED.value
     
     if config['verbose']:
         print(f'Source ID is: {source_info["sourceID"]}; ' + 
@@ -121,7 +120,7 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
 
     if config['local']:
         print(f'Local mode: Transmitting to {upload_point} for source ID {source_info["sourceID"]} with destination ID {dest_uniqueID}.')
-        meta.status = UploadStatus.UPLOAD_SUCCESSFUL.value
+        meta.status = GeoJSONStatus.UPLOAD_SUCCESSFUL.value
         rc = True
     else:
         if config['verbose']:
@@ -137,15 +136,15 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
             json_code = json_response['success']
             if json_code:
                 rc = True
-                meta.status = clearedStatus | UploadStatus.UPLOAD_SUCCESSFUL.value
+                meta.status = clearedStatus | GeoJSONStatus.UPLOAD_SUCCESSFUL.value
             else:
                 rc = False
-                meta.status = clearedStatus | UploadStatus.UPLOAD_FAILED.value
+                meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
                 manager.logmsg(f'error: DCDB responded {json_response}')
                 
         except json.decoder.JSONDecodeError:
             rc = False
-            meta.status = clearedStatus | UploadStatus.UPLOAD_FAILED.value
+            meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
             manager.logmsg(f'error: DCDB responded {json_response}')
 
     manager.update(meta)
