@@ -9,48 +9,55 @@ from wibl_manager import GeoJSONStatus
 
 logger = logging.getLogger(__name__)
 
+
 class TestWiblManager(unittest.TestCase):
 
     def tearDown(self) -> None:
         pass
 
     def test_aaa_applying_upload_status(self):
-        test_status = 0
-        upload_started_status = test_status | GeoJSONStatus.UPLOAD_STARTED.value
-        upload_successful_status = test_status | GeoJSONStatus.UPLOAD_SUCCESSFUL.value
-        upload_failed_status = test_status | GeoJSONStatus.UPLOAD_FAILED.value
+        empty_test_status = GeoJSONStatus.VALIDATION_STARTED.value & GeoJSONStatus.EMPTY_VALIDATION.value
+        upload_started_status = empty_test_status | GeoJSONStatus.UPLOAD_STARTED.value
+        upload_successful_status = empty_test_status | GeoJSONStatus.UPLOAD_SUCCESSFUL.value
+        upload_failed_status = empty_test_status | GeoJSONStatus.UPLOAD_FAILED.value
 
-        self.assertEqual(0b001000, upload_started_status)
-        self.assertEqual(0b010000, upload_successful_status)
-        self.assertEqual(0b100000, upload_failed_status)
+        self.assertEqual(GeoJSONStatus.UPLOAD_STARTED.value, upload_started_status)
+        self.assertEqual(GeoJSONStatus.UPLOAD_SUCCESSFUL.value, upload_successful_status)
+        self.assertEqual(GeoJSONStatus.UPLOAD_FAILED.value, upload_failed_status)
 
     def test_bbb_applying_validation_status(self):
-        test_status = 0
-        validation_started_status = test_status | GeoJSONStatus.VALIDATION_STARTED.value
-        validation_successful_status = test_status | GeoJSONStatus.VALIDATION_SUCCESSFUL.value
-        validation_failed_status = test_status | GeoJSONStatus.VALIDATION_FAILED.value
+        empty_test_status = GeoJSONStatus.VALIDATION_STARTED.value & GeoJSONStatus.EMPTY_VALIDATION.value
+        validation_started_status = empty_test_status | GeoJSONStatus.VALIDATION_STARTED.value
+        validation_successful_status = empty_test_status | GeoJSONStatus.VALIDATION_SUCCESSFUL.value
+        validation_failed_status = empty_test_status | GeoJSONStatus.VALIDATION_FAILED.value
 
-        self.assertEqual(0b000001, validation_started_status)
-        self.assertEqual(0b000010, validation_successful_status)
-        self.assertEqual(0b000100, validation_failed_status)
+        self.assertEqual(GeoJSONStatus.VALIDATION_STARTED.value, validation_started_status)
+        self.assertEqual(GeoJSONStatus.VALIDATION_SUCCESSFUL.value, validation_successful_status)
+        self.assertEqual(GeoJSONStatus.VALIDATION_FAILED.value, validation_failed_status)
 
     def test_ccc_independent_status_changes(self):
-        test_status = 0b100000
+        empty_test_status = GeoJSONStatus.UPLOAD_SUCCESSFUL.value
 
-        validation_change_status = test_status | GeoJSONStatus.VALIDATION_FAILED.value
+        validation_change_status = empty_test_status | GeoJSONStatus.VALIDATION_FAILED.value
 
-        self.assertEqual(0b100100, validation_change_status)
+        self.assertEqual(GeoJSONStatus.UPLOAD_SUCCESSFUL.value | GeoJSONStatus.VALIDATION_FAILED.value,
+                         validation_change_status)
 
     def test_ddd_clear_status(self):
-        test_status = 0b111111
+        upload_test_status = (GeoJSONStatus.UPLOAD_SUCCESSFUL.value | GeoJSONStatus.UPLOAD_STARTED.value |
+                              GeoJSONStatus.UPLOAD_FAILED.value | GeoJSONStatus.VALIDATION_SUCCESSFUL.value)
 
-        validation_cleared_status = test_status & GeoJSONStatus.EMPTY_VALIDATION.value
+        upload_cleared_status = upload_test_status & GeoJSONStatus.EMPTY_UPLOAD.value
 
-        self.assertEqual(0b111000, validation_cleared_status)
+        self.assertEqual(GeoJSONStatus.VALIDATION_SUCCESSFUL.value, upload_cleared_status)
 
-        upload_cleared_status = test_status & GeoJSONStatus.EMPTY_UPLOAD.value
+        validation_test_status = (GeoJSONStatus.VALIDATION_SUCCESSFUL.value | GeoJSONStatus.VALIDATION_STARTED.value |
+                                  GeoJSONStatus.VALIDATION_FAILED.value | GeoJSONStatus.UPLOAD_STARTED.value)
 
-        self.assertEqual(0b000111, upload_cleared_status)
+        validation_cleared_status = validation_test_status & GeoJSONStatus.EMPTY_VALIDATION.value
+
+        self.assertEqual(GeoJSONStatus.UPLOAD_STARTED.value, validation_cleared_status)
+
 
 if __name__ == '__main__':
     unittest.main(
