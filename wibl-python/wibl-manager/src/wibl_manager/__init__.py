@@ -34,7 +34,7 @@ from geoalchemy2 import Geometry
 import requests
 
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 class ReturnCodes(Enum):
     OK = 200
@@ -167,7 +167,8 @@ class ManagerInterface:
             null_rtn = GeoJSONMetadata()
         
         if not self.rest_url:
-            return False, null_rtn
+            # Allow lookup to appear to be successful when we are running in local mode
+            return True, null_rtn
         
         response = requests.get(self.rest_url)
         if response.status_code != ReturnCodes.OK.value:

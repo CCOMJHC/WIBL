@@ -1,5 +1,5 @@
-include wibl/defaults/processing/cloud/aws/configure.json
-include wibl/defaults/submission/cloud/aws/configure.json
-include wibl/defaults/validation/cloud/aws/configure.json
-include wibl/defaults/upload/cloud/aws/configure.json
-include wibl/defaults/visualization/cloud/aws/configure.json
+include src/wibl/defaults/processing/cloud/aws/configure.json
+include src/wibl/defaults/submission/cloud/aws/configure.json
+include src/wibl/defaults/validation/cloud/aws/configure.json
+include src/wibl/defaults/upload/cloud/aws/configure.json
+include src/wibl/defaults/visualization/cloud/aws/configure.json

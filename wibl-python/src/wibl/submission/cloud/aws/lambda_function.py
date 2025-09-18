@@ -141,11 +141,38 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
                 rc = False
                 meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
                 manager.logmsg(f'error: DCDB responded {json_response}')
-                
+
         except json.decoder.JSONDecodeError:
             rc = False
             meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
             manager.logmsg(f'error: DCDB responded {json_response}')
+    if config['verbose']:
+        print(f'Transmitting for source ID {source_info["sourceID"]} to {upload_point} as destination ID {dest_uniqueID}.')
+
+    response = requests.post(upload_point, headers=headers, files=files)
+
+    if config['verbose']:
+        print(f'Submission status for file {local_file} was {response.status_code}')
+        print(f'\tResponse text was: {response.text}')
+
+    json_response = response.json()
+
+    if config['verbose']:
+        print(f'POST response is {json_response}')
+    try:
+        json_code = json_response['success']
+        if json_code:
+            rc = True
+            meta.status = UploadStatus.UPLOAD_SUCCESSFUL.value
+        else:
+            rc = False
+            meta.status = UploadStatus.UPLOAD_FAILED.value
+            manager.logmsg(f'error: DCDB responded {json_response}')
+
+    except json.decoder.JSONDecodeError:
+        rc = False
+        meta.status = UploadStatus.UPLOAD_FAILED.value
+        manager.logmsg(f'error: DCDB responded {json_response}')
 
     manager.update(meta)
     return rc
