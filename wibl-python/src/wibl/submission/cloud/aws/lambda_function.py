@@ -40,7 +40,7 @@ import wibl.core.config as conf
 import wibl.core.datasource as ds
 import wibl.core.notification as nt
 from wibl.submission.cloud.aws import get_config_file
-from wibl_manager import ManagerInterface, MetadataType, GeoJSONMetadata, ReturnCodes, UploadStatus
+from wibl_manager import ManagerInterface, MetadataType, GeoJSONMetadata, ReturnCodes, GeoJSONStatus
 
 s3 = boto3.resource('s3')
 
@@ -102,7 +102,9 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
     meta.size = filesize
     meta.logger = source_info["logger"]
     meta.soundings = source_info["soundings"]
-    meta.status = UploadStatus.UPLOAD_STARTED.value
+
+    clearedStatus = meta.status & GeoJSONStatus.EMPTY_UPLOAD.value
+    meta.status = clearedStatus | GeoJSONStatus.UPLOAD_STARTED.value
     
     if config['verbose']:
         print(f'Source ID is: {source_info["sourceID"]}; ' + 
@@ -116,6 +118,34 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
 
     upload_point = getenv('UPLOAD_POINT')
 
+    if config['local']:
+        print(f'Local mode: Transmitting to {upload_point} for source ID {source_info["sourceID"]} with destination ID {dest_uniqueID}.')
+        meta.status = GeoJSONStatus.UPLOAD_SUCCESSFUL.value
+        rc = True
+    else:
+        if config['verbose']:
+            print(f'Transmitting for source ID {source_info["sourceID"]} to {upload_point} as destination ID {dest_uniqueID}.')
+        response = requests.post(upload_point, headers=headers, files=files)
+        if config['verbose']:
+            print(f'Submission status for file {local_file} was {response.status_code}')
+            print(f'\tResponse text was: {response.text}')
+        json_response = response.json()
+        if config['verbose']:
+            print(f'POST response is {json_response}')
+        try:
+            json_code = json_response['success']
+            if json_code:
+                rc = True
+                meta.status = clearedStatus | GeoJSONStatus.UPLOAD_SUCCESSFUL.value
+            else:
+                rc = False
+                meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
+                manager.logmsg(f'error: DCDB responded {json_response}')
+
+        except json.decoder.JSONDecodeError:
+            rc = False
+            meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
+            manager.logmsg(f'error: DCDB responded {json_response}')
     if config['verbose']:
         print(f'Transmitting for source ID {source_info["sourceID"]} to {upload_point} as destination ID {dest_uniqueID}.')
 

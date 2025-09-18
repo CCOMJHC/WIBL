@@ -29,30 +29,27 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
+from fastapi import FastAPI
+from src.wibl_manager.wibl_data import WIBLDataRouter
+from src.wibl_manager.geojson_data import GeoJSONRouter
+from src.wibl_manager.heartbeat import HeartbeatRouter
+from src.wibl_manager.download import DownloadRouter
+from src.wibl_manager.statistics import StatsRouter
+app = FastAPI()
 
-from flask_restful import Api
-from typing import NoReturn
+# /wibl/{fileid}
+app.include_router(WIBLDataRouter)
 
-from wibl_manager.app_globals import app, db
-from wibl_manager.wibl_data import WIBLData
-from wibl_manager.geojson_data import GeoJSONData
-from wibl_manager.heartbeat import Heartbeat
-from wibl_manager.download import Download
+# /heartbeat
+app.include_router(HeartbeatRouter)
 
-with app.app_context():
-    db.create_all()
+# /geojson/{fileid}
+app.include_router(GeoJSONRouter)
 
+# /{extension}/download/{fileid}
+# /geojson/raw/{fileid}
+app.include_router(DownloadRouter)
 
-api = Api(app)
-api.add_resource(WIBLData, '/wibl/<string:fileid>')
-api.add_resource(Download, '/wibl/download/<string:fileid>')
-api.add_resource(GeoJSONData, '/geojson/<string:fileid>')
-api.add_resource(Heartbeat, '/heartbeat')
+# /statistics
+app.include_router(StatsRouter)
 
-
-def main() -> NoReturn:
-    app.run(debug=True)
-
-
-if __name__ == "__main__":
-    main()
