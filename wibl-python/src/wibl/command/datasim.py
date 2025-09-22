@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 @click.option('-d', '--duration',
               help='Duration (seconds) of the simulated data', type=int, required=True)
 @click.option('-s', '--emit-serial',
-              help='Write NMEA0183 simulated strings', is_flag=True, default=True)
+              help='Write NMEA0183 simulated strings', is_flag=True, default=False)
 @click.option('-b', '--emit-binary',
               help='Write NMEA2000 simulated data packets', is_flag=True, default=False)
 @click.option('--use-buffer-constructor',

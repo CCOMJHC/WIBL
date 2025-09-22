@@ -46,7 +46,7 @@ from wibl.core import getenv, Lineage
 import wibl.core.timestamping as ts
 import wibl.core.geojson_convert as gj
 from wibl.processing.cloud.aws import get_config_file
-from wibl_manager import ManagerInterface, MetadataType, WIBLMetadata, ProcessingStatus
+from wibl_manager import ManagerInterface, MetadataType, WIBLMetadata, WIBLStatus
 
 s3 = boto3.resource('s3')
 
@@ -77,7 +77,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
     meta: WIBLMetadata = WIBLMetadata()
     lineage: Lineage = Lineage()
     meta.size = item.source_size/(1024.0*1024.0)
-    meta.status = ProcessingStatus.PROCESSING_FAILED.value  # Until further notice ...
+    meta.status = WIBLStatus.PROCESSING_FAILED.value  # Until further notice ...
     manager: ManagerInterface = ManagerInterface(MetadataType.WIBL_METADATA, item.source_key, config['verbose'])
     if not manager.register(meta.size):
         print('error: failed to register file with REST management interface.')
@@ -172,7 +172,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         print('Attempting to send encoded data to S3 staging bucket ...')
     controller.transmit(item, source_id, meta.logger, meta.soundings, encoded_data)
 
-    meta.status = ProcessingStatus.PROCESSING_SUCCESSFUL.value
+    meta.status = WIBLStatus.PROCESSING_SUCCESSFUL.value
     if verbose:
         print('Attempting to update status via manager...')
     manager.update(meta)
