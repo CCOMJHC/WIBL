@@ -1,5 +1,21 @@
 # Release Notes: Logger Firmware
 
+## Firmware 1.6.0
+
+Firmware 1.6.0 addresses [issue 76](https://github.com/CCOMJHC/WIBL/issues/76) in the repository, dealing with bulk download of log files.  This is a much more practical solution than having to download files one by one if there isn't the opportunity to upload automatically.  The code uses a lightweight library to generate a GZip-ed TAR file from the log directory, and then streams it directly (without an intermediate file).  In the JavaScript for the logger's website, the "Download All Log Files" button (on the status page) triggers provides user-level access to this functionality.  Due to performance limitations and WiFi transfer speed, this may take some time...
+
+Details:
+
+* __Archive Endpoint__.  The firmware webserver now supports http://wibl.local/archive as an endpoint, which triggers the code to use the [ESP32-targz](https://github.com/tobozo/ESP32-targz) library to wrap up the contents of `/sdmmc/logs` and stream them through a tar/gz packer, marking them as "downloads" so that the browser automatically provides a "save as" dialogue box.  The suggested name is set to the logger's unique ID (+ ".tgz"), or `wibl-logs.tgz` if that's not set (or still set to the default value).  Since the total size of the download after compression isn't know to start with, the code uses "chunked" mode to allow small buffers of data to be transferred as the underlying library is ready.
+
+* __Command Processor__.  The code adds the `snapshot archive` command, which generates the standard catalogue, configuration, and defaults JSON files in `/sdmmc/logs` and then returns JSON with URL set to the archive endpoint so that this can be changed dynamically if required.  This ensures that the contents of the log directory are current before a download is started.  This moves the command processor version to 1.4.1 (which requires modifications to the default JSON configuration and the JavaScript for the website so that this matches the compiled-in version).
+
+* __JavaScript/Website__.  The HTML for the status page now includes a button to download all of the log files, with the associated JavaScript triggering the `snapshot archive` command (to update the contents of the log directory as above) before pointing the source of the download frame at the URL returned (i.e., the archive endpoint).  The streamed data is marked as "attachment", so any modern browser should automatically generate a "save as" box and allow the result to be saved to local store.
+
+* __Web Server__.  In order to allow the tar/gz library to stream data, the code needs access to the underlying client pointer and other protected methods, and therefore the code derives a sub-class that provides this access, and support code to allow streaming of data via the tar/gz library.  The output stream also requires access to the web server so that it can correctly format the chunks for HTTP/1.1; a `Stream` sub-class provides a faked `write()` method that redirects to the web server's `sendContent()` method so that the tar/gz library doesn't need any special modification to make this work.
+
+* __Partioning__.  Adding in the tar/gz library and compiling in the supporting code means that the firmware size increased slightly.  The partition file has therefore been updated to provide a little more space (0x170000 = 1,507,328 = 1.4375 MB) per image, reducing the file system space to 0x100000 = 1048576 = 1.00 MB.  Since the website and NVRAM configuration parameters are significantly smaller than this (approximately 130 kB), that's still plenty of space.
+
 ## Firmware 1.5.5
 
 Firmware 1.5.5 includes the following changes:

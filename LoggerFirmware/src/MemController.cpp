@@ -103,6 +103,12 @@ private:
     {
         return SD;
     }
+
+    /// \brief Return a pointer to the SPI interface being used.
+    fs::FS *get_ptr_interface(void)
+    {
+        return &SD;
+    }
 };
 
 /// \class MMCController
@@ -162,6 +168,12 @@ private:
     fs::FS& get_interface(void)
     {
         return SD_MMC;
+    }
+
+    /// \brief Return a pointer to the interface in use.
+    fs::FS *get_ptr_interface(void)
+    {
+        return &SD_MMC;
     }
 };
 
