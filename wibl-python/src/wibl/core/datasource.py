@@ -575,7 +575,7 @@ class LocalController(CloudController):
                 if 'platform' in data['properties'] and 'IDNumber' in data['properties']['platform']:
                     info['logger'] = data['properties']['platform']['IDNumber']
                 else:
-                    info['logger'] = 'wibl-logger'
+                    info['logger'] = 'TNODEID' # This needs to be reset by the user.
                 info['soundings'] = len(data['features'])
         return meta.localname, info
 

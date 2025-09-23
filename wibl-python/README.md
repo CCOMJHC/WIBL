@@ -48,26 +48,20 @@ conda activate wibl
 Once activated, you should be able to run `wibl` commands:
 ```
 (wibl-python) PS C:\> wibl --help
-usage: wibl <command> [<arguments>]
+Usage: wibl [OPTIONS] COMMAND [ARGS]...
 
-    Commands include:
-        datasim     Generate test data using Python-native data simulator.
-        editwibl    Edit WIBL logger files, e.g., add platform metadata.
-        uploadwibl  Upload WIBL logger files to an S3 bucket.
-        parsewibl   Read and report contents of a WIBL file.
-        dcdbupload  Upload a GeoJSON file to DCDB direct.
-        procwibl    Local processing from WIBL file to GeoJSON.
-        validate    Validate the metadata in a GeoJSON file.
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
 
-
-Python tools for WIBL low-cost data logger system
-
-positional arguments:
-  command     Subcommand to run
-
-options:
-  -h, --help  show this help message and exit
-  --version   print version and exit
+Commands:
+  datasim     Write simulated WIBL data to FILENAME.
+  dcdbupload  Upload GeoJSON files to DCDB for archival.
+  editwibl    Edit INPUT WIBL logger file, writing edited WIBL file to...
+  parsewibl   Parse binary WIBL logger file INPUT and report contents in...
+  procwibl    Process a WIBL file INPUT into GeoJSON file OUTPUT locally.
+  uploadwibl  Upload a WIBL file INPUT to an S3 bucket for processing.
+  validate    Validate GeoJSON metadata stored in INPUT.
 (wibl-python) PS C:\>
 ```
 
@@ -119,74 +113,101 @@ pytest -n 4 --cov=wibl --cov-branch --cov-report=xml --junitxml=test-results.xml
 ```
 
 To run integration tests exercising much of the functionality of the `wibl` command line tool 
-(except for file upload to S3 and submission DCDB):
+(except for file submission DCDB), first make sure you have the following installed:
+ - [Docker](https://www.docker.com)
+ - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+ - [jq](https://jqlang.org)
+
+Then run:
 ```
-bash ./tests/integration/test_wibl.bash
+./tests/integration/test_wibl.bash
 ```
 
 ## Usage
 Once you've activated the `wibl-env` Python virtual environment where you installed `wibl-python`, you can run the
 `wibl` command, which has several sub-commands that you can discover using the `--help` option:
 ```
-$ wibl --help
-usage: wibl <command> [<arguments>]
+$ wibl --help  
+Usage: wibl [OPTIONS] COMMAND [ARGS]...
 
-    Commands include:
-        datasim     Generate test data using Python-native data simulator.
-        editwibl    Edit WIBL logger files, e.g., add platform metadata.
-        uploadwibl  Upload WIBL logger files to an S3 bucket.
-        parsewibl   Read and report contents of a WIBL file.
-        dcdbupload  Upload a GeoJSON file to DCDB direct.
-        
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
 
-Python tools for WIBL low-cost data logger system
-
-positional arguments:
-  command     Subcommand to run
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --version   print version and exit
-
+Commands:
+  datasim     Write simulated WIBL data to FILENAME.
+  dcdbupload  Upload GeoJSON files to DCDB for archival.
+  editwibl    Edit INPUT WIBL logger file, writing edited WIBL file to...
+  parsewibl   Parse binary WIBL logger file INPUT and report contents in...
+  procwibl    Process a WIBL file INPUT into GeoJSON file OUTPUT locally.
+  uploadwibl  Upload a WIBL file INPUT to an S3 bucket for processing.
+  validate    Validate GeoJSON metadata stored in INPUT.
 ```
 
 ### Run WIBL data simulator
 Run data simulator to generate test data and store it in a binary WIBL file:
-```
+```shell
 $ wibl datasim -f test.bin -d 360 -s
 ```
 
 For more information on simulator, use the `-h` option:
-```
-$ wibl datasim -h
-usage: wibl datasim [-h] [-f FILENAME] [-d DURATION] [-s] [-b] [--use_buffer_constructor] [--duplicate_depth_prob DUPLICATE_DEPTH_PROB]
-                    [--no_data_prob NO_DATA_PROB] [-v]
+```shell
+$ wibl datasim --help
+Usage: wibl datasim [OPTIONS]
 
-Command line user interface for the NMEA data simulator.
+  Write simulated WIBL data to FILENAME. Provides a very simple interface to
+  the simulator for NMEA data so that files of a given size can be readily
+  generated for testing data loggers and transfer software.
 
-options:
-  -h, --help            show this help message and exit
-  -f, --filename FILENAME
-                        Simulated data output filename
-  -d, --duration DURATION
-                        Duration (seconds) of the simulated data
-  -s, --emit_serial     Write NMEA0183 simulated strings
-  -b, --emit_binary     Write NMEA2000 simulated data packets
-  --use_buffer_constructor
-                        Use buffer constructor, rather than data constructor, for data packets. If not specified, data constructor will
-                        be used.
-  --duplicate_depth_prob DUPLICATE_DEPTH_PROB
-                        Probability of generating duplicate depth values. Default: 0.0
-  --no_data_prob NO_DATA_PROB
-                        Probability of generating no-data values for system time, position, and depth packets. Default: 0.0
-  -v, --verbose         Produce verbose output.
+Options:
+  -f, --filename TEXT             Simulated data output filename  [required]
+  -d, --duration INTEGER          Duration (seconds) of the simulated data
+                                  [required]
+  -s, --emit-serial               Write NMEA0183 simulated strings
+  -b, --emit-binary               Write NMEA2000 simulated data packets
+  --use-buffer-constructor        Use buffer constructor, rather than data
+                                  constructor, for data packets. If not
+                                  specified, data constructor will be used.
+  --duplicate-depth-prob PROBABILITY
+                                  Probability of generating duplicate depth
+                                  values. Default: 0.0
+  --no-data-prob PROBABILITY      Probability of generating no-data values for
+                                  system time, position, and depth packets.
+                                  Default: 0.0
+  -v, --verbose                   Produce verbose output.
+  --help                          Show this message and exit.
 ```
 
 ### Edit WIBL file
 Add platform metadata to existing binary WIBL file (e.g., from data simulator or from a real datalogger):
+```shell
+Usage: wibl editwibl [OPTIONS] INPUT OUTPUT
+
+  Edit INPUT WIBL logger file, writing edited WIBL file to OUTPUT.
+
+Options:
+  -u, --uniqueid TEXT  Set the logger name, which should be a unique
+                       identifier
+  -s, --shipname TEXT  Set the ship name for the logger
+  -m, --meta PATH      Specify a JSON file for additional metadata elements
+  -a, --algo TEXT      Add a processing algorithm request (name;params, e.g.
+                       -a uncertainty;0.25,IHO_S44_6_Order1)
+  -v, --version TEXT   Specify the serialiser version for the output file
+                       (major: int, minor: int)
+  -f, --filter TEXT    Specify a NMEA0183 sentence filter name
+  --strict-mode        Strict mode: fail if any packet is not successfully
+                       translated
+  --help               Show this message and exit.
 ```
+
+for example:
+```shell
 $ wibl editwibl -m examples/ship-metadata-simple.json test.bin test-inject.bin
 ```
+
+> Note: if the `--strict-mode` option is set, failure to read a single data packet from the WIBL file will result in
+> processing the stop with an error. The default behavior is to print a warning message detailing each packet that
+> was not successfully decoded.
 
 #### Note on metadata format
 In versions of `wibl-python` previous to 1.1.0 (run `wibl --version` to find out what version you have), B-12 metadata 
@@ -273,71 +294,120 @@ $ python3 scripts/convert-md-openvbi.py my_metadata my_new_metadata
 
 ### Process WIBL file into GeoJSON
 Convert a binary WIBL file into GeoJSON:
+```shell
+$ wibl procwibl --help
+Usage: wibl procwibl [OPTIONS] INPUT OUTPUT
+
+  Process a WIBL file INPUT into GeoJSON file OUTPUT locally.
+
+Options:
+  -c, --config PATH  Specify configuration file for installation  [required]
+  --help             Show this message and exit.
 ```
+
+for example:
+```shell
 $ wibl procwibl -c tests/data/configure.local.json test-inject.bin test-inject.geojson
 ```
 
-> Note: It is necessary to supply a configuration JSON file with the `local` attribute
-> set to `true`, such as `tests/data/configure.local.json`, because `procwibl` uses
-> the same code as the conversion processing lambda code run in the cloud.
+#### Configuration files 
+Example configuration files for local processing can be found [here](examples/configure-submission-test.json) (for 
+the test DCDB endpoint) and [here](examples/configure-submission.json) (for the production DCDB endpoint). To enable
+`strict-mode` processing set the `strict_mode` configuration parameter to `true`. When strict mode is enabled, 
+inability to read data packets from WIBL files will be treated as an error, causing processing to stop. The default 
+behavior of all commands that read WIBL files is to disable strict mode, so that processing will continue if one or
+more data packets cannot be read.
+
+> Note on configuration files: It is no longer necessary to set `local` to `true` when running
+> `procwibl`. This setting is only used by the `validate` command. See below.
 
 ### Upload WIBL files into AWS S3 Buckets for processing
 Instead of using the mobile app (and for testing), WIBL binary files can be uploaded into a given S3 bucket to trigger processing.  If the file is being uploaded into the staging bucket (i.e., to test transfer to DCDB), a '.json' extension must be added (``-j|--json``), and the SourceID tag must be set (``-s|--source``) so that the submission Lambda can find this information.
 ```
-$ wibl uploadwibl -h
-usage: wibl uploadwibl [-h] [-b BUCKET] [-j] [-s SOURCE] input
+$ wibl uploadwibl --help
+Usage: wibl uploadwibl [OPTIONS] INPUT
 
-Upload WIBL logger files to an S3 bucket (in a limited capacity)
+  Upload a WIBL file INPUT to an S3 bucket for processing.
 
-positional arguments:
-  input                 WIBL format input file
-
-options:
-  -h, --help            show this help message and exit
-  -b BUCKET, --bucket BUCKET
-                        Set the upload bucket name (string)
-  -j, --json            Add .json extension to UUID for upload key
-  -s SOURCE, --source SOURCE
-                        Set SourceID tag for the S3 object (string)
+Options:
+  -b, --bucket TEXT  The upload bucket name
+  -j, --json         Add .json extension to UUID for upload key
+  -s, --source TEXT  Set SourceID tag for the S3 object
+  --help             Show this message and exit.
 ```
 
 ### Parse WIBL binary files
 Raw WIBL binary files can be read and transcribed in ASCII format for debug.  Statistics on which NMEA2000 talkers, and which packets, are observed can be dumped at the end of the read (``-s|--stats``).
 ```
-$ wibl parsewibl -h
-usage: wibl parsewibl [-h] [-s] input
+$ wibl parsewibl --help
+Usage: wibl parsewibl [OPTIONS] INPUT
 
-Parse WIBL logger files locally and report contents.
+  Parse binary WIBL logger file INPUT and report contents in human-readable
+  format to the console.
 
-positional arguments:
-  input        Specify the file to parse
+Options:
+  -s, --stats      Provide summary statistics on packets seen
+  -d, --dump PATH  Dump ASCII representation of NMEA0183 data to file
+  --strict-mode    Strict mode: fail if any packet is not successfully
+                   translated
+  --help           Show this message and exit.
+```
+
+> Note: if the `--strict-mode` option is set, failure to read a single data packet from the WIBL file will result in
+> processing the stop with an error. The default behavior is to print a warning message detailing each packet that
+> was not successfully decoded.
+
+### Validate
+The `wibl validate` command allows validation of WIBL-produced GeoJSON data using 
+[csbschema](https://github.com/CCOMJHC/csbschema/):
+```shell
+$ wibl validate -c tests/data/configure.local.json /tmp/test-wibl-inject.geojson
+info: Validating metadata in test-wibl-inject.geojson for schema version 3.1.0-2024-04.
+info: completed successful validate of /tmp/test-wibl-inject.geojson metadata.
+```
+
+> Note: It is recommended to supply a configuration JSON file with the `local` attribute
+> set to `true`, such as [tests/data/configure.local.json`, because `validate` uses
+> the same code as the validation lambda code run in the cloud. Setting 'local' to `true`
+> results in detailed validation status/errors being reported to the console by `wibl validate`.
+
+For more control over validation (including validating XYZ metadata or validating against previous versions of B-12
+metadata and data), you can use `csbschema validate` directly (which is installed along with wibl-python:
+```shell
+$ csbschema validate --help
+usage: csbschema [-h] -f FILE
+                 [--version {3.1.0-2024-04,XYZ-3.1.0-2024-04,3.0.0-2023-08,XYZ-3.0.0-2023-08,3.0.0-2023-03,XYZ-3.0.0-2023-03,XYZ-3.1.0-2023-08,3.1.0-2023-03,3.1.0-2023-08,3.2.0-BETA}]
+
+Validate CSB observation data and metadata using an IHO B12 schema.
 
 options:
-  -h, --help   show this help message and exit
-  -s, --stats  Provide summary statistics on packets seen
+  -h, --help            show this help message and exit
+  -f, --file FILE       CSB JSON data file to validate
+  --version {3.1.0-2024-04,XYZ-3.1.0-2024-04,3.0.0-2023-08,XYZ-3.0.0-2023-08,3.0.0-2023-03,XYZ-3.0.0-2023-03,XYZ-3.1.0-2023-08,3.1.0-2023-03,3.1.0-2023-08,3.2.0-BETA}
+                        CSB schema version to validate against. Default: 3.1.0-2024-04
 ```
 
 ### Uploading GeoJSON files to DCDB directly
-Instead of using the cloud-based submission process (and for debugging), pre-formatted GeoJSON files can be uploaded directly to DCDB for archival.  Note that the file containing the provider authorisation token (provided by DCDB for each Trusted Node) has to be set on the command line (``-a|--auth``), although the rest of the information (provider ID, upload point) can be specified through the JSON configuration file (``-c|--config``); the provider ID (specified by DCDB for each Trusted Node) can be over-ridden on the command line (``-p|--provider``).  The source ID is read from the GeoJSON file, unless it is set on the command line (``-s|--source``).
+Instead of using the cloud-based submission process (and for debugging), pre-formatted GeoJSON files can be uploaded 
+directly to DCDB for archival.  Note that the file containing the provider authorisation token (provided by DCDB for 
+each Trusted Node) has to be set on the command line (``-a|--auth``), although the rest of the information (provider 
+ID, upload point) can be specified through the JSON configuration file (``-c|--config``); the provider ID (specified 
+by DCDB for each Trusted Node) can be over-ridden on the command line (``-p|--provider``).  The source ID is read 
+from the GeoJSON file, unless it is set on the command line (``-s|--source``).
 
 ```
-wibl dcdbupload -h
-usage: wibl dcdbupload [-h] [-s SOURCEID] [-p PROVIDER] [-a AUTH] [-c CONFIG] input
+wibl dcdbupload --help
+Usage: wibl dcdbupload [OPTIONS] INPUT
 
-Upload GeoJSON files to DCDB for archival.
+  Upload GeoJSON files to DCDB for archival.
 
-positional arguments:
-  input                 GeoJSON file to upload to DCDB
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -s SOURCEID, --sourceid SOURCEID
-                        Set SourceID as in the GeoJSON metadata.
-  -p PROVIDER, --provider PROVIDER
-                        Provider ID as generated by DCDB
-  -a AUTH, --auth AUTH  File containing the Provider authorisation token generated by DCDB
-  -c CONFIG, --config CONFIG
-                        Specify configuration file for installation
+Options:
+  -s, --sourceid TEXT  Set SourceID as in the GeoJSON metadata.
+  -p, --provider TEXT  Provider ID as generated by DCDB
+  -a, --auth PATH      File containing the Provider authorisation token
+                       generated by DCDB
+  -c, --config PATH    Specify configuration file for installation
+  --help               Show this message and exit.
 ```
 
 Configuration files suitable for uploading to both the test and production DCDB endpoints are available in the

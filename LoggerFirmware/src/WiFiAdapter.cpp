@@ -28,6 +28,7 @@
 
 #include <WiFi.h>
 #include <WiFiAP.h>
+#include <ESPmDNS.h>
 #include <WebServer.h>
 #include <LittleFS.h>
 
@@ -160,6 +161,7 @@ public:
                 if (m_verbose) {
                     Serial.print("DBG: station connected to network, setting state to Connected.\n");
                 }
+                completeStationJoin();
                 break;
             case CONNECTION_CHECK:
                 // Once connected, we need to periodically check that we're still connected,
@@ -212,7 +214,17 @@ private:
         IPAddress server_address = WiFi.softAPIP();
         logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WIFIIP_S, server_address.toString());
         if (m_verbose) {
-            Serial.printf("DBG: started AP mode on %s:%s with IP %s.\n", ssid.c_str(), password.c_str(), server_address.toString().c_str());
+            Serial.printf("DBG: started AP mode on %s:%s with IP %s and hostname |%s|.\n", ssid.c_str(), password.c_str(), server_address.toString().c_str(), WiFi.softAPgetHostname());
+        }
+        startMDNSResponder();
+    }
+
+    void startMDNSResponder(void)
+    {
+        String logger_name;
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_MDNS_NAME_S, logger_name);
+        if (!MDNS.begin(logger_name)) {
+            Serial.print("ERR: failed to start mDNS responder ... you'll have to find the IP on your own!");
         }
     }
 
@@ -237,13 +249,14 @@ private:
         return status == WL_CONNECTED;
     }
 
-    void completeStationJoint(void)
+    void completeStationJoin(void)
     {
-        IPAddress server_address = WiFi.softAPIP();
+        IPAddress server_address = WiFi.localIP();
         logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WIFIIP_S, server_address.toString());
         if (m_verbose) {
-            Serial.printf("DBG: completing station join at IP %s\n", server_address.toString().c_str());
+            Serial.printf("DBG: completing station join at IP %s, hostname reported as |%s|\n", server_address.toString().c_str(), WiFi.getHostname());
         }
+        startMDNSResponder();
     }
 
     bool isConnected(void)

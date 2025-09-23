@@ -1,6 +1,6 @@
 setuptools
 boto3~=1.20
-requests~=2.0.0
+requests~=2.32.4
 numpy>=1.23.5; python_version<'3.12'
 numpy>=1.26.0; python_version>='3.12'
 pynmea2~=1.18
@@ -12,6 +12,7 @@ fsspec[s3]
 pandas>=2.0.0
 geopandas
 deepmerge
+click~=8.2.1
 xarray
 netCDF4
 pylint~=3.0.0

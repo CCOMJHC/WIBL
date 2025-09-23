@@ -1,4 +1,4 @@
-##\file lambda_function.py
+# \file lambda_function.py
 # \brief Drive the conversion and time-stamping of logger binary files with output in GeoJSON
 #
 # The low-cost data loggers generate data as binary outputs which are time referenced to the logger's
@@ -36,7 +36,7 @@ from typing import Dict, Any
 from datetime import datetime
 
 import boto3
-
+import numpy as np
 import wibl.core.config as conf
 import wibl.core.logger_file as lf
 import wibl.core.datasource as ds
@@ -46,7 +46,7 @@ from wibl.core import getenv, Lineage
 import wibl.core.timestamping as ts
 import wibl.core.geojson_convert as gj
 from wibl.processing.cloud.aws import get_config_file
-from wibl_manager import ManagerInterface, MetadataType, WIBLMetadata, ProcessingStatus
+from wibl_manager import ManagerInterface, MetadataType, WIBLMetadata, WIBLStatus
 
 s3 = boto3.resource('s3')
 
@@ -72,11 +72,12 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
     """
 
     verbose: bool = config['verbose']
+    strict_mode: bool = config['strict_mode']
 
     meta: WIBLMetadata = WIBLMetadata()
     lineage: Lineage = Lineage()
     meta.size = item.source_size/(1024.0*1024.0)
-    meta.status = ProcessingStatus.PROCESSING_FAILED.value  # Until further notice ...
+    meta.status = WIBLStatus.PROCESSING_FAILED.value  # Until further notice ...
     manager: ManagerInterface = ManagerInterface(MetadataType.WIBL_METADATA, item.source_key, config['verbose'])
     if not manager.register(meta.size):
         print('error: failed to register file with REST management interface.')
@@ -89,14 +90,43 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
     try:
         if verbose:
             print(f'Attempting file read/time interpolation on {local_file} ...')
-        source_data = ts.time_interpolation(local_file, lineage,
-                                            config['elapsed_time_quantum'], verbose = config['verbose'], fault_limit = config['fault_limit'])
+        source_data = ts.time_interpolation(local_file, lineage, config['elapsed_time_quantum'],
+                                            verbose=verbose,
+                                            fault_limit=config['fault_limit'],
+                                            strict_mode=strict_mode)
         meta.logger = source_data['loggername']
         meta.platform = source_data['platform']
         meta.observations = len(source_data['depth']['z'])
         meta.soundings = meta.observations
         meta.starttime = datetime.fromtimestamp(source_data['depth']['t'][0]).isoformat()
         meta.endtime = datetime.fromtimestamp(source_data['depth']['t'][-1]).isoformat()
+
+        # Get the max and min coordinates to create a bounding box
+        max_lat = -9999.0
+        min_lat = 9999.0
+
+        max_lon = -9999.0
+        min_lon = 9999.0
+
+        size = len(source_data['depth']['z'])
+        for i in range(size):
+            temp_lat = source_data['depth']['lat'][i]
+            temp_lon = source_data['depth']['lon'][i]
+
+            if temp_lat < min_lat:
+                min_lat = temp_lat
+            if temp_lat > max_lat:
+                max_lat = temp_lat
+
+            if temp_lon < min_lon:
+                min_lon = temp_lon
+            if temp_lon > max_lon:
+                max_lon = temp_lon
+
+        meta.max_lat = max_lat
+        meta.min_lat = min_lat
+        meta.max_lon = max_lon
+        meta.low_lon = min_lon
     except lf.PacketTranscriptionError as e:
         print(f"Error reading packet from WIBL file: {str(e)}")
     except ts.NoTimeSource:
@@ -123,7 +153,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
     except UnknownAlgorithm as e:
         manager.logmsg(str(e))
         manager.update(meta)
-        print(f"Aborting pocessing due to error: {str(e)}")
+        print(f"Aborting processing due to error: {str(e)}")
         return False
 
     try:
@@ -142,7 +172,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         print('Attempting to send encoded data to S3 staging bucket ...')
     controller.transmit(item, source_id, meta.logger, meta.soundings, encoded_data)
 
-    meta.status = ProcessingStatus.PROCESSING_SUCCESSFUL.value
+    meta.status = WIBLStatus.PROCESSING_SUCCESSFUL.value
     if verbose:
         print('Attempting to update status via manager...')
     manager.update(meta)

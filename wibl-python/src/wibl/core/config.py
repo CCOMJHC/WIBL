@@ -102,6 +102,8 @@ def read_config(config_file: Union[Path, str] = None) -> Dict[str, Any]:
             verbose:                Boolean for verbose reporting of processing (usu. False)
             local:                  Boolean for local testing (usu. False for cloud deployment)
             fault_limit             Limit on number of fault messages that are reported before starting to summarise
+            strict_mode             Boolean for strict mode processing (default: False).  When False, processing of
+                                        WIBL data packets will continue if a bad packet is encountered.
        
        This code reads the JSON file with these parameters, and does appropriate translations to them so
        that the rest of the code can just read from the resulting dictionary.
@@ -117,6 +119,18 @@ def read_config(config_file: Union[Path, str] = None) -> Dict[str, Any]:
             config['elapsed_time_quantum'] = 1 << config['elapsed_time_width']
         else:
             config['elapsed_time_quantum'] = 1 << 32
+
+        # Set default config parameters
+        if 'verbose' not in config:
+            config['verbose'] = False
+        if 'local' not in config:
+            config['local'] = False
+        if 'fault_limit' not in config:
+            config['fault_limit'] = 10
+        if 'strict_mode' not in config:
+            config['strict_mode'] = False
+        if 'management_url' not in config:
+            config['management_url'] = ''
 
         return config
 
