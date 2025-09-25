@@ -1,0 +1,16 @@
+region           = "us-east-1"
+incoming_bucket_name  = "incoming-bucket-gt"
+staging_bucket_name   = "staging-bucket-gt-test"
+viz_bucket_name       = "viz-bucket-gt"
+
+conversion_lambda_name = "gt-conversion-lambda"
+conversion_start_lambda_name = "gt-conversion-start-lambda"
+validation_lambda_name = "gt-validation-lambda"
+submission_lambda_name = "gt-submission-lambda"
+viz_lambda_name = "gt-viz-lambda"
+conversion_lambda_role_name = "gt-conversion-lambda-role"
+conversion_start_lambda_role_name = "gt-conversion-start-lambda-role"
+validation_lambda_role_name = "gt-validation-lambda-role"
+submission_lambda_role_name = "gt-submission-lambda-role"
+viz_lambda_role_name = "gt-viz-lambda-role"
+
