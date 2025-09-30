@@ -180,3 +180,4 @@ resource "aws_sns_topic_subscription" "sns_submission_subscribe" {
     endpoint = aws_lambda_function.submission_lambda.arn
 }
 
+

@@ -52,9 +52,10 @@ variable "architecture" {
     default = "arm64"
 }
 
+# TODO This layer name will change depending on the deployed region, as well as the version
 variable "numpy_layer_name" {
     type = string
-    default = "arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python312-Arm64:4"
+    default = "arn:aws:lambda:us-west-1:336392948345:layer:AWSSDKPandas-Python311-Arm64:23"
 }
 
 variable "python_version" {
@@ -69,12 +70,10 @@ variable "lambda_memory_size" {
 
 variable "staging_bucket_arn" {
     type = string
-    default = "wefwnefjkew"
 }
 
 variable "incoming_bucket_arn" {
     type = string
-    default = "wefwnefjkew"
 }
 
 variable "incoming_bucket_id" {
@@ -83,7 +82,6 @@ variable "incoming_bucket_id" {
 
 variable "viz_bucket_arn" {
     type = string
-    default = "wefwnefjkew"
 }
 
 variable TOPIC_ARN_VALIDATION {
