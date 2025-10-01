@@ -81,7 +81,6 @@ func main() {
 	log.SetFlags(log.Lmicroseconds | log.Ldate)
 	fs := flag.NewFlagSet("monitor", flag.ExitOnError)
 	configFile := fs.String("config", "", "Filename to load JSON configuration")
-	logFilter := fs.String("level", "", "Debug level of slog")
 
 	var err error
 
@@ -100,23 +99,23 @@ func main() {
 	} else {
 		server_config = support.NewDefaultConfig()
 	}
-	if len(*logFilter) > 0 {
-		var level slog.Level
-		switch *logFilter {
-		case "debug":
-			level = slog.LevelDebug
-		case "info":
-			level = slog.LevelInfo
-		case "warning":
-			level = slog.LevelWarn
-		case "error":
-			level = slog.LevelError
-		default:
-			support.Errorf("log level (%v) not recognised.\n", *logFilter)
-			os.Exit(1)
-		}
-		slog.SetLogLoggerLevel(level)
+
+	// Configure logger
+	var level slog.Level
+	switch server_config.Logging.Level {
+	case "debug":
+		level = slog.LevelDebug
+	case "info":
+		level = slog.LevelInfo
+	case "warning":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		support.Errorf("log level (%v) not recognised.\n", server_config.Logging.Level)
+		os.Exit(1)
 	}
+	slog.SetLogLoggerLevel(level)
 
 	address := fmt.Sprintf(":%d", server_config.API.Port)
 	var db support.DBConnection
@@ -143,7 +142,7 @@ func main() {
 	}
 
 	log.Printf("starting server on %s", srv.Addr)
-	err = srv.ListenAndServeTLS("./certs/server.crt", "./certs/server.key")
+	err = srv.ListenAndServeTLS(server_config.Cert.CertFile, server_config.Cert.KeyFile)
 	log.Fatal(err)
 }
 

@@ -59,13 +59,26 @@ type DBParam struct {
 	Connection string `json:"connection"`
 }
 
+// A CertParam provides the paths at which the server cert and key can be loaded.
+type CertParam struct {
+	CertFile string `json:"cert_file"`
+	KeyFile  string `json:"key_file"`
+}
+
+// A LoggingParam provides all parameters required to configure logging.
+type LoggingParam struct {
+	Level string `json:"level"`
+}
+
 // The Config object encapsulates all of the parameters required for the server, and
 // subsequent upload of the data to the processing instances.
 type Config struct {
-	API   APIParam   `json:"api"`
-	Cloud CloudParam `json:"cloud"`
-	AWS   AWSParam   `json:"aws"`
-	DB    DBParam    `json:"db"`
+	API     APIParam     `json:"api"`
+	Cloud   CloudParam   `json:"cloud"`
+	AWS     AWSParam     `json:"aws"`
+	DB      DBParam      `json:"db"`
+	Cert    CertParam    `json:"cert"`
+	Logging LoggingParam `json:"logging"`
 }
 
 // Generate a new Config object from a given JSON file.  Errors are returned
@@ -97,5 +110,8 @@ func NewDefaultConfig() *Config {
 	config.AWS.UploadBucket = "UNHJHC-wibl-incoming"
 	config.AWS.SNSTopic = "UNHJHC-wibl-conversion"
 	config.DB.Connection = "loggers.db"
+	config.Cert.CertFile = "./certs/server.crt"
+	config.Cert.KeyFile = "./certs/server.key"
+	config.Logging.Level = "info"
 	return config
 }

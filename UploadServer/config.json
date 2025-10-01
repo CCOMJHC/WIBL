@@ -11,6 +11,13 @@
         "sns_topic":        "arn:aws:sns:us-east-2:ACCOUNT_NUMBER:unhjhc-wibl-conversion"
     },
     "db": {
-        "connection":   "loggers.db"
+        "connection":   "/var/local/wibl/upload-server/db/loggers.db"
+    },
+    "cert": {
+      "cert_file": "/var/local/wibl/upload-server/etc/certs/server.crt",
+      "key_file": "/var/local/wibl/upload-server/etc/certs/server.key"
+    },
+    "logging": {
+      "level": "debug"
     }
 }

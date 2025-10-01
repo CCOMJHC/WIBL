@@ -1,0 +1,32 @@
+name: wibl-upload
+
+services:
+  wibl-upload:
+    build:
+      context: .
+    container_name: wibl-upload
+    command: /var/local/wibl/upload-server/upload-server -config config.json -level debug
+    ports:
+      - '8000:8000'
+    volumes:
+      - type: bind
+        source: ./config.json
+        target: /var/local/wibl/upload-server/etc/config.json
+        read_only: true
+      - type: bind
+        source: ./certs/server.crt
+        target: /var/local/wibl/upload-server/etc/certs/server.crt
+        read_only: true
+      - type: bind
+        source: ./certs/server.key
+        target: /var/local/wibl/upload-server/etc/certs/server.key
+        read_only: true
+      - type: bind
+        source: ./db/loggers.db
+        target: /var/local/wibl/upload-server/db/loggers.db
+        read_only: true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/" ]
+      interval: 10s
+      timeout: 1s
+      retries: 5
