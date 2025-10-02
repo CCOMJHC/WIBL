@@ -47,8 +47,6 @@ The flags are:
 
 	-config
 		Specify a JSON format file to configure the server
-	-level debug|info|warning|error
-		Set the level of logging information to report
 
 Without flags, the code generates a default configuration for the server, typically
 bringing it up on a non-constrained port (see support/config.go for details).
