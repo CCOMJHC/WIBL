@@ -64,6 +64,9 @@ $ docker compose up
  ✔ Container wibl-upload    Recreated                                      0.3s 
 Attaching to wibl-upload
 wibl-upload  | 2025/10/02 15:46:12.322007 starting server on :8000
+wibl-upload  | 2025/10/02 18:10:52.451089 INFO [::1] - - [02/Oct/2025:18:10:52 +0000] "GET / HTTP/2.0" 200 0
+wibl-upload  | 2025/10/02 18:11:02.497117 INFO [::1] - - [02/Oct/2025:18:11:02 +0000] "GET / HTTP/2.0" 200 0
+wibl-upload  | 2025/10/02 18:11:12.556534 INFO [::1] - - [02/Oct/2025:18:11:12 +0000] "GET / HTTP/2.0" 200 0
 ```
 
 Before trying to interact with the service, you'll need to create a `loggers.db`
@@ -190,7 +193,7 @@ the HTTP status code was 200, i.e., `HTTP/2 200`.
 In the console in which you are running `docker compose up`, you should
 also see the following output:
 ```shell
-wibl-upload  | 2025/10/02 16:13:53.583970 INFO CHECKIN: status update from logger with firmware 1.5.5, command processor 1.4.0, total 0 files.
+wibl-upload  | 2025/10/02 18:13:35.002803 INFO 172.19.0.1 - 35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F [02/Oct/2025:18:13:35 +0000] "POST /checkin HTTP/2.0" 200 406
 ```
 
 If the logger was not known (i.e., not in the loggers.db file), you would

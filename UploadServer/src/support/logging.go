@@ -29,6 +29,9 @@ package support
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
+	"strings"
+	"time"
 )
 
 func Infof(format string, args ...any) {
@@ -45,4 +48,28 @@ func Warnf(format string, args ...any) {
 
 func Errorf(format string, args ...any) {
 	slog.Default().Error(fmt.Sprintf(format, args...))
+}
+
+// LogAccess Logs a request in Combinded Log Format (CLF)
+func LogAccess(r *http.Request, status int) {
+	remoteAddr := r.RemoteAddr
+	if idx := strings.LastIndex(remoteAddr, ":"); idx != -1 {
+		remoteAddr = remoteAddr[:idx] // Remove port
+	}
+
+	username := "-"
+	if user, _, ok := r.BasicAuth(); ok {
+		username = user
+	}
+
+	timestamp := time.Now().Format("02/Jan/2006:15:04:05 -0700")
+	request := fmt.Sprintf("%s %s %s", r.Method, r.RequestURI, r.Proto)
+
+	referer := r.Referer()
+	if referer == "" {
+		referer = "-"
+	}
+
+	Infof("%s - %s [%s] \"%s\" %d %d %s %s",
+		remoteAddr, username, timestamp, request, status, r.ContentLength, referer, r.UserAgent())
 }

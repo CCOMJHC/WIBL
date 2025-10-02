@@ -49,6 +49,7 @@ func BasicAuth(next http.HandlerFunc, db DBConnection) http.HandlerFunc {
 			}
 		}
 
+		LogAccess(r, http.StatusUnauthorized)
 		w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	})

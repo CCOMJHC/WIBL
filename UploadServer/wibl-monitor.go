@@ -148,6 +148,7 @@ func main() {
 func syntax(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "checkin\n")
 	fmt.Fprintf(w, "update\n")
+	support.LogAccess(r, http.StatusOK)
 }
 
 // Accept a status message from the logger client (which should list all of the files on the logger,
@@ -162,6 +163,7 @@ func status_updates(w http.ResponseWriter, r *http.Request) {
 	var status api.Status
 
 	if body, err = io.ReadAll(r.Body); err != nil {
+		support.LogAccess(r, http.StatusBadRequest)
 		support.Errorf("API: failed to read POST body component: %s\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -169,14 +171,17 @@ func status_updates(w http.ResponseWriter, r *http.Request) {
 	r.Body.Close()
 
 	if err = json.Unmarshal(body, &status); err != nil {
+		support.LogAccess(r, http.StatusBadRequest)
 		support.Errorf("API: failed to unmarshall request: %s\n", err)
 		support.Errorf("API: body was |%s|\n", body)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	support.Infof("CHECKIN: status update from logger with firmware %s, command processor %s, total %d files.\n",
-		status.Versions.Firmware, status.Versions.CommandProcessor, status.Files.Count)
+	//support.Infof("CHECKIN: status update from logger with firmware %s, command processor %s, total %d files.\n",
+	//	status.Versions.Firmware, status.Versions.CommandProcessor, status.Files.Count)
+
+	support.LogAccess(r, http.StatusOK)
 }
 
 // Accept a file transfer from the logger client (which should contain a binary-encoded body
@@ -201,14 +206,18 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 		support.Debugf("TRANS:    %s = %s\n", k, v)
 	}
 	if body, err = io.ReadAll(r.Body); err != nil {
+		support.LogAccess(r, http.StatusBadRequest)
 		support.Errorf("API: failed to read file body from POST: %s.\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	r.Body.Close()
-	support.Infof("TRANS: File from logger with %d bytes in body.\n", len(body))
+
+	//support.Infof("TRANS: File from logger with %d bytes in body.\n", len(body))
+
 	md5digest := r.Header.Get("Digest")
 	if len(md5digest) == 0 {
+		support.LogAccess(r, http.StatusBadRequest)
 		support.Errorf("API: no digest in headers for file transfer.\n")
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -217,6 +226,7 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 	}
 	md5hash := fmt.Sprintf("%X", md5.Sum(body))
 	if md5hash != md5digest {
+		support.LogAccess(r, http.StatusBadRequest)
 		support.Errorf("API: recomputed MD5 digest doesn't match that sent from logger (%s != %s).\n",
 			md5digest, md5hash)
 		result.Status = "failure"
@@ -228,6 +238,7 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 		// to the S3 bucket.
 		file_uuid, err := uuid.NewUUID()
 		if err != nil {
+			support.LogAccess(r, http.StatusBadRequest)
 			support.Errorf("TRANS: Failed to generate file UUID: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -240,12 +251,14 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 		case "aws":
 			service = new(cloud.AWSInterface)
 		default:
+			support.LogAccess(r, http.StatusInternalServerError)
 			support.Errorf("TRANS: cloud provider not known (configuration issue).\n")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if err := service.Configure(server_config); err != nil {
+			support.LogAccess(r, http.StatusInternalServerError)
 			support.Errorf("TRANS: failed to configure cloud interface.")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -256,20 +269,24 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 			FileSize:    len(body),
 		}
 		if exists, err := service.DestinationExists(meta); err != nil {
+			support.LogAccess(r, http.StatusInternalServerError)
 			support.Errorf("TRANS: BucketExists failed: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		} else if !exists {
+			support.LogAccess(r, http.StatusInternalServerError)
 			support.Errorf("TRANS: Upload bucket does not exist - check config: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		if err = service.UploadFile(meta, body); err != nil {
+			support.LogAccess(r, http.StatusInternalServerError)
 			support.Errorf("TRANS: Upload to bucket %v failed: %v", server_config.AWS.UploadBucket, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		if err = service.PublishNotification(server_config.AWS.SNSTopic, meta); err != nil {
+			support.LogAccess(r, http.StatusInternalServerError)
 			support.Errorf("TRANS: Failed to notify SNS topic of converted file: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -281,6 +298,9 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 		support.Errorf("API: failed to marshal response as JSON for file upload: %s\n", err)
 		return
 	}
-	support.Infof("TRANS: sending |%s| to logger as response.\n", result_string)
+
+	//support.Infof("TRANS: sending |%s| to logger as response.\n", result_string)
+
 	w.Write(result_string)
+	support.LogAccess(r, http.StatusOK)
 }
