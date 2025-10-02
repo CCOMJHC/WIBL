@@ -1,0 +1,200 @@
+# WIBL upload-server
+This directory contains source code and tools for demonstrating
+a minimum viable upload server for receiving automatic uploads
+from WIBL data from WIBL loggers and storing the data into AWS 
+S3-compatible object storage.
+
+## Local development and testing
+WIBL upload-server can be developed and tested locally using
+`docker compose`.
+
+### Prerequisites
+These instructions assume you have a POSIX/Linux computing environment
+(GNU/Linux, macOS, WSL) with [Go](https://go.dev/dl/), [SQLite](https://www.sqlite.org/index.html), 
+[curl](https://curl.se), [Docker](https://www.docker.com) and [OpenSSL](https://openssl-library.org) installed.
+
+Make sure to download and install the correct version of Go by 
+reading the required version from [go.mod](go.mod), for example:
+```shell
+$ grep -e '^go' go.mod 
+go 1.24
+```
+
+### Building and running with `docker compose`
+Before running, you'll need to first create a self-signed TLS
+certificate using the provided script [cert-gen.sh](scripts/cert-gen.sh).
+
+This should store the certs in the local directory called `certs`
+(which will be created if it does not exist).
+
+Now, build and start the server in a container using:
+```shell
+$ docker compose up
+[+] Building 24.7s (16/16) FINISHED                                             
+ => [internal] load local bake definitions                                 0.0s
+ => => reading from stdin 563B                                             0.0s
+ => [internal] load build definition from Dockerfile                       0.0s
+ => => transferring dockerfile: 698B                                       0.0s
+ => [internal] load metadata for public.ecr.aws/amazonlinux/amazonlinux:2  0.5s
+ => [internal] load .dockerignore                                          0.0s
+ => => transferring context: 2B                                            0.0s
+ => [1/9] FROM public.ecr.aws/amazonlinux/amazonlinux:2023-minimal@sha256  0.0s
+ => => resolve public.ecr.aws/amazonlinux/amazonlinux:2023-minimal@sha256  0.0s
+ => [internal] load build context                                          0.0s
+ => => transferring context: 11.63kB                                       0.0s
+ => CACHED [2/9] RUN dnf install -y golang                                 0.0s
+ => CACHED [3/9] RUN mkdir -p /usr/local/wibl/upload-server     /usr/loca  0.0s
+ => CACHED [4/9] WORKDIR /usr/local/wibl/upload-server                     0.0s
+ => CACHED [5/9] COPY go.mod go.sum ./                                     0.0s
+ => CACHED [6/9] RUN go mod download                                       0.0s
+ => [7/9] COPY *.go ./                                                     0.0s
+ => [8/9] COPY src/ ./src/                                                 0.0s
+ => [9/9] RUN CGO_ENABLED=1 GOOS=linux go build -o /usr/local/wibl/uploa  20.4s
+ => exporting to image                                                     3.4s
+ => => exporting layers                                                    2.9s
+ => => exporting manifest sha256:81c59b0c98f655c1e57904e50f3c02e849ea1aad  0.0s
+ => => exporting config sha256:5b6e0480545f55c4ca0efcb3ef1515b291994a68f5  0.0s
+ => => exporting attestation manifest sha256:780ce69e210d12089489d32047fb  0.0s
+ => => exporting manifest list sha256:66efb0eea48a2cce9a501ac96f3584eb896  0.0s
+ => => naming to docker.io/library/wibl-upload-wibl-upload:latest          0.0s
+ => => unpacking to docker.io/library/wibl-upload-wibl-upload:latest       0.4s
+ => resolving provenance for metadata file                                 0.0s
+[+] Running 2/2
+ ✔ wibl-upload-wibl-upload  Built                                          0.0s 
+ ✔ Container wibl-upload    Recreated                                      0.3s 
+Attaching to wibl-upload
+wibl-upload  | 2025/10/02 15:46:12.322007 starting server on :8000
+```
+
+Before trying to interact with the service, you'll need to create a `loggers.db`
+file in the `db` local directory. Before you can do that, you'll need to build
+the `add-logger` command using the provided 
+
+
+```shell
+mkdir -p db
+./add-logger -config config-local.json -logger F94E871E-8A66-4614-9E10-628FFC49540A -password CC0E1FE1-46CA-4768-93A7-2252BF748118
+./add-logger -config config-local.json -logger 12CEC8B4-0C42-424C-82CD-FB4E96CD7153 -password CAF1CA92-CB9E-437D-B391-7709A39D32B1
+```
+
+You can then verify that the loggers have been added by running:
+```shell
+$ sqlite3 ./db/loggers.db 'SELECT * FROM loggers'
+name          hash            
+------------  ----------------
+F94E871E-8A6  JDJhJDEwJG90M3RK
+6-4614-9E10-  dlJRbS9ZM3JOd2Zq
+628FFC49540A  UUYxQXVsUHd4Nk94
+              NHNSNEJJb2VjQWo4
+              YVlkU1laOUlURHM2
+
+12CEC8B4-0C4  JDJhJDEwJDJNOHpE
+2-424C-82CD-  Z1laMzd4MnRlU3FC
+FB4E96CD7153  cXdPaS5sYWNzQWw1
+              RFV3a3BuZzlTM09T
+              QjFFdVhYdS9FY3h
+```
+
+Finally, you can do a basic test of the upload-server by hitting the `/checkin` endpoint using `curl`:
+```shell
+$ curl -v \
+        -u F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
+        --cacert ./certs/ca.crt --fail-with-body "https://localhost:8000/checkin" \
+  -H 'Content-Type: application/json' \
+  --data @-<<EOF
+{
+ "version": {
+   "firmware": "1.5.5",
+   "commandproc": "1.4.0",
+   "nmea0183": "1.0.1",
+   "nmea2000": "1.1.0",
+   "imu": "1.0.0",
+   "serialiser": "1.3"
+ },
+ "elapsed": 12345678,
+ "webserver": {
+   "current": "dummy status",
+   "boot": "dummy boot"
+ },
+ "data": {
+   "nmea0183": {
+     "count": 0,
+     "detail": []
+   },
+   "nmea2000": {
+     "count": 0,
+     "detail": []
+   }
+ },
+ "files": {
+   "count": 0,
+   "detail": []
+ }
+}
+EOF
+* Host localhost:8000 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+*   Trying [::1]:8000...
+* Connected to localhost (::1) port 8000
+* ALPN: curl offers h2,http/1.1
+* (304) (OUT), TLS handshake, Client hello (1):
+*  CAfile: ./certs/ca.crt
+*  CApath: none
+* (304) (IN), TLS handshake, Server hello (2):
+* (304) (IN), TLS handshake, Unknown (8):
+* (304) (IN), TLS handshake, Certificate (11):
+* (304) (IN), TLS handshake, CERT verify (15):
+* (304) (IN), TLS handshake, Finished (20):
+* (304) (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=Server; CN=localhost
+*  start date: Oct  1 18:08:25 2025 GMT
+*  expire date: Oct  1 18:08:25 2026 GMT
+*  subjectAltName: host "localhost" matched cert's "localhost"
+*  issuer: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=CA; CN=localhost
+*  SSL certificate verify ok.
+* using HTTP/2
+* Server auth using Basic with user 'F94E871E-8A66-4614-9E10-628FFC49540A'
+* [HTTP/2] [1] OPENED stream for https://localhost:8000/checkin
+* [HTTP/2] [1] [:method: POST]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: localhost:8000]
+* [HTTP/2] [1] [:path: /checkin]
+* [HTTP/2] [1] [authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFMTAtNjI4RkZDNDk1NDBBOkNDMEUxRkUxLTQ2Q0EtNDc2OC05M0E3LTIyNTJCRjc0ODExOA==]
+* [HTTP/2] [1] [user-agent: curl/8.7.1]
+* [HTTP/2] [1] [accept: */*]
+* [HTTP/2] [1] [content-type: application/json]
+* [HTTP/2] [1] [content-length: 406]
+> POST /checkin HTTP/2
+> Host: localhost:8000
+> Authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFMTAtNjI4RkZDNDk1NDBBOkNDMEUxRkUxLTQ2Q0EtNDc2OC05M0E3LTIyNTJCRjc0ODExOA==
+> User-Agent: curl/8.7.1
+> Accept: */*
+> Content-Type: application/json
+> Content-Length: 406
+> 
+* upload completely sent off: 406 bytes
+< HTTP/2 200 
+< content-length: 0
+< date: Thu, 02 Oct 2025 16:36:44 GMT
+< 
+* Connection #0 to host localhost left intact
+```
+
+You can see from the above output that the request was successful because
+the HTTP status code was 200, i.e., `HTTP/2 200`.
+
+In the console in which you are running `docker compose up`, you should
+also see the following output:
+```shell
+wibl-upload  | 2025/10/02 16:13:53.583970 INFO CHECKIN: status update from logger with firmware 1.5.5, command processor 1.4.0, total 0 files.
+```
+
+If the logger was not known (i.e., not in the loggers.db file), you would
+instead see output like:
+```shell
+wibl-upload  | 2025/10/02 16:38:41.325695 INFO DB: Logger 35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F not found in database.
+```
