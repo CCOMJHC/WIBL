@@ -67,7 +67,13 @@ type CertParam struct {
 
 // A LoggingParam provides all parameters required to configure logging.
 type LoggingParam struct {
-	Level string `json:"level"`
+	Level           string `json:"level"`
+	ConsoleLog      string `json:"console_log"`      // Path of active console log file
+	AccessLog       string `json:"access_log"`       // Path of active access log file
+	MaxSizeMB       int    `json:"max_size_mb"`      // Maximum size of log files before they are rotated
+	MaxAge          int    `json:"max_age"`          // Maximum age of log files before they are rotated
+	MaxBackups      int    `json:"max_backups"`      // Maximum number of rotated logs to retain. Set to 0 to retain all.
+	CompressRotated bool   `json:"compress_rotated"` // Whether to gzip compress rotated log files
 }
 
 // The Config object encapsulates all of the parameters required for the server, and
@@ -113,5 +119,11 @@ func NewDefaultConfig() *Config {
 	config.Cert.CertFile = "./certs/server.crt"
 	config.Cert.KeyFile = "./certs/server.key"
 	config.Logging.Level = "info"
+	config.Logging.ConsoleLog = "./log/console.log"
+	config.Logging.AccessLog = "./log/access.log"
+	config.Logging.MaxSizeMB = 10
+	config.Logging.MaxBackups = 5
+	config.Logging.MaxAge = 1
+	config.Logging.CompressRotated = true
 	return config
 }

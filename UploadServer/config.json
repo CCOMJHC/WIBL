@@ -18,6 +18,12 @@
       "key_file": "/usr/local/wibl/upload-server/etc/certs/server.key"
     },
     "logging": {
-      "level": "debug"
+      "level": "debug",
+      "console_log": "/usr/local/wibl/upload-server/log/console.log",
+      "access_log": "/usr/local/wibl/upload-server/log/access.log",
+      "max_size_mb": 10,
+      "max_age": 1,
+      "max_backups": 0,
+      "compress_rotated": false
     }
 }

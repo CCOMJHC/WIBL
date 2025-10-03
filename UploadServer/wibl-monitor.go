@@ -59,8 +59,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
-	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -76,7 +74,6 @@ import (
 var server_config *support.Config
 
 func main() {
-	log.SetFlags(log.Lmicroseconds | log.Ldate)
 	fs := flag.NewFlagSet("monitor", flag.ExitOnError)
 	configFile := fs.String("config", "", "Filename to load JSON configuration")
 
@@ -99,21 +96,7 @@ func main() {
 	}
 
 	// Configure logger
-	var level slog.Level
-	switch server_config.Logging.Level {
-	case "debug":
-		level = slog.LevelDebug
-	case "info":
-		level = slog.LevelInfo
-	case "warning":
-		level = slog.LevelWarn
-	case "error":
-		level = slog.LevelError
-	default:
-		support.Errorf("log level (%v) not recognised.\n", server_config.Logging.Level)
-		os.Exit(1)
-	}
-	slog.SetLogLoggerLevel(level)
+	support.ConfigureLogging(server_config)
 
 	address := fmt.Sprintf(":%d", server_config.API.Port)
 	var db support.DBConnection
@@ -139,9 +122,11 @@ func main() {
 		WriteTimeout: 30 * time.Second,
 	}
 
-	log.Printf("starting server on %s", srv.Addr)
+	support.Infof("starting server on %s", srv.Addr)
 	err = srv.ListenAndServeTLS(server_config.Cert.CertFile, server_config.Cert.KeyFile)
-	log.Fatal(err)
+	if err != nil {
+		support.Errorf("Error starting server: %v", err)
+	}
 }
 
 // Generate a list of the end-points that the server provides.

@@ -11,6 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.22
 	golang.org/x/crypto v0.22.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
