@@ -207,7 +207,7 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	} else {
-		md5digest = strings.Split(md5digest, "=")[1]
+		md5digest = strings.ToUpper(strings.Split(md5digest, "=")[1])
 	}
 	md5hash := fmt.Sprintf("%X", md5.Sum(body))
 	if md5hash != md5digest {

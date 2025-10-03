@@ -1,7 +1,26 @@
 name: wibl-upload
 
 services:
+  localstack:
+    image: localstack/localstack
+    environment:
+      - AWS_DEFAULT_REGION=us-east-2
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - SERVICES=s3,sns
+      - DEBUG=0
+      - LS_LOG=debug
+    ports:
+      - "14566:4566"
+      - "14510-14559:4510-4559"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./scripts/localstack-ready.sh:/etc/localstack/init/ready.d/localstack-ready.sh"
+
   wibl-upload:
+    depends_on:
+      - localstack
     build:
       context: .
     container_name: wibl-upload
@@ -10,7 +29,7 @@ services:
       - '8000:8000'
     volumes:
       - type: bind
-        source: ./config.json
+        source: ./config-localstack.json
         target: /usr/local/wibl/upload-server/etc/config.json
         read_only: true
       - type: bind

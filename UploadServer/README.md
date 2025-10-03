@@ -98,7 +98,7 @@ FB4E96CD7153  cXdPaS5sYWNzQWw1
               QjFFdVhYdS9FY3h
 ```
 
-Finally, you can do a basic test of the upload-server by hitting the `/checkin` endpoint using `curl`:
+Next, you can do a basic test of the upload-server by using the `/checkin` endpoint using `curl`:
 ```shell
 $ curl -v \
         -u F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
@@ -200,4 +200,44 @@ If the logger was not known (i.e., not in the loggers.db file), you would
 instead see output like:
 ```shell
 wibl-upload  | 2025/10/02 16:38:41.325695 INFO DB: Logger 35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F not found in database.
+```
+
+Finally, you can test uploading a dummy file to the upload-server by using the `/update` endpoint using `curl`:
+```shell
+WIBL_FILE='dummy.wibl'
+dd if=/dev/urandom of="${WIBL_FILE}" bs=8192 count=32
+MD5_DIGEST=$(md5sum --quiet $WIBL_FILE)
+
+curl -v \
+	-u 35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F:9A066573-7F4F-4FE7-B5DD-0D1F672B40BA \
+	--cacert ./certs/ca.crt --fail-with-body "https://localhost:8000/update" \
+        -H 'accept: application/json' \
+        -H 'Content-Type: application/octet-stream' \
+        -H "Digest: md5=$MD5_DIGEST" \
+        --data-binary "@${WIBL_FILE}"
+```
+
+If successful, the server will return a JSON document that looks like this:
+```JSON
+{"status":"success"}
+```
+
+If there was a failure, the server will return:
+```JSON
+{"status":"failure"}
+```
+
+And the server console log should show the error so that you can fix it.
+
+To view the contents of the localstack S3 bucket to verify that the uploaded file was written to storage, you can
+use the `aws cli` as follows:
+```shell
+export UPLOAD_BUCKET='unhjhc-wibl-incoming'
+export AWS_REGION=us-east-2
+export AWS_ENDPOINT=http://127.0.0.1:14566
+export AWS_ACCESS_KEY_ID='test'
+export AWS_SECRET_ACCESS_KEY='test'
+
+aws --endpoint-url $AWS_ENDPOINT --region $AWS_REGION s3api list-objects --bucket $UPLOAD_BUCKET 
+...TODO...Add output...
 ```
