@@ -95,7 +95,7 @@ func main() {
 		server_config = support.NewDefaultConfig()
 	}
 
-	// Configure logger
+	// Configure logging, including console and access logs
 	support.ConfigureLogging(server_config)
 
 	address := fmt.Sprintf(":%d", server_config.API.Port)
@@ -198,7 +198,7 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body.Close()
 
-	//support.Infof("TRANS: File from logger with %d bytes in body.\n", len(body))
+	support.Debugf("TRANS: File from logger with %d bytes in body.\n", len(body))
 
 	md5digest := r.Header.Get("Digest")
 	if len(md5digest) == 0 {
@@ -284,7 +284,7 @@ func file_transfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//support.Infof("TRANS: sending |%s| to logger as response.\n", result_string)
+	support.Debugf("TRANS: sending |%s| to logger as response.\n", result_string)
 
 	w.Write(result_string)
 	support.LogAccess(r, http.StatusOK)
