@@ -24,6 +24,9 @@ services:
     build:
       context: .
     container_name: wibl-upload
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
     command: /usr/local/wibl/upload-server/upload-server -config config.json -level debug
     ports:
       - '8000:8000'

@@ -239,5 +239,25 @@ export AWS_ACCESS_KEY_ID='test'
 export AWS_SECRET_ACCESS_KEY='test'
 
 aws --endpoint-url $AWS_ENDPOINT --region $AWS_REGION s3api list-objects --bucket $UPLOAD_BUCKET 
-...TODO...Add output...
+{
+    "Contents": [
+        {
+            "Key": "ebfe2337-a095-11f0-8e53-f6c927ddf09b.wibl",
+            "LastModified": "2025-10-03T20:17:01+00:00",
+            "ETag": "\"35b61c938f8c08d926ffd167729748d5\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "ChecksumType": "FULL_OBJECT",
+            "Size": 262144,
+            "StorageClass": "STANDARD",
+            "Owner": {
+                "DisplayName": "webfile",
+                "ID": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
+            }
+        }
+    ],
+    "RequestCharged": null,
+    "Prefix": ""
+}
 ```
