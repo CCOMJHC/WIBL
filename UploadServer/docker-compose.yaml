@@ -32,6 +32,7 @@ services:
       - '8000:8000'
     volumes:
       - type: bind
+#        source: ./config-localstack-no-sns.json
         source: ./config-localstack.json
         target: /usr/local/wibl/upload-server/etc/config.json
         read_only: true

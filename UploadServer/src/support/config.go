@@ -48,6 +48,7 @@ type CloudParam struct {
 // for interaction are typically done through environment variables, rather than from the JSON
 // file
 type AWSParam struct {
+	Endpoint     string `json:"endpoint"`
 	Region       string `json:"region"`
 	UploadBucket string `json:"upload_bucket"`
 	SNSTopic     string `json:"sns_topic"`
@@ -115,6 +116,7 @@ func NewDefaultConfig() *Config {
 	config.AWS.Region = "us-east-2"
 	config.AWS.UploadBucket = "UNHJHC-wibl-incoming"
 	config.AWS.SNSTopic = "UNHJHC-wibl-conversion"
+	config.AWS.Endpoint = "http://localstack:4566"
 	config.DB.Connection = "loggers.db"
 	config.Cert.CertFile = "./certs/server.crt"
 	config.Cert.KeyFile = "./certs/server.key"
