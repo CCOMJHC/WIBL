@@ -4,14 +4,65 @@ a minimum viable upload server for receiving automatic uploads
 from WIBL data from WIBL loggers and storing the data into AWS 
 S3-compatible object storage.
 
+## AWS deployment
+WIBL upload-server can be deploy to AWS using [Terraform](https://developer.hashicorp.com/terraform).
+
+### Prerequisites
+These instructions assume you have a POSIX/Linux computing environment (GNU/Linux, macOS, WSL) with the following
+installed:
+
+ - [Docker](https://www.docker.com);
+ - [AWS cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html); and
+ - [Terraform](https://developer.hashicorp.com/terraform/install).
+
+### Create AWS CLI profile for WIBL upload-server
+To avoid accidentally creating many cloud resources in the wrong AWS account when testing
+and using WIBL upload-server you must create an AWS CLI profile specific to WIBL upload-server:
+```shell
+$ aws configure --profile wibl-upload-server
+```
+
+You will then be prompted to enter your `AWS Access Key ID`, `AWS Secret Access Key`,
+`Default region name` and the `Default output format`. The key ID and key can be
+generated for your user by using the AWS IAM console. For region name, enter `us-east-1`
+(unless you have a reason to use another region). For output format, enter `json` (some
+WIBL upload-server setup scripts rely on being able to parse JSON output from AWS CLI commands).
+
+Before being able to use to create and manage a WIBL upload-server instance, it is necessary to 
+add certain IAM roles to the AWS account you want to use. To do so, first make sure to add the 
+following AWS-managed policies using the IAM console:
+
+- AmazonEC2FullAccess
+
+[To add the remaining required policies to your AWS account, run:
+```shell
+# TODO: Implement if needed
+#./scripts/cloud/Terraform/aws/add-user-roles.bash
+```
+]
+
+### Bootstrapping Terraform: Create bucket for storing and sharing Terraform state
+Terraform state can be [stored remotely in S3](https://developer.hashicorp.com/terraform/language/backend/s3). 
+This allows multiple people/computers to manage a WIBL upload-server created with Terraform asynchronously.
+
+You can use the script [terraform-bootstrap.bash](scripts/cloud/Terraform/aws/terraform-bootstrap.bash) to 
+create an S3 bucket in which to store Terraform state. Before doing so, change the name of the bucket and state
+object key by editing `terraform_state_bucket` and `terraform_state_key` in 
+[terraform.tfvars](scripts/cloud/Terraform/aws/terraform.tfvars).
+
 ## Local development and testing
 WIBL upload-server can be developed and tested locally using
 `docker compose`.
 
 ### Prerequisites
-These instructions assume you have a POSIX/Linux computing environment
-(GNU/Linux, macOS, WSL) with [Go](https://go.dev/dl/), [SQLite](https://www.sqlite.org/index.html), 
-[curl](https://curl.se), [Docker](https://www.docker.com) and [OpenSSL](https://openssl-library.org) installed.
+These instructions assume you have a POSIX/Linux computing environment (GNU/Linux, macOS, WSL) with the following 
+installed: 
+
+ - [Go](https://go.dev/dl/);
+ - [SQLite](https://www.sqlite.org/index.html);
+ - [curl](https://curl.se);
+ - [Docker](https://www.docker.com); and
+ - [OpenSSL](https://openssl-library.org).
 
 Make sure to download and install the correct version of Go by 
 reading the required version from [go.mod](go.mod), for example:
