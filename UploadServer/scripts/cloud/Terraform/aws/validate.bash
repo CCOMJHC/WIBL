@@ -10,6 +10,6 @@ pushd ${AWS_TF_ROOT}
 echo "Running terraform init..."
 terraform init
 
-echo "Running terraform apply..."
-terraform apply -auto-approve
+echo "Running terraform validate..."
+terraform validate
 popd

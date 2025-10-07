@@ -1,8 +1,12 @@
-region="us-east-2"
+aws_region="us-east-2"
+availability_zone="us-east-2a"
+vpc_cidr="10.0.0.0/16"
+subnet_cidr="10.0.1.0/24"
+key_name="wibl-upload-server-key"
+instance_name="wibl-upload-server"
+instance_type="t4g.micro"
+ami_id="ami-0f22ddbe09d4dba64"  # Valid Amazon Linux 2023 ARM64 AMI for us-east-2
+ssh_cidr_blocks=["127.0.0.1/32"]  # Restrict to your IP
 
-terraform_state_bucket="unhjhc-wibl-tf-state"
-terraform_state_key="terraform/state/wibl-upload-server-deploy.tfstate"
-upload_bucket_name="unhjhc-wibl-incoming"
-upload_sns_topic_name="unhjhc-wibl-conversion"
-upload_server_port="443"
-upload_server_ami="ami-077b630ef539aa0b5"
+upload_bucket_name="unhjhc-wibl-upload-server-incoming"
+upload_sns_topic_name="unhjhc-wibl-upload-server-conversion"

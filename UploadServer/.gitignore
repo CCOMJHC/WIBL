@@ -2,3 +2,5 @@ local/
 certs/
 db/
 add-logger
+scripts/cloud/Terraform/aws/create-terraform-state-bucket.json
+scripts/cloud/Terraform/aws/enable-terraform-state-bucket-versioning.json

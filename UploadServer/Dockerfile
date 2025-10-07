@@ -11,11 +11,10 @@ RUN mkdir -p /usr/local/wibl/upload-server \
 WORKDIR /usr/local/wibl/upload-server
 
 COPY go.mod go.sum ./
-RUN go mod download
-
 COPY *.go ./
 COPY src/ ./src/
+COPY build-upload-server.bash ./
 
-RUN CGO_ENABLED=1 GOOS=linux go build -o /usr/local/wibl/upload-server/bin/upload-server
+RUN UPLOAD_SERVER_OUT=/usr/local/wibl/upload-server/bin/upload-server ./build-upload-server.bash
 
 ENTRYPOINT ["/usr/local/wibl/upload-server/bin/upload-server", "-config", "/usr/local/wibl/upload-server/etc/config.json"]

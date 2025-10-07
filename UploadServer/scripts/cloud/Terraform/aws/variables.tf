@@ -1,41 +1,68 @@
-variable "region" {
-    description = "aws region"
-    type = string
-}
-
-variable "terraform_state_bucket" {
-    description = "Name of the S3 bucket to store Terraform state in"
-    type = string
-}
-
-variable "terraform_state_key" {
-    description = "Key of the S3 object to store Terraform state in"
-    type = string
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-2"
 }
 
 variable "upload_bucket_name" {
-    description = "Name of the S3 bucket to write uploads to"
-    type = string
+  description = "Name of the S3 bucket to write uploads to"
+  type = string
 }
 
 variable "upload_sns_topic_name" {
-    description = "Name of the SNS topic to notify on upload"
-    type = string
+  description = "Name of the SNS topic to notify on upload"
+  type = string
+}
+
+variable "availability_zone" {
+  description = "Availability zone for the subnet"
+  type        = string
+  default     = "us-east-2a"
 }
 
 variable "vpc_cidr" {
-  description = "CIDR block for the VPC"
+  description = "CIDR block for VPC"
   type        = string
   default     = "10.0.0.0/16"
 }
 
-variable "public_subnet_cidr" {
-  description = "CIDR block for the public subnet"
+variable "subnet_cidr" {
+  description = "CIDR block for public subnet"
   type        = string
   default     = "10.0.1.0/24"
 }
 
-variable "upload_server_ami" {
-  description = "AMI to use for WIBL upload-server EC2 instance"
+variable "key_name" {
+  description = "Name for the SSH key pair"
   type        = string
+  default     = "wibl-upload-server-key"
+}
+
+variable "instance_name" {
+  description = "Name tag for the EC2 instance and related resources"
+  type        = string
+  default     = "wibl-upload-server"
+}
+
+variable "instance_type" {
+  description = "EC2 instance type"
+  type        = string
+  default     = "t4g.micro"
+}
+
+variable "ami_id" {
+  description = "AMI ID for the EC2 instance"
+  type        = string
+}
+
+variable "ssh_cidr_blocks" {
+  description = "CIDR blocks allowed to SSH into the instance"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]  # Warning: Allows SSH from anywhere. Restrict in production!
+}
+
+variable "root_volume_size" {
+  description = "Size of root volume in GB"
+  type        = number
+  default     = 20
 }
