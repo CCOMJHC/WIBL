@@ -4,4 +4,4 @@ db/
 add-logger
 scripts/cloud/Terraform/aws/create-terraform-state-bucket.json
 scripts/cloud/Terraform/aws/enable-terraform-state-bucket-versioning.json
-scripts/cloud/Terraform/aws/wibl-upload-server-key.pem
+scripts/cloud/Terraform/aws/*.pem

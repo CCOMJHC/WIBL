@@ -34,6 +34,11 @@ resource "aws_sns_topic" "upload_topic" {
   name = var.upload_sns_topic_name
 }
 
+resource "aws_eip" "wibl_upload_ip" {
+  instance = aws_instance.ec2_instance.id
+  domain   = "vpc"
+}
+
 # Create VPC
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
