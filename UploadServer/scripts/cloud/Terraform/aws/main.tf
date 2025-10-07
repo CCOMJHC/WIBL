@@ -106,30 +106,36 @@ resource "local_file" "private_key" {
 }
 
 # Security group for SSH access
-resource "aws_security_group" "ssh_access" {
-  name        = "${var.instance_name}-ssh-sg"
-  description = "Security group allowing SSH access"
+resource "aws_security_group" "wibl_upload_server" {
+  name        = "${var.instance_name}-sg"
+  description = "Security group allowing SSH and HTTPS access"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    description = "SSH from allowed CIDR blocks"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.ssh_cidr_blocks
-  }
-
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
-    Name = "${var.instance_name}-ssh-sg"
+    Name = "${var.instance_name}-sg"
   }
+}
+
+resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4" {
+  security_group_id = aws_security_group.wibl_upload_server.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1" # semantically equivalent to all ports
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
+  security_group_id = aws_security_group.wibl_upload_server.id
+  cidr_ipv4         = var.ssh_cidr_block
+  from_port         = 22
+  ip_protocol       = "tcp"
+  to_port           = 22
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_tls_ipv4" {
+  security_group_id = aws_security_group.wibl_upload_server.id
+  cidr_ipv4         = var.https_cidr_block
+  from_port         = 443
+  ip_protocol       = "tcp"
+  to_port           = 443
 }
 
 # EC2 instance
@@ -137,7 +143,7 @@ resource "aws_instance" "ec2_instance" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
   key_name               = aws_key_pair.ec2_key_pair.key_name
-  vpc_security_group_ids = [aws_security_group.ssh_access.id]
+  vpc_security_group_ids = [aws_security_group.wibl_upload_server.id]
   subnet_id              = aws_subnet.public.id
 
   root_block_device {

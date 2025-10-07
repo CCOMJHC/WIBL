@@ -55,10 +55,16 @@ variable "ami_id" {
   type        = string
 }
 
-variable "ssh_cidr_blocks" {
-  description = "CIDR blocks allowed to SSH into the instance"
-  type        = list(string)
-  default     = ["0.0.0.0/0"]  # Warning: Allows SSH from anywhere. Restrict in production!
+variable "ssh_cidr_block" {
+  description = "CIDR block allowed to SSH into the instance"
+  type        = string
+  default     = "0.0.0.0/0"  # Warning: Allows SSH from anywhere. Restrict in production!
+}
+
+variable "https_cidr_block" {
+  description = "CIDR block allowed to HTTPS into the instance"
+  type        = string
+  default     = "0.0.0.0/0"  # Note: Allows HTTPS from anywhere.
 }
 
 variable "root_volume_size" {

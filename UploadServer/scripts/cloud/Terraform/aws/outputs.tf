@@ -63,5 +63,5 @@ output "ssh_connection_command" {
 
 output "security_group_id" {
   description = "ID of the security group"
-  value       = aws_security_group.ssh_access.id
+  value       = aws_security_group.wibl_upload_server.id
 }

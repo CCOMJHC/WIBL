@@ -6,7 +6,8 @@ key_name="wibl-upload-server-key"
 instance_name="wibl-upload-server"
 instance_type="t4g.micro"
 ami_id="ami-0f22ddbe09d4dba64"  # Valid Amazon Linux 2023 ARM64 AMI for us-east-2
-ssh_cidr_blocks=["127.0.0.1/32"]  # Restrict to your IP
+ssh_cidr_block="127.0.0.1/32"  # Restrict to your IP
+https_cidr_block="0.0.0.0/0" # Restrict if you need to, otherwise, use default
 
 upload_bucket_name="unhjhc-wibl-upload-server-incoming"
 upload_sns_topic_name="unhjhc-wibl-upload-server-conversion"
