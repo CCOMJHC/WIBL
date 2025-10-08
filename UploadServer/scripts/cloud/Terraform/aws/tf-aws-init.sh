@@ -10,6 +10,30 @@ if [ $SILENT -ne 1 ]; then
   echo "CONTENT_ROOT: ${CONTENT_ROOT}"
 fi
 
+ARCHITECTURE=arm64
+export ARCHITECTURE
+if [ $SILENT -ne 1 ]; then
+  echo "Using ARCHITECTURE: ${ARCHITECTURE}"
+fi
+
+AWS_BUILD='aws-build'
+export AWS_BUILD
+if [ $SILENT -ne 1 ]; then
+  echo "Using AWS_BUILD: ${AWS_BUILD}"
+fi
+
+BUILD_DEST=${CONTENT_ROOT}/${AWS_BUILD}
+export BUILD_DEST
+if [ $SILENT -ne 1 ]; then
+  echo "Using BUILD_DEST: ${BUILD_DEST}"
+fi
+
+WIBL_UPLOAD_BINARY=upload-server
+export WIBL_UPLOAD_BINARY
+if [ $SILENT -ne 1 ]; then
+  echo "Using WIBL_UPLOAD_BINARY: ${WIBL_UPLOAD_BINARY}"
+fi
+
 AWS_PROFILE='wibl-upload-server'
 export AWS_PROFILE
 if [ $SILENT -ne 1 ]; then
