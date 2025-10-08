@@ -122,7 +122,7 @@ wibl-upload  | 2025/10/02 18:11:12.556534 INFO [::1] - - [02/Oct/2025:18:11:12 +
 
 Before trying to interact with the service, you'll need to create a `loggers.db`
 file in the `db` local directory. Before you can do that, you'll need to build
-the `add-logger` command using the provided 
+the `add-logger` command using the provided [script](scripts/build-insert-logger.sh).
 
 
 ```shell
