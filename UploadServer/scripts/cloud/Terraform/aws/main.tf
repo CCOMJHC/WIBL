@@ -35,8 +35,21 @@ resource "aws_sns_topic" "upload_topic" {
 }
 
 resource "aws_eip" "wibl_upload_ip" {
-  instance = aws_instance.ec2_instance.id
   domain   = "vpc"
+}
+
+module "wibl_tls" {
+  depends_on = [aws_eip.wibl_upload_ip]
+  source = "./modules/wibl_tls"
+
+  out_dir = var.wibl_certs_path
+  server_common_name = aws_eip.wibl_upload_ip.public_dns
+
+}
+
+resource "aws_eip_association" "eip_assoc" {
+  instance_id   = aws_instance.ec2_instance.id
+  allocation_id = aws_eip.wibl_upload_ip.id
 }
 
 # Create VPC
@@ -145,6 +158,8 @@ resource "aws_vpc_security_group_ingress_rule" "allow_tls_ipv4" {
 
 # EC2 instance
 resource "aws_instance" "ec2_instance" {
+  depends_on = [aws_eip.wibl_upload_ip, module.wibl_tls]
+
   ami                    = var.ami_id
   instance_type          = var.instance_type
   key_name               = aws_key_pair.ec2_key_pair.key_name

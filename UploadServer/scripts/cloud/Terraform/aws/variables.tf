@@ -16,22 +16,10 @@ variable "wibl_upload_config_path" {
   default     = "aws-build/config.json"
 }
 
-variable "wibl_upload_server_crt_path" {
-  description = "Path to upload server server.crt file to be provisioned to the EC2 image"
+variable "wibl_certs_path" {
+  description = "Path to upload server TLS certificate files to be provisioned to the EC2 image"
   type        = string
-  default     = "aws-build/certs/server.crt"
-}
-
-variable "wibl_upload_server_key_path" {
-  description = "Path to upload server server.key file to be provisioned to the EC2 image"
-  type        = string
-  default     = "aws-build/certs/server.key"
-}
-
-variable "wibl_upload_ca_crt_path" {
-  description = "Path to upload server ca.crt file to be provisioned to the EC2 image"
-  type        = string
-  default     = "aws-build/certs/ca.crt"
+  default     = "aws-build/certs"
 }
 
 variable "upload_bucket_name" {
