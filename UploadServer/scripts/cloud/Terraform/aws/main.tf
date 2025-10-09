@@ -106,7 +106,7 @@ resource "aws_key_pair" "ec2_key_pair" {
 # Save private key locally
 resource "local_file" "private_key" {
   content         = tls_private_key.ec2_key.private_key_pem
-  filename        = "${path.module}/${var.key_name}.pem"
+  filename        = "${path.cwd}/${var.key_name}.pem"
   file_permission = "0400"
 }
 
@@ -150,6 +150,12 @@ resource "aws_instance" "ec2_instance" {
   key_name               = aws_key_pair.ec2_key_pair.key_name
   vpc_security_group_ids = [aws_security_group.wibl_upload_server.id]
   subnet_id              = aws_subnet.public.id
+  # We're using an EIP, so don't bother creating an ephemeral public IP
+  associate_public_ip_address = false
+
+  # Use user data to install necessary software packages and
+  # setup the server directories
+  user_data = file("${path.module}/userdata.sh")
 
   root_block_device {
     volume_size           = var.root_volume_size

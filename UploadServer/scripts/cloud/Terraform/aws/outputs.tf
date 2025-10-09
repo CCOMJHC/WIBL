@@ -58,7 +58,7 @@ output "ssh_private_key_path" {
 
 output "ssh_connection_command" {
   description = "Command to SSH into the instance"
-  value       = "ssh -i ${local_file.private_key.filename} ec2-user@${aws_eip.wibl_upload_ip.public_ip}"
+  value       = "ssh -o 'IdentitiesOnly yes' -i ${local_file.private_key.filename} ec2-user@${aws_eip.wibl_upload_ip.public_ip}"
 }
 
 output "security_group_id" {
