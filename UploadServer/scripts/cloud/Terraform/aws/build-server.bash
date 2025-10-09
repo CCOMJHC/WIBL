@@ -3,7 +3,7 @@ set -eu -o pipefail
 
 CONTENT_ROOT=$(realpath "$(dirname $0)/../../../..")
 
-source ${CONTENT_ROOT}/scripts/cloud/Terraform/aws/tf-aws-init.sh
+source ${CONTENT_ROOT}/scripts/cloud/Terraform/aws/tf-aws-init.sh --silent
 
 rm -rf ${BUILD_DEST}
 mkdir -p ${BUILD_DEST}

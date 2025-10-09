@@ -4,6 +4,16 @@ variable "aws_region" {
   default     = "us-east-2"
 }
 
+variable "wibl_upload_binary_path" {
+  description = "Path to upload server compiled binary to be provisioned to the EC2 image"
+  type        = string
+}
+
+variable "wibl_upload_config_path" {
+  description = "Path to upload server config file to be provisioned to the EC2 image"
+  type        = string
+}
+
 variable "upload_bucket_name" {
   description = "Name of the S3 bucket to write uploads to"
   type = string
@@ -53,6 +63,12 @@ variable "instance_type" {
 variable "ami_id" {
   description = "AMI ID for the EC2 instance"
   type        = string
+}
+
+variable "wibl_upload_server_port" {
+  description = "TCP port that upload-server should listen on"
+  type        = number
+  default     = 443
 }
 
 variable "ssh_cidr_block" {

@@ -138,9 +138,9 @@ resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
 resource "aws_vpc_security_group_ingress_rule" "allow_tls_ipv4" {
   security_group_id = aws_security_group.wibl_upload_server.id
   cidr_ipv4         = var.https_cidr_block
-  from_port         = 443
+  from_port         = var.wibl_upload_server_port
   ip_protocol       = "tcp"
-  to_port           = 443
+  to_port           = var.wibl_upload_server_port
 }
 
 # EC2 instance
@@ -150,12 +150,52 @@ resource "aws_instance" "ec2_instance" {
   key_name               = aws_key_pair.ec2_key_pair.key_name
   vpc_security_group_ids = [aws_security_group.wibl_upload_server.id]
   subnet_id              = aws_subnet.public.id
-  # We're using an EIP, so don't bother creating an ephemeral public IP
-  associate_public_ip_address = false
 
   # Use user data to install necessary software packages and
   # setup the server directories
   user_data = file("${path.module}/userdata.sh")
+
+  provisioner "file" {
+    source      = var.wibl_upload_binary_path
+    destination = "/tmp/upload-server"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = tls_private_key.ec2_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+
+  # Note: For file provisioning we use the temporary public IP of the instance since trying
+  # to use the Elastic IP here results in a circular dependency.
+  provisioner "file" {
+    source      = var.wibl_upload_config_path
+    destination = "/tmp/config.json"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = tls_private_key.ec2_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo mkdir -p /usr/local/wibl/upload-server/bin /usr/local/wibl/upload-server/etc",
+      "sudo mv /tmp/upload-server /usr/local/wibl/upload-server/bin",
+      "sudo mv /tmp/config.json /usr/local/wibl/upload-server/etc",
+      "sudo chmod +x /usr/local/wibl/upload-server/bin/upload-server"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = tls_private_key.ec2_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
 
   root_block_device {
     volume_size           = var.root_volume_size
