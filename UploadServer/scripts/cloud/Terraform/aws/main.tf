@@ -155,6 +155,8 @@ resource "aws_instance" "ec2_instance" {
   # setup the server directories
   user_data = file("${path.module}/userdata.sh")
 
+  # Note: For file provisioning we use the temporary public IP of the instance since trying
+  # to use the Elastic IP here results in a circular dependency.
   provisioner "file" {
     source      = var.wibl_upload_binary_path
     destination = "/tmp/upload-server"
@@ -167,8 +169,6 @@ resource "aws_instance" "ec2_instance" {
     }
   }
 
-  # Note: For file provisioning we use the temporary public IP of the instance since trying
-  # to use the Elastic IP here results in a circular dependency.
   provisioner "file" {
     source      = var.wibl_upload_config_path
     destination = "/tmp/config.json"
@@ -181,11 +181,48 @@ resource "aws_instance" "ec2_instance" {
     }
   }
 
+  provisioner "file" {
+    source      = var.wibl_upload_server_crt_path
+    destination = "/tmp/server.crt"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = tls_private_key.ec2_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+
+  provisioner "file" {
+    source      = var.wibl_upload_server_key_path
+    destination = "/tmp/server.key"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = tls_private_key.ec2_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+
+  provisioner "file" {
+    source      = var.wibl_upload_ca_crt_path
+    destination = "/tmp/ca.crt"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = tls_private_key.ec2_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+
   provisioner "remote-exec" {
     inline = [
-      "sudo mkdir -p /usr/local/wibl/upload-server/bin /usr/local/wibl/upload-server/etc",
+      "sudo mkdir -p /usr/local/wibl/upload-server/bin /usr/local/wibl/upload-server/etc/certs",
       "sudo mv /tmp/upload-server /usr/local/wibl/upload-server/bin",
       "sudo mv /tmp/config.json /usr/local/wibl/upload-server/etc",
+      "sudo mv /tmp/*.crt /tmp/server.key /usr/local/wibl/upload-server/etc/certs",
       "sudo chmod +x /usr/local/wibl/upload-server/bin/upload-server"
     ]
 

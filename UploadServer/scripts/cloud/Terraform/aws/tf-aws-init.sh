@@ -34,6 +34,12 @@ if [ $SILENT -ne 1 ]; then
   echo "Using BUILD_DEST: ${BUILD_DEST}"
 fi
 
+CERTS_DEST=${BUILD_DEST}/certs
+export CERTS_DEST
+if [ $SILENT -ne 1 ]; then
+  echo "Using CERTS_DEST: ${CERTS_DEST}"
+fi
+
 WIBL_UPLOAD_BINARY=upload-server
 export WIBL_UPLOAD_BINARY
 if [ $SILENT -ne 1 ]; then

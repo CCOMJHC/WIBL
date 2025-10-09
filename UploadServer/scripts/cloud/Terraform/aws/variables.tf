@@ -7,11 +7,31 @@ variable "aws_region" {
 variable "wibl_upload_binary_path" {
   description = "Path to upload server compiled binary to be provisioned to the EC2 image"
   type        = string
+  default     = "aws-build/upload-server"
 }
 
 variable "wibl_upload_config_path" {
   description = "Path to upload server config file to be provisioned to the EC2 image"
   type        = string
+  default     = "aws-build/config.json"
+}
+
+variable "wibl_upload_server_crt_path" {
+  description = "Path to upload server server.crt file to be provisioned to the EC2 image"
+  type        = string
+  default     = "aws-build/certs/server.crt"
+}
+
+variable "wibl_upload_server_key_path" {
+  description = "Path to upload server server.key file to be provisioned to the EC2 image"
+  type        = string
+  default     = "aws-build/certs/server.key"
+}
+
+variable "wibl_upload_ca_crt_path" {
+  description = "Path to upload server ca.crt file to be provisioned to the EC2 image"
+  type        = string
+  default     = "aws-build/certs/ca.crt"
 }
 
 variable "upload_bucket_name" {

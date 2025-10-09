@@ -17,7 +17,9 @@
 # As a consequence of the unknown status of this script, this file has no license information.  We'd assume that
 # it's effectively public domain, or at least open source, but have no evidence to that effect.
 
-OUT_DIR="certs"
+if [[ -z ${OUT_DIR} ]]; then
+  OUT_DIR="certs"
+fi
 CA_IP_CN="localhost"
 SERVER_IP_CN="localhost"
 CLIENT_HOSTNAME="wibl-logger"
