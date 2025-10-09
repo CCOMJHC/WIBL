@@ -44,7 +44,8 @@ module "wibl_tls" {
 
   out_dir = var.wibl_certs_path
   server_common_name = aws_eip.wibl_upload_ip.public_dns
-
+  server_cert_dns_names = [aws_eip.wibl_upload_ip.public_dns]
+  server_cert_ip_addrs =  [aws_eip.wibl_upload_ip.public_ip]
 }
 
 resource "aws_eip_association" "eip_assoc" {
@@ -171,7 +172,7 @@ resource "aws_instance" "ec2_instance" {
   user_data = file("${path.module}/userdata.sh")
 
   # Note: For file provisioning we use the temporary public IP of the instance since trying
-  # to use the Elastic IP here results in a circular dependency.
+  # to use the Elastic IP here won't work because it hasn't been associated yet.
   provisioner "file" {
     source      = var.wibl_upload_binary_path
     destination = "/tmp/upload-server"
@@ -197,7 +198,7 @@ resource "aws_instance" "ec2_instance" {
   }
 
   provisioner "file" {
-    source      = var.wibl_upload_server_crt_path
+    source      = "${module.wibl_tls.certificate_directory}/server.crt"
     destination = "/tmp/server.crt"
 
     connection {
@@ -209,7 +210,7 @@ resource "aws_instance" "ec2_instance" {
   }
 
   provisioner "file" {
-    source      = var.wibl_upload_server_key_path
+    source      = "${module.wibl_tls.certificate_directory}/server.key"
     destination = "/tmp/server.key"
 
     connection {
@@ -221,7 +222,7 @@ resource "aws_instance" "ec2_instance" {
   }
 
   provisioner "file" {
-    source      = var.wibl_upload_ca_crt_path
+    source      = "${module.wibl_tls.certificate_directory}/ca.crt"
     destination = "/tmp/ca.crt"
 
     connection {
