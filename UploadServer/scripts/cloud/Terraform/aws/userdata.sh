@@ -12,9 +12,12 @@ sudo adduser wibl
 sudo chown -R wibl:wibl /usr/local/wibl
 sudo -u wibl chmod 0400 /usr/local/wibl/upload-server/etc/certs/server.key \
   /usr/local/wibl/upload-server/etc/certs/server.key
-sudo -u wibl 0400 /usr/local/wibl/upload-server/etc/certs/server.crt \
+sudo -u wibl chmod 0400 /usr/local/wibl/upload-server/etc/certs/server.crt \
   /usr/local/wibl/upload-server/etc/certs/ca.crt
-sudo -u wibl 0500 /usr/local/wibl/upload-server/bin/upload-server
+sudo -u wibl chmod 0500 /usr/local/wibl/upload-server/bin/upload-server
+
+# Allow upload server to bind to ports <1024 as non-root user (i.e., wibl)
+sudo setcap 'CAP_NET_BIND_SERVICE=+ep' /usr/local/wibl/upload-server/bin/upload-server
 
 # Setup systemd service
 cat > /tmp/wibl-upload-server.service <<-HERE
