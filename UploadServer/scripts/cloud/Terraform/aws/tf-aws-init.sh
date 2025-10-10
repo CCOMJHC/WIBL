@@ -52,6 +52,18 @@ if [ $SILENT -ne 1 ]; then
   echo "Using WIBL_UPLOAD_BINARY_PATH: ${WIBL_UPLOAD_BINARY_PATH}"
 fi
 
+ADD_LOGGER_BINARY=add-logger
+export ADD_LOGGER_BINARY
+if [ $SILENT -ne 1 ]; then
+  echo "Using ADD_LOGGER_BINARY: ${ADD_LOGGER_BINARY}"
+fi
+
+ADD_LOGGER_BINARY_PATH=${BUILD_DEST}/${ADD_LOGGER_BINARY}
+export ADD_LOGGER_BINARY_PATH
+if [ $SILENT -ne 1 ]; then
+  echo "Using ADD_LOGGER_BINARY_PATH: ${ADD_LOGGER_BINARY_PATH}"
+fi
+
 WIBL_UPLOAD_CONFIG_PROTO=${AWS_TF_ROOT}/config-aws.json.proto
 export WIBL_UPLOAD_CONFIG_PROTO
 if [ $SILENT -ne 1 ]; then

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # This builds the add-logger tool locally so that the logger.db SQLite file can be generated.
 # If you get the following error when running:
 #   # runtime/cgo
@@ -24,8 +24,11 @@
 #                 NHNSNEJJb2VjQWo4
 #                 YVlkU1laOUlURHM2
 #
-CONTENT_ROOT=$(realpath "$(dirname $0)/..")
+if [[ -z ${ADD_LOGGER_OUT} ]]; then
+  CONTENT_ROOT=$(realpath "$(dirname $0)")
+  ADD_LOGGER_OUT="${CONTENT_ROOT}/add-logger"
+  pushd ${CONTENT_ROOT}/src/tools/add-logger
+fi
 
-pushd "${CONTENT_ROOT}/src/tools/add-logger"
-CGO_ENABLED=1 go build -o "${CONTENT_ROOT}/add-logger"
-popd
+echo "Running go build for add-logger..."
+CGO_ENABLED=1 go build -o ${ADD_LOGGER_OUT}
