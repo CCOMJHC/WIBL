@@ -1,6 +1,6 @@
 #!/bin/bash -ev
 
-sudo dnf install -y golang sqlite sqlite-doc
+sudo dnf install -y golang amazon-cloudwatch-agent sqlite sqlite-doc
 
 sudo mkdir -p /usr/local/wibl/upload-server/bin \
     /usr/local/wibl/upload-server/etc/certs \
@@ -43,3 +43,45 @@ sudo chown root:root /etc/systemd/system/wibl-upload-server.service
 sudo systemctl daemon-reload
 sudo systemctl enable wibl-upload-server
 sudo systemctl start wibl-upload-server
+
+# Setup CloudWatch agent
+cat > /tmp/cloudwatch-agent.json <<-HERE
+{
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log",
+            "log_group_name": "wibl-upload-server",
+            "log_stream_name": "amazon-cloudwatch-agent.log",
+            "timezone": "UTC",
+            "auto_removal": true,
+            "retention_in_days": 7
+          },
+          {
+            "file_path": "/usr/local/wibl/upload-server/log/console-*.log",
+            "log_group_name": "wibl-upload-server",
+            "log_stream_name": "console.log",
+            "timezone": "UTC",
+            "auto_removal": true,
+            "retention_in_days": 60
+          },
+          {
+            "file_path": "/usr/local/wibl/upload-server/log/access-*.log",
+            "log_group_name": "wibl-upload-server",
+            "log_stream_name": "access.log",
+            "timezone": "UTC",
+            "auto_removal": true,
+            "retention_in_days": 60
+          }
+        ]
+      }
+    }
+  }
+}
+HERE
+sudo mv /tmp/cloudwatch-agent.json /opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-agent.json
+sudo chown root:root /opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-agent.json
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-agent.json
