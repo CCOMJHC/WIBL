@@ -186,6 +186,18 @@ resource "aws_instance" "ec2_instance" {
   }
 
   provisioner "file" {
+    source      = var.add_logger_binary_path
+    destination = "/tmp/add-logger"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = tls_private_key.ec2_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+
+  provisioner "file" {
     source      = var.wibl_upload_config_path
     destination = "/tmp/config.json"
 
@@ -237,9 +249,9 @@ resource "aws_instance" "ec2_instance" {
     inline = [
       "sudo mkdir -p /usr/local/wibl/upload-server/bin /usr/local/wibl/upload-server/etc/certs",
       "sudo mv /tmp/upload-server /usr/local/wibl/upload-server/bin",
+      "sudo mv /tmp/add-logger /usr/local/wibl/upload-server/bin",
       "sudo mv /tmp/config.json /usr/local/wibl/upload-server/etc",
-      "sudo mv /tmp/*.crt /tmp/server.key /usr/local/wibl/upload-server/etc/certs",
-      "sudo chmod +x /usr/local/wibl/upload-server/bin/upload-server"
+      "sudo mv /tmp/*.crt /tmp/server.key /usr/local/wibl/upload-server/etc/certs"
     ]
 
     connection {

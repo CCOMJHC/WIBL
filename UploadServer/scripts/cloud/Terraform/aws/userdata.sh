@@ -1,6 +1,6 @@
 #!/bin/bash -ev
 
-sudo dnf install -y golang
+sudo dnf install -y golang sqlite sqlite-doc
 
 sudo mkdir -p /usr/local/wibl/upload-server/bin \
     /usr/local/wibl/upload-server/etc/certs \
@@ -14,7 +14,8 @@ sudo -u wibl chmod 0400 /usr/local/wibl/upload-server/etc/certs/server.key \
   /usr/local/wibl/upload-server/etc/certs/server.key
 sudo -u wibl chmod 0400 /usr/local/wibl/upload-server/etc/certs/server.crt \
   /usr/local/wibl/upload-server/etc/certs/ca.crt
-sudo -u wibl chmod 0500 /usr/local/wibl/upload-server/bin/upload-server
+sudo -u wibl chmod 0500 /usr/local/wibl/upload-server/bin/*
+
 
 # Allow upload server to bind to ports <1024 as non-root user (i.e., wibl)
 sudo setcap 'CAP_NET_BIND_SERVICE=+ep' /usr/local/wibl/upload-server/bin/upload-server

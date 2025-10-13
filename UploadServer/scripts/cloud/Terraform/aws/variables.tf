@@ -10,6 +10,12 @@ variable "wibl_upload_binary_path" {
   default     = "aws-build/upload-server"
 }
 
+variable "add_logger_binary_path" {
+  description = "Path to add-logger compiled binary to be provisioned to the EC2 image"
+  type        = string
+  default     = "aws-build/add-logger"
+}
+
 variable "wibl_upload_config_path" {
   description = "Path to upload server config file to be provisioned to the EC2 image"
   type        = string

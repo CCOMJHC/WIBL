@@ -22,6 +22,7 @@ terraform init
 echo "Running terraform apply..."
 terraform apply \
   -var "wibl_upload_binary_path=${WIBL_UPLOAD_BINARY_PATH}" \
+  -var "add_logger_binary_path=${ADD_LOGGER_BINARY_PATH}" \
   -var "wibl_upload_config_path=${WIBL_UPLOAD_CONFIG_PATH}" \
   -var "wibl_certs_path=${CERTS_DEST}" \
   -auto-approve
