@@ -111,6 +111,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", syntax)
+	mux.HandleFunc("/robots.txt", robots)
 	mux.HandleFunc("/checkin", support.BasicAuth(status_updates, db))
 	mux.HandleFunc("/update", support.BasicAuth(file_transfer, db))
 
@@ -133,6 +134,13 @@ func main() {
 func syntax(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "checkin\n")
 	fmt.Fprintf(w, "update\n")
+	support.LogAccess(r, http.StatusOK)
+}
+
+// Provide robots.txt
+func robots(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "User-agent: *\n")
+	fmt.Fprintf(w, "Disallow: /\n")
 	support.LogAccess(r, http.StatusOK)
 }
 

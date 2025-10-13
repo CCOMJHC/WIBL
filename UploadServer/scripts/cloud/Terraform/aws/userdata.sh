@@ -56,7 +56,7 @@ cat > /tmp/cloudwatch-agent.json <<-HERE
             "log_group_name": "wibl-upload-server",
             "log_stream_name": "amazon-cloudwatch-agent.log",
             "timezone": "UTC",
-            "auto_removal": true,
+            "auto_removal": false,
             "retention_in_days": 7
           },
           {
@@ -64,7 +64,7 @@ cat > /tmp/cloudwatch-agent.json <<-HERE
             "log_group_name": "wibl-upload-server",
             "log_stream_name": "console.log",
             "timezone": "UTC",
-            "auto_removal": true,
+            "auto_removal": false,
             "retention_in_days": 60
           },
           {
@@ -72,7 +72,7 @@ cat > /tmp/cloudwatch-agent.json <<-HERE
             "log_group_name": "wibl-upload-server",
             "log_stream_name": "access.log",
             "timezone": "UTC",
-            "auto_removal": true,
+            "auto_removal": false,
             "retention_in_days": 60
           }
         ]
