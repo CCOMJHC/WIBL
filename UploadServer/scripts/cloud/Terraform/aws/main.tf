@@ -157,12 +157,96 @@ resource "aws_vpc_security_group_ingress_rule" "allow_tls_ipv4" {
   to_port           = var.wibl_upload_server_port
 }
 
+# IAM roles to allow EC2 instance access to S3 bucket and SNS topic
+data "aws_iam_policy_document" "upload_bucket_policy_doc" {
+  statement {
+    sid = "EC2AllowS3AccessUpload"
+
+    effect = "Allow"
+    actions = [
+      "s3:PutObject",
+      "s3:ListBucket"
+    ]
+    resources = [
+      aws_s3_bucket.upload_bucket.arn,
+      "${aws_s3_bucket.upload_bucket.arn}/*"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "upload_bucket_policy" {
+  name        = var.upload_bucket_name
+  description = "Allow"
+  policy = data.aws_iam_policy_document.upload_bucket_policy_doc.json
+}
+
+data "aws_iam_policy_document" "upload_sns_policy_doc" {
+  statement {
+    sid = "EC2AllowSNSAccessUpload"
+
+    effect = "Allow"
+    actions = [
+      "SNS:Publish"
+    ]
+    resources = [
+      aws_sns_topic.upload_topic.arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "upload_sns_policy" {
+  name        = var.upload_sns_topic_name
+  description = "Allow"
+  policy = data.aws_iam_policy_document.upload_sns_policy_doc.json
+}
+
+data "aws_iam_policy_document" "ec2_instance_role_policy_doc" {
+  statement {
+    sid = "EC2AllowS3AccessUpload"
+
+    effect = "Allow"
+    actions = [
+      "sts:AssumeRole"
+    ]
+    principals {
+      identifiers = ["ec2.amazonaws.com"]
+      type = "Service"
+    }
+  }
+}
+
+resource "aws_iam_role" "ec2_instance" {
+  name = "wibl_upload_ec2_instance_role"
+  assume_role_policy = data.aws_iam_policy_document.ec2_instance_role_policy_doc.json
+}
+
+resource "aws_iam_role_policy_attachment" "upload_bucket_policy" {
+  role       = aws_iam_role.ec2_instance.name
+  policy_arn = aws_iam_policy.upload_bucket_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "upload_sns_policy" {
+  role       = aws_iam_role.ec2_instance.name
+  policy_arn = aws_iam_policy.upload_sns_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "cloud_watch_policy" {
+  role       = aws_iam_role.ec2_instance.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+resource "aws_iam_instance_profile" "wibl_upload" {
+  name = "wibl_upload_profile"
+  role = aws_iam_role.ec2_instance.name
+}
+
 # EC2 instance
 resource "aws_instance" "ec2_instance" {
   depends_on = [aws_eip.wibl_upload_ip, module.wibl_tls]
 
   ami                    = var.ami_id
   instance_type          = var.instance_type
+  iam_instance_profile   = aws_iam_instance_profile.wibl_upload.id
   key_name               = aws_key_pair.ec2_key_pair.key_name
   vpc_security_group_ids = [aws_security_group.wibl_upload_server.id]
   subnet_id              = aws_subnet.public.id
