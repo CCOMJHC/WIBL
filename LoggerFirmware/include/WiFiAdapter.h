@@ -61,7 +61,7 @@ public:
 
     enum HTTPReturnCodes {
         OK              = 200,  // The request succeeded
-        BADREQUEST      = 400,  // The server cannot or will not process the reqeuest
+        BADREQUEST      = 400,  // The server cannot or will not process the request
         NOTFOUND        = 404,  // Resource not found
         IMATEAPOT       = 418,  // Really ... not expected to be used, but good for the yucks.
         SERVERERR       = 500,  // Internal server error

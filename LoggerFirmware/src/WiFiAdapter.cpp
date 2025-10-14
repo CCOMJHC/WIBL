@@ -25,12 +25,15 @@
 
 #include <functional>
 #include <queue>
+#include <vector>
 
 #include <WiFi.h>
 #include <WiFiAP.h>
 #include <ESPmDNS.h>
 #include <WebServer.h>
+#include <WifiClient.h>
 #include <LittleFS.h>
+#include <ESP32-targz.h>
 
 #include "LogManager.h"
 #include "WiFiAdapter.h"
@@ -39,6 +42,85 @@
 #include "serial_number.h"
 
 #if defined(ARDUINO_ARCH_ESP32) || defined(ESP32)
+
+class ChunkedStream : public Stream {
+public:
+    ChunkedStream(WebServer *output) {
+        m_output = output;
+    }
+    ~ChunkedStream() {}
+
+    int available() override {
+        return m_output->client().available();
+    }
+
+    int read() override {
+        return m_output->client().read();
+    }
+    int peek() override {
+        return m_output->client().peek();
+    }
+    size_t write(uint8_t b) override {
+        return m_output->client().write(b);
+    }
+    size_t write(const uint8_t *buf, size_t size) override {
+        m_output->sendContent((const char *)buf, size);
+        return size;
+    }
+
+private:
+    WebServer *m_output;
+};
+
+class ExtendedWebServer : public WebServer {
+public:
+    ExtendedWebServer(int port = 80)
+    : WebServer(port)
+    {}
+    ~ExtendedWebServer() {}
+
+    size_t StreamArchive(fs::FS *source, const char *path)
+    {
+        // First parse the path to get the list of files that need to be packaged and sent, so
+        // that we know if there is actually anything to send.
+        TAR::dir_entities_t dirEntries;
+        TAR::collectDirEntities(&dirEntries, source, path);
+        if (dirEntries.size() == 0) {
+            return 0;
+        }
+        // Due to an oddness in the WebServer library, it ignores the content length set in the
+        // _prepareHeader() method unless the length has never been set (_contentLength ==
+        // CONTENT_LENGTH_NOT_SET), so we have to set the length to CONTENT_LENGTH_UNKNOWN
+        // here to make sure it does into chunked mode...
+        setContentLength(CONTENT_LENGTH_UNKNOWN);
+
+        // OK, so there's something to send, so we can build the headers then stream
+        String headers, module_id;
+        if (logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_MODULEID_S, module_id)) {
+            if (module_id.startsWith("TNODEID")) {
+                // This is the default configuration, if the user hasn't configured the module yet, but
+                // we don't want to pass it back as the filename, so ...
+                module_id = String("wibl-logs.tgz");
+            } else {
+                module_id += ".tgz";
+            }
+        } else {
+            module_id = String("wibl-logs.tgz");
+        }
+        sendHeader("Content-Disposition", String("attachment; filename=\"") + module_id + "\"");
+        _prepareHeader(headers, 200, "application/tar+gzip", CONTENT_LENGTH_UNKNOWN);
+        _currentClient.write(headers.c_str(), headers.length());
+
+        // We can now stream the tar/gzipped data to the client, but we can't just direct the
+        // information to the client connection, since we need to use the chunking mechanism
+        // to make sure that the formatting is correct.  The ChunkedStream here provides an
+        // over-ride for the write() method in the Stream class that calls the server's
+        // sendContent() method to do this.
+        ChunkedStream op(this);
+        size_t compressed_size = TarGzPacker::compress(source, dirEntries, &op);
+        return compressed_size;
+    }
+};
 
 class ConnectionStateMachine {
 public:
@@ -319,7 +401,7 @@ public:
     
 private:
     mem::MemController  *m_storage;     ///< Pointer to the storage object to use
-    WebServer           *m_server;      ///< Pointer to the server object, if started.
+    ExtendedWebServer   *m_server;      ///< Pointer to the server object, if started.
     std::queue<String>  m_commands;     ///< Queue to handle commands sent by the user
     DynamicJsonDocument *m_messages;    ///< Accumulating message content to be send to the client
     HTTPReturnCodes     m_statusCode;   ///< Status code to return to the user with the transaction response
@@ -353,6 +435,18 @@ private:
     {
         m_commands.push("status");
     }
+    
+    void transferLogs(void)
+    {
+        size_t bytes_sent = m_server->StreamArchive(m_storage->ControllerPtr(), "/logs");
+        if (bytes_sent == 0) {
+            m_server->send(400, "application/json", "{\"error\":\"no logs found; this shouldn't happen since there should always be one on the go!\"}");
+        } else {
+            if (m_state.Verbose()) {
+                Serial.printf("DBG: transferred %d bytes of log data.\n", bytes_sent);
+            }
+        }
+    }
 
     /// Bring up the WiFi adapter, which in this case includes bring up the soft access point.  This
     /// uses the ParamStore to get the information required for the soft-AP, and then interrogates the
@@ -364,13 +458,14 @@ private:
     
     bool start(void)
     {
-        if ((m_server = new WebServer()) == nullptr) {
+        if ((m_server = new ExtendedWebServer()) == nullptr) {
             Serial.println("ERR: failed to start web server.");
             return false;
         } else {
             // Configure the endpoints served by the server
             m_server->on("/heartbeat", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::heartbeat, this));
             m_server->on("/command", HTTPMethod::HTTP_POST, std::bind(&ESP32WiFiAdapter::handleCommand, this));
+            m_server->on("/archive", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::transferLogs, this));
             m_server->serveStatic("/logs", m_storage->Controller(), "/logs/");
             m_server->serveStatic("/", LittleFS, "/website/"); // Note trailing '/' since this is a directory being served.
         }
@@ -380,8 +475,7 @@ private:
         return true;
     }
     
-    /// Stop the WiFi adapter cleanly, and return to BLE only for access to the system.  This attempts to
-    /// disconnect any current client cleanly, to avoid broken pipes.
+    /// Stop the WiFi adapter cleanly.  This attempts to disconnect any current client cleanly, to avoid broken pipes.
     
     void stop(void)
     {

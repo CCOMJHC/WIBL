@@ -39,7 +39,7 @@
 
 const uint32_t CommandMajorVersion = 1;
 const uint32_t CommandMinorVersion = 4;
-const uint32_t CommandPatchVersion = 0;
+const uint32_t CommandPatchVersion = 1;
 
 /// Default constructor for the SerialCommand object.  This stores the pointers for the logger and
 /// status LED controllers for reference, and then generates a BLE service object.  This turns on
@@ -1353,22 +1353,33 @@ void SerialCommand::SnapshotResource(String const& resource, CommandSource src)
     if (resource == "config") {
         DynamicJsonDocument json(logger::ConfigJSON::ExtractConfig());
         String contents;
-        url = "config.jsn";
         serializeJson(json, contents);
-        rc = m_logManager->WriteSnapshot(url, contents);
+        rc = m_logManager->WriteSnapshot("config.jsn", contents, url);
     } else if (resource == "defaults") {
         String defaults;
         logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_DEFAULTS_S, defaults);
         if (defaults.isEmpty())
             defaults = String("{}");
-        url = "defaults.jsn";
-        rc = m_logManager->WriteSnapshot(url, defaults);
+        rc = m_logManager->WriteSnapshot("defaults.jsn", defaults, url);
     } else if (resource == "catalog") {
         DynamicJsonDocument files(logger::status::GenerateFilelist(m_logManager));
         String contents;
-        url = "catalog.jsn";
         serializeJson(files, contents);
-        rc = m_logManager->WriteSnapshot(url, contents);
+        rc = m_logManager->WriteSnapshot("catalog.jsn", contents, url);
+    } else if (resource == "archive") {
+        String contents;
+        DynamicJsonDocument json(logger::ConfigJSON::ExtractConfig());
+        serializeJson(json, contents);
+        m_logManager->WriteSnapshot("config.jsn", contents, url);
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_DEFAULTS_S, contents);
+        if (contents.isEmpty())
+            contents = String("{}");
+        m_logManager->WriteSnapshot("defaults.jsn", contents, url);
+        json = DynamicJsonDocument(logger::status::GenerateFilelist(m_logManager));
+        serializeJson(json, contents);
+        m_logManager->WriteSnapshot("catalog.jsn", contents, url);
+        url = "/archive";
+        rc = true;
     } else {
         EmitMessage("ERR: unknown snapshot resource requested.\n", src);
     }
@@ -1501,7 +1512,8 @@ void SerialCommand::Syntax(CommandSource src)
     EmitMessage("  setup [json-specification]          Report the configuration of the logger, or set it, using JSON specifications.\n", src);
     EmitMessage("  shipname name                       Set the name of the host ship carrying the logger.\n", src);
     EmitMessage("  sizes                               Output list of the extant log files, and their sizes in bytes.\n", src);
-    EmitMessage("  snapshot catalog|config|defaults    Prepare a downloadable version of the specified resource in /logs\n", src);
+    EmitMessage("  snapshot catalog|config|defaults|archive\n", src);
+    EmitMessage("                                      Prepare a downloadable version of the specified resource in /logs\n", src);
     EmitMessage("  speed 1|2 baud-rate                 Set the baud rate for the RS-422 input channels.\n", src);
     EmitMessage("  ssid ap|station [wifi-ssid]         Set the WiFi SSID.\n", src);
     EmitMessage("  status                              Generate JSON-format status message for current dynamic configuration\n", src);
