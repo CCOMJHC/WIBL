@@ -6,24 +6,24 @@ services:
     restart: always
     env_file:
       - manager.env
-    environment:
-      MANAGER_DATABASE_URI: 'sqlite:////var/wibl/database.db'
     ports:
       #- '8001:8000'
       - '6080:5000'
     volumes:
-      - 'dbdata_mgr:/var/wibl'
+      - 'managerpgdata:/var/lib/postgresql/data/'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/heartbeat"]
       interval: 30s
       timeout: 1s
       retries: 5
-    command: 'gunicorn wibl_manager.application:app --workers 1 --bind 0.0.0.0:5000 --access-logfile -'
+    command: 'uvicorn src.wibl_manager.application:app --host 0.0.0.0 --port 5000 --workers 1'
     develop:
       watch:
         - action: sync+restart
-          path: ./wibl_manager
+          path: ./src/wibl_manager
           target: /usr/src/wibl/wibl_manager
+    depends_on:
+      - managerDB
   localstack:
     image: localstack/localstack
     environment:
@@ -39,6 +39,34 @@ services:
       - "14510-14559:4510-4559"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./s3-test-load.bash:/opt/code/localstack/s3-test-load.bash"
+      - "./src/wibl_manager/tests/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson:/opt/code/localstack/047EEFC3-7EEC-4FFD-816F-B6DB15E52297.geojson"
+      - "./scripts/s3-test-load.sh:/etc/localstack/init/ready.d/s3-test-load.sh"
+
+  managerDB:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM postgres:17-bookworm
+        RUN apt-get update \
+            && apt-get install -y postgis postgresql-17-postgis-3 \
+            && rm -rf /var/lib/apt/lists/*
+        COPY ./scripts/init-postgis.sql /docker-entrypoint-initdb.d/
+    image: postgres:17-bookworm
+    container_name: managerDB
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - managerpgdata:/var/lib/postgresql/data/
+    command: -p 5432
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
-  dbdata_mgr:
+  managerpgdata:

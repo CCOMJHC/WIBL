@@ -8,22 +8,26 @@ from django.urls import reverse
 from django.views.decorators.cache import cache_control
 
 from wiblfe.celery import app as celery
-
 import httpx
 import os
 
 @login_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-def downloadWiblFile(request, fileid):
+async def downloadFile(request, fileid):
     manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
-    full_url = f"{manager_url}/wibl/download/{fileid}"
+    extension = fileid.split(".")[-1]
+
+    download_url = f"{manager_url}/{extension}/download/{fileid}"
+    print(f"{download_url}")
+
     try:
         # Create an async iterable function
         async def create_stream():
             client = httpx.AsyncClient()
-            async with client.stream('GET', full_url) as response:
+            async with client.stream('GET', download_url) as response:
                 async for chunk in response.aiter_bytes():
                     yield chunk
+
         # Stream the function to the user
         return StreamingHttpResponse(create_stream(),
                                      content_type='application/octet-stream',
@@ -32,6 +36,36 @@ def downloadWiblFile(request, fileid):
         # TODO: Create consistent frontend error logging
         return JsonResponse({'error': str(e)}, status=500)
 
+@login_required
+async def rawGeojsonFile(request, fileid):
+    manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+    full_url = f"{manager_url}/geojson/raw/{fileid}"
+
+    client = httpx.AsyncClient()
+    response = await client.get(full_url)
+    if response.status_code == 200:
+        return JsonResponse({'geojson': response.json()}, status=200)
+    else:
+        return JsonResponse({}, status=404)
+
+@login_required
+async def checkFileAvail(request, fileid):
+    manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+    extension = fileid.split(".")[-1]
+
+    test_url = f"{manager_url}/{extension}/check/{fileid}"
+
+    client = httpx.AsyncClient()
+    response = await client.get(test_url)
+    if response.status_code != 200:
+        return HttpResponse(status=404)
+    else:
+        return HttpResponse(status=200)
+
+
+@login_required
+def dashboard(request):
+    return render(request, 'frontend/dashboard.html')
 
 @login_required
 def index(request: HttpRequest):
@@ -49,3 +83,6 @@ def index(request: HttpRequest):
 @login_required
 def logout(request: HttpRequest):
     logout(request)
+
+def heartbeat(request):
+    return HttpResponse(status=200)

@@ -25,18 +25,29 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
+from src.wibl_manager import ReturnCodes
 
-from flask_restful import Resource
+from fastapi import APIRouter, Depends, HTTPException
+from .database import get_async_db
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
-from wibl_manager import ReturnCodes
+HeartbeatRouter = APIRouter()
 
-
-class Heartbeat(Resource):
+@HeartbeatRouter.get("/heartbeat")
+async def getHeartbeat(db=Depends(get_async_db)):
     """
-    A simple check on whether the service is still running.  This returns a status code
+    A simple check on whether the service and database is still running.  This returns a status code
     for the service, but no other information.
 
-    TODO: The heartbeat should import the DB and make sure it functions.
     """
-    def get(self):
-        return ReturnCodes.OK.value
+    try:
+        result = await db.execute(select(1))
+        if not result:
+            raise HTTPException(status_code=500, detail="Failed database connection")
+        else:
+            return ReturnCodes.OK.value
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail="Failed database connection")
+

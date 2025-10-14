@@ -15,7 +15,8 @@ export class GeojsonFileTable extends FileTable {
         super.connectedCallback();
     }
 
-    clearCSS() {
+    // Clears only which row is selected, keeping the search filters
+    clearSelected() {
         const table_rows = this._shadow.querySelectorAll("tr");
 
         const hiddenMessage = document.querySelector("#filterErrorMessage");
@@ -28,7 +29,7 @@ export class GeojsonFileTable extends FileTable {
 
         for (let i = 0; i < table_rows.length; i++) {
             const row = table_rows[i];
-            row.setAttribute("class", "");
+            row.classList.remove("is-selected");
         }
     }
 }

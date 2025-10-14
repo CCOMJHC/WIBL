@@ -245,6 +245,13 @@ function redirectCatalog() {
     });
 }
 
+function redirectArchive() {
+    sendCommand('snapshot archive').then((data) => {
+        let frame = document.getElementById('downloadFrame');
+        frame.setAttribute('src', '..' + data.url);
+    });
+}
+
 function updateIndexStatus() {
     const update = () => { updateStatus('index'); }
     after(500, update);
@@ -257,5 +264,10 @@ function updateStatusData() {
 
 function saveCatalog() {
     const update = () => { redirectCatalog(); }
+    after(500, update);
+}
+
+function archiveLogs() {
+    const update = () => { redirectArchive(); }
     after(500, update);
 }

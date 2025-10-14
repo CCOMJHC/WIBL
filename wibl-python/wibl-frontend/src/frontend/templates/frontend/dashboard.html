@@ -1,0 +1,73 @@
+{% extends "base_nav.html" %}
+
+{% load static %}
+{% load plotly_dash %}
+
+{% block content %}
+
+<script>
+
+window.addEventListener('DOMContentLoaded', function () {
+
+    // The height of the navbar
+    const topMargin = 26;
+
+    // Static values to use for initial load
+    const originalWidth = 1440;
+    const originalHeight = 651.695;
+    let resizeTimeout;
+
+    // Scales the Iframe depending on the window size
+    function scaleIframe() {
+        const iframe = document.querySelector('iframe[src^="/django_plotly_dash/app/"]');
+        if (!iframe) return;
+
+        const wrapper = iframe.parentElement;
+        if (!wrapper) return;
+
+        const scale = Math.min(window.innerWidth / originalWidth, 1);
+        wrapper.style.transform = `scale(${scale})`;
+    }
+
+    // Applies initial css changes to the Iframe and its parent Div then calling scaleIframe()
+    function initializeAndScale() {
+        const iframe = document.querySelector('iframe[src^="/django_plotly_dash/app/"]');
+        if (!iframe) return;
+
+        iframe.style.position = "absolute";
+        iframe.style.top = `${topMargin}px`;
+        iframe.style.left = "0";
+        iframe.style.width = `${originalWidth}px`;
+        iframe.style.height = `${originalHeight}px`;
+        iframe.style.border = "none";
+
+        const wrapper = iframe.parentElement;
+        if (!wrapper) return;
+
+        wrapper.style.position = "absolute";
+        wrapper.style.top = `${topMargin}px`;
+        wrapper.style.left = "10px";
+        wrapper.style.width = `${originalWidth}px`;
+        wrapper.style.height = `${originalHeight}px`;
+        wrapper.style.overflow = "hidden";
+        wrapper.style.padding = "0";
+        wrapper.style.transformOrigin = "top left";
+
+        scaleIframe();
+    }
+
+    // Run on page load
+    initializeAndScale();
+
+    // resize after delay
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(scaleIframe, 250);
+    });
+});
+</script>
+<div id="dash-container" style="overflow: hidden;">
+    {% plotly_app name="Dashboard" %}
+</div>
+
+{% endblock %}
