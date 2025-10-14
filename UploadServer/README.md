@@ -5,7 +5,7 @@ from WIBL data from WIBL loggers and storing the data into AWS
 S3-compatible object storage.
 
 ## AWS deployment
-WIBL upload-server can be deploy to AWS using [Terraform](https://developer.hashicorp.com/terraform).
+WIBL upload-server can be deployed to AWS using [Terraform](https://developer.hashicorp.com/terraform).
 
 ### Prerequisites
 These instructions assume you have a POSIX/Linux computing environment (GNU/Linux, macOS, WSL) with the following
@@ -34,21 +34,417 @@ following AWS-managed policies using the IAM console:
 
 - AmazonEC2FullAccess
 
-[To add the remaining required policies to your AWS account, run:
-```shell
-# TODO: Implement if needed
-#./scripts/cloud/Terraform/aws/add-user-roles.bash
-```
-]
-
-### Bootstrapping Terraform: Create bucket for storing and sharing Terraform state
-Terraform state can be [stored remotely in S3](https://developer.hashicorp.com/terraform/language/backend/s3). 
-This allows multiple people/computers to manage a WIBL upload-server created with Terraform asynchronously.
+### Bootstrapping Terraform: Create an S3 bucket for storing and sharing Terraform state
+Terraform is able to modify and delete computing resources that were created using Terraform. To do this,
+Terraform must store state information about what resources have been created. This state information can be
+stored locally on a single compute. However, if the locally stored state information is lost, then you lose
+the ability to automatically update or delete the computing resources originally created by Terraform. To
+avoid this problem, Terraform state can be [stored remotely in S3](https://developer.hashicorp.com/terraform/language/backend/s3). In addition to providing a disaster
+recovery solution, storing state in S3 allows multiple people/computers to manage a WIBL upload-server created 
+with Terraform, and to do so asynchronously, without having to worry about each person's updates overwriting
+each other.
 
 You can use the script [terraform-bootstrap.bash](scripts/cloud/Terraform/aws/terraform-bootstrap.bash) to 
 create an S3 bucket in which to store Terraform state. Before doing so, change the name of the bucket and state
 object key by editing `terraform_state_bucket` and `terraform_state_key` in 
 [terraform.tfvars](scripts/cloud/Terraform/aws/terraform.tfvars).
+
+Running [terraform-bootstrap.bash](scripts/cloud/Terraform/aws/terraform-bootstrap.bash) will look something like
+this:
+```shell
+$ ./scripts/cloud/Terraform/aws/terraform-bootstrap.bash
+CONTENT_ROOT: /Users/JANE_USER/repos/WIBL/UploadServer
+Using AWS_TF_ROOT: /Users/JANE_USER/repos/WIBL/UploadServer/scripts/cloud/Terraform/aws
+Using ARCHITECTURE: arm64
+Using AWS_BUILD: aws-build
+Using BUILD_DEST: /Users/JANE_USER/repos/WIBL/UploadServer/aws-build
+Using CERTS_DEST: /Users/JANE_USER/repos/WIBL/UploadServer/aws-build/certs
+Using WIBL_UPLOAD_BINARY: upload-server
+Using WIBL_UPLOAD_BINARY_PATH: /Users/JANE_USER/repos/WIBL/UploadServer/aws-build/upload-server
+Using ADD_LOGGER_BINARY: add-logger
+Using ADD_LOGGER_BINARY_PATH: /Users/JANE_USER/repos/WIBL/UploadServer/aws-build/add-logger
+Using WIBL_UPLOAD_CONFIG_PROTO: /Users/JANE_USER/repos/WIBL/UploadServer/scripts/cloud/Terraform/aws/config-aws.json.proto
+Using WIBL_UPLOAD_CONFIG_PATH: /Users/JANE_USER/repos/WIBL/UploadServer/aws-build/config.json
+Using AWS_PROFILE: wibl-upload-server
+Using TF_VARS: /Users/JANE_USER/repos/WIBL/UploadServer/scripts/cloud/Terraform/aws/terraform.tfvars
+Using WIBL_UPLOAD_SERVER_PORT: 443
+Using AWS_REGION: us-east-2
+Using TF_STATE_BUCKET: unhjhc-wibl-tf-state
+Using TF_STATE_KEY: terraform/state/wibl-upload-server-deploy.tfstate
+Using WIBL_UPLOAD_BUCKET_NAME: unhjhc-wibl-upload-server-incoming
+Using WIBL_UPLOAD_SNS_TOPIC_NAME: unhjhc-wibl-upload-server-conversion
+Using AWS_CLI: aws --profile wibl-upload-server --region us-east-2
+Using AWS_ACCOUNT_NUMBER: XXXXXXXXXXXX
+Using WIBL_UPLOAD_SNS_TOPIC_ARN: arn:aws:sns:us-east-2:XXXXXXXXXXXX:unhjhc-wibl-upload-server-conversion
+Creating terraform state bucket unhjhc-wibl-tf-state in AWS region us-east-2...
+{
+    "Location": "http://unhjhc-wibl-tf-state.s3.amazonaws.com/"
+}
+Enabling bucket versioning in terraform state bucket unhjhc-wibl-tf-state...
+Done.
+```
+
+### Deploying WIBL upload server to AWS using Terraform
+Once you have created an S3 bucket for storing and sharing Terraform state, you can then deploy WIBL upload
+server to AWS. Before doing this, you *must* edit 
+[Terraform variables](scripts/cloud/Terraform/aws/terraform.tfvars). See the "Editing Terraform variables" 
+section below for details.
+
+#### Editing Terraform variables
+In particular, you *absolutely must* edit the `upload_bucket_name` variable. This is necessary because AWS S3 
+bucket names must be unique within an AWS partition; there are currently three partitions: all AWS commercial 
+regions, AWS China region, and AWS GovCloud US. Since most users of WIBL upload server will be using an AWS 
+commercial region, this means there is effectively a single namespace for S3 bucket names, which means your
+bucket name must be unique. A good practice is to include your organization name as well as a random string of
+characters in your bucket name, for example "unhjhc-1wdvhu89-wibl-upload". For more information about bucket
+naming rules, see [here](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html).
+
+You will probably also want to change the 
+[AWS region](https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-regions.html) to deploy to by 
+editing the `aws_region` variable to use your preferred region. When doing so, you must also choose a corresponding 
+[availability zone](https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-availability-zones.html) 
+by editing the `availability_zone` variable.
+
+If you do change the AWS region, you will also need to select a new Amazon Machine Image 
+([AMI](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html)) by editing the `ami_id` variable. To find
+an appropriate AMI ID, you can use the "AMI Catalog" in the AWS EC2 web console to search for an AMI that is 
+available in your region and compatible with the CPU architecture of the EC2 instance type you plan to use.  
+When choosing an AMI, make sure to choose an "Amazon Linux 2023" AMI for your region and CPU architecture. Once 
+you select the AMI, pretend you are going to "Launch Instance with AMI" in the web console where you will be able 
+to find the "Image ID" as shown in the red box in the figure below:
+
+![EC2 AMI Image ID example](img/ami.png "AMI Image ID example")
+
+> Note: If you change the `instance_type` variable, you will also have to make sure that your `ami_id` variable 
+> is set to a value that is compatible with the CPU architecture of the new instance type. For example, if you 
+> switch from the default instance type of `t4g.micro` (which has "AWS Graviton2" CPUs, which uses an "ARM64" 
+> architecture) to `t3.micro`, the CPU architecture will be `x86_64`, so you will need to search for an "x86"
+> Amazon Linux 2023 AMI. You can use the [Vantage EC2 instance browser](https://instances.vantage.sh) to easily
+> browse EC2 instance types. Typically, EC2 instances using AWS Graviton processors will be cheaper than those
+> using AMD or Intel processors. If you do change to an `x86_64` instance type, make sure to also change the
+> `ARCHITECTURE` variable in [tf-aws-init.sh](scripts/cloud/Terraform/aws/tf-aws-init.sh).
+
+The final [Terraform variable](scripts/cloud/Terraform/aws/terraform.tfvars) you *must* change is `ssh_cidr_block`.
+This should be the IP address from which you plan to connect via SSH to your EC2 instance to manage logger
+IDs and tokens/passwords. For example, if your public IP address is "128.2.3.4" you would set 
+`ssh_cidr_block` to "128.2.3.4/32". You can find the public IPv4 address that your computer is currently using
+by using a website such as [Whats My IP](https://whatsmyip.com).
+
+> Note: Using the default value of `ssh_cidr_block="127.0.0.1/32"` will result in your EC2 instance being 
+> unreachable via SSH, which will cause the Terraform deployment of the upload-server binary and other
+> assets to time out and fail.
+
+#### Terraform deployment
+Once you've edited [Terraform variables](scripts/cloud/Terraform/aws/terraform.tfvars) as described above, you can
+deploy the WIBL upload server by using the [create.bash script](scripts/cloud/Terraform/aws/create.bash):
+```shell
+$ ./scripts/cloud/Terraform/aws/create.bash
+...
+...
+...
+Apply complete! Resources: 34 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+instance_id = "i-0d996ff6c33dbb700"
+instance_private_ip = "10.0.1.77"
+instance_public_ip = "42.23.32.24"
+internet_gateway_id = "igw-01b0970g42ac855f0"
+security_group_id = "sg-0b93e7d5e82759e1e"
+ssh_connection_command = "ssh -o 'IdentitiesOnly yes' -i /Users/JANE_USER/repos/WIBL/UploadServer/scripts/cloud/Terraform/aws/wibl-upload-server-key.pem ec2-user@42.23.32.24"
+ssh_key_name = "wibl-upload-server-key"
+ssh_private_key_path = "/Users/JANE_USER/repos/WIBL/UploadServer/scripts/cloud/Terraform/aws/wibl-upload-server-key.pem"
+subnet_cidr = "10.0.1.0/24"
+subnet_id = "subnet-01fb0bb7c651868d5"
+tls_ca_crt = "/Users/JANE_USER/repos/WIBL/UploadServer/aws-build/certs/ca.crt"
+upload_bucket_arn = "arn:aws:s3:::unhjhc-wibl-upload-server-incoming"
+upload_topic_arn = "arn:aws:sns:us-east-2:XXXXXXXXXXXX:unhjhc-wibl-upload-server-conversion"
+vpc_cidr = "10.0.0.0/16"
+vpc_id = "vpc-0e7990ba6c2518eb2"
+~/ccom-repos/WIBL/UploadServer
+e1d270a9089efca544749da23f5c65a154ebb49972b4b4ae86b36fe1f8b70d18
+```
+
+The `create.bash` script creates a lot of output, most of which has been omitted above. At the end you'll see the 
+Terraform outpus, in particular the `instance_public_ip` and `ssh_connection_command` variables. You can now use 
+the `instance_public_ip` to make an HTTPS request using `curl` (to which you'll have to pass the value of the 
+`tls_ca_crt` variable as the `--cacert` option) to test that your WIBL upload server instance is running and 
+accessible via the internet:
+```shell
+$ curl --cacert ./aws-build/certs/ca.crt "https://42.23.32.24" 
+checkin
+update
+```
+
+Now, you should also be able to make an SSH connection to the EC2 instance by copying and pasting the value of the
+`ssh_connection_command` (note: Answer "yes" when asked if you want to continue connecting, which you should only
+be asked the first time you connect):
+```shell
+$ ssh -o 'IdentitiesOnly yes' -i /Users/JANE_USER/repos/WIBL/UploadServer/scripts/cloud/Terraform/aws/wibl-upload-server-key.pem ec2-user@42.23.32.24
+   ,     #_
+   ~\_  ####_        Amazon Linux 2023
+  ~~  \_#####\
+  ~~     \###|
+  ~~       \#/ ___   https://aws.amazon.com/linux/amazon-linux-2023
+   ~~       V~' '->
+    ~~~         /
+      ~~._.   _/
+         _/ _/
+       _/m/'
+Last login: Tue Oct 14 19:25:07 2025 from 128.2.3.4
+[ec2-user@ip-10-0-1-51 ~]$ 
+```
+
+See the "Managing WIBL upload server" section below for instructions on how to add/delete loggers to/from your
+WIBL upload-server instance database, and for general notes on testing and logging/monitoring.
+
+#### Managing WIBL upload-server
+Before managing your WIBL upload-server, first make in SSH connection to your EC2 instance as described in the
+"Terraform deployment" section above.
+
+##### Add/delete loggers
+To add, for example, two loggers to your WIBL upload-server instance database, run the following commands:
+```shell
+[ec2-user@ip-10-0-1-51 ~]$ cd /usr/local/wibl/upload-server/
+sudo -u wibl ./bin/add-logger -config ./etc/config.json -logger F94E871E-8A66-4614-9E10-628FFC49540A -password CC0E1FE1-46CA-4768-93A7-2252BF748118
+sudo -u wibl ./bin/add-logger -config ./etc/config.json -logger 12CEC8B4-0C42-424C-82CD-FB4E96CD7153 -password CAF1CA92-CB9E-437D-B391-7709A39D32B1
+```
+
+What the above commands do is run the `add-logger` command as the `wibl` user; the first logger has the identifier
+"F94E871E-8A66-4614-9E10-628FFC49540A" with password/token "CC0E1FE1-46CA-4768-93A7-2252BF748118" and the second
+logger has the identifier "12CEC8B4-0C42-424C-82CD-FB4E96CD7153" with password/token 
+"CAF1CA92-CB9E-437D-B391-7709A39D32B1".
+
+To verify that these loggers were added to the database, use the `sqlite3` command line utility:
+```shell
+[ec2-user@ip-10-0-1-51 ~]$ sqlite3 db/loggers.db 'SELECT * FROM loggers'
+F94E871E-8A66-4614-9E10-628FFC49540A|JDJhJDEwJGhyNVVPcWE0MkpTSjVTYjUySnhjZ3VTc1lsQmZqNHZWN2Q3NkNDZ2M5R0dDNWlmM0Vjemh1
+12CEC8B4-0C42-424C-82CD-FB4E96CD7153|JDJhJDEwJDc1Q0FrVG9WdEo2YUwwWWwxLjN0Ni5vN204NDZZejB6aVB0c0tjQkZEVEtQaXZ5ZlNkSENT
+```
+
+> Note: the password is stored in an encrypted field in the database, so you can only see the logger identifier
+> in the `sqlite3` output.
+
+To delete the logger with identifier "12CEC8B4-0C42-424C-82CD-FB4E96CD7153", use the following `sqlite3` command:
+```shell
+[ec2-user@ip-10-0-1-51 ~]$ sudo -u wibl sqlite3 db/loggers.db 'DELETE FROM LOGGERS WHERE name="12CEC8B4-0C42-424C-82CD-FB4E96CD7153"'
+```
+
+To verify that this logger was deleted from the database, use the `sqlite3` command line utility:
+```shell
+[ec2-user@ip-10-0-1-51 ~]$ sqlite3 db/loggers.db 'SELECT * FROM loggers'
+F94E871E-8A66-4614-9E10-628FFC49540A|JDJhJDEwJGhyNVVPcWE0MkpTSjVTYjUySnhjZ3VTc1lsQmZqNHZWN2Q3NkNDZ2M5R0dDNWlmM0Vjemh1
+```
+
+##### Test data upload and view logs for requests directly on EC2 instance
+Now that you have a logger in your database, you can post data to the `/checkin` and `/update` server endpoints. For
+example, to test the `/checkin` endpoint, first `tail` the WIBL upload-server logs in the terminal window through
+which you've connected to the EC2 instance via SSH:
+```shell
+$ sudo -u wibl tail -f /usr/local/wibl/upload-server/log/*.log
+==> /usr/local/wibl/upload-server/log/access.log <==
+128.2.3.4 - - [14/Oct/2025:19:21:04 +0000] "GET / HTTP/2.0" 200 0 - curl/8.7.1
+34.123.170.104 - - [14/Oct/2025:19:21:35 +0000] "GET / HTTP/2.0" 200 0 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/125.0.6422.60 Safari/537.36
+205.169.39.21 - - [14/Oct/2025:19:21:37 +0000] "GET / HTTP/2.0" 200 0 https://bing.com/ Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.5938.132 Safari/537.36
+205.169.39.21 - - [14/Oct/2025:19:21:43 +0000] "GET / HTTP/2.0" 200 0 - Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.5938.132 Safari/537.36
+128.2.3.4 - - [14/Oct/2025:19:21:54 +0000] "GET / HTTP/2.0" 200 0 - curl/8.7.1
+
+==> /usr/local/wibl/upload-server/log/console.log <==
+time=2025-10-14T19:19:24.106Z level=INFO msg="starting server on :443"
+```
+
+Then, in a separate terminal window, use `curl` to POST dummy data to the `/checkin` endpoint:
+```shell
+$ $ curl -v \
+        -u F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
+        --cacert ./aws-build/certs/ca.crt --fail-with-body "https://42.23.32.24/checkin" \                           
+  -H 'Content-Type: application/json' \
+  --data @-<<EOF
+{
+ "version": {
+   "firmware": "1.5.5",
+   "commandproc": "1.4.0",
+   "nmea0183": "1.0.1",
+   "nmea2000": "1.1.0",
+   "imu": "1.0.0",
+   "serialiser": "1.3"
+ },
+ "elapsed": 12345678,
+ "webserver": {
+   "current": "dummy status",
+   "boot": "dummy boot"
+ },
+ "data": {
+   "nmea0183": {
+     "count": 0,
+     "detail": []
+   },
+   "nmea2000": {
+     "count": 0,
+     "detail": []
+   }
+ },
+ "files": {
+   "count": 0,
+   "detail": []
+ }
+}
+EOF
+*   Trying 42.23.32.24:443...
+* Connected to 42.23.32.24 (42.23.32.24) port 443
+* ALPN: curl offers h2,http/1.1
+* (304) (OUT), TLS handshake, Client hello (1):
+*  CAfile: ./aws-build/certs/ca.crt
+*  CApath: none
+* (304) (IN), TLS handshake, Server hello (2):
+* (304) (IN), TLS handshake, Unknown (8):
+* (304) (IN), TLS handshake, Certificate (11):
+* (304) (IN), TLS handshake, CERT verify (15):
+* (304) (IN), TLS handshake, Finished (20):
+* (304) (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=Server; CN=ec2-42-23-32-24.us-east-2.compute.amazonaws.com
+*  start date: Oct 14 19:18:06 2025 GMT
+*  expire date: Oct 12 19:18:06 2035 GMT
+*  subjectAltName: host "42.23.32.24" matched cert's IP address!
+*  issuer: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=CA; CN=localhost
+*  SSL certificate verify ok.
+* using HTTP/2
+* Server auth using Basic with user 'F94E871E-8A66-4614-9E10-628FFC49540A'
+* [HTTP/2] [1] OPENED stream for https://42.23.32.24/checkin
+* [HTTP/2] [1] [:method: POST]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: 42.23.32.24]
+* [HTTP/2] [1] [:path: /checkin]
+* [HTTP/2] [1] [authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFMTAtNjI4RkZDNDQ2Q0EtNDc2OCk1NDBBOkNDMEUxRkUxLT05M0E3LTIyNTJCRjc0ODExOA==]
+* [HTTP/2] [1] [user-agent: curl/8.7.1]
+* [HTTP/2] [1] [accept: */*]
+* [HTTP/2] [1] [content-type: application/json]
+* [HTTP/2] [1] [content-length: 406]
+> POST /checkin HTTP/2
+> Host: 42.23.32.24
+> Authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFMTAtNjI4RkZDNDQ2Q0EtNDc2OCk1NDBBOkNDMEUxRkUxLT05M0E3LTIyNTJCRjc0ODExOA==
+> User-Agent: curl/8.7.1
+> Accept: */*
+> Content-Type: application/json
+> Content-Length: 406
+> 
+* upload completely sent off: 406 bytes
+< HTTP/2 200 
+< content-length: 0
+< date: Tue, 14 Oct 2025 19:43:45 GMT
+< 
+* Connection #0 to host 42.23.32.24 left intact
+```
+
+This will result in the log `tail` in the SSH terminal to be updated with the new entry in the access log:
+```shell
+...
+==> /usr/local/wibl/upload-server/log/access.log <==
+128.2.3.4 - F94E871E-8A66-4614-9E10-628FFC49540A [14/Oct/2025:19:49:13 +0000] "POST /checkin HTTP/2.0" 200 406 - curl/8.7.1
+...
+```
+
+If the request was successful, you should '"POST /checkin HTTP/2.0" 200' in the access log entry, the "200" being
+the [HTTP status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status) for "OK".
+
+Now we can create a test (bogus) WIBL file and upload it using the `/update` endpoint:
+```shell
+$ WIBL_FILE='dummy.wibl'
+dd if=/dev/urandom of="${WIBL_FILE}" bs=8192 count=32
+MD5_DIGEST=$(md5sum --quiet $WIBL_FILE)
+
+curl -v \
+	-u F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
+	--cacert ./aws-build/certs/ca.crt --fail-with-body "https://42.23.32.24/update" \                            
+
+32+0 records in
+32+0 records out
+262144 bytes transferred in 0.001771 secs (148020327 bytes/sec)
+*   Trying 42.23.32.24:443...
+* Connected to 42.23.32.24 (42.23.32.24) port 443
+* ALPN: curl offers h2,http/1.1
+* (304) (OUT), TLS handshake, Client hello (1):
+*  CAfile: ./aws-build/certs/ca.crt
+*  CApath: none
+* (304) (IN), TLS handshake, Server hello (2):
+* (304) (IN), TLS handshake, Unknown (8):
+* (304) (IN), TLS handshake, Certificate (11):
+* (304) (IN), TLS handshake, CERT verify (15):
+* (304) (IN), TLS handshake, Finished (20):
+* (304) (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=Server; CN=ec2-42-23-32-24.us-east-2.compute.amazonaws.com
+*  start date: Oct 14 19:18:06 2025 GMT
+*  expire date: Oct 12 19:18:06 2035 GMT
+*  subjectAltName: host "42.23.32.24" matched cert's IP address!
+*  issuer: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=CA; CN=localhost
+*  SSL certificate verify ok.
+* using HTTP/2
+* Server auth using Basic with user 'F94E871E-8A66-4614-9E10-628FFC49540A'
+* [HTTP/2] [1] OPENED stream for https://42.23.32.24/update
+* [HTTP/2] [1] [:method: POST]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: 42.23.32.24]
+* [HTTP/2] [1] [:path: /update]
+* [HTTP/2] [1] [authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFNDk1NDBBOkNDMEUxRkUxLTQ2Q0EtMTAtNjI4RkZDNDc2OC05M0E3LTIyNTJCRjc0ODExOA==]
+* [HTTP/2] [1] [user-agent: curl/8.7.1]
+* [HTTP/2] [1] [accept: application/json]
+* [HTTP/2] [1] [content-type: application/octet-stream]
+* [HTTP/2] [1] [digest: md5=ccae97189b9f203426a66077b15ccef2]
+* [HTTP/2] [1] [content-length: 262144]
+> POST /update HTTP/2
+> Host: 42.23.32.24
+> Authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFNDk1NDBBOkNDMEUxRkUxLTQ2Q0EtMTAtNjI4RkZDNDc2OC05M0E3LTIyNTJCRjc0ODExOA==
+> User-Agent: curl/8.7.1
+> accept: application/json
+> Content-Type: application/octet-stream
+> Digest: md5=ccae97189b9f203426a66077b15ccef2
+> Content-Length: 262144
+> 
+* upload completely sent off: 262144 bytes
+< HTTP/2 200 
+< content-type: application/json
+< content-length: 20
+< date: Tue, 14 Oct 2025 19:59:47 GMT
+< 
+* Connection #0 to host 42.23.32.24 left intact
+{"status":"success"}%
+```
+
+This will result in the log `tail` in the SSH terminal to be updated with the new entry in the access and console
+logs (if you have debug output turned on in [config-aws.json.proto](scripts/cloud/Terraform/aws/config-aws.json.proto)):
+```shell
+...
+==> /usr/local/wibl/upload-server/log/console.log <==
+time=2025-10-14T19:59:47.049Z level=DEBUG msg="TRANS: File transfer request with headers:\n"
+time=2025-10-14T19:59:47.049Z level=DEBUG msg="TRANS:    Content-Length = [262144]\n"
+time=2025-10-14T19:59:47.049Z level=DEBUG msg="TRANS:    Authorization = [Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFNDk1NDBBOkNDMEUxRkUxLTQ2Q0EtMTAtNjI4RkZDNDc2OC05M0E3LTIyNTJCRjc0ODExOA==]\n"
+time=2025-10-14T19:59:47.049Z level=DEBUG msg="TRANS:    User-Agent = [curl/8.7.1]\n"
+time=2025-10-14T19:59:47.049Z level=DEBUG msg="TRANS:    Accept = [application/json]\n"
+time=2025-10-14T19:59:47.049Z level=DEBUG msg="TRANS:    Content-Type = [application/octet-stream]\n"
+time=2025-10-14T19:59:47.049Z level=DEBUG msg="TRANS:    Digest = [md5=ccae97189b9f203426a66077b15ccef2]\n"
+time=2025-10-14T19:59:47.068Z level=DEBUG msg="TRANS: File from logger with 262144 bytes in body.\n"
+time=2025-10-14T19:59:47.068Z level=INFO msg="TRANS: successful recomputation of MD5 hash for transmitted contents.\n"
+time=2025-10-14T19:59:47.070Z level=DEBUG msg="AWS-S3: checking for bucket unhjhc-wibl-upload-server-incoming.\n"
+time=2025-10-14T19:59:47.225Z level=INFO msg="Bucket unhjhc-wibl-upload-server-incoming exists and you already own it."
+time=2025-10-14T19:59:47.225Z level=DEBUG msg="AWS-S3: transferring 55c48228-a938-11f0-8a1e-02160b114f4f.wibl to bucket unhjhc-wibl-upload-server-incoming (262144 bytes).\n"
+time=2025-10-14T19:59:47.281Z level=DEBUG msg="AWS-SNS: publishing key 55c48228-a938-11f0-8a1e-02160b114f4f.wibl on topic arn:aws:sns:us-east-2:XXXXXXXXXXXX:unhjhc-wibl-upload-server-conversion.\n"
+time=2025-10-14T19:59:47.332Z level=DEBUG msg="TRANS: sending |{\"status\":\"success\"}| to logger as response.\n"
+
+==> /usr/local/wibl/upload-server/log/access.log <==
+128.2.3.4 - F94E871E-8A66-4614-9E10-628FFC49540A [14/Oct/2025:19:59:47 +0000] "POST /update HTTP/2.0" 200 262144 - curl/8.7.1
+
+...
+```
+
+##### Log rotation and viewing logs in AWS CloudWatch
+TODO
+
 
 ## Local development and testing
 WIBL upload-server can be developed and tested locally using

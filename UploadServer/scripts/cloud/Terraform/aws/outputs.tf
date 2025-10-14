@@ -38,12 +38,17 @@ output "instance_id" {
 
 output "instance_public_ip" {
   description = "Public IP address of the EC2 instance"
-  value       = aws_instance.ec2_instance.public_ip
+  value       = aws_eip.wibl_upload_ip.public_ip
 }
 
 output "instance_private_ip" {
   description = "Private IP address of the EC2 instance"
   value       = aws_instance.ec2_instance.private_ip
+}
+
+output "tls_ca_crt" {
+  description = "Name of CA cert needed for HTTPS/TLS communication"
+  value       = "${module.wibl_tls.certificate_directory}/ca.crt"
 }
 
 output "ssh_key_name" {
