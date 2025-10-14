@@ -2,7 +2,7 @@
 
 ## Firmware 1.6.0
 
-Firmware 1.6.0 addresses [issue 76](https://github.com/CCOMJHC/WIBL/issues/76) in the repository, dealing with bulk download of log files.  This is a much more practical solution than having to download files one by one if there isn't the opportunity to upload automatically.  The code uses a lightweight library to generate a GZip-ed TAR file from the log directory, and then streams it directly (without an intermediate file).  In the JavaScript for the logger's website, the "Download All Log Files" button (on the status page) triggers provides user-level access to this functionality.  Due to performance limitations and WiFi transfer speed, this may take some time...
+Firmware 1.6.0 addresses [issue 76](https://github.com/CCOMJHC/WIBL/issues/76) in the repository, dealing with bulk download of log files.  This is a much more practical solution than having to download files one by one if there isn't the opportunity to upload automatically.  The code uses a lightweight library to generate a GZip-ed TAR file from the log directory, and then streams it directly (without an intermediate file).  In the JavaScript for the logger's website, the "Download All Log Files" button (on the status page) provides user-level access to this functionality.  Due to performance limitations and WiFi transfer speed, this may take some time...
 
 Details:
 
