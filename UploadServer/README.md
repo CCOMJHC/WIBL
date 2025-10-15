@@ -1,8 +1,6 @@
 # WIBL upload-server
-This directory contains source code and tools for demonstrating
-a minimum viable upload server for receiving automatic uploads
-from WIBL data from WIBL loggers and storing the data into AWS 
-S3-compatible object storage.
+This directory contains source code and tools for demonstrating a minimum viable upload server for receiving 
+automatic uploads of WIBL data from WIBL loggers and storing the data into AWS S3-compatible object storage.
 
 ## AWS deployment
 WIBL upload-server can be deployed to AWS using [Terraform](https://developer.hashicorp.com/terraform).
@@ -166,7 +164,7 @@ e1d270a9089efca544749da23f5c65a154ebb49972b4b4ae86b36fe1f8b70d18
 ```
 
 The `create.bash` script creates a lot of output, most of which has been omitted above. At the end you'll see the 
-Terraform outpus, in particular the `instance_public_ip` and `ssh_connection_command` variables. You can now use 
+Terraform outputs, in particular the `instance_public_ip` and `ssh_connection_command` variables. You can now use 
 the `instance_public_ip` to make an HTTPS request using `curl` (to which you'll have to pass the value of the 
 `tls_ca_crt` variable as the `--cacert` option) to test that your WIBL upload server instance is running and 
 accessible via the internet:
@@ -199,41 +197,43 @@ See the "Managing WIBL upload server" section below for instructions on how to a
 WIBL upload-server instance database, and for general notes on testing and logging/monitoring.
 
 #### Managing WIBL upload-server
-Before managing your WIBL upload-server, first make in SSH connection to your EC2 instance as described in the
+Before managing your WIBL upload-server, first make an SSH connection to your EC2 instance as described in the
 "Terraform deployment" section above.
 
 ##### Add/delete loggers
 To add, for example, two loggers to your WIBL upload-server instance database, run the following commands:
 ```shell
 [ec2-user@ip-10-0-1-51 ~]$ cd /usr/local/wibl/upload-server/
-sudo -u wibl ./bin/add-logger -config ./etc/config.json -logger F94E871E-8A66-4614-9E10-628FFC49540A -password CC0E1FE1-46CA-4768-93A7-2252BF748118
-sudo -u wibl ./bin/add-logger -config ./etc/config.json -logger 12CEC8B4-0C42-424C-82CD-FB4E96CD7153 -password CAF1CA92-CB9E-437D-B391-7709A39D32B1
+sudo -u wibl ./bin/add-logger -config ./etc/config.json -logger TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A -password CC0E1FE1-46CA-4768-93A7-2252BF748118
+sudo -u wibl ./bin/add-logger -config ./etc/config.json -logger TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153 -password CAF1CA92-CB9E-437D-B391-7709A39D32B1
 ```
 
+> Where "TNNAME" is your trusted node identifier.
+
 What the above commands do is run the `add-logger` command as the `wibl` user; the first logger has the identifier
-"F94E871E-8A66-4614-9E10-628FFC49540A" with password/token "CC0E1FE1-46CA-4768-93A7-2252BF748118" and the second
-logger has the identifier "12CEC8B4-0C42-424C-82CD-FB4E96CD7153" with password/token 
+"TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A" with password/token "CC0E1FE1-46CA-4768-93A7-2252BF748118" and the second
+logger has the identifier "TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153" with password/token 
 "CAF1CA92-CB9E-437D-B391-7709A39D32B1".
 
 To verify that these loggers were added to the database, use the `sqlite3` command line utility:
 ```shell
 [ec2-user@ip-10-0-1-51 ~]$ sqlite3 db/loggers.db 'SELECT * FROM loggers'
-F94E871E-8A66-4614-9E10-628FFC49540A|JDJhJDEwJGhyNVVPcWE0MkpTSjVTYjUySnhjZ3VTc1lsQmZqNHZWN2Q3NkNDZ2M5R0dDNWlmM0Vjemh1
-12CEC8B4-0C42-424C-82CD-FB4E96CD7153|JDJhJDEwJDc1Q0FrVG9WdEo2YUwwWWwxLjN0Ni5vN204NDZZejB6aVB0c0tjQkZEVEtQaXZ5ZlNkSENT
+TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A|JDJhJDEwJGhyNVVPcWE0MkpTSjVTYjUySnhjZ3VTc1lsQmZqNHZWN2Q3NkNDZ2M5R0dDNWlmM0Vjemh1
+TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153|JDJhJDEwJDc1Q0FrVG9WdEo2YUwwWWwxLjN0Ni5vN204NDZZejB6aVB0c0tjQkZEVEtQaXZ5ZlNkSENT
 ```
 
 > Note: the password is stored in an encrypted field in the database, so you can only see the logger identifier
 > in the `sqlite3` output.
 
-To delete the logger with identifier "12CEC8B4-0C42-424C-82CD-FB4E96CD7153", use the following `sqlite3` command:
+To delete the logger with identifier "TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153", use the following `sqlite3` command:
 ```shell
-[ec2-user@ip-10-0-1-51 ~]$ sudo -u wibl sqlite3 db/loggers.db 'DELETE FROM LOGGERS WHERE name="12CEC8B4-0C42-424C-82CD-FB4E96CD7153"'
+[ec2-user@ip-10-0-1-51 ~]$ sudo -u wibl sqlite3 db/loggers.db 'DELETE FROM LOGGERS WHERE name="TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153"'
 ```
 
 To verify that this logger was deleted from the database, use the `sqlite3` command line utility:
 ```shell
 [ec2-user@ip-10-0-1-51 ~]$ sqlite3 db/loggers.db 'SELECT * FROM loggers'
-F94E871E-8A66-4614-9E10-628FFC49540A|JDJhJDEwJGhyNVVPcWE0MkpTSjVTYjUySnhjZ3VTc1lsQmZqNHZWN2Q3NkNDZ2M5R0dDNWlmM0Vjemh1
+TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A|JDJhJDEwJGhyNVVPcWE0MkpTSjVTYjUySnhjZ3VTc1lsQmZqNHZWN2Q3NkNDZ2M5R0dDNWlmM0Vjemh1
 ```
 
 ##### Test data upload and view logs for requests directly on your EC2 instance
@@ -256,7 +256,7 @@ time=2025-10-14T19:19:24.106Z level=INFO msg="starting server on :443"
 Then, in a separate terminal window, use `curl` to POST dummy data to the `/checkin` endpoint:
 ```shell
 $ $ curl -v \
-        -u F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
+        -u TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
         --cacert ./aws-build/certs/ca.crt --fail-with-body "https://42.23.32.24/checkin" \                           
   -H 'Content-Type: application/json' \
   --data @-<<EOF
@@ -312,7 +312,7 @@ EOF
 *  issuer: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=CA; CN=localhost
 *  SSL certificate verify ok.
 * using HTTP/2
-* Server auth using Basic with user 'F94E871E-8A66-4614-9E10-628FFC49540A'
+* Server auth using Basic with user 'TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A'
 * [HTTP/2] [1] OPENED stream for https://42.23.32.24/checkin
 * [HTTP/2] [1] [:method: POST]
 * [HTTP/2] [1] [:scheme: https]
@@ -343,7 +343,7 @@ This will result in the log `tail` in the SSH terminal to be updated with the ne
 ```shell
 ...
 ==> /usr/local/wibl/upload-server/log/access.log <==
-128.2.3.4 - F94E871E-8A66-4614-9E10-628FFC49540A [14/Oct/2025:19:49:13 +0000] "POST /checkin HTTP/2.0" 200 406 - curl/8.7.1
+128.2.3.4 - TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A [14/Oct/2025:19:49:13 +0000] "POST /checkin HTTP/2.0" 200 406 - curl/8.7.1
 ...
 ```
 
@@ -357,7 +357,7 @@ dd if=/dev/urandom of="${WIBL_FILE}" bs=8192 count=32
 MD5_DIGEST=$(md5sum --quiet $WIBL_FILE)
 
 curl -v \
-	-u F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
+	-u TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
 	--cacert ./aws-build/certs/ca.crt --fail-with-body "https://42.23.32.24/update" \                            
 
 32+0 records in
@@ -385,7 +385,7 @@ curl -v \
 *  issuer: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=CA; CN=localhost
 *  SSL certificate verify ok.
 * using HTTP/2
-* Server auth using Basic with user 'F94E871E-8A66-4614-9E10-628FFC49540A'
+* Server auth using Basic with user 'TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A'
 * [HTTP/2] [1] OPENED stream for https://42.23.32.24/update
 * [HTTP/2] [1] [:method: POST]
 * [HTTP/2] [1] [:scheme: https]
@@ -437,7 +437,7 @@ time=2025-10-14T19:59:47.281Z level=DEBUG msg="AWS-SNS: publishing key 55c48228-
 time=2025-10-14T19:59:47.332Z level=DEBUG msg="TRANS: sending |{\"status\":\"success\"}| to logger as response.\n"
 
 ==> /usr/local/wibl/upload-server/log/access.log <==
-128.2.3.4 - F94E871E-8A66-4614-9E10-628FFC49540A [14/Oct/2025:19:59:47 +0000] "POST /update HTTP/2.0" 200 262144 - curl/8.7.1
+128.2.3.4 - TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A [14/Oct/2025:19:59:47 +0000] "POST /update HTTP/2.0" 200 262144 - curl/8.7.1
 
 ...
 ```
@@ -468,7 +468,7 @@ The "logging" section of the default configuration is reproduced below:
 
 There are two log files, the access log and console log. Access log logs all HTTPS requests, whether they 
 are successful or not. The access log is useful for verifying that loggers are successfully uploading data to WIBL
-upload-server. It's also useful to detecting potential attempts by nefarious actors to access to the server. 
+upload-server. It's also useful to detecting potential attempts by nefarious actors to access the server. 
 The console log shows more detailed messages about errors that may occur as well as debugging information. The
 `level` configuration key controls the level of detail in the console log, with "error" only logging error 
 conditions, while "warning" logs messages warning of potential problems (in addition to those messages logged
@@ -484,12 +484,12 @@ pattern "name-timestamp.ext", so "/usr/local/wibl/upload-server/log/access.log" 
 until they are one-day-old (i.e., `"max_age": 1`). All archived files younger than one-day-old will be retained
 (i.e., `"max_backups": 0,`), and archived log files will NOT be compressed (i.e., `"compress_rotated": false`). These
 configuration choices were chosen in harmony with the CloudWatch configuration described below. For more information
-on log file retention and rotation, see the [lumberjack docuemntation](https://github.com/natefinch/lumberjack?tab=readme-ov-file#cleaning-up-old-log-files).
+on log file retention and rotation, see the [lumberjack documentation](https://github.com/natefinch/lumberjack?tab=readme-ov-file#cleaning-up-old-log-files).
 
 ###### AWS CloudWatch configuration and viewing
 To access the most up-to-date logging data, SSH into your EC2 instance and tail the console or access logs as
 described above. However, for longer term archiving and visualization of logs, WIBL upload-server is configured
-to automatically send longs to [AWS CloudWatch](https://docs.aws.amazon.com/cloudwatch/) using the 
+to automatically send logs to [AWS CloudWatch](https://docs.aws.amazon.com/cloudwatch/) using the 
 [CloudWatch agent](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/install-CloudWatch-Agent-on-EC2-Instance.html). 
 You can access your CloudWatch logs via the [AWS console](https://aws.amazon.com).
 
@@ -558,7 +558,7 @@ After clicking on the "wibl-upload-server" log group, you should see one or more
 
 At first, you will only see the "amazon-cloudwatch-agent.log" log stream. This log stream is just the log for the
 CloudWatch agent itself, which is running on your EC2 instance and is responsible for copying rotated
-access and console longs to CloudWatch; this is useful for monitoring whether and when copying of these log
+access and console logs to CloudWatch; this is useful for monitoring whether and when copying of these log
 entries to CloudWatch occurs. Once either console.log or access.log have been rotated and archived
 at least once, log entries for these log files will appear in the "console.log" or "access.log" log streams. The
 figure below shows an excerpt of log entries for "access.log" (the IP address of each log entry has been redacted):
@@ -643,32 +643,23 @@ the `add-logger` command using the provided [script](build-add-logger.bash).
 
 ```shell
 mkdir -p db
-./add-logger -config config-local.json -logger F94E871E-8A66-4614-9E10-628FFC49540A -password CC0E1FE1-46CA-4768-93A7-2252BF748118
-./add-logger -config config-local.json -logger 12CEC8B4-0C42-424C-82CD-FB4E96CD7153 -password CAF1CA92-CB9E-437D-B391-7709A39D32B1
+./add-logger -config config-local.json -logger TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A -password CC0E1FE1-46CA-4768-93A7-2252BF748118
+./add-logger -config config-local.json -logger TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153 -password CAF1CA92-CB9E-437D-B391-7709A39D32B1
 ```
+
+> Where "TNNAME" is your trusted node identifier.
 
 You can then verify that the loggers have been added by running:
 ```shell
 $ sqlite3 ./db/loggers.db 'SELECT * FROM loggers'
-name          hash            
-------------  ----------------
-F94E871E-8A6  JDJhJDEwJG90M3RK
-6-4614-9E10-  dlJRbS9ZM3JOd2Zq
-628FFC49540A  UUYxQXVsUHd4Nk94
-              NHNSNEJJb2VjQWo4
-              YVlkU1laOUlURHM2
-
-12CEC8B4-0C4  JDJhJDEwJDJNOHpE
-2-424C-82CD-  Z1laMzd4MnRlU3FC
-FB4E96CD7153  cXdPaS5sYWNzQWw1
-              RFV3a3BuZzlTM09T
-              QjFFdVhYdS9FY3h
+TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A|JDJhJDEwJGhyNVVPcWE0MkpTSjVTYjUySnhjZ3VTc1lsQmZqNHZWN2Q3NkNDZ2M5R0dDNWlmM0Vjemh1
+TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153|JDJhJDEwJDc1Q0FrVG9WdEo2YUwwWWwxLjN0Ni5vN204NDZZejB6aVB0c0tjQkZEVEtQaXZ5ZlNkSENT
 ```
 
 Next, you can do a basic test of the upload-server by using the `/checkin` endpoint using `curl`:
 ```shell
 $ curl -v \
-        -u F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
+        -u TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
         --cacert ./certs/ca.crt --fail-with-body "https://localhost:8000/checkin" \
   -H 'Content-Type: application/json' \
   --data @-<<EOF
@@ -727,7 +718,7 @@ EOF
 *  issuer: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=CA; CN=localhost
 *  SSL certificate verify ok.
 * using HTTP/2
-* Server auth using Basic with user 'F94E871E-8A66-4614-9E10-628FFC49540A'
+* Server auth using Basic with user 'TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A'
 * [HTTP/2] [1] OPENED stream for https://localhost:8000/checkin
 * [HTTP/2] [1] [:method: POST]
 * [HTTP/2] [1] [:scheme: https]
@@ -760,13 +751,13 @@ the HTTP status code was 200, i.e., `HTTP/2 200`.
 In the console in which you are running `docker compose up`, you should
 also see the following output:
 ```shell
-wibl-upload  | 2025/10/02 18:13:35.002803 INFO 172.19.0.1 - 35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F [02/Oct/2025:18:13:35 +0000] "POST /checkin HTTP/2.0" 200 406
+wibl-upload  | 2025/10/02 18:13:35.002803 INFO 172.19.0.1 - TNNAME-35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F [02/Oct/2025:18:13:35 +0000] "POST /checkin HTTP/2.0" 200 406
 ```
 
 If the logger was not known (i.e., not in the loggers.db file), you would
 instead see output like:
 ```shell
-wibl-upload  | 2025/10/02 16:38:41.325695 INFO DB: Logger 35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F not found in database.
+wibl-upload  | 2025/10/02 16:38:41.325695 INFO DB: Logger TNNAME-35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F not found in database.
 ```
 
 Finally, you can test uploading a dummy file to the upload-server by using the `/update` endpoint using `curl`:
@@ -776,7 +767,7 @@ dd if=/dev/urandom of="${WIBL_FILE}" bs=8192 count=32
 MD5_DIGEST=$(md5sum --quiet $WIBL_FILE)
 
 curl -v \
-	-u 35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F:9A066573-7F4F-4FE7-B5DD-0D1F672B40BA \
+	-u TNNAME-35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F:9A066573-7F4F-4FE7-B5DD-0D1F672B40BA \
 	--cacert ./certs/ca.crt --fail-with-body "https://localhost:8000/update" \
         -H 'accept: application/json' \
         -H 'Content-Type: application/octet-stream' \
