@@ -57,7 +57,7 @@ cat > /tmp/cloudwatch-agent.json <<-HERE
             "log_stream_name": "amazon-cloudwatch-agent.log",
             "timezone": "UTC",
             "auto_removal": false,
-            "retention_in_days": 7
+            "retention_in_days": 60
           },
           {
             "file_path": "/usr/local/wibl/upload-server/log/console-*.log",

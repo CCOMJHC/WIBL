@@ -236,7 +236,7 @@ To verify that this logger was deleted from the database, use the `sqlite3` comm
 F94E871E-8A66-4614-9E10-628FFC49540A|JDJhJDEwJGhyNVVPcWE0MkpTSjVTYjUySnhjZ3VTc1lsQmZqNHZWN2Q3NkNDZ2M5R0dDNWlmM0Vjemh1
 ```
 
-##### Test data upload and view logs for requests directly on EC2 instance
+##### Test data upload and view logs for requests directly on your EC2 instance
 Now that you have a logger in your database, you can post data to the `/checkin` and `/update` server endpoints. For
 example, to test the `/checkin` endpoint, first `tail` the WIBL upload-server logs in the terminal window through
 which you've connected to the EC2 instance via SSH:
@@ -443,7 +443,127 @@ time=2025-10-14T19:59:47.332Z level=DEBUG msg="TRANS: sending |{\"status\":\"suc
 ```
 
 ##### Log rotation and viewing logs in AWS CloudWatch
-TODO
+Because WIBL upload-server is meant to be a reliable, long-running service, log file archiving and deletion, also
+known as log rotation, are provided for. Without log rotation, a long-running service runs the risk of filling up 
+its disk with log files, meaning that the service would eventually become unavailable.
+
+The default logging configuration for WIBL upload-server can be found in the "logging" section in the prototype
+configuration file found [here](scripts/cloud/Terraform/aws/config-aws.json.proto).
+
+> Note: this file is used by [create.bash](scripts/cloud/Terraform/aws/create.bash) to create the configuration 
+> file that is uploaded to your EC2 instance as part of the Terraform deployment).
+
+The "logging" section of the default configuration is reproduced below:
+```
+"logging": {
+    "level": "debug",
+    "console_log": "/usr/local/wibl/upload-server/log/console.log",
+    "access_log": "/usr/local/wibl/upload-server/log/access.log",
+    "max_size_mb": 1,
+    "max_age": 1,
+    "max_backups": 0,
+    "compress_rotated": false
+}
+```
+
+There are two log files, the access log and console log. Access log logs all HTTPS requests, whether they 
+are successful or not. The access log is useful for verifying that loggers are successfully uploading data to WIBL
+upload-server. It's also useful to detecting potential attempts by nefarious actors to access to the server. 
+The console log shows more detailed messages about errors that may occur as well as debugging information. The
+`level` configuration key controls the level of detail in the console log, with "error" only logging error 
+conditions, while "warning" logs messages warning of potential problems (in addition to those messages logged
+at the "error" level). The "info" level logs informational messages that might aid in debugging (in addition
+to logging "warning" and "error" level messages), with "debug" providing the most detailed logging (in addition
+to all "info", "warning", and "error" level messages).
+
+In terms of log rotation, the relevant keys of the logging configration are `max_size_mb`, `max_age`, `max_backups`,
+and `compress_rotated`. With the default configuration, WIBL upload-server will rotate the console and access logs
+once the log files reach one-MiB in size (i.e., `"max_size_mb": 1`). Archived log files are named according to the 
+pattern "name-timestamp.ext", so "/usr/local/wibl/upload-server/log/access.log" would be archived to 
+"/usr/local/wibl/upload-server/log/access-2025-10-15T13-49-13.234.log" upon rotation. Archived log files are retained
+until they are one-day-old (i.e., `"max_age": 1`). All archived files younger than one-day-old will be retained
+(i.e., `"max_backups": 0,`), and archived log files will NOT be compressed (i.e., `"compress_rotated": false`). These
+configuration choices were chosen in harmony with the CloudWatch configuration described below. For more information
+on log file retention and rotation, see the [lumberjack docuemntation](https://github.com/natefinch/lumberjack?tab=readme-ov-file#cleaning-up-old-log-files).
+
+###### AWS CloudWatch configuration and viewing
+To access the most up-to-date logging data, SSH into your EC2 instance and tail the console or access logs as
+described above. However, for longer term archiving and visualization of logs, WIBL upload-server is configured
+to automatically send longs to [AWS CloudWatch](https://docs.aws.amazon.com/cloudwatch/) using the 
+[CloudWatch agent](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/install-CloudWatch-Agent-on-EC2-Instance.html). 
+You can access your CloudWatch logs via the [AWS console](https://aws.amazon.com).
+
+You can view and modify the Cloudwatch agent configuration used by WIBL upload-server by editing the 
+[userdata.sh](scripts/cloud/Terraform/aws/userdata.sh) script, which is used by the Terraform deployment to do 
+final configuration of the EC2 instance used by WIBL upload-server. The relevant section of `userdata.sh` is
+reproduced below:
+```shell
+...
+# Setup CloudWatch agent
+cat > /tmp/cloudwatch-agent.json <<-HERE
+{
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log",
+            "log_group_name": "wibl-upload-server",
+            "log_stream_name": "amazon-cloudwatch-agent.log",
+            "timezone": "UTC",
+            "auto_removal": false,
+            "retention_in_days": 60
+          },
+          {
+            "file_path": "/usr/local/wibl/upload-server/log/console-*.log",
+            "log_group_name": "wibl-upload-server",
+            "log_stream_name": "console.log",
+            "timezone": "UTC",
+            "auto_removal": false,
+            "retention_in_days": 60
+          },
+          {
+            "file_path": "/usr/local/wibl/upload-server/log/access-*.log",
+            "log_group_name": "wibl-upload-server",
+            "log_stream_name": "access.log",
+            "timezone": "UTC",
+            "auto_removal": false,
+            "retention_in_days": 60
+          }
+        ]
+      }
+    }
+  }
+}
+HERE
+sudo mv /tmp/cloudwatch-agent.json /opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-agent.json
+...
+```
+
+The CloudWatch agent will copy access and console logs to CloudWatch once they have been rotated and archived. 
+This can be seen by the `"file_path"` pattern specified for each 
+(e.g., `"/usr/local/wibl/upload-server/log/access-*.log"`). Until log rotation, you can only view logs by SSHing to
+the EC2 instance as described above. Log data will be retained in CloudWatch for 60-days (i.e., `"retention_in_days": 60`).
+CloudWatch agent will NOT delete log files once they have been copied to CloudWatch (i.e., `"auto_removal": false`);
+log deletion is handled by WIBL upload-server (as described above).
+
+To access your WIBL upload-server CloudWatch logs using the AWS Console, go to the CloudWatch service, click on
+on "Logs > Log groups" and search for "upload-server" as shown in the figure below:
+
+![CloudWatch log group search](img/cloudwatch-log-group.png "CloudWatch log group search")
+
+After clicking on the "wibl-upload-server" log group, you should see one or more log streams as shown here:
+
+![WIBL upload-server log streams](img/cloudwatch-log-streams.png "WIBL upload-server log streams")
+
+At first, you will only see the "amazon-cloudwatch-agent.log" log stream. This log stream is just the log for the
+CloudWatch agent itself, which is running on your EC2 instance and is responsible for copying rotated
+access and console longs to CloudWatch; this is useful for monitoring whether and when copying of these log
+entries to CloudWatch occurs. Once either console.log or access.log have been rotated and archived
+at least once, log entries for these log files will appear in the "console.log" or "access.log" log streams. The
+figure below shows an excerpt of log entries for "access.log" (the IP address of each log entry has been redacted):
+
+![WIBL upload-server access log stream](img/cloudwatch-access-log.png "WIBL upload-server access log stream")
 
 
 ## Local development and testing
