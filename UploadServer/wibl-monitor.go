@@ -171,8 +171,8 @@ func status_updates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//support.Infof("CHECKIN: status update from logger with firmware %s, command processor %s, total %d files.\n",
-	//	status.Versions.Firmware, status.Versions.CommandProcessor, status.Files.Count)
+	support.Infof("CHECKIN: status update from logger with firmware %s, command processor %s, total %d files.\n",
+		status.Versions.Firmware, status.Versions.CommandProcessor, status.Files.Count)
 
 	support.LogAccess(r, http.StatusOK)
 }
