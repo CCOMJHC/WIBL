@@ -8,16 +8,7 @@ terraform {
 }
 
 provider "aws" {
-  alias  = "aws"
   region = "us-east-1"
-}
-
-resource "aws_lambda_layer_version_permission" "allow_localstack" {
-  layer_name      = "AWSSDKPandas-Python311-Arm64"
-  version_number  = 23
-  principal       = "localstack-testing"
-  statement_id    = "AllowLocalstackAccess"
-  action          = "lambda:GetLayerVersion"
 }
 
 module "configure-buckets" {
@@ -38,7 +29,6 @@ module "configure-sns" {
 }
 
 module "configure-subnets_efs" {
-    count = var.use_localstack ? 0 : 1
     source = "./subnets_efs"
 }
 
@@ -66,8 +56,8 @@ module "configure-lambda" {
     incoming_bucket_id = module.configure-buckets.incoming_bucket_id
     viz_bucket_arn = module.configure-buckets.viz_bucket_arn
 
-    private_subnet = var.use_localstack ? "" : module.configure-subnets_efs.private_subnet
-    private_sg = var.use_localstack ? "" : module.configure-subnets_efs.private_sg
+    private_subnet = module.configure-subnets_efs.private_subnet
+    private_sg = module.configure-subnets_efs.private_sg
 
     conversion_topic_arn = module.configure-sns.conversion_topic_arn
     validation_topic_arn = module.configure-sns.validation_topic_arn

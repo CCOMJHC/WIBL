@@ -1,8 +1,3 @@
-variable "use_localstack" {
-    type = bool
-    default = false
-}
-
 variable "region" {
     description = "aws region"
     type = string
