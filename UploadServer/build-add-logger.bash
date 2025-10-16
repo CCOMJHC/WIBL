@@ -9,20 +9,14 @@
 #
 # USAGE:
 #
-# To add a logger with logger unique identifier 'F94E871E-8A66-4614-9E10-628FFC49540A' and
+# To add a logger with logger unique identifier 'TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A' and
 # password/token 'CC0E1FE1-46CA-4768-93A7-2252BF748118', run:
-#    ./add-logger -config config-local.json -logger F94E871E-8A66-4614-9E10-628FFC49540A -password CC0E1FE1-46CA-4768-93A7-2252BF748118
+#    ./add-logger -config config-local.json -logger TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A -password CC0E1FE1-46CA-4768-93A7-2252BF748118
 # (if the database specified in config-local.json does not exist, it will first be created)
 #
 # You can then verify that the logger has been added by running:
 #   sqlite3 ./db/loggers.db 'SELECT * FROM loggers'
-#   name          hash
-#   ------------  ----------------
-#   F94E871E-8A6  JDJhJDEwJG90M3RK
-#   6-4614-9E10-  dlJRbS9ZM3JOd2Zq
-#   628FFC49540A  UUYxQXVsUHd4Nk94
-#                 NHNSNEJJb2VjQWo4
-#                 YVlkU1laOUlURHM2
+#TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A|JDJhJDEwJGhyNVVPcWE0MkpTSjVTYjUySnhjZ3VTc1lsQmZqNHZWN2Q3NkNDZ2M5R0dDNWlmM0Vjemh1
 #
 if [[ -z ${ADD_LOGGER_OUT} ]]; then
   CONTENT_ROOT=$(realpath "$(dirname $0)")
