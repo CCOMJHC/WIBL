@@ -255,7 +255,7 @@ time=2025-10-14T19:19:24.106Z level=INFO msg="starting server on :443"
 
 Then, in a separate terminal window, use `curl` to POST dummy data to the `/checkin` endpoint:
 ```shell
-$ $ curl -v \
+$ curl -v --http1.1 \
         -u TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
         --cacert ./aws-build/certs/ca.crt --fail-with-body "https://42.23.32.24/checkin" \                           
   -H 'Content-Type: application/json' \
@@ -292,7 +292,7 @@ $ $ curl -v \
 EOF
 *   Trying 42.23.32.24:443...
 * Connected to 42.23.32.24 (42.23.32.24) port 443
-* ALPN: curl offers h2,http/1.1
+* ALPN: curl offers http/1.1
 * (304) (OUT), TLS handshake, Client hello (1):
 *  CAfile: ./aws-build/certs/ca.crt
 *  CApath: none
@@ -303,7 +303,7 @@ EOF
 * (304) (IN), TLS handshake, Finished (20):
 * (304) (OUT), TLS handshake, Finished (20):
 * SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
-* ALPN: server accepted h2
+* ALPN: server accepted http/1.1
 * Server certificate:
 *  subject: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=Server; CN=ec2-42-23-32-24.us-east-2.compute.amazonaws.com
 *  start date: Oct 14 19:18:06 2025 GMT
@@ -311,30 +311,20 @@ EOF
 *  subjectAltName: host "42.23.32.24" matched cert's IP address!
 *  issuer: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=CA; CN=localhost
 *  SSL certificate verify ok.
-* using HTTP/2
+* using HTTP/1.x
 * Server auth using Basic with user 'TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A'
-* [HTTP/2] [1] OPENED stream for https://42.23.32.24/checkin
-* [HTTP/2] [1] [:method: POST]
-* [HTTP/2] [1] [:scheme: https]
-* [HTTP/2] [1] [:authority: 42.23.32.24]
-* [HTTP/2] [1] [:path: /checkin]
-* [HTTP/2] [1] [authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFMTAtNjI4RkZDNDQ2Q0EtNDc2OCk1NDBBOkNDMEUxRkUxLT05M0E3LTIyNTJCRjc0ODExOA==]
-* [HTTP/2] [1] [user-agent: curl/8.7.1]
-* [HTTP/2] [1] [accept: */*]
-* [HTTP/2] [1] [content-type: application/json]
-* [HTTP/2] [1] [content-length: 406]
-> POST /checkin HTTP/2
+> POST /checkin HTTP/1.1
 > Host: 42.23.32.24
-> Authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFMTAtNjI4RkZDNDQ2Q0EtNDc2OCk1NDBBOkNDMEUxRkUxLT05M0E3LTIyNTJCRjc0ODExOA==
+> Authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFMTAtNjI4RkZDNDk1NDBBOkNDMEUxRkUxLTQ2Q0EtNDc2OC05M0E3LTIyNTJCRjc0ODExOA==
 > User-Agent: curl/8.7.1
 > Accept: */*
 > Content-Type: application/json
 > Content-Length: 406
 > 
 * upload completely sent off: 406 bytes
-< HTTP/2 200 
-< content-length: 0
-< date: Tue, 14 Oct 2025 19:43:45 GMT
+< HTTP/1.1 200 OK
+< Date: Thu, 16 Oct 2025 00:08:41 GMT
+< Content-Length: 0
 < 
 * Connection #0 to host 42.23.32.24 left intact
 ```
@@ -343,7 +333,7 @@ This will result in the log `tail` in the SSH terminal to be updated with the ne
 ```shell
 ...
 ==> /usr/local/wibl/upload-server/log/access.log <==
-128.2.3.4 - TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A [14/Oct/2025:19:49:13 +0000] "POST /checkin HTTP/2.0" 200 406 - curl/8.7.1
+128.2.3.4 - TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A [14/Oct/2025:19:49:13 +0000] "POST /checkin HTTP/1.1" 200 406 - curl/8.7.1
 ...
 ```
 
@@ -356,7 +346,7 @@ $ WIBL_FILE='dummy.wibl'
 dd if=/dev/urandom of="${WIBL_FILE}" bs=8192 count=32
 MD5_DIGEST=$(md5sum --quiet $WIBL_FILE)
 
-curl -v \
+curl -v --http1.1 \
 	-u TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
 	--cacert ./aws-build/certs/ca.crt --fail-with-body "https://42.23.32.24/update" \                            
 
@@ -365,7 +355,7 @@ curl -v \
 262144 bytes transferred in 0.001771 secs (148020327 bytes/sec)
 *   Trying 42.23.32.24:443...
 * Connected to 42.23.32.24 (42.23.32.24) port 443
-* ALPN: curl offers h2,http/1.1
+* ALPN: curl offers http/1.1
 * (304) (OUT), TLS handshake, Client hello (1):
 *  CAfile: ./aws-build/certs/ca.crt
 *  CApath: none
@@ -376,7 +366,7 @@ curl -v \
 * (304) (IN), TLS handshake, Finished (20):
 * (304) (OUT), TLS handshake, Finished (20):
 * SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
-* ALPN: server accepted h2
+* ALPN: server accepted http/1.1
 * Server certificate:
 *  subject: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=Server; CN=ec2-42-23-32-24.us-east-2.compute.amazonaws.com
 *  start date: Oct 14 19:18:06 2025 GMT
@@ -384,33 +374,22 @@ curl -v \
 *  subjectAltName: host "42.23.32.24" matched cert's IP address!
 *  issuer: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=CA; CN=localhost
 *  SSL certificate verify ok.
-* using HTTP/2
+* using HTTP/1.x
 * Server auth using Basic with user 'TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A'
-* [HTTP/2] [1] OPENED stream for https://42.23.32.24/update
-* [HTTP/2] [1] [:method: POST]
-* [HTTP/2] [1] [:scheme: https]
-* [HTTP/2] [1] [:authority: 42.23.32.24]
-* [HTTP/2] [1] [:path: /update]
-* [HTTP/2] [1] [authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFNDk1NDBBOkNDMEUxRkUxLTQ2Q0EtMTAtNjI4RkZDNDc2OC05M0E3LTIyNTJCRjc0ODExOA==]
-* [HTTP/2] [1] [user-agent: curl/8.7.1]
-* [HTTP/2] [1] [accept: application/json]
-* [HTTP/2] [1] [content-type: application/octet-stream]
-* [HTTP/2] [1] [digest: md5=ccae97189b9f203426a66077b15ccef2]
-* [HTTP/2] [1] [content-length: 262144]
-> POST /update HTTP/2
+> POST /update HTTP/1.1
 > Host: 42.23.32.24
-> Authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFNDk1NDBBOkNDMEUxRkUxLTQ2Q0EtMTAtNjI4RkZDNDc2OC05M0E3LTIyNTJCRjc0ODExOA==
+> Authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFMTAtNjI4RkZDNDk1NDBBOkNDMEUxRkUxLTQ2Q0EtNDc2OC05M0E3LTIyNTJCRjc0ODExOA==
 > User-Agent: curl/8.7.1
 > accept: application/json
 > Content-Type: application/octet-stream
-> Digest: md5=ccae97189b9f203426a66077b15ccef2
+> Digest: md5=9e7f557288e8a3c0f09bf05d1ef48901
 > Content-Length: 262144
 > 
 * upload completely sent off: 262144 bytes
-< HTTP/2 200 
-< content-type: application/json
-< content-length: 20
-< date: Tue, 14 Oct 2025 19:59:47 GMT
+< HTTP/1.1 200 OK
+< Content-Type: application/json
+< Date: Thu, 16 Oct 2025 00:12:43 GMT
+< Content-Length: 20
 < 
 * Connection #0 to host 42.23.32.24 left intact
 {"status":"success"}%
@@ -437,7 +416,7 @@ time=2025-10-14T19:59:47.281Z level=DEBUG msg="AWS-SNS: publishing key 55c48228-
 time=2025-10-14T19:59:47.332Z level=DEBUG msg="TRANS: sending |{\"status\":\"success\"}| to logger as response.\n"
 
 ==> /usr/local/wibl/upload-server/log/access.log <==
-128.2.3.4 - TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A [14/Oct/2025:19:59:47 +0000] "POST /update HTTP/2.0" 200 262144 - curl/8.7.1
+128.2.3.4 - TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A [14/Oct/2025:19:59:47 +0000] "POST /update HTTP/1.1" 200 262144 - curl/8.7.1
 
 ...
 ```
@@ -658,7 +637,7 @@ TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153|JDJhJDEwJDc1Q0FrVG9WdEo2YUwwWWwxLjN0
 
 Next, you can do a basic test of the upload-server by using the `/checkin` endpoint using `curl`:
 ```shell
-$ curl -v \
+$ curl -v --http1.1 \
         -u TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
         --cacert ./certs/ca.crt --fail-with-body "https://localhost:8000/checkin" \
   -H 'Content-Type: application/json' \
@@ -698,7 +677,7 @@ EOF
 * IPv4: 127.0.0.1
 *   Trying [::1]:8000...
 * Connected to localhost (::1) port 8000
-* ALPN: curl offers h2,http/1.1
+* ALPN: curl offers http/1.1
 * (304) (OUT), TLS handshake, Client hello (1):
 *  CAfile: ./certs/ca.crt
 *  CApath: none
@@ -709,27 +688,17 @@ EOF
 * (304) (IN), TLS handshake, Finished (20):
 * (304) (OUT), TLS handshake, Finished (20):
 * SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
-* ALPN: server accepted h2
+* ALPN: server accepted http/1.1
 * Server certificate:
 *  subject: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=Server; CN=localhost
-*  start date: Oct  1 18:08:25 2025 GMT
-*  expire date: Oct  1 18:08:25 2026 GMT
+*  start date: Oct  9 19:07:05 2025 GMT
+*  expire date: Oct  9 19:07:05 2026 GMT
 *  subjectAltName: host "localhost" matched cert's "localhost"
 *  issuer: C=US; ST=NewHampshire; L=Durham; O=CCOM-JHC; OU=CA; CN=localhost
 *  SSL certificate verify ok.
-* using HTTP/2
+* using HTTP/1.x
 * Server auth using Basic with user 'TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A'
-* [HTTP/2] [1] OPENED stream for https://localhost:8000/checkin
-* [HTTP/2] [1] [:method: POST]
-* [HTTP/2] [1] [:scheme: https]
-* [HTTP/2] [1] [:authority: localhost:8000]
-* [HTTP/2] [1] [:path: /checkin]
-* [HTTP/2] [1] [authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFMTAtNjI4RkZDNDk1NDBBOkNDMEUxRkUxLTQ2Q0EtNDc2OC05M0E3LTIyNTJCRjc0ODExOA==]
-* [HTTP/2] [1] [user-agent: curl/8.7.1]
-* [HTTP/2] [1] [accept: */*]
-* [HTTP/2] [1] [content-type: application/json]
-* [HTTP/2] [1] [content-length: 406]
-> POST /checkin HTTP/2
+> POST /checkin HTTP/1.1
 > Host: localhost:8000
 > Authorization: Basic Rjk0RTg3MUUtOEE2Ni00NjE0LTlFMTAtNjI4RkZDNDk1NDBBOkNDMEUxRkUxLTQ2Q0EtNDc2OC05M0E3LTIyNTJCRjc0ODExOA==
 > User-Agent: curl/8.7.1
@@ -738,9 +707,9 @@ EOF
 > Content-Length: 406
 > 
 * upload completely sent off: 406 bytes
-< HTTP/2 200 
-< content-length: 0
-< date: Thu, 02 Oct 2025 16:36:44 GMT
+< HTTP/1.1 200 OK
+< Date: Thu, 16 Oct 2025 00:03:39 GMT
+< Content-Length: 0
 < 
 * Connection #0 to host localhost left intact
 ```
@@ -751,7 +720,7 @@ the HTTP status code was 200, i.e., `HTTP/2 200`.
 In the console in which you are running `docker compose up`, you should
 also see the following output:
 ```shell
-wibl-upload  | 2025/10/02 18:13:35.002803 INFO 172.19.0.1 - TNNAME-35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F [02/Oct/2025:18:13:35 +0000] "POST /checkin HTTP/2.0" 200 406
+wibl-upload  | 2025/10/02 18:13:35.002803 INFO 172.19.0.1 - TNNAME-35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F [02/Oct/2025:18:13:35 +0000] "POST /checkin HTTP/1.1" 200 406
 ```
 
 If the logger was not known (i.e., not in the loggers.db file), you would
@@ -766,7 +735,7 @@ WIBL_FILE='dummy.wibl'
 dd if=/dev/urandom of="${WIBL_FILE}" bs=8192 count=32
 MD5_DIGEST=$(md5sum --quiet $WIBL_FILE)
 
-curl -v \
+curl -v --http1.1 \
 	-u TNNAME-35A7C0C1-3EFD-42EE-AE61-69EEF8455E1F:9A066573-7F4F-4FE7-B5DD-0D1F672B40BA \
 	--cacert ./certs/ca.crt --fail-with-body "https://localhost:8000/update" \
         -H 'accept: application/json' \
