@@ -3,12 +3,12 @@
         "port": 8000
     },
     "cloud": {
-        "provider": "debug"
+        "provider": "aws"
     },
     "aws": {
+        "endpoint":         "http://localstack:4566",
         "region":           "us-east-2",
-        "upload_bucket":    "unhjhc-wibl-incoming",
-        "sns_topic":        "arn:aws:sns:us-east-2:ACCOUNT_NUMBER:unhjhc-wibl-conversion"
+        "upload_bucket":    "unhjhc-wibl-incoming"
     },
     "db": {
         "connection":   "/usr/local/wibl/upload-server/db/loggers.db"

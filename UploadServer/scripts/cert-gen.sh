@@ -17,8 +17,7 @@
 # As a consequence of the unknown status of this script, this file has no license information.  We'd assume that
 # it's effectively public domain, or at least open source, but have no evidence to that effect.
 
-export PATH=/opt/homebrew/opt/openssl/bin:${PATH}
-
+OUT_DIR="certs"
 CA_IP_CN="localhost"
 SERVER_IP_CN="localhost"
 CLIENT_HOSTNAME="wibl-logger"
@@ -29,27 +28,29 @@ SUBJECT_CLIENT="/C=US/ST=NewHampshire/L=Durham/O=CCOM-JHC/OU=Client/CN=$CLIENT_H
 
 SAN="subjectAltName=DNS:localhost,IP:127.0.0.1"
 
+mkdir -p ${OUT_DIR}
+
 function generate_CA () {
    echo "$SUBJECT_CA"
    openssl req -x509 -nodes -sha256 -newkey rsa:2048 -subj "$SUBJECT_CA"  -days 365 \
       -addext $SAN \
-      -keyout ca.key -out ca.crt
+      -keyout "${OUT_DIR}/ca.key" -out "${OUT_DIR}/ca.crt"
 }
 
 function generate_server () {
    echo "$SUBJECT_SERVER"
    openssl req -nodes -sha256 -new -subj "$SUBJECT_SERVER" \
       -addext $SAN \
-      -keyout server.key -out server.csr
-   openssl x509 -req -copy_extensions copy -sha256 -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 365
+      -keyout "${OUT_DIR}/server.key" -out "${OUT_DIR}/server.csr"
+   openssl x509 -req -copy_extensions copy -sha256 -in "${OUT_DIR}/server.csr" -CA "${OUT_DIR}/ca.crt" -CAkey "${OUT_DIR}/ca.key" -CAcreateserial -out "${OUT_DIR}/server.crt" -days 365
 }
 
 function generate_client () {
    echo "$SUBJECT_CLIENT"
    openssl req -new -nodes -sha256 -subj "$SUBJECT_CLIENT" \
       -addext $SAN \
-      -out client.csr -keyout client.key 
-   openssl x509 -req -sha256 -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days 365
+      -out "${OUT_DIR}/client.csr" -keyout "${OUT_DIR}/client.key"
+   openssl x509 -req -sha256 -in "${OUT_DIR}/client.csr" -CA "${OUT_DIR}/ca.crt" -CAkey "${OUT_DIR}/ca.key" -CAcreateserial -out "${OUT_DIR}/client.crt" -days 365
 }
 
 generate_CA

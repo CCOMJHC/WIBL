@@ -1,14 +1,14 @@
 {
     "api": {
-        "port": 8000
+        "port": ${WIBL_UPLOAD_SERVER_PORT}
     },
     "cloud": {
-        "provider": "debug"
+        "provider": "aws"
     },
     "aws": {
-        "region":           "us-east-2",
-        "upload_bucket":    "unhjhc-wibl-incoming",
-        "sns_topic":        "arn:aws:sns:us-east-2:ACCOUNT_NUMBER:unhjhc-wibl-conversion"
+        "region":           "${AWS_REGION}",
+        "upload_bucket":    "${WIBL_UPLOAD_BUCKET_NAME}",
+        "sns_topic":        "${WIBL_UPLOAD_SNS_TOPIC_ARN}"
     },
     "db": {
         "connection":   "/usr/local/wibl/upload-server/db/loggers.db"
@@ -21,7 +21,7 @@
       "level": "debug",
       "console_log": "/usr/local/wibl/upload-server/log/console.log",
       "access_log": "/usr/local/wibl/upload-server/log/access.log",
-      "max_size_mb": 10,
+      "max_size_mb": 1,
       "max_age": 1,
       "max_backups": 0,
       "compress_rotated": false
