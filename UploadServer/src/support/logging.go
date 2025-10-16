@@ -118,7 +118,7 @@ func Errorf(format string, args ...any) {
 	consoleLogFile.Error(mesg)
 }
 
-// LogAccess Logs a request in Combinded Log Format (CLF)
+// LogAccess Logs a request in Combined Log Format (CLF)
 func LogAccess(r *http.Request, status int) {
 	remoteAddr := r.RemoteAddr
 	if idx := strings.LastIndex(remoteAddr, ":"); idx != -1 {
