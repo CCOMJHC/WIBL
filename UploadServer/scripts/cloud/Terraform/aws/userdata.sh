@@ -15,7 +15,9 @@ sudo -u wibl chmod 0400 /usr/local/wibl/upload-server/etc/certs/server.key \
 sudo -u wibl chmod 0400 /usr/local/wibl/upload-server/etc/certs/server.crt \
   /usr/local/wibl/upload-server/etc/certs/ca.crt
 sudo -u wibl chmod 0500 /usr/local/wibl/upload-server/bin/*
-
+# Make sure root user (which CloudWatch agent runs as) can delete our logs
+sudo -u wibl chmod 0777 /usr/local/wibl/upload-server/log
+sudo -u wibl sh -c 'cd /usr/local/wibl/upload-server/log && umask 000'
 
 # Allow upload server to bind to ports <1024 as non-root user (i.e., wibl)
 sudo setcap 'CAP_NET_BIND_SERVICE=+ep' /usr/local/wibl/upload-server/bin/upload-server
@@ -56,7 +58,7 @@ cat > /tmp/cloudwatch-agent.json <<-HERE
             "log_group_name": "wibl-upload-server",
             "log_stream_name": "amazon-cloudwatch-agent.log",
             "timezone": "UTC",
-            "auto_removal": false,
+            "auto_removal": true,
             "retention_in_days": 60
           },
           {
@@ -64,7 +66,7 @@ cat > /tmp/cloudwatch-agent.json <<-HERE
             "log_group_name": "wibl-upload-server",
             "log_stream_name": "console.log",
             "timezone": "UTC",
-            "auto_removal": false,
+            "auto_removal": true,
             "retention_in_days": 60
           },
           {
@@ -72,7 +74,7 @@ cat > /tmp/cloudwatch-agent.json <<-HERE
             "log_group_name": "wibl-upload-server",
             "log_stream_name": "access.log",
             "timezone": "UTC",
-            "auto_removal": false,
+            "auto_removal": true,
             "retention_in_days": 60
           }
         ]
