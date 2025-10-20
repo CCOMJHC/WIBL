@@ -1,0 +1,59 @@
+name: wibl-upload
+
+services:
+  localstack:
+    image: localstack/localstack
+    environment:
+      - AWS_DEFAULT_REGION=us-east-2
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - SERVICES=s3,sns
+      - DEBUG=0
+      - LS_LOG=debug
+    ports:
+      - "14566:4566"
+      - "14510-14559:4510-4559"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./scripts/localstack-ready.sh:/etc/localstack/init/ready.d/localstack-ready.sh"
+
+  wibl-upload:
+    depends_on:
+      - localstack
+    build:
+      context: .
+    container_name: wibl-upload
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    command: /usr/local/wibl/upload-server/upload-server -config config.json -level debug
+    ports:
+      - '8000:8000'
+    volumes:
+      - type: bind
+#        source: ./config-localstack-no-sns.json
+        source: ./config-localstack.json
+        target: /usr/local/wibl/upload-server/etc/config.json
+        read_only: true
+      - type: bind
+        source: ./certs/server.crt
+        target: /usr/local/wibl/upload-server/etc/certs/server.crt
+        read_only: true
+      - type: bind
+        source: ./certs/server.key
+        target: /usr/local/wibl/upload-server/etc/certs/server.key
+        read_only: true
+      - type: bind
+        source: ./certs/ca.crt
+        target: /usr/local/wibl/upload-server/etc/certs/ca.crt
+        read_only: true
+      - type: bind
+        source: ./db/loggers.db
+        target: /usr/local/wibl/upload-server/db/loggers.db
+        read_only: true
+    healthcheck:
+      test: [ "CMD", "curl", "--cacert", "/usr/local/wibl/upload-server/etc/certs/ca.crt", "-f", "https://localhost:8000/" ]
+      interval: 10s
+      timeout: 1s
+      retries: 5

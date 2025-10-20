@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -eu -o pipefail
+
+CONTENT_ROOT=$(realpath "$(dirname $0)/../../../..")
+
+source ${CONTENT_ROOT}/scripts/cloud/Terraform/aws/tf-aws-init.sh
+
+pushd ${AWS_TF_ROOT}
+echo "Deleting WIBL upload-server AWS deployment via terraform..."
+terraform apply -destroy -auto-approve
+popd
