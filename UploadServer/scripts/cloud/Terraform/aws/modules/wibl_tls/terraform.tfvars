@@ -1,0 +1,10 @@
+out_dir="certs"
+ca_common_name="localhost"
+server_common_name="localhost"
+client_hostname="wibl-logger"
+server_cert_dns_names=["localhost"]
+server_cert_ip_addrs=["127.0.0.1"]
+country="US"
+state="NewHampshire"
+locality="Durham"
+organization="CCOM-JHC"
