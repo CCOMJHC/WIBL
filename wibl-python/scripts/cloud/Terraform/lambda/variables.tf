@@ -52,9 +52,10 @@ variable "architecture" {
     default = "arm64"
 }
 
+# https://aws-sdk-pandas.readthedocs.io/en/stable/layers.html
 variable "numpy_layer_name" {
     type = string
-    default = "arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python312-Arm64:4"
+    default = "arn:aws:lambda:us-east-2:336392948345:layer:AWSSDKPandas-Python312-Arm64:19"
 }
 
 variable "python_version" {
@@ -69,21 +70,22 @@ variable "lambda_memory_size" {
 
 variable "staging_bucket_arn" {
     type = string
-    default = "wefwnefjkew"
 }
 
 variable "incoming_bucket_arn" {
     type = string
-    default = "wefwnefjkew"
 }
 
 variable "incoming_bucket_id" {
     type = string
 }
 
+variable "incoming_bucket_name" {
+    type = string
+}
+
 variable "viz_bucket_arn" {
     type = string
-    default = "wefwnefjkew"
 }
 
 variable TOPIC_ARN_VALIDATION {

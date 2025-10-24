@@ -1,4 +1,8 @@
 
+data "aws_lambda_layer_version" "aws_pandas_layer" {
+  layer_name = "AWSSDKPandas-Python312-Arm64"
+}
+
 # Conversion Lambda
 resource "aws_lambda_function" "conversion_lambda" {
     filename = var.package_path
@@ -9,7 +13,7 @@ resource "aws_lambda_function" "conversion_lambda" {
     runtime = "python${var.python_version}"
     memory_size = var.lambda_memory_size
     source_code_hash = filebase64sha256(var.package_path)
-    layers = [var.numpy_layer_name]
+    layers = [data.aws_lambda_layer_version.aws_pandas_layer.arn]
     architectures = [var.architecture]
     environment {
       variables = {
@@ -46,7 +50,7 @@ resource "aws_lambda_function" "validation_lambda" {
   runtime = "python${var.python_version}"
   memory_size = var.lambda_memory_size
   source_code_hash = filebase64sha256(var.package_path)
-  layers = [var.numpy_layer_name]
+  layers = [data.aws_lambda_layer_version.aws_pandas_layer.arn]
   architectures = [var.architecture]
   environment {
     variables = {
@@ -82,7 +86,7 @@ resource "aws_lambda_function" "submission_lambda" {
   runtime = "python${var.python_version}"
   memory_size = var.lambda_memory_size
   source_code_hash = filebase64sha256(var.package_path)
-  layers = [var.numpy_layer_name]
+  layers = [data.aws_lambda_layer_version.aws_pandas_layer.arn]
   architectures = [var.architecture]
   environment {
     variables = {
@@ -119,7 +123,7 @@ resource "aws_lambda_function" "conversion_start_lambda" {
   runtime = "python${var.python_version}"
   memory_size = var.lambda_memory_size
   source_code_hash = filebase64sha256(var.package_path)
-  layers = [var.numpy_layer_name]
+  layers = [data.aws_lambda_layer_version.aws_pandas_layer.arn]
   architectures = [var.architecture]
   environment {
     variables = {
@@ -128,7 +132,8 @@ resource "aws_lambda_function" "conversion_start_lambda" {
       "PROVIDER_AUTH" = var.provider_auth,
       "DEST_BUCKET" = var.staging_bucket_arn,
       "UPLOAD_POINT" = var.DCDB_UPLOAD_URL,
-      "MANAGEMENT_URL" = var.MANAGEMENT_URL
+      "MANAGEMENT_URL" = var.MANAGEMENT_URL,
+      "INCOMING_BUCKET" = var.incoming_bucket_name
     }
   }
   vpc_config {

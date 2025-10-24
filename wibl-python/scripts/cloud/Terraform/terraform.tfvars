@@ -1,7 +1,7 @@
 region           = "us-east-1"
-incoming_bucket_name  = "incoming-bucket-gt"
-staging_bucket_name   = "staging-bucket-gt-test"
-viz_bucket_name       = "viz-bucket-gt"
+incoming_bucket_name  = "incoming-bucket-gt-test-1"
+staging_bucket_name   = "staging-bucket-gt-test-1"
+viz_bucket_name       = "viz-bucket-gt-test-1"
 
 conversion_lambda_name = "gt-conversion-lambda"
 conversion_start_lambda_name = "gt-conversion-start-lambda"

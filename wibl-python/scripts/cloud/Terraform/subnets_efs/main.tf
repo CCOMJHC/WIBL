@@ -6,7 +6,7 @@ resource "aws_vpc" "main_vpc" {
 resource "aws_subnet" "public_subnet_1" {
     vpc_id = aws_vpc.main_vpc.id
     cidr_block = "10.0.2.0/24"
-    availability_zone = "us-east-1b"
+    availability_zone = "${var.aws_region}b"
     tags = {
       Name = "wibl-public"
     }
@@ -15,7 +15,7 @@ resource "aws_subnet" "public_subnet_1" {
 resource "aws_subnet" "public_subnet_2" {
     vpc_id = aws_vpc.main_vpc.id
     cidr_block = "10.0.4.0/24"
-    availability_zone = "us-east-1a"
+    availability_zone = "${var.aws_region}a"
     tags = {
       Name = "wibl-public2"
     }
@@ -96,7 +96,7 @@ resource "aws_vpc_security_group_ingress_rule" "public_sg_rule2" {
 resource "aws_subnet" "private_subnet_1" {
     vpc_id = aws_vpc.main_vpc.id
     cidr_block = "10.0.0.0/24"
-    availability_zone = "us-east-1b"
+    availability_zone = "${var.aws_region}b"
     tags = {
       Name = "wibl-private-ecs"
     }
@@ -168,16 +168,16 @@ resource "aws_vpc_security_group_ingress_rule" "private_sg_rule3" {
 
 resource "aws_vpc_endpoint" "vpc_s3_endpoint" {
     vpc_id = aws_vpc.main_vpc.id
-    service_name = "com.amazonaws.us-east-1.s3"
+    service_name = "com.amazonaws.${var.aws_region}.s3"
     route_table_ids = [aws_route_table.private_route_table.id]
     tags = {
         Name = "ecs-s3"
     }
 }
 
-# Hard coded for us-east-1
+# TODO: Only working in us-east-2
 data "aws_prefix_list" "s3" {
-  name = "com.amazonaws.us-east-1.s3"
+  name = "com.amazonaws.${var.aws_region}.s3"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "private_sg_rule4" {

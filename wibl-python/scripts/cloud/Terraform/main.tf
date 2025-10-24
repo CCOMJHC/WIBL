@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = "us-east-2"
 }
 
 module "configure-buckets" {
@@ -30,6 +30,8 @@ module "configure-sns" {
 
 module "configure-subnets_efs" {
     source = "./subnets_efs"
+
+    aws_region = var.region
 }
 
 module "configure-lambda" {
@@ -53,6 +55,7 @@ module "configure-lambda" {
 
     staging_bucket_arn = module.configure-buckets.staging_bucket_arn
     incoming_bucket_arn = module.configure-buckets.incoming_bucket_arn
+    incoming_bucket_name = var.incoming_bucket_name
     incoming_bucket_id = module.configure-buckets.incoming_bucket_id
     viz_bucket_arn = module.configure-buckets.viz_bucket_arn
 
