@@ -1,5 +1,9 @@
 # Release Notes: Logger Firmware
 
+## Firmware 1.6.1
+
+Firmware 1.6.1 addresses [issue 85](https://github.com/CCOMJHC/WIBL/issues/85) in the repository, which is a bug in the generation of "last known good" data in the JSON response to the "status" command, which shows up as failure to parse the JSON in the JavaScript.  A consequence of this is that the hardware data simulator required updates to (a) add a Depth datagram in the NMEA2000 output (fixed depth rather than fully simulated like the NMEA0183 output), and (b) flushing of buffers to ensure that NMEA0183 messages are sent correctly on the GGA/ZDA channel without problems.
+
 ## Firmware 1.6.0
 
 Firmware 1.6.0 addresses [issue 76](https://github.com/CCOMJHC/WIBL/issues/76) in the repository, dealing with bulk download of log files.  This is a much more practical solution than having to download files one by one if there isn't the opportunity to upload automatically.  The code uses a lightweight library to generate a GZip-ed TAR file from the log directory, and then streams it directly (without an intermediate file).  In the JavaScript for the logger's website, the "Download All Log Files" button (on the status page) provides user-level access to this functionality.  Due to performance limitations and WiFi transfer speed, this may take some time...
