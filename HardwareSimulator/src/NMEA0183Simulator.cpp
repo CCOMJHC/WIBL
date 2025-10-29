@@ -148,6 +148,7 @@ void GenerateDepth(unsigned long now, StatusLED *led)
     String txt = "Sending SDDBT: ";
     Serial.print(txt + msg);
     Serial1.print(msg);
+    Serial1.flush();
     led->TriggerDataIndication();
     
     target_depth_time = now + 1000 + (int)(1000*(random(1000)/1000.0));
@@ -218,6 +219,7 @@ void GeneratePosition(unsigned long now, StatusLED *led)
     String txt = "Sending GGA: ";
     Serial.print(txt + msg);
     Serial2.print(msg);
+    Serial2.flush();
     led->TriggerDataIndication();
     
     target_position_time = now + 1000;
@@ -323,6 +325,7 @@ void GenerateZDA(unsigned long now, StatusLED *led)
     Serial.print(txt + msg);
     last_zda_time = millis();
     Serial2.print(msg);
+    Serial2.flush();
     led->TriggerDataIndication();
     
     target_zda_time = now + 1000;

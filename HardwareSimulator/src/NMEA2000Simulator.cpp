@@ -69,6 +69,19 @@ void SendN2kNavigation() {
   }
 }
 
+void SendN2kDepth() {
+  static unsigned long SlowDataUpdated=InitNextUpdate(SlowDataUpdatePeriod,NavigationSendOffset);
+  tN2kMsg N2kMsg;
+  const int DelayBetweenSend=0;
+  
+  if ( IsTimeToUpdate(SlowDataUpdated) ) {
+    SetNextUpdate(SlowDataUpdated,SlowDataUpdatePeriod);
+
+    SetN2kWaterDepth(N2kMsg, 1, 10.0, 0.5, 100.0);
+    delay(DelayBetweenSend); NMEA2000.SendMsg(N2kMsg);
+  }
+}
+
 void SendN2kEnvironmental() {
   static unsigned long SlowDataUpdated=InitNextUpdate(SlowDataUpdatePeriod,EnvironmentalSendOffset);
   tN2kMsg N2kMsg;
@@ -212,7 +225,7 @@ void SetupNMEA2000(void)
     // Uncomment 3 rows below to see, what device will send to bus                           
      NMEA2000.SetForwardStream(&Serial);  // PC output on due programming port
      NMEA2000.SetForwardType(tNMEA2000::fwdt_Text); // Show in clear text. Leave uncommented for default Actisense format.
-     NMEA2000.SetForwardOwnMessages();
+     //NMEA2000.SetForwardOwnMessages();
   
     // If you also want to see all traffic on the bus use N2km_ListenAndNode instead of N2km_NodeOnly below
     NMEA2000.SetMode(tNMEA2000::N2km_NodeOnly,22);
@@ -226,6 +239,7 @@ void GenerateNMEA2000(void)
 {
     SendN2kRapidData();
     SendN2kNavigation();
+    SendN2kDepth();
     SendN2kEnvironmental();
     SendN2kBattery();
     SendN2kMisc();

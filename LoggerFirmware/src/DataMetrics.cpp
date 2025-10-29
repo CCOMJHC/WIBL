@@ -164,18 +164,18 @@ DynamicJsonDocument DataMetrics::LastKnownGood(void) const
     int capacity = m_nmea0183[0].Size()*(n_0183_valid + n_2000_valid) + MaximumRenderOverhead;
     DynamicJsonDocument summary(capacity);
 
-    for (int n = 0; n < DATA_UNKNOWN; ++n) {
+    for (int n = 0, op = 0; n < DATA_UNKNOWN; ++n) {
         if (m_nmea0183[n].Valid()) {
-            summary["nmea0183"]["detail"][n] = m_nmea0183[n].Render();
+            summary["nmea0183"]["detail"][op++] = m_nmea0183[n].Render();
         }
     }
     summary["nmea0183"]["count"] = n_0183_valid;
     
-    for (int n = 0; n < DATA_UNKNOWN; ++n) {
+    for (int n = 0, op = 0; n < DATA_UNKNOWN; ++n) {
         if (m_nmea2000[n].Valid()) {
-            summary["nmea2000"]["detail"][n] = m_nmea2000[n].Render();
+            summary["nmea2000"]["detail"][op++] = m_nmea2000[n].Render();
         }
-    }
+    } 
     summary["nmea2000"]["count"] = n_2000_valid;
 
     return summary;
