@@ -54,17 +54,7 @@ module "configure-manager-ecs" {
     viz_bucket_name = var.viz_bucket_name
     viz_lambda_name = var.viz_lambda_name
     architecture = var.architecture
-
-    conversion_lambda_name = var.conversion_lambda_name
-    conversion_lambda_role_name = var.conversion_lambda_role_name
-    conversion_start_lambda_name = var.conversion_start_lambda_name
-    conversion_start_lambda_role_name = var.conversion_start_lambda_role_name
-    submission_lambda_name = var.submission_lambda_name
-    submission_lambda_role_name = var.submission_lambda_role_name
-    validation_lambda_name = var.validation_lambda_name
-    validation_lambda_role_name = var.validation_lambda_role_name
-    viz_lambda_role_name = var.viz_lambda_role_name
-    wibl_build_path = var.wibl_build_path
+    src_path = var.src_path
 }
 
 module "configure-lambda" {

@@ -3,6 +3,11 @@ variable "region" {
     type = string
 }
 
+variable "src_path" {
+    type = string
+    description = "Path to the wibl-python directory"
+}
+
 variable "incoming_bucket_name" {
     description = "Name of the incoming s3 bucket"
     type = string

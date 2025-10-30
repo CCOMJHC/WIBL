@@ -26,11 +26,11 @@ resource "aws_ecr_repository" "manager_ecr_repo" {
 resource "docker_image" "frontend_image" {
   name         = "wibl/frontend"
   build {
-    context    = "../../../../wibl-frontend"
+    context    = "${var.src_path}/wibl-frontend"
     platform   = "linux/${var.architecture}"
   }
   triggers = {
-    dockerfile_hash = sha1(filemd5("../../../../wibl-frontend/Dockerfile"))
+    dockerfile_hash = sha1(filemd5("${var.src_path}/wibl-frontend/Dockerfile"))
   }
 
 }
@@ -38,7 +38,6 @@ resource "docker_image" "frontend_image" {
 resource "docker_registry_image" "frontend" {
   name = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/frontend:latest"
   keep_remotely = true
-  id      = docker_image.frontend_image.id
   depends_on = [aws_ecr_repository.frontend_ecr_repo]
 }
 
@@ -46,18 +45,17 @@ resource "docker_registry_image" "frontend" {
 resource "docker_image" "manager_image" {
   name         = "wibl/manager"
   build {
-    context    = "../../../../wibl-manager"
+    context    = "${var.src_path}/wibl-manager"
     platform   = "linux/${var.architecture}"
   }
   triggers = {
-    dockerfile_hash = sha1(filemd5("../../../../wibl-manager/Dockerfile"))
+    dockerfile_hash = sha1(filemd5("${var.src_path}/wibl-manager/Dockerfile"))
   }
 }
 
-resource "docker_registry_image" "frontend" {
+resource "docker_registry_image" "manager" {
   name = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/manager:latest"
   keep_remotely = true
-  id      = docker_image.manager_image.id
   depends_on = [aws_ecr_repository.manager_ecr_repo]
 }
 
@@ -392,7 +390,7 @@ resource "aws_ecs_cluster_capacity_providers" "capacity_attach" {
 # Create `ecsTaskExecutionRole`
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "ecsTaskExecutionRole"
-  assume_role_policy = file("${path.module}/manager/input/task-execution-assume-role.json")
+  assume_role_policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/task-execution-assume-role.json")
 }
 
 # Next, attach role policy
@@ -405,7 +403,7 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_policy" {
 # Create policy
 resource "aws_iam_policy" "ecs_cloudwatch_logs" {
   name   = "ECS-CloudWatchLogs"
-  policy = file("${path.module}/manager/input/ecs-cloudwatch-policy.json")
+  policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/ecs-cloudwatch-policy.json")
 }
 
 # Attach policy to ECS role
@@ -440,7 +438,7 @@ resource "aws_security_group" "fe_elb_public" {
     from_port                = 8000
     to_port                  = 8000
     protocol                 = "tcp"
-    security_groups          = [aws_security_group.private_sg]
+    security_groups          = [aws_security_group.private_sg.id]
   }
 
   tags = {
@@ -453,7 +451,7 @@ resource "aws_lb" "frontend_alb" {
   name               = "wibl-frontend-ecs-elb"
   internal           = false
   load_balancer_type = "application"
-  subnets            = [aws_subnet.public_subnet_1, aws_subnet.public_subnet_2]
+  subnets            = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
   security_groups    = [aws_security_group.fe_elb_public.id]
 
   tags = {
@@ -521,21 +519,20 @@ resource "aws_ecs_task_definition" "wibl_manager" {
   network_mode             = "awsvpc"
 
   # Decode the JSON template after variable substitution
-  container_definitions = jsonencode(
-    jsondecode(
-      templatefile("${path.module}/manager/input/manager-task-definition.proto", {
+  container_definitions = jsonencode([jsondecode(
+      templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/manager-task-definition.proto", {
         REPLACEME_ACCOUNT_NUMBER = var.account_number
         REPLACEME_AWS_EFS_FS_ID  = aws_efs_file_system.manager-efs.id
         REPLECEME_AWS_REGION     = var.region
       })
     )
-  )
+  ])
 }
 
 # Frontend ECS task role
 resource "aws_iam_role" "ecs_frontend_task_role" {
   name = "ecsFrontEndTaskRole"
-  assume_role_policy = file("${path.module}/manager/input/task-execution-assume-role.json")
+  assume_role_policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/task-execution-assume-role.json")
 }
 
 # Allow frontend ECS task role to access S3 buckets
@@ -585,9 +582,9 @@ resource "aws_ecs_task_definition" "frontend" {
   network_mode             = "awsvpc"
   task_role_arn = aws_iam_role.ecs_frontend_task_role.arn
   # Decode the JSON template after variable substitution
-  container_definitions = jsonencode(
+  container_definitions = jsonencode([
     jsondecode(
-      templatefile("${path.module}/manager/input/frontend-task-definition.proto", {
+      templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/frontend-task-definition.proto", {
         REPLACEME_ACCOUNT_NUMBER  = var.account_number
         REPLACEME_AWS_EFS_FS_ID   = aws_efs_file_system.fronted-efs.id
         REPLECEME_AWS_REGION      = var.region
@@ -598,7 +595,7 @@ resource "aws_ecs_task_definition" "frontend" {
         REPLACEME_VIZ_LAMBDA      = var.viz_lambda_name
       })
     )
-  )
+  ])
 }
 
 # Manager ECS Service
@@ -610,7 +607,7 @@ resource "aws_ecs_service" "wibl_manager" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = aws_subnet.private_subnet_1
+    subnets         = [aws_subnet.private_subnet_1.id]
     security_groups = [aws_security_group.private_sg.id]
     assign_public_ip = false
   }
@@ -633,7 +630,7 @@ resource "aws_ecs_service" "wibl_frontend" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = aws_subnet.private_subnet_1
+    subnets         = [aws_subnet.private_subnet_1.id]
     security_groups = [aws_security_group.private_sg.id]
     assign_public_ip = true
   }
