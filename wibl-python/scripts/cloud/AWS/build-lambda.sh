@@ -1,4 +1,4 @@
-#!/bin/bash
+3#!/bin/bash
 
 set -eu -o pipefail
 

@@ -1,4 +1,4 @@
-region           = "us-east-1"
+region           = "us-east-2"
 incoming_bucket_name  = "incoming-bucket-gt-test-1"
 staging_bucket_name   = "staging-bucket-gt-test-1"
 viz_bucket_name       = "viz-bucket-gt-test-1"

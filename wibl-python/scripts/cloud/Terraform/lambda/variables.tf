@@ -52,12 +52,6 @@ variable "architecture" {
     default = "arm64"
 }
 
-# https://aws-sdk-pandas.readthedocs.io/en/stable/layers.html
-variable "numpy_layer_name" {
-    type = string
-    default = "arn:aws:lambda:us-east-2:336392948345:layer:AWSSDKPandas-Python312-Arm64:19"
-}
-
 variable "python_version" {
     type = string
     default = "3.12"

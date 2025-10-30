@@ -1,3 +1,6 @@
+
+// This module is deprecated, updated version is "manager_ecs"
+
 resource "aws_vpc" "main_vpc" {
   cidr_block = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -175,7 +178,6 @@ resource "aws_vpc_endpoint" "vpc_s3_endpoint" {
     }
 }
 
-# TODO: Only working in us-east-2
 data "aws_prefix_list" "s3" {
   name = "com.amazonaws.${var.aws_region}.s3"
 }
