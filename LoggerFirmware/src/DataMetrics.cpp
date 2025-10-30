@@ -131,6 +131,7 @@ int DataObs::Size(void) const
 
 DataMetrics::DataMetrics(void)
 {
+    m_supplyVoltage = -1.0;
 }
 
 DataMetrics::~DataMetrics(void)
