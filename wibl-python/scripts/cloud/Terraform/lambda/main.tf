@@ -152,6 +152,14 @@ resource "aws_lambda_permission" "submission_allow_url_access" {
   action = "lambda:InvokeFunctionUrl"
 }
 
+resource "aws_lambda_permission" "submission_allow_url_access_again" {
+  statement_id = "url"
+  function_name = aws_lambda_function.conversion_start_lambda.function_name
+  principal = "*"
+  function_url_auth_type = "NONE"
+  action = "lambda:InvokeFunction"
+}
+
 resource "aws_lambda_function_url" "conversion_start_lambda_url" {
   function_name = var.conversion_start_lambda_name
   authorization_type = "NONE"
