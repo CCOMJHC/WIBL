@@ -215,6 +215,8 @@ What the above commands do is run the `add-logger` command as the `wibl` user; t
 logger has the identifier "TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153" with password/token 
 "CAF1CA92-CB9E-437D-B391-7709A39D32B1".
 
+Note that if you don't have a password yet for the logger, omit the `-password` option and the code will generate a UUID password for you, then report it on the command line.  Add the `-creds filename` parameter to write this information to a file for transfer locally.  If the installation has updated JSON configuration files that include a path to the CA certificate, this is also reported in the credentials, since this is required for upload configuration on the logger.
+
 To verify that these loggers were added to the database, use the `sqlite3` command line utility:
 ```shell
 [ec2-user@ip-10-0-1-51 ~]$ sqlite3 db/loggers.db 'SELECT * FROM loggers'
