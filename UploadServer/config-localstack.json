@@ -16,7 +16,8 @@
     },
     "cert": {
       "cert_file": "/usr/local/wibl/upload-server/etc/certs/server.crt",
-      "key_file": "/usr/local/wibl/upload-server/etc/certs/server.key"
+      "key_file": "/usr/local/wibl/upload-server/etc/certs/server.key",
+      "ca_cert": "/usr/local/wibl/upload-server/etc/certs/ca.crt"
     },
     "logging": {
       "level": "debug",

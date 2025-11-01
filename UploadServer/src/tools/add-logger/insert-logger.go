@@ -73,6 +73,13 @@ func main() {
 		LoggerID: *loggerID,
 		Password: *loggerPass,
 	}
+	if len(server_config.Cert.CACertFile) > 0 {
+		if ca_cert, err := os.ReadFile(server_config.Cert.CACertFile); err != nil {
+			support.Errorf("failed to read CA certificate from %s (%v)\n", server_config.Cert.CACertFile, err)
+		} else {
+			creds.CACert = string(ca_cert)
+		}
+	}
 	data, err := json.MarshalIndent(creds, "", "  ")
 	if len(*outCredsFile) > 0 {
 		if err != nil {

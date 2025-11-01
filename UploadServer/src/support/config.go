@@ -62,8 +62,9 @@ type DBParam struct {
 
 // A CertParam provides the paths at which the server cert and key can be loaded.
 type CertParam struct {
-	CertFile string `json:"cert_file"`
-	KeyFile  string `json:"key_file"`
+	CertFile   string `json:"cert_file"`
+	KeyFile    string `json:"key_file"`
+	CACertFile string `json:"ca_cert"`
 }
 
 // A LoggingParam provides all parameters required to configure logging.
