@@ -55,25 +55,31 @@ SupplyMonitor::SupplyMonitor(uint8_t monitor_pin)
 }
 
 /// Check the emergency power pin to see whether the main power supply is on.  The code assumes that the
-/// input voltage is fine so long as it scales to above 6V, which is about the minimum required for the
-/// SMPS to stay up.  For hardware 2.5.1, the voltage divider ratio is 4.75/(4.75+51.1)=0.0850, so the
-/// scaling factor from measured to input is 11.76; the code therefore uses the internal conversion to
-/// millivolts (which can take advantage of any ADC calibration that might be stored in the system), and
-/// converts back to input voltage, rather than having a hard-coded ADC value.  Note that the ADC on the
-/// ESP32 is not particularly reliable or linear, so this is really just a ballpark check that hopefully
+/// input voltage is fine so long as it scales to above a fixed threshold (defined at compile time, typically
+/// 6V, which is about the minimum required for the Switch-Mode Power Supply to stay up).  For hardware 2.5.1,
+/// the voltage divider ratio is 4.75/(4.75+51.1)=0.0850, so the scaling factor from measured to input is 11.76;
+/// the code therefore uses the internal conversion to millivolts (which can take advantage of any ADC
+/// calibration that might be stored in the system), and converts back to input voltage, rather than having a
+/// hard-coded ADC value; the conversion factor is specified as a constexpr for clarity.  Note that the ADC on
+/// the ESP32 is not particularly reliable or linear, so this is really just a ballpark check that hopefully
 /// won't fail too often.
+///    Calling this code also updates the DataMetrics supply voltage value, so that it can be logged with the
+/// rest of the metrics, and displayed in the logger's web interface (for example).
 ///
-/// \param value    Pointer to where to store the value read from the ADC, or nullptr if you don't need it
 /// \return True if the module need to switch to emergency power, or False if the main power is on
 
 bool SupplyMonitor::EmergencyPower(void)
 {
     if (m_monitorPower) {
+        constexpr double to_volts = 11.76 / 1000.0; // Scaling for voltage divider, and scaled read in millivolts
+        constexpr double trigger_threshold = 6.0; // Volts (below which to trigger shutdown)
+
         double monitor_mvolts = analogReadMilliVolts(m_monitorPin);
-        double input_voltage = monitor_mvolts * 11.76 / 1000.0;
+        double input_voltage = monitor_mvolts * to_volts;
         logger::Metrics.SupplyVoltage(input_voltage);
-        if (input_voltage < 6.0)
+        if (input_voltage < trigger_threshold) {
             return true;
+        }
     }
     return false;
 }
