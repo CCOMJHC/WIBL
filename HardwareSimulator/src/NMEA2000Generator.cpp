@@ -7,6 +7,7 @@
  */
 
 #include <Arduino.h>
+#include <ctime>
 #include <NMEA2000_CAN.h>
 #include <N2kMessages.h>
 
@@ -220,27 +221,65 @@ void GenerateNMEA2000(void)
     SendN2kMisc();
 }
 
-void GenerateGNSS(double latitude, double longitude, int hour, int minute, double second)
+time_t ConvertTime(int year, int month, int day, int hour, int minute, double second)
 {
-  tN2kMsg N2kMsg;
-  SetN2kGNSS(N2kMsg,1,17555,62000,60.1,22.5,10.5,N2kGNSSt_GPS,N2kGNSSm_GNSSfix,12,0.8,0.5,15,1,N2kGNSSt_GPS,15,2);
-  NMEA2000.SendMsg(N2kMsg);
-  SetN2kGNSSDOPData(N2kMsg,1,N2kGNSSdm_Auto,N2kGNSSdm_Auto,1.2,-0.8,N2kDoubleNA);
-  NMEA2000.SendMsg(N2kMsg);
+  // The NMEA2000 output is days since 1970-01-01 and seconds since midnight on the day,
+  // and therefore we need to convert from our broken out date into that format.  Conveniently,
+  // this is also Unix epoch, so we can do this with a couple of library calls.
+  int int_seconds = static_cast<int>(second);
+  struct tm t;
+  t.tm_year = year - 1900;
+  t.tm_mon = month - 1;
+  t.tm_mday = day;
+  t.tm_hour = hour;
+  t.tm_min = minute;
+  t.tm_sec = int_seconds;
+  t.tm_isdst = 0;
+  return mktime(&t);
+}
+
+void GenerateGNSS(double latitude, double longitude, int year, int month, int day, int hour, int minute, double second)
+{
+  tN2kMsg msg;
+  time_t utc_time = ConvertTime(year, month, day, hour, minute, second);
+  
+  int days_since_epoch = static_cast<int>(utc_time / 86400);
+  
+
+  SetN2kGNSS(msg,1,days_since_epoch,second,latitude,longitude,-19.5,
+    N2kGNSSt_GPS,N2kGNSSm_PreciseGNSS,12,1.0,1.0,22.5,1,N2kGNSSt_surveyed,1,1);
+  Serial.printf("Sending N2K GNSS: Lat %.6f Lon %.6f Time %04d-%02d-%02d %02d:%02d:%06.3f\n",
+                latitude, longitude,
+                year, month, day,
+                hour, minute, second);
+  NMEA2000.SendMsg(msg);
+  SetN2kGNSSDOPData(msg,1,N2kGNSSdm_Auto,N2kGNSSdm_Auto,1.0,1.0,1.0);
+  Serial.printf("Sending N2K DOP: PDOP %.2f HDOP %.2f VDOP %.2f\n",
+                1.0, 1.0, 1.0);
+  NMEA2000.SendMsg(msg);
 }
 
 void GenerateDepth(double depth)
 {
-  tN2kMsg N2kMsg;
-  SetN2kWaterDepth(N2kMsg, 1, depth, 0.5, 100.0);
-  NMEA2000.SendMsg(N2kMsg);
+  tN2kMsg msg;
+  SetN2kWaterDepth(msg, 1, depth, 0.5, 100.0);
+  Serial.printf("Sending N2K Depth: %.2f metres\n", depth);
+  NMEA2000.SendMsg(msg);
 }
 
-void GenerateSystemTime(int year, int yday, int hour, int minute, double second)
+void GenerateSystemTime(int year, int month, int day, int hour, int minute, double second)
 {
-  tN2kMsg N2kMsg;
-  SetN2kSystemTime(N2kMsg,1,17555,62000);
-  NMEA2000.SendMsg(N2kMsg);
+  tN2kMsg msg;
+  time_t utc_time = ConvertTime(year, month, day, hour, minute, second);
+  
+  int days_since_epoch = static_cast<int>(utc_time / 86400);
+  int seconds_of_day = static_cast<int>(utc_time % 86400);
+
+  SetN2kSystemTime(msg,1,days_since_epoch, seconds_of_day);
+  Serial.printf("Sending N2K System Time: %04d-%02d-%02d %02d:%02d:%06.3f\n",
+                year, month, day,
+                hour, minute, second);
+  NMEA2000.SendMsg(msg);
 }
 
 void ProcessMessages(void)

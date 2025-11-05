@@ -32,6 +32,55 @@
 
 Simulator simulator;
 
+/// Convert from a year, and day-of-year (a.k.a., albeit inaccurately, Julian Day) to
+/// a month/day pair, as required for ouptut of ZDA information.  Keeping the time
+/// as a day of the year makes the simulation simpler ...
+///
+/// \param year         Current year of the simulation
+/// \param year_day     Current day-of-year of the simulation
+/// \param month        (Out) Reference for store of the month of the year
+/// \param day          (Out) Reference for store of the day of the month
+
+void ToDayMonth(int year, int year_day, int& month, int& day)
+{
+    unsigned     leap;
+    static unsigned months[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    
+    /* Determine whether this is a leap year.  Leap years in the Gregorian
+     * calendar are years divisible by four, unless they are also a century
+     * year, except when the century is also divisible by 400.  Thus 1900 is
+     * not a leap year (although it is divisible by 4), but 2000 is, because
+     * it is divisible by 4 and 400).
+     */
+    if ((year%4) == 0) {
+            /* Potentially a leap year, check for century year */
+            if ((year%100) == 0) {
+                    /* Century year, check for 400 years */
+                    if ((year%400) == 0)
+                            leap = 1;
+                    else
+                            leap = 0;
+            } else
+                    leap = 1;
+    } else
+            leap = 0;
+    day = year_day + 1; // External is [0, 364], but we assume here [1, 365]
+    
+    months[1] += leap;      /* Correct February */
+    
+    /* Compute month by reducing days until we have less than the next months
+     * total number of days.
+     */
+    month = 0;
+    while (day > months[month]) {
+            day -= months[month];
+            ++month;
+    }
+    ++month; // External is [1, 12] but here it's [0, 11]
+    
+    months[1] -= leap;      /* Uncorrect February */
+}
+
 Simulator::Simulator(void)
 {
     iset = false;
@@ -117,8 +166,12 @@ bool Simulator::StepPosition(unsigned long now)
     }
     target_position_time = now + 1000;
 
+    int month, day;
+    ToDayMonth(current_year, current_day_of_year, month, day);
+
     nmea0183::GeneratePosition(current_latitude, current_longitude, current_hours, current_minutes, current_seconds);
-    nmea2000::GenerateGNSS(current_latitude, current_longitude, current_hours, current_minutes, current_seconds);
+    nmea2000::GenerateGNSS(current_latitude, current_longitude, current_year, month, day,
+                           current_hours, current_minutes, current_seconds);
 
     return true;
 }
@@ -146,8 +199,11 @@ bool Simulator::StepTime(unsigned long now)
     }
     target_zda_time = now + 1000;
 
-    nmea0183::GenerateZDA(current_year, current_day_of_year, current_hours, current_minutes, current_seconds);
-    nmea2000::GenerateSystemTime(current_year, current_day_of_year, current_hours, current_minutes, current_seconds);
+    int month, day;
+    ToDayMonth(current_year, current_day_of_year, month, day);
+
+    nmea0183::GenerateZDA(current_year, month, day, current_hours, current_minutes, current_seconds);
+    nmea2000::GenerateSystemTime(current_year, month, day, current_hours, current_minutes, current_seconds);
     
     return true;
 }

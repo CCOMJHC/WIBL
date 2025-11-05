@@ -14,8 +14,8 @@ namespace nmea2000 {
 void SetupInterface(void);
 void ProcessMessages(void);
 
-void GenerateSystemTime(int year, int yday, int hour, int minute, double second);
-void GenerateGNSS(double latitude, double longitude, int hour, int minute, double second);
+void GenerateSystemTime(int year, int month, int day, int hour, int minute, double second);
+void GenerateGNSS(double latitude, double longitude, int year, int month, int day, int hour, int minute, double second);
 void GenerateDepth(double depth);
 
 }

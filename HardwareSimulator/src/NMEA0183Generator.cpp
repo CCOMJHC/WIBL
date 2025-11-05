@@ -142,55 +142,6 @@ void GeneratePosition(double latitude, double longitude, int hour, int minute, d
     Serial2.flush();
 }
 
-/// Convert from a year, and day-of-year (a.k.a., albeit inaccurately, Julian Day) to
-/// a month/day pair, as required for ouptut of ZDA information.  Keeping the time
-/// as a day of the year makes the simulation simpler ...
-///
-/// \param year         Current year of the simulation
-/// \param year_day     Current day-of-year of the simulation
-/// \param month        (Out) Reference for store of the month of the year
-/// \param day          (Out) Reference for store of the day of the month
-
-void ToDayMonth(int year, int year_day, int& month, int& day)
-{
-    unsigned     leap;
-    static unsigned months[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-    
-    /* Determine whether this is a leap year.  Leap years in the Gregorian
-     * calendar are years divisible by four, unless they are also a century
-     * year, except when the century is also divisible by 400.  Thus 1900 is
-     * not a leap year (although it is divisible by 4), but 2000 is, because
-     * it is divisible by 4 and 400).
-     */
-    if ((year%4) == 0) {
-            /* Potentially a leap year, check for century year */
-            if ((year%100) == 0) {
-                    /* Century year, check for 400 years */
-                    if ((year%400) == 0)
-                            leap = 1;
-                    else
-                            leap = 0;
-            } else
-                    leap = 1;
-    } else
-            leap = 0;
-    day = year_day + 1; // External is [0, 364], but we assume here [1, 365]
-    
-    months[1] += leap;      /* Correct February */
-    
-    /* Compute month by reducing days until we have less than the next months
-     * total number of days.
-     */
-    month = 0;
-    while (day > months[month]) {
-            day -= months[month];
-            ++month;
-    }
-    ++month; // External is [1, 12] but here it's [0, 11]
-    
-    months[1] -= leap;      /* Uncorrect February */
-}
-
 /// Simulate a ZDA time stamp message, at 1Hz.  This just reports the real-time of the
 /// simulation, based on the delta from the last time the ZDA was generated (in milliseconds)
 /// as the advance of time.  Since this is a finite computation, it's possible that we
@@ -204,12 +155,10 @@ void ToDayMonth(int year, int year_day, int& month, int& day)
 /// \param now  Current simulator time (in milliseconds since boot)
 /// \param led  Pointer to the status LED controller so that we can flash them if data is transmitted
 
-void GenerateZDA(int year, int yday, int hour, int minute, double second)
+void GenerateZDA(int year, int month, int day, int hour, int minute, double second)
 {
-    int month, day;
     char msg[255];
     
-    ToDayMonth(year, yday, month, day);
     int pos = sprintf(msg, "$GPZDA,%02d%02d%06.3lf,%02d,%02d,%04d,00,00*",
                       hour, minute, second, day, month, year);
     int chksum = compute_checksum(msg);

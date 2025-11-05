@@ -32,7 +32,7 @@
 
 namespace nmea0183 {
 
-void GenerateZDA(int year, int yday, int hour, int minute, double second);
+void GenerateZDA(int year, int month, int day, int hour, int minute, double second);
 void GenerateDepth(double depth_metres);
 void GeneratePosition(double latitude, double longitude, int hour, int minute, double second);
 
