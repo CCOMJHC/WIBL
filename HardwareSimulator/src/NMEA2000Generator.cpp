@@ -50,34 +50,11 @@ void SendN2kNavigation() {
 
     SetN2kAttitude(N2kMsg,1,DegToRad(-3.1),DegToRad(2.4),DegToRad(-7.8));
     delay(DelayBetweenSend); NMEA2000.SendMsg(N2kMsg);
-
-    SetN2kSystemTime(N2kMsg,1,17555,62000);
-    delay(DelayBetweenSend); NMEA2000.SendMsg(N2kMsg);
     
     SetN2kLocalOffset(N2kMsg,17555,62000,120);
     delay(DelayBetweenSend); NMEA2000.SendMsg(N2kMsg);
     
     SetN2kRudder(N2kMsg,DegToRad(5),1,N2kRDO_MoveToStarboard,DegToRad(-5));
-    delay(DelayBetweenSend); NMEA2000.SendMsg(N2kMsg);
-
-    SetN2kGNSS(N2kMsg,1,17555,62000,60.1,22.5,10.5,N2kGNSSt_GPS,N2kGNSSm_GNSSfix,12,0.8,0.5,15,1,N2kGNSSt_GPS,15,2);
-    delay(DelayBetweenSend); NMEA2000.SendMsg(N2kMsg);
-
-    SetN2kGNSSDOPData(N2kMsg,1,N2kGNSSdm_Auto,N2kGNSSdm_Auto,1.2,-0.8,N2kDoubleNA);
-    delay(DelayBetweenSend); NMEA2000.SendMsg(N2kMsg);
-
-  }
-}
-
-void SendN2kDepth() {
-  static unsigned long SlowDataUpdated=InitNextUpdate(SlowDataUpdatePeriod,NavigationSendOffset);
-  tN2kMsg N2kMsg;
-  const int DelayBetweenSend=0;
-  
-  if ( IsTimeToUpdate(SlowDataUpdated) ) {
-    SetNextUpdate(SlowDataUpdated,SlowDataUpdatePeriod);
-
-    SetN2kWaterDepth(N2kMsg, 1, 10.0, 0.5, 100.0);
     delay(DelayBetweenSend); NMEA2000.SendMsg(N2kMsg);
   }
 }
@@ -205,7 +182,9 @@ void SendN2kRapidData() {
   }
 }
 
-void SetupNMEA2000(void)
+namespace nmea2000 {
+
+void SetupInterface(void)
 {
     // Reserve enough buffer for sending all messages. This does not work on small memory devices like Uno or Mega
     NMEA2000.SetN2kCANSendFrameBufSize(250);
@@ -225,13 +204,10 @@ void SetupNMEA2000(void)
     // Uncomment 3 rows below to see, what device will send to bus                           
      NMEA2000.SetForwardStream(&Serial);  // PC output on due programming port
      NMEA2000.SetForwardType(tNMEA2000::fwdt_Text); // Show in clear text. Leave uncommented for default Actisense format.
-     //NMEA2000.SetForwardOwnMessages();
   
     // If you also want to see all traffic on the bus use N2km_ListenAndNode instead of N2km_NodeOnly below
     NMEA2000.SetMode(tNMEA2000::N2km_NodeOnly,22);
     
-    //NMEA2000.SetDebugMode(tNMEA2000::dm_ClearText); // Uncomment this, so you can test code without CAN bus chips on Arduino Mega
-    //NMEA2000.EnableForward(true); // Disable all msg forwarding to USB (=Serial)
     NMEA2000.Open();
 }
 
@@ -239,9 +215,37 @@ void GenerateNMEA2000(void)
 {
     SendN2kRapidData();
     SendN2kNavigation();
-    SendN2kDepth();
     SendN2kEnvironmental();
     SendN2kBattery();
     SendN2kMisc();
-    NMEA2000.ParseMessages();
+}
+
+void GenerateGNSS(double latitude, double longitude, int hour, int minute, double second)
+{
+  tN2kMsg N2kMsg;
+  SetN2kGNSS(N2kMsg,1,17555,62000,60.1,22.5,10.5,N2kGNSSt_GPS,N2kGNSSm_GNSSfix,12,0.8,0.5,15,1,N2kGNSSt_GPS,15,2);
+  NMEA2000.SendMsg(N2kMsg);
+  SetN2kGNSSDOPData(N2kMsg,1,N2kGNSSdm_Auto,N2kGNSSdm_Auto,1.2,-0.8,N2kDoubleNA);
+  NMEA2000.SendMsg(N2kMsg);
+}
+
+void GenerateDepth(double depth)
+{
+  tN2kMsg N2kMsg;
+  SetN2kWaterDepth(N2kMsg, 1, depth, 0.5, 100.0);
+  NMEA2000.SendMsg(N2kMsg);
+}
+
+void GenerateSystemTime(int year, int yday, int hour, int minute, double second)
+{
+  tN2kMsg N2kMsg;
+  SetN2kSystemTime(N2kMsg,1,17555,62000);
+  NMEA2000.SendMsg(N2kMsg);
+}
+
+void ProcessMessages(void)
+{
+  NMEA2000.ParseMessages();
+}
+
 }

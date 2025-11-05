@@ -6,10 +6,18 @@
  * which just splits the code up a little, is custom to this project.
  */
 
-#ifndef __NMEA2000_SIMULATOR_H__
-#define __NMEA2000_SIMULATOR_H__
+#ifndef __NMEA2000_GENERATOR_H__
+#define __NMEA2000_GENERATOR_H__
 
-void SetupNMEA2000(void);
-void GenerateNMEA2000(void);
+namespace nmea2000 {
+
+void SetupInterface(void);
+void ProcessMessages(void);
+
+void GenerateSystemTime(int year, int yday, int hour, int minute, double second);
+void GenerateGNSS(double latitude, double longitude, int hour, int minute, double second);
+void GenerateDepth(double depth);
+
+}
 
 #endif

@@ -29,69 +29,9 @@
 /// OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <Arduino.h>
-#include "NMEA0183Simulator.h"
+#include "NMEA0183Generator.h"
 
-bool iset = false;  ///< Global for Gaussian variate generator (from Numerical Recipies)
-float gset;         ///< Global state for Gaussian variate generator (from Numerical Recipies)
-
-// Parameters to determine when to issue the NMEA0183 simulator packets
-unsigned long target_depth_time = 0;        ///< Time in milliseconds for the next DBT (depth) packet to be sent
-unsigned long target_position_time = 0;     ///< Time in milliseconds for the next GGA (position) packet to be sent
-unsigned long target_zda_time = 0;          ///< Time in milliseconds for the next ZDA (time tick) packet to be sent
-//unsigned long last_position_time = 0;
-unsigned long last_zda_time = 0;            ///< Time in milliseconds of the last ZDA (time tick) packet to be sent
-
-// State parameters for the depth (DBT) message
-double current_depth = 10.0;            ///< Simulator state: depth in metres
-double measurement_uncertainty = 0.06;  ///< Simulator state: depth sounder measurement uncertainty, std. dev., metres
-double depth_random_walk = 0.02;        ///< Simuator state: standard deviation, metres change in one second for depth changes
-
-// State parameters for the time (ZDA) message
-int current_year = 2020;        ///< Simulator state: current year for the simulation
-int current_day_of_year = 0;    ///< Simulator state: current day of the year (a.k.a. Julian Day) for the simulation
-int current_hours = 0;          ///< Simulator state: current time of day, hours past midnight
-int current_minutes = 0;        ///< Simulator state: current time of day, minutes past the hour
-double current_seconds = 0.0;   ///< Simulator state: vurrent time of day, seconds past the minute
-
-// State parameters for the position (GGA) message
-double current_longitude = -75.0;       ///< Simulator state: longitude in degrees
-double current_latitude = 43.0;         ///< Simulator state: latitude in degress
-double position_step = 3.2708e-06;      ///< Simulator state: change in latitude/longitude per second
-double latitude_scale = +1.0;           ///< Simulator state: current direction of latitude change
-double last_latitude_reversal = 0.0;    ///< Simulator state: last time the latitude changed direction
-
-/// Simulate a unit Gaussian variate, using the method of Numerical Recipes.  Note
-/// that this preserves state in global variables, so it isn't great, but it does do
-/// the job, and gets most benefit from the random simulation calls.  The code does,
-/// however, rely on the quality of the standard random() call in the supporting
-/// environment, and therefore the statistical quality of the variates is only as good
-/// as the underlying linear PRNG.
-///
-/// \return A sample from a zero mean, unit standard deviation, Gaussian distribution.
-
-double unit_normal(void)
-{
-    float fac, rsq, v1, v2;
-    float u, v, r;
-
-    if (!iset) {
-        do {
-            u = random(1000)/1000.0;
-            v = random(1000)/1000.0;
-            v1 = 2.0*u - 1.0;
-            v2 = 2.0*v - 1.0;
-            rsq = v1*v1 + v2*v2;
-        } while (rsq >= 1.0 || rsq == 0.0);
-        fac = sqrt(-2.0*log(rsq)/rsq);
-        gset = v1*fac;
-        iset = true;
-        r = v2*fac;
-    } else {
-        iset = false;
-        r = gset;
-    }
-    return r;
-}
+namespace nmea0183 {
 
 /// Generate checksums for NMEA0183 messages.  The checksum is a simple XOR of all of the
 /// contents of the message between (and including) the leading "$" and trailing "*", and
@@ -127,16 +67,10 @@ int compute_checksum(const char *msg)
 /// changing more the longer you go between observing it), but that seems to be a little more
 /// hassle than it's worth for the current purposes.
 ///
-/// \param now  Current simulator time (in milliseconds since boot)
 /// \param led  Pointer to the status LED controller so that we can flash them if data is transmitted
 
-void GenerateDepth(unsigned long now, StatusLED *led)
+void GenerateDepth(double depth_metres)
 {
-    if (now < target_depth_time) return;
-    
-    current_depth += depth_random_walk*unit_normal();
-    
-    double depth_metres = current_depth + measurement_uncertainty*unit_normal();
     double depth_feet = depth_metres * 3.2808;
     double depth_fathoms = depth_metres * 0.5468;
 
@@ -149,9 +83,6 @@ void GenerateDepth(unsigned long now, StatusLED *led)
     Serial.print(txt + msg);
     Serial1.print(msg);
     Serial1.flush();
-    led->TriggerDataIndication();
-    
-    target_depth_time = now + 1000 + (int)(1000*(random(1000)/1000.0));
 }
 
 /// Break an angle in degrees into the components required to format for ouptut
@@ -188,29 +119,18 @@ void format_angle(double angle, int *d, double *m, int *hemi)
 /// simulated messages.  In order to allow testing of simultaneous reception of messages on both
 /// reception channels, the code here generates the SDDBT messages on channel 2.
 ///
-/// \param now  Current simulator time (in milliseconds since boot)
 /// \param led  Pointer to the status LED controller so that we can flash them if data is transmitted
 
-void GeneratePosition(unsigned long now, StatusLED *led)
+void GeneratePosition(double latitude, double longitude, int hour, int minute, double second)
 {
-    if (now < target_position_time) return;
-    
-    current_latitude += latitude_scale * position_step;
-    current_longitude += 1.0 * position_step;
-
-    if (now - last_latitude_reversal > 3600000.0) {
-        latitude_scale = -latitude_scale;
-        last_latitude_reversal = now;
-    }
-
     char msg[255];
-    int pos = sprintf(msg, "$GPGGA,%02d%02d%06.3f,", current_hours, current_minutes, current_seconds);
+    int pos = sprintf(msg, "$GPGGA,%02d%02d%06.3f,", hour, minute, second);
     int degrees;
     double minutes;
     int hemisphere;
-    format_angle(current_latitude, &degrees, &minutes, &hemisphere);
+    format_angle(latitude, &degrees, &minutes, &hemisphere);
     pos += sprintf(msg + pos, "%02d%09.6lf,%c,", degrees, minutes, hemisphere == 1 ? 'N' : 'S');
-    format_angle(current_longitude, &degrees, &minutes, &hemisphere);
+    format_angle(longitude, &degrees, &minutes, &hemisphere);
     pos += sprintf(msg + pos, "%03d%09.6lf,%c,", degrees, minutes, hemisphere == 1 ? 'E' : 'W');
     pos += sprintf(msg + pos, "3,12,1.0,-19.5,M,22.5,M,0.0,0000*");
     int chksum = compute_checksum(msg);
@@ -220,9 +140,6 @@ void GeneratePosition(unsigned long now, StatusLED *led)
     Serial.print(txt + msg);
     Serial2.print(msg);
     Serial2.flush();
-    led->TriggerDataIndication();
-    
-    target_position_time = now + 1000;
 }
 
 /// Convert from a year, and day-of-year (a.k.a., albeit inaccurately, Julian Day) to
@@ -287,46 +204,21 @@ void ToDayMonth(int year, int year_day, int& month, int& day)
 /// \param now  Current simulator time (in milliseconds since boot)
 /// \param led  Pointer to the status LED controller so that we can flash them if data is transmitted
 
-void GenerateZDA(unsigned long now, StatusLED *led)
+void GenerateZDA(int year, int yday, int hour, int minute, double second)
 {
-    if (now < target_zda_time) return;
-    
-    unsigned long delta = now - last_zda_time;
-    current_seconds += delta/1000.0;
-    if (current_seconds >= 60.0) {
-        current_minutes++;
-        current_seconds -= 60.0;
-        if (current_minutes >= 60) {
-            current_hours++;
-            current_minutes = 0;
-            if (current_hours >= 24) {
-                current_day_of_year++;
-                current_hours = 0;
-                if (current_day_of_year > 365) {
-                    current_year++;
-                    current_day_of_year = 0;
-                }
-            }
-        }
-    }
-    
+    int month, day;
     char msg[255];
-    int day, month;
     
-    // We track day-of-year (a.k.a. Julian Day), so we need to convert to day/month for output
-    ToDayMonth(current_year, current_day_of_year, month, day);
+    ToDayMonth(year, yday, month, day);
     int pos = sprintf(msg, "$GPZDA,%02d%02d%06.3lf,%02d,%02d,%04d,00,00*",
-                      current_hours, current_minutes, current_seconds,
-                      day, month, current_year);
+                      hour, minute, second, day, month, year);
     int chksum = compute_checksum(msg);
     sprintf(msg + pos, "%02X\r\n", chksum);
 
     String txt = "Sending ZDA: ";
     Serial.print(txt + msg);
-    last_zda_time = millis();
     Serial2.print(msg);
     Serial2.flush();
-    led->TriggerDataIndication();
-    
-    target_zda_time = now + 1000;
+}
+
 }
