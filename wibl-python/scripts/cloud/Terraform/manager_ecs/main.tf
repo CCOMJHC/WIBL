@@ -15,11 +15,13 @@ terraform {
 # Create frontend repo
 resource "aws_ecr_repository" "frontend_ecr_repo" {
   name                 = "wibl/frontend"
+  force_delete = true
 }
 
 # Create manager repo
 resource "aws_ecr_repository" "manager_ecr_repo" {
   name                 = "wibl/manager"
+  force_delete = true
 }
 
 # Build frontend image and push to ECR repo
