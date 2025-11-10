@@ -145,7 +145,7 @@ resource "aws_lambda_function" "conversion_start_lambda" {
 }
 
 resource "aws_lambda_permission" "submission_allow_url_access" {
-  statement_id = "url"
+  statement_id = "invoke_func_url"
   function_name = aws_lambda_function.conversion_start_lambda.function_name
   principal = "*"
   function_url_auth_type = "NONE"
@@ -153,10 +153,9 @@ resource "aws_lambda_permission" "submission_allow_url_access" {
 }
 
 resource "aws_lambda_permission" "submission_allow_url_access_again" {
-  statement_id = "url"
+  statement_id = "invoke_func"
   function_name = aws_lambda_function.conversion_start_lambda.function_name
   principal = "*"
-  function_url_auth_type = "NONE"
   action = "lambda:InvokeFunction"
 }
 

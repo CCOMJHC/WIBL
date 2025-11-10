@@ -1,0 +1,70 @@
+[
+    {
+      "name": "wibl-frontend",
+      "image": "REPLACEME_ACCOUNT_NUMBER.dkr.ecr.REPLACEME_AWS_REGION.amazonaws.com/wibl/frontend:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "mountPoints": [
+        {
+          "containerPath": "/var/wibl",
+          "sourceVolume": "wibl-frontend-ecs-task-efs"
+        }
+      ],
+      "environment": [
+        {
+          "name": "FRONTEND_DATABASE_URI",
+          "value": "sqlite:////var/wibl/database.db"
+        },
+        {
+          "name": "MANAGEMENT_URL",
+          "value": "REPLACEME_MANAGEMENT_URL"
+        },
+        {
+          "name": "MANAGEMENT_HEARTBEAT_PATH",
+          "value": "/heartbeat"
+        },
+        {
+          "name": "INCOMING_BUCKET",
+          "value": "REPLACEME_INCOMING_BUCKET"
+        },
+        {
+          "name": "STAGING_BUCKET",
+          "value": "REPLACEME_STAGING_BUCKET"
+        },
+        {
+          "name": "VIZ_BUCKET",
+          "value": "REPLACEME_VIZ_BUCKET"
+        },
+        {
+          "name": "VIZ_LAMBDA",
+          "value": "REPLACEME_VIZ_LAMBDA"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-create-group": "true",
+          "awslogs-group": "wibl-frontend-ecs-task-log",
+          "awslogs-region": "REPLACEME_AWS_REGION",
+          "awslogs-stream-prefix": "wibl-frontend"
+        }
+      },
+      "command": ["gunicorn",
+        "wibl_frontend.application:app",
+        "--workers", "1",
+        "--bind", "0.0.0.0:8000",
+        "--access-logfile", "-"
+      ],
+      "healthCheck": {
+        "command": ["CMD", "curl", "-f", "http://localhost:8000/heartbeat"],
+        "interval": 10,
+        "timeout": 2,
+        "retries": 5,
+        "startPeriod": 5
+      }
+    }
+]

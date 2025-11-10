@@ -24,7 +24,7 @@ resource "aws_ecr_repository" "manager_ecr_repo" {
 
 # Build frontend image and push to ECR repo
 resource "docker_image" "frontend_image" {
-  name         = "wibl/frontend"
+  name         = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/frontend:latest"
   build {
     context    = "${var.src_path}/wibl-frontend"
     platform   = "linux/${var.architecture}"
@@ -38,12 +38,12 @@ resource "docker_image" "frontend_image" {
 resource "docker_registry_image" "frontend" {
   name = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/frontend:latest"
   keep_remotely = true
-  depends_on = [aws_ecr_repository.frontend_ecr_repo]
+  depends_on = [aws_ecr_repository.frontend_ecr_repo, docker_image.frontend_image]
 }
 
 # Build manager image and push to ECR repo
 resource "docker_image" "manager_image" {
-  name         = "wibl/manager"
+  name         = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/manager:latest"
   build {
     context    = "${var.src_path}/wibl-manager"
     platform   = "linux/${var.architecture}"
@@ -56,7 +56,7 @@ resource "docker_image" "manager_image" {
 resource "docker_registry_image" "manager" {
   name = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/manager:latest"
   keep_remotely = true
-  depends_on = [aws_ecr_repository.manager_ecr_repo]
+  depends_on = [aws_ecr_repository.manager_ecr_repo, docker_image.manager_image]
 }
 
 ####################
@@ -414,6 +414,12 @@ resource "aws_iam_role_policy_attachment" "ecs_cloudwatch_logs_attach" {
 
 # Create load balancers so that lambdas can find wibl-manager and wibl-frontend services
 # Create internal NETWORK load balancer for wibl-manager
+resource "aws_lb" "wibl_manager" {
+  name               = "wibl-manager-ecs-elb"
+  internal           = true
+  load_balancer_type = "network"
+  subnets            = [aws_subnet.private_subnet_1.id]
+}
 # Tag the security group with a name
 resource "aws_security_group" "fe_elb_public" {
   name        = "wibl-fe-elb-public"
@@ -486,7 +492,7 @@ resource "aws_lb_target_group" "manager_tg" {
 
 # wibl-manager listener
 resource "aws_lb_listener" "manager_listener" {
-  load_balancer_arn = aws_lb.frontend_alb.arn
+  load_balancer_arn = aws_lb.wibl_manager.arn
   port              = 80
   protocol          = "TCP"
 
@@ -513,20 +519,30 @@ resource "aws_lb_listener" "frontend_listener" {
 
 # Manager Task Definition
 resource "aws_ecs_task_definition" "wibl_manager" {
-
   family                   = "wibl-manager"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-
+  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  volume {
+    name = "wibl-manager-ecs-task-efs"
+    efs_volume_configuration {
+      file_system_id = aws_efs_file_system.manager-efs.id
+    }
+  }
+  cpu = 256
+  memory = 512
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture = "ARM64"
+  }
   # Decode the JSON template after variable substitution
-  container_definitions = jsonencode([jsondecode(
-      templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/manager-task-definition.proto", {
-        REPLACEME_ACCOUNT_NUMBER = var.account_number
-        REPLACEME_AWS_EFS_FS_ID  = aws_efs_file_system.manager-efs.id
-        REPLECEME_AWS_REGION     = var.region
-      })
-    )
-  ])
+  container_definitions = (
+    templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/manager-container-definition.proto", {
+      REPLACEME_ACCOUNT_NUMBER = var.account_number
+      REPLACEME_AWS_EFS_FS_ID  = aws_efs_file_system.manager-efs.id
+      REPLECEME_AWS_REGION     = var.region
+    })
+  )
 }
 
 # Frontend ECS task role
@@ -580,22 +596,33 @@ resource "aws_ecs_task_definition" "frontend" {
   family                   = "wibl-frontend"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  task_role_arn = aws_iam_role.ecs_frontend_task_role.arn
+  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  volume {
+    name = "wibl-frontend-ecs-task-efs"
+    efs_volume_configuration {
+      file_system_id = aws_efs_file_system.fronted-efs.id
+      transit_encryption = "ENABLED"
+    }
+  }
+  memory = 512
+  cpu = 256
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture = "ARM64"
+  }
   # Decode the JSON template after variable substitution
-  container_definitions = jsonencode([
-    jsondecode(
-      templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/frontend-task-definition.proto", {
-        REPLACEME_ACCOUNT_NUMBER  = var.account_number
-        REPLACEME_AWS_EFS_FS_ID   = aws_efs_file_system.fronted-efs.id
-        REPLECEME_AWS_REGION      = var.region
-        REPLACEME_MANAGEMENT_URL  = "http://${aws_lb.frontend_alb.dns_name}"
-        REPLACEME_INCOMING_BUCKET = var.incoming_bucket_name
-        REPLACEME_STAGING_BUCKET  = var.staging_bucket_name
-        REPLACEME_VIZ_BUCKET      = var.viz_bucket_name
-        REPLACEME_VIZ_LAMBDA      = var.viz_lambda_name
-      })
-    )
-  ])
+  container_definitions = (
+    templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/frontend-container-definition.proto", {
+      REPLACEME_ACCOUNT_NUMBER  = var.account_number
+      REPLACEME_AWS_EFS_FS_ID   = aws_efs_file_system.fronted-efs.id
+      REPLECEME_AWS_REGION      = var.region
+      REPLACEME_MANAGEMENT_URL  = "http://${aws_lb.frontend_alb.dns_name}"
+      REPLACEME_INCOMING_BUCKET = var.incoming_bucket_name
+      REPLACEME_STAGING_BUCKET  = var.staging_bucket_name
+      REPLACEME_VIZ_BUCKET      = var.viz_bucket_name
+      REPLACEME_VIZ_LAMBDA      = var.viz_lambda_name
+    })
+  )
 }
 
 # Manager ECS Service

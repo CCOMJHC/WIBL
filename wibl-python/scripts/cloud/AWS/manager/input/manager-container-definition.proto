@@ -1,0 +1,46 @@
+[
+{
+  "name": "wibl-manager",
+  "image": "REPLACEME_ACCOUNT_NUMBER.dkr.ecr.REPLACEME_AWS_REGION.amazonaws.com/wibl/manager:latest",
+  "portMappings": [
+    {
+      "containerPort": 8000,
+      "protocol": "tcp"
+    }
+  ],
+  "mountPoints": [
+    {
+      "containerPath": "/var/wibl",
+      "sourceVolume": "wibl-manager-ecs-task-efs"
+    }
+  ],
+  "environment": [
+    {
+      "name": "MANAGER_DATABASE_URI",
+      "value": "sqlite:////var/wibl/database.db"
+    }
+  ],
+  "logConfiguration": {
+    "logDriver": "awslogs",
+    "options": {
+      "awslogs-create-group": "true",
+      "awslogs-group": "wibl-manager-ecs-task-log",
+      "awslogs-region": "REPLACEME_AWS_REGION",
+      "awslogs-stream-prefix": "wibl-manager"
+    }
+  },
+  "command": ["gunicorn",
+    "wibl_manager.application:app",
+    "--workers", "1",
+    "--bind", "0.0.0.0:8000",
+    "--access-logfile", "-"
+  ],
+  "healthCheck": {
+    "command": ["CMD", "curl", "-f", "http://localhost:8000/heartbeat"],
+    "interval": 10,
+    "timeout": 2,
+    "retries": 5,
+    "startPeriod": 5
+  }
+}
+]
