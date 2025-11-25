@@ -130,7 +130,7 @@
 			(mirror no)
 			(drillshape 0)
 			(scaleselection 1)
-			(outputdirectory "WIBL_V2.5.1_OUTPUTS/GERBERS/")
+			(outputdirectory "WIBL_OUTPUTS/GERBERS/")
 		)
 	)
 	(net 0 "")
@@ -9753,7 +9753,7 @@
 		(property ki_fp_filters "MountingHole*Pad*")
 		(path "/d22180ee-ad49-4686-ae0e-b5b157d02abe")
 		(sheetname "/")
-		(sheetfile "WIBL_V2.5.1_251121.kicad_sch")
+		(sheetfile "WIBL.kicad_sch")
 		(fp_circle
 			(center 0 0)
 			(end 2.8 0)
@@ -15859,7 +15859,7 @@
 		(property ki_fp_filters "SolderJumper*Open*")
 		(path "/8b7b4950-b815-4d0e-8e1b-83bf4772a741")
 		(sheetname "/")
-		(sheetfile "WIBL_V2.5.1_251121.kicad_sch")
+		(sheetfile "WIBL.kicad_sch")
 		(zone_connect 1)
 		(fp_poly
 			(pts
@@ -26472,7 +26472,7 @@
 		(property ki_fp_filters "MountingHole*Pad*")
 		(path "/4bbf0b14-44a9-41f6-b76d-b1275d41b22e")
 		(sheetname "/")
-		(sheetfile "WIBL_V2.5.1_251121.kicad_sch")
+		(sheetfile "WIBL.kicad_sch")
 		(fp_circle
 			(center 0 0)
 			(end 2.8 0)
@@ -28996,7 +28996,7 @@
 		(property ki_fp_filters "SolderJumper*Open*")
 		(path "/562fddbd-d935-40bb-a992-9645fd024e38")
 		(sheetname "/")
-		(sheetfile "WIBL_V2.5.1_251121.kicad_sch")
+		(sheetfile "WIBL.kicad_sch")
 		(zone_connect 1)
 		(fp_poly
 			(pts
@@ -31695,7 +31695,7 @@
 		(property ki_fp_filters "MountingHole*Pad*")
 		(path "/25d51306-de67-40d5-84ff-d7e022a9a7c5")
 		(sheetname "/")
-		(sheetfile "WIBL_V2.5.1_251121.kicad_sch")
+		(sheetfile "WIBL.kicad_sch")
 		(fp_circle
 			(center 0 0)
 			(end 2.8 0)
@@ -32251,7 +32251,7 @@
 		(property ki_fp_filters "SolderJumper*Open*")
 		(path "/cd3cca5e-41d4-411d-9040-452140483bb2")
 		(sheetname "/")
-		(sheetfile "WIBL_V2.5.1_251121.kicad_sch")
+		(sheetfile "WIBL.kicad_sch")
 		(zone_connect 1)
 		(fp_poly
 			(pts
@@ -39322,7 +39322,7 @@
 		(property ki_fp_filters "MountingHole*Pad*")
 		(path "/fc1fefc6-1618-4d8e-b15a-d95272729a82")
 		(sheetname "/")
-		(sheetfile "WIBL_V2.5.1_251121.kicad_sch")
+		(sheetfile "WIBL.kicad_sch")
 		(fp_circle
 			(center 0 0)
 			(end 2.8 0)

@@ -471,7 +471,7 @@
     ]
   },
   "meta": {
-    "filename": "WIBL_V2.5.1.kicad_pro",
+    "filename": "WIBL.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -1025,7 +1025,7 @@
       "version": 1
     },
     "net_format_name": "",
-    "page_layout_descr_file": "WIBL_V2.5.1.kicad_wks",
+    "page_layout_descr_file": "WIBL.kicad_wks",
     "plot_directory": "",
     "space_save_all_events": true,
     "spice_current_sheet_as_root": false,
