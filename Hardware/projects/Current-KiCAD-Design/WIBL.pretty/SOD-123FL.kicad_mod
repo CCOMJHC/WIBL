@@ -61,6 +61,7 @@
 			)
 		)
 	)
+	(attr smd)
 	(fp_line
 		(start -2.2352 -0.95)
 		(end -2.2352 0.95)
@@ -201,9 +202,20 @@
 		(layer "F.SilkS")
 		(uuid "441efd45-1d01-4893-8573-4412f27ef3bc")
 	)
+	(fp_rect
+		(start 2.2352 -0.95)
+		(end 2.42 0.95)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.SilkS")
+		(uuid "3b7ea8df-fee9-43c6-8ccf-e8ef912ecf19")
+	)
 	(fp_line
 		(start -2.3622 -1.0668)
-		(end 2.3622 -1.0668)
+		(end 2.43 -1.0668)
 		(stroke
 			(width 0.127)
 			(type solid)
@@ -222,8 +234,8 @@
 		(uuid "ae8a6966-ec81-4739-8b64-efe91b47daec")
 	)
 	(fp_line
-		(start 2.3622 -1.0668)
-		(end 2.3622 1.0668)
+		(start 2.43 -1.0668)
+		(end 2.43 1.0668)
 		(stroke
 			(width 0.127)
 			(type solid)
@@ -232,7 +244,7 @@
 		(uuid "784481b2-e09a-44f1-90da-bccf587b9ce1")
 	)
 	(fp_line
-		(start 2.3622 1.0668)
+		(start 2.43 1.0668)
 		(end -2.3622 1.0668)
 		(stroke
 			(width 0.127)

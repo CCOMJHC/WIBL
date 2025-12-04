@@ -1,4 +1,4 @@
 (sym_lib_table
   (version 7)
-  (lib (name "WIBL-eagle-import")(type "KiCad")(uri "/Users/brc/Projects/WIBL/WIBL-Code/Hardware/projects/Current-KiCAD-Design/WIBL-eagle-import.kicad_sym")(options "")(descr ""))
+  (lib (name "WIBL-eagle-import")(type "KiCad")(uri "${KIPRJMOD}/WIBL-eagle-import.kicad_sym")(options "")(descr ""))
 )

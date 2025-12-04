@@ -77,6 +77,7 @@
 			)
 		)
 	)
+	(attr smd)
 	(fp_line
 		(start -2.54 -1.27)
 		(end -2.54 1.27)
@@ -177,6 +178,41 @@
 		)
 		(layer "F.CrtYd")
 		(uuid "b8053ca0-4ad0-4c31-94a2-48a52b15839f")
+	)
+	(fp_rect
+		(start -2.6416 -1.2192)
+		(end -2.4892 1.27)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.Fab")
+		(uuid "79cceb43-2b91-4eb8-b345-0a4798797bac")
+	)
+	(fp_rect
+		(start -2.4892 -1.2192)
+		(end 2.5146 1.27)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "bdb09435-0616-4ffb-8256-b0b7da489296")
+	)
+	(fp_text user "${REFERENCE}"
+		(at -2.4892 0.3048 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "b4be6ffa-9c7f-4a77-a18d-654a7191e442")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom)
+		)
 	)
 	(pad "1" smd rect
 		(at -1.905 2.7 90)

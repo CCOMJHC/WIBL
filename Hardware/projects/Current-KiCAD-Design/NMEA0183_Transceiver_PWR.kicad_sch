@@ -2384,6 +2384,27 @@
 					)
 				)
 			)
+			(symbol "optocoupler_H11L1SM_1_1"
+				(pin no_connect line
+					(at -10.16 -3.81 0)
+					(length 2.54)
+					(hide yes)
+					(name "NC"
+						(effects
+							(font
+								(size 0.635 0.635)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 0.635 0.635)
+							)
+						)
+					)
+				)
+			)
 			(embedded_fonts no)
 		)
 		(symbol "WIBL-eagle-import:pinhead_PINHD-1X1"
@@ -12996,6 +13017,9 @@
 		(pin "6"
 			(uuid "be5ac551-5cae-4de9-a4d4-9c34b9010a5d")
 		)
+		(pin "3"
+			(uuid "5e3b7e52-76ef-40ef-84e4-82fe7a1eed0b")
+		)
 		(instances
 			(project "WIBL_2.5.0"
 				(path "/dad35123-8710-4fbf-844d-4d41b5a3d512/45fcb9c0-6db0-4ee2-a8d0-020bbbd29d59"
@@ -16054,6 +16078,9 @@
 		(pin "6"
 			(uuid "c8040cb1-f629-4887-99e7-6823cab5890e")
 		)
+		(pin "3"
+			(uuid "c7bf4c21-5810-45d8-9e42-5f66a5173197")
+		)
 		(instances
 			(project "WIBL_2.5.0"
 				(path "/dad35123-8710-4fbf-844d-4d41b5a3d512/45fcb9c0-6db0-4ee2-a8d0-020bbbd29d59"
@@ -16548,6 +16575,9 @@
 		)
 		(pin "5"
 			(uuid "575f4cad-3aa4-4fe8-bf53-be7447b08351")
+		)
+		(pin "3"
+			(uuid "44e992a8-9d7a-4cf8-a9df-b07f0dbcdcc8")
 		)
 		(instances
 			(project "WIBL_2.5.0"
@@ -19349,6 +19379,9 @@
 		)
 		(pin "2"
 			(uuid "49e2c461-8a34-441f-981a-574f479c3b01")
+		)
+		(pin "3"
+			(uuid "758b1605-b178-4561-88fa-de49bd221996")
 		)
 		(instances
 			(project "WIBL_2.5.0"

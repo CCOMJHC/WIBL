@@ -55,3 +55,5 @@ AWS/Repo-information.eml
 # Local data and files
 **/local/
 **/tmp/
+fp-info-cache
+WIBL-backups/

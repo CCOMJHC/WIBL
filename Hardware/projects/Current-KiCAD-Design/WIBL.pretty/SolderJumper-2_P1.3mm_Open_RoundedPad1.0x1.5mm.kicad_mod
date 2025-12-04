@@ -54,17 +54,37 @@
 		)
 	)
 	(zone_connect 1)
-	(attr exclude_from_pos_files exclude_from_bom allow_soldermask_bridges)
-	(fp_rect
-		(start -0.15 -0.75)
-		(end 0.15 0.75)
+	(fp_poly
+		(pts
+			(xy -0.136338 0.75) (xy -0.636338 0.75) (xy -0.701601 0.745722) (xy -0.736338 0.74) (xy -0.776338 0.73)
+			(xy -0.82768 0.71194) (xy -0.856338 0.7) (xy -0.906338 0.67) (xy -0.940719 0.646677) (xy -0.986338 0.61)
+			(xy -1.016338 0.58) (xy -1.056338 0.52) (xy -1.066338 0.5) (xy -1.098278 0.441342) (xy -1.116338 0.39)
+			(xy -1.13206 0.315263) (xy -1.13206 -0.315263) (xy -1.086338 -0.48) (xy -1.033015 -0.554381) (xy -0.956338 -0.64)
+			(xy -0.866338 -0.7) (xy -0.766338 -0.74) (xy -0.701601 -0.745722) (xy -0.636338 -0.75) (xy -0.136338 -0.75)
+		)
 		(stroke
-			(width 0)
-			(type default)
+			(width 0.1)
+			(type solid)
 		)
 		(fill yes)
 		(layer "F.Mask")
-		(uuid "12f41e31-ca25-414e-863a-4b2eb635b7be")
+		(uuid "fda4350c-d055-4944-a4e9-57928b78eae7")
+	)
+	(fp_poly
+		(pts
+			(xy 0.15 -0.75) (xy 0.65 -0.75) (xy 0.715263 -0.745722) (xy 0.75 -0.74) (xy 0.79 -0.73) (xy 0.841342 -0.71194)
+			(xy 0.87 -0.7) (xy 0.92 -0.67) (xy 0.954381 -0.646677) (xy 1 -0.61) (xy 1.03 -0.58) (xy 1.07 -0.52)
+			(xy 1.08 -0.5) (xy 1.11194 -0.441342) (xy 1.13 -0.39) (xy 1.145722 -0.315263) (xy 1.145722 0.315263)
+			(xy 1.1 0.48) (xy 1.046677 0.554381) (xy 0.97 0.64) (xy 0.88 0.7) (xy 0.78 0.74) (xy 0.715263 0.745722)
+			(xy 0.65 0.75) (xy 0.15 0.75)
+		)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.Mask")
+		(uuid "261a20a6-ecb2-43b1-ad28-56a3c6f30d19")
 	)
 	(fp_line
 		(start -1.4 0.3)
@@ -360,8 +380,9 @@
 		(at -0.65 0)
 		(size 1 0.5)
 		(layers "F.Cu" "F.Mask")
+		(solder_mask_margin 0.1016)
 		(zone_connect 2)
-		(thermal_bridge_angle 45)
+		(thermal_bridge_angle 0)
 		(options
 			(clearance outline)
 			(anchor rect)
@@ -393,8 +414,9 @@
 		(at 0.65 0)
 		(size 1 0.5)
 		(layers "F.Cu" "F.Mask")
+		(solder_mask_margin 0.1016)
 		(zone_connect 2)
-		(thermal_bridge_angle 45)
+		(thermal_bridge_angle 0)
 		(options
 			(clearance outline)
 			(anchor rect)
