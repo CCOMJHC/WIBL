@@ -18,6 +18,11 @@ function translateSize(byteCount) {
     return dataSize;
 }
 
+function roundVoltage(rawVoltage) {
+    const rounded = Math.round(rawVoltage*100)/100;
+    return rounded + ' V';
+}
+
 function translateTime(elapsed) {
     let secs = elapsed / 1000.0;
 
@@ -180,6 +185,7 @@ function updateStatus(tablePrefix) {
         let stats = document.getElementById(statsTable);
         stats.replaceChildren(assembleSummaryHeader("Status"));
         stats.appendChild(assembleSummaryRow("Elapsed Time", translateTime(data.elapsed)));
+        stats.appendChild(assembleSummaryRow("Supply Voltage", roundVoltage(data.supply)));
         stats.appendChild(assembleSummaryRow("Webserver Status Current", data.webserver.current));
         stats.appendChild(assembleSummaryRow("Webserver Status Boot", data.webserver.boot));
         stats.appendChild(assembleSummaryRow("Files on Logger", data.files.count));

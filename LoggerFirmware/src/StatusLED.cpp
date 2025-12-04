@@ -74,6 +74,8 @@ void StatusLED::SetColour(Colour colour, boolean flash)
 {
     switch(colour) {
         case Colour::cINITIALISING:
+            led_state[0] = ON; led_state[1] = ON; led_state[2] = ON; /* White */
+            break;
         case Colour::cNORMAL:
             led_state[0] = OFF; led_state[1] = ON; led_state[2] = OFF; /* Green */
             break;
@@ -103,7 +105,7 @@ void StatusLED::SetStatus(Status status)
 {
     switch (status) {
         case Status::sINITIALISING:
-            SetColour(Colour::cINITIALISING, true);
+            SetColour(Colour::cINITIALISING);
             break;
         case Status::sNORMAL:
             SetColour(Colour::cNORMAL);

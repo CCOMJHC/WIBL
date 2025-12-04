@@ -1,5 +1,20 @@
 # Release Notes: Logger Firmware
 
+## Firmware 1.6.1
+
+Firmware 1.6.1 addresses [issue 85](https://github.com/CCOMJHC/WIBL/issues/85) in the repository, which is a bug in the generation of "last known good" data in the JSON response to the "status" command, which shows up as failure to parse the JSON in the JavaScript.  A consequence of this is that the hardware data simulator required updates to (a) add a Depth datagram in the NMEA2000 output (fixed depth rather than fully simulated like the NMEA0183 output), and (b) flushing of buffers to ensure that NMEA0183 messages are sent correctly on the GGA/ZDA channel without problems.
+
+The firmware also revises the supply voltage monitoring for hardware v 2.5.1, which now initiates an emergency shutdown if the voltage drops below 6V (the minimum for keeping the system running is about 4.5-5V, depending on the SMPS used).  The supply voltage is now included in the "status" command output, and is reflected in the logger's website (on the main page and status page).
+
+Note that, in conjunction with v2.5.1 hardware, we recommend that users blow the e-fuses to configure the ESP32 flash LDO voltage regulator configuration rather than allowing the system to attempt to determine the value at boot using the boot-strapping pins.  With the `esptool` Python package installed (typically in `${HOME}/.platformio/packages/tool-esptoolpy`, installable into the current environment with `pip install .`), this can be done by putting the logger into download mode, and executing the command:
+
+```sh
+cd ${HOME}/.platformio/packages/tool-esptoolpy
+python espefuse.py -c auto -p PROGRAMMERDEV set_flash_voltage 3.3V
+```
+
+with `PROGRAMMERDEV` set to the device used to talk to the serial programmer (or COM port for Windows), e.g., `/dev/cu.usbserial-0001` or equivalent.
+
 ## Firmware 1.6.0
 
 Firmware 1.6.0 addresses [issue 76](https://github.com/CCOMJHC/WIBL/issues/76) in the repository, dealing with bulk download of log files.  This is a much more practical solution than having to download files one by one if there isn't the opportunity to upload automatically.  The code uses a lightweight library to generate a GZip-ed TAR file from the log directory, and then streams it directly (without an intermediate file).  In the JavaScript for the logger's website, the "Download All Log Files" button (on the status page) provides user-level access to this functionality.  Due to performance limitations and WiFi transfer speed, this may take some time...

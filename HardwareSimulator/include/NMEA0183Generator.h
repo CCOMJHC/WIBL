@@ -30,10 +30,12 @@
 #ifndef __NMEA0183_SIMULATOR_H__
 #define __NMEA0183_SIMULATOR_H__
 
-#include "StatusLED.h"
+namespace nmea0183 {
 
-void GenerateZDA(unsigned long now, StatusLED *led);
-void GenerateDepth(unsigned long now, StatusLED *led);
-void GeneratePosition(unsigned long now, StatusLED *led);
+void GenerateZDA(int year, int month, int day, int hour, int minute, double second);
+void GenerateDepth(double depth_metres);
+void GeneratePosition(double latitude, double longitude, int hour, int minute, double second);
+
+}
 
 #endif

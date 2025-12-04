@@ -1,0 +1,232 @@
+(footprint "SOT-23-6L"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at -1.5 -1.8 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "6c549056-2cd6-4d70-85bf-fd289b0a8408")
+		(effects
+			(font
+				(size 0.560832 0.560832)
+				(thickness 0.048768)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Value" "SOT-23-6L"
+		(at -1.9558 2.2606 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "0a0395f0-8006-4579-a1c3-63694d624aca")
+		(effects
+			(font
+				(size 0.560832 0.560832)
+				(thickness 0.048768)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "16d49f55-fb62-4845-aca0-2a5f327d8209")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "-40℃~+85℃ 1 1.6MHz 4.5V~45V 600mA 690uA Adjustable Buck Buck Built-in SOT-23-6L DC-DC Converters ROHS"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "a511f961-c0c3-4d71-8f92-1a5439792333")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "MPNum" "BL9352A"
+		(at 0 0 0)
+		(layer "F.CrtYd")
+		(hide yes)
+		(uuid "3a7adafe-9c31-497f-bf37-358e9b33e477")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Mfr" "BL(Shanghai Belling)"
+		(at 0 0 0)
+		(layer "F.CrtYd")
+		(hide yes)
+		(uuid "02ad21b3-4150-4ecc-9a88-f75f0ec43736")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -0.5334 -1.4732)
+		(end -0.5334 1.4732)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "3769e957-aff2-426a-b7c9-b64c032d6b8a")
+	)
+	(fp_line
+		(start -0.5334 1.4732)
+		(end 0.5334 1.4732)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "dc1e8d67-1ef1-4b4d-9691-4251a55ea7eb")
+	)
+	(fp_line
+		(start 0.5334 -1.4732)
+		(end -0.5334 -1.4732)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "c524aaf4-9731-4aa6-8e7f-c414ce505485")
+	)
+	(fp_line
+		(start 0.5334 1.4732)
+		(end 0.5334 -1.4732)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "5380e870-a03e-42c9-97aa-dd9b1847b2ee")
+	)
+	(fp_circle
+		(center -1.2 -1.5)
+		(end -1.1 -1.5)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.SilkS")
+		(uuid "4d732628-2aab-40e4-b914-6e886df5ab72")
+	)
+	(fp_line
+		(start -1.778 -1.5748)
+		(end 1.8034 -1.5748)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "1a107594-6616-4302-aa2f-468a8d83405d")
+	)
+	(fp_line
+		(start -1.778 1.5494)
+		(end -1.778 -1.5748)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "fbbc7aef-b0fa-45f5-96ea-dff63cd53dbd")
+	)
+	(fp_line
+		(start 1.8034 -1.5748)
+		(end 1.8034 1.5494)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "95d2337f-3837-4bb8-9af4-4fc76f362b29")
+	)
+	(fp_line
+		(start 1.8034 1.5494)
+		(end -1.778 1.5494)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "6e11aaa7-95e6-4814-8a4d-1bc7fb264d4e")
+	)
+	(pad "1" smd rect
+		(at -1.2 -0.95)
+		(size 0.9 0.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "bbd3c427-1508-4d4d-9186-c819f1a50f6f")
+	)
+	(pad "2" smd rect
+		(at -1.2 0)
+		(size 0.9 0.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "1f688fe4-119d-4de3-822a-05c1d03d50b9")
+	)
+	(pad "3" smd rect
+		(at -1.2 0.95)
+		(size 0.9 0.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "8aff795c-fcfd-4dab-ac63-39829d50c0c7")
+	)
+	(pad "4" smd rect
+		(at 1.2 0.95)
+		(size 0.9 0.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "bc842bdd-7700-43bf-ae34-261959f551da")
+	)
+	(pad "5" smd rect
+		(at 1.2 0)
+		(size 0.9 0.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "3bd04135-a8bf-4c56-88fc-2a1bb9226a85")
+	)
+	(pad "6" smd rect
+		(at 1.2 -0.95)
+		(size 0.9 0.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "36670c0a-63ae-4576-9139-0f4e9218433f")
+	)
+	(embedded_fonts no)
+	(model "${KICAD9_3DMODEL_DIR}/Package_TO_SOT_SMD.3dshapes/SOT-23-6.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

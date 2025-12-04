@@ -73,6 +73,7 @@ type FileInfo struct {
 type Status struct {
 	Versions    VersionInfo   `json:"version"`
 	Elapsed     uint32        `json:"elapsed"`
+	Supply      float64       `json:"supply"`
 	Server      WebServerInfo `json:"webserver"`
 	CurrentData DataSummary   `json:"data"`
 	Files       FileInfo      `json:"files"`

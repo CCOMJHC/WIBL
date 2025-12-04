@@ -35,8 +35,8 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 /// OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include "NMEA0183Simulator.h"
-#include "NMEA2000Simulator.h"
+#include "simulator.h"
+#include "NMEA2000Generator.h"
 #include "StatusLED.h"
 
 #if defined(ARDUINO_ARCH_ESP32) || defined(ESP32)
@@ -87,7 +87,7 @@ void setup()
     Serial2.begin(4800);
 #endif
     // Configure the CAN bus for NMEA2000, and start background processor
-    SetupNMEA2000();
+    nmea2000::SetupInterface();
     
     LEDs = new StatusLED();
     LEDs->SetStatus(StatusLED::Status::sNORMAL);
@@ -105,14 +105,11 @@ void setup()
 void loop()
 {
     // Process NMEA0183 messages, if it's the right time
-    unsigned long now = millis();
-    GenerateZDA(now, LEDs);
-    GenerateDepth(now, LEDs);
-    GeneratePosition(now, LEDs);
+    simulator.StepSimulator(LEDs);
 
-    // Process NMEA2000 messages, if it's the right time
-    GenerateNMEA2000();
-    
+    // We have to call the NMEA2000 parser regularly to process incoming messages
+    nmea2000::ProcessMessages();
+
     // Check for flashing of LEDs
     LEDs->ProcessFlash();
 }

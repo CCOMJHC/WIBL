@@ -146,10 +146,10 @@ func robots(w http.ResponseWriter, r *http.Request) {
 
 // Accept a status message from the logger client (which should list all of the files on the logger,
 // along with other status information like the uptime, firmware version, etc.).  The server responds
-// with HTTP 200 (OK) if the status message parses according to the definition in support/config.go,
+// with HTTP 200 (OK) if the status message parses according to the definition in api/api.go,
 // and HTTP 400 (Bad Request) if the body of the message fails to read or convert.  Any response should
-// be used by the client to indicate that the server exists.  More sophisticated implementations might
-// use the status information to update a local dB of logger status, health, etc.
+// be used by the client to indicate that the server exists.
+// TODO: Use the status information to update a local dB of logger status, health, etc.
 func status_updates(w http.ResponseWriter, r *http.Request) {
 	var body []byte
 	var err error
@@ -183,12 +183,7 @@ func status_updates(w http.ResponseWriter, r *http.Request) {
 // with type "Basic" and the upload token specified by the server's operator when the logger was
 // configured as a (very simple, and not terribly secure, identification mechanism).  The server
 // responds with a JSON body containing only a "status" tag with either "success" or "failure" as
-// appropriate.  Typical verification models would include checking the upload token from the
-// Authentication header is one of those that was pre-shared, recomputing the MD5 hash for the
-// payload and comparing it against that specified in the Digest header, etc.  A full implementation
-// of the server would take the payload body, then transfer it to the appropriate S3 bucket for
-// processing (using a UUID4 for the name), and finally trigger the SNS topic indicating that the
-// file was ready for processing.
+// appropriate.
 func file_transfer(w http.ResponseWriter, r *http.Request) {
 	var body []byte
 	var err error
