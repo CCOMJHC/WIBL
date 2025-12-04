@@ -53,17 +53,20 @@ void ToDayMonth(int year, int year_day, int& month, int& day)
      * it is divisible by 4 and 400).
      */
     if ((year%4) == 0) {
-            /* Potentially a leap year, check for century year */
-            if ((year%100) == 0) {
-                    /* Century year, check for 400 years */
-                    if ((year%400) == 0)
-                            leap = 1;
-                    else
-                            leap = 0;
-            } else
-                    leap = 1;
-    } else
-            leap = 0;
+        /* Potentially a leap year, check for century year */
+        if ((year%100) == 0) {
+            /* Century year, check for 400 years */
+            if ((year%400) == 0) {
+                leap = 1;
+            } else {
+                leap = 0;
+            }
+        } else {
+            leap = 1;
+        }
+    } else {
+        leap = 0;
+    }
     day = year_day + 1; // External is [0, 364], but we assume here [1, 365]
     
     months[1] += leap;      /* Correct February */
