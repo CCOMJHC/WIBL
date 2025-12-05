@@ -252,6 +252,14 @@ resource "aws_vpc_security_group_ingress_rule" "private_sg_rule2" {
   }
 }
 
+# Allow the vpc to send out towards the things it needs to.
+resource "aws_vpc_security_group_egress_rule" "private_sg_egress" {
+  security_group_id = aws_security_group.private_sg.id
+
+  ip_protocol = "-1"
+  cidr_ipv4 = "0.0.0.0/0"
+}
+
 resource "aws_vpc_security_group_ingress_rule" "private_sg_rule3" {
   security_group_id = aws_security_group.private_sg.id
 
@@ -519,6 +527,7 @@ resource "aws_lb_listener" "frontend_listener" {
 # Using images pushed to ECR above, create task definitions
 # Instantiate wibl-manager task definition from template and register task with ECS
 
+# TODO: Make new template files to match the format ${variable name}
 # Manager Task Definition
 resource "aws_ecs_task_definition" "wibl_manager" {
   family                   = "wibl-manager"
@@ -542,7 +551,7 @@ resource "aws_ecs_task_definition" "wibl_manager" {
     templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/manager-container-definition.proto", {
       REPLACEME_ACCOUNT_NUMBER = var.account_number
       REPLACEME_AWS_EFS_FS_ID  = aws_efs_file_system.manager-efs.id
-      REPLECEME_AWS_REGION     = var.region
+      REPLACEME_AWS_REGION     = var.region
     })
   )
 }
@@ -617,7 +626,7 @@ resource "aws_ecs_task_definition" "frontend" {
     templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/frontend-container-definition.proto", {
       REPLACEME_ACCOUNT_NUMBER  = var.account_number
       REPLACEME_AWS_EFS_FS_ID   = aws_efs_file_system.fronted-efs.id
-      REPLECEME_AWS_REGION      = var.region
+      REPLACEME_AWS_REGION      = var.region
       REPLACEME_MANAGEMENT_URL  = "http://${aws_lb.frontend_alb.dns_name}"
       REPLACEME_INCOMING_BUCKET = var.incoming_bucket_name
       REPLACEME_STAGING_BUCKET  = var.staging_bucket_name

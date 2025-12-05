@@ -29,7 +29,8 @@ data "aws_iam_policy_document" "lambda-s3-access-all-doc" {
 
       effect = "Allow"
       actions = ["s3:*"]
-      resources = [var.incoming_bucket_arn, var.staging_bucket_arn]
+      resources = [var.incoming_bucket_arn, "${var.incoming_bucket_arn}/*",
+        var.staging_bucket_arn, "${var.staging_bucket_arn}/*"]
     }
 }
 
@@ -39,7 +40,7 @@ data "aws_iam_policy_document" "lambda-s3-access-staging-doc" {
 
       effect = "Allow"
       actions = ["s3:*"]
-      resources = [var.staging_bucket_arn]
+      resources = [var.staging_bucket_arn, "${var.staging_bucket_arn}/*"]
     }
 }
 
@@ -49,7 +50,7 @@ data "aws_iam_policy_document" "lambda-s3-access-incoming-doc" {
 
       effect = "Allow"
       actions = ["s3:*"]
-      resources = [var.incoming_bucket_arn]
+      resources = [var.incoming_bucket_arn, "${var.incoming_bucket_arn}/*"]
     }
 }
 
@@ -111,7 +112,6 @@ data "aws_iam_policy_document" "conversion-topic-access-doc" {
         }
     }
 }
-
 
 resource "aws_iam_policy" "lambda-nic-policy" {
     name = "lambda-nic-policy"

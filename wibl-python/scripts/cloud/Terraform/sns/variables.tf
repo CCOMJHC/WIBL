@@ -8,6 +8,7 @@ variable "validation_topic_name" {
     default = ""
 }
 
+# TODO: Change these names they are confusing
 variable "submission_topic_name" {
     type = string
     default = ""

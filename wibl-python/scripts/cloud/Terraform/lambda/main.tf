@@ -21,7 +21,7 @@ resource "aws_lambda_function" "conversion_lambda" {
       variables = {
         "NOTIFICATION_ARN" = var.validation_topic_arn
         "PROVIDER_ID" = var.DCDB_PROVIDER_ID,
-        "DEST_BUCKET" = var.staging_bucket_arn,
+        "DEST_BUCKET" = var.staging_bucket_name,
         "UPLOAD_POINT" = var.DCDB_UPLOAD_URL,
         "MANAGEMENT_URL" = var.MANAGEMENT_URL
       }
@@ -58,7 +58,7 @@ resource "aws_lambda_function" "validation_lambda" {
     variables = {
       "NOTIFICATION_ARN" = var.submission_topic_arn
       "PROVIDER_ID" = var.DCDB_PROVIDER_ID,
-      "DEST_BUCKET" = var.staging_bucket_arn,
+      "DEST_BUCKET" = var.staging_bucket_name,
       "UPLOAD_POINT" = var.DCDB_UPLOAD_URL,
       "MANAGEMENT_URL" = var.MANAGEMENT_URL
     }
@@ -95,7 +95,7 @@ resource "aws_lambda_function" "submission_lambda" {
       "NOTIFICATION_ARN" = var.submitted_topic_arn
       "PROVIDER_ID" = var.DCDB_PROVIDER_ID,
       "PROVIDER_AUTH" = var.provider_auth,
-      "DEST_BUCKET" = var.staging_bucket_arn,
+      "DEST_BUCKET" = var.staging_bucket_name,
       "UPLOAD_POINT" = var.DCDB_UPLOAD_URL,
       "MANAGEMENT_URL" = var.MANAGEMENT_URL
     }
@@ -132,7 +132,7 @@ resource "aws_lambda_function" "conversion_start_lambda" {
       "NOTIFICATION_ARN" = var.conversion_topic_arn
       "PROVIDER_ID" = var.DCDB_PROVIDER_ID,
       "PROVIDER_AUTH" = var.provider_auth,
-      "DEST_BUCKET" = var.staging_bucket_arn,
+      "DEST_BUCKET" = var.staging_bucket_name,
       "UPLOAD_POINT" = var.DCDB_UPLOAD_URL,
       "MANAGEMENT_URL" = var.MANAGEMENT_URL,
       "INCOMING_BUCKET" = var.incoming_bucket_name

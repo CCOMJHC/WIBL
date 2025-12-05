@@ -5,7 +5,7 @@
   "containerDefinitions": [
     {
       "name": "wibl-manager",
-      "image": "REPLACEME_ACCOUNT_NUMBER.dkr.ecr.REPLECEME_AWS_REGION.amazonaws.com/wibl/manager:latest",
+      "image": "REPLACEME_ACCOUNT_NUMBER.dkr.ecr.REPLACEME_AWS_REGION.amazonaws.com/wibl/manager:latest",
       "portMappings": [
         {
           "containerPort": 8000,
@@ -29,7 +29,7 @@
         "options": {
           "awslogs-create-group": "true",
           "awslogs-group": "wibl-manager-ecs-task-log",
-          "awslogs-region": "REPLECEME_AWS_REGION",
+          "awslogs-region": "REPLACEME_AWS_REGION",
           "awslogs-stream-prefix": "wibl-manager"
         }
       },

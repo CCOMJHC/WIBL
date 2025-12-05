@@ -62,6 +62,10 @@ variable "lambda_memory_size" {
     default = 128
 }
 
+variable "staging_bucket_name" {
+    type = string
+}
+
 variable "staging_bucket_arn" {
     type = string
 }

@@ -77,6 +77,7 @@ module "configure-lambda" {
     viz_lambda_role_name = var.viz_lambda_role_name
 
     staging_bucket_arn = module.configure-buckets.staging_bucket_arn
+    staging_bucket_name = var.staging_bucket_name
     incoming_bucket_arn = module.configure-buckets.incoming_bucket_arn
     incoming_bucket_name = var.incoming_bucket_name
     incoming_bucket_id = module.configure-buckets.incoming_bucket_id
