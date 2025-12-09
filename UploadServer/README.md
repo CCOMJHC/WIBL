@@ -13,9 +13,9 @@ installed:
  - [AWS cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html); and
  - [Terraform](https://developer.hashicorp.com/terraform/install).
 
-Additionally, if your computer is running Linux on an AMD64 (a.k.a. x86_64) CPU you'll need to in QEMU into
-your Docker environment to enable building ARM64 binaries (we recommend deploying to ARM64 virtual server as 
-they tend to be much cheaper than AMD64). You can easily do this by running the following command once you've 
+Additionally, if your computer is running Linux on an AMD64 (a.k.a. x86_64) CPU, you'll need to install QEMU 
+into your Docker environment to enable building ARM64 binaries (we recommend deploying to ARM64 virtual server 
+as they tend to be much cheaper than AMD64). You can do this by running the following command once you've 
 installed Docker:
 ```shell
 docker run --privileged --rm tonistiigi/binfmt --install all
