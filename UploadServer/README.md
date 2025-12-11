@@ -13,6 +13,17 @@ installed:
  - [AWS cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html); and
  - [Terraform](https://developer.hashicorp.com/terraform/install).
 
+Additionally, if your computer is running Linux on an AMD64 (a.k.a. x86_64) CPU, you'll need to install QEMU 
+into your Docker environment to enable building ARM64 binaries (we recommend deploying to ARM64 virtual server 
+as they tend to be much cheaper than AMD64). You can do this by running the following command once you've 
+installed Docker:
+```shell
+docker run --privileged --rm tonistiigi/binfmt --install all
+```
+
+For more information on enabling multi-platform builds in Docker, see 
+[here](https://docs.docker.com/build/building/multi-platform/#qemu).
+
 ### Create AWS CLI profile for WIBL upload-server
 To avoid accidentally creating many cloud resources in the wrong AWS account when testing
 and using WIBL upload-server you must create an AWS CLI profile specific to WIBL upload-server:
@@ -214,6 +225,8 @@ What the above commands do is run the `add-logger` command as the `wibl` user; t
 "TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A" with password/token "CC0E1FE1-46CA-4768-93A7-2252BF748118" and the second
 logger has the identifier "TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153" with password/token 
 "CAF1CA92-CB9E-437D-B391-7709A39D32B1".
+
+Note that if you don't have a password yet for the logger, omit the `-password` option and the code will generate a UUID password for you, then report it on the command line.  Add the `-creds filename` parameter to write this information to a file for transfer locally.  If the installation has updated JSON configuration files that include a path to the CA certificate, this is also reported in the credentials, since this is required for upload configuration on the logger.
 
 To verify that these loggers were added to the database, use the `sqlite3` command line utility:
 ```shell

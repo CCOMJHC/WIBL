@@ -15,7 +15,8 @@
     },
     "cert": {
       "cert_file": "./certs/server.crt",
-      "key_file": "./certs/server.key"
+      "key_file": "./certs/server.key",
+      "ca_cert": "./certs/ca.crt"
     },
     "logging": {
       "level": "debug",

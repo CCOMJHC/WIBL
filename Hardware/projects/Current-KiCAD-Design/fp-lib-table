@@ -1,0 +1,5 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "WIBL_x")(type "KiCad")(uri "${KiCAD_Projects}/Library/WIBL.pretty")(options "")(descr "")(disabled))
+  (lib (name "WIBL")(type "KiCad")(uri "${KIPRJMOD}/WIBL.pretty")(options "")(descr ""))
+)
