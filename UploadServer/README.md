@@ -39,9 +39,12 @@ WIBL upload-server setup scripts rely on being able to parse JSON output from AW
 
 Before being able to use to create and manage a WIBL upload-server instance, it is necessary to 
 add certain IAM roles to the AWS account you want to use. To do so, first make sure to add the 
-following AWS-managed policies using the [AWS IAM console](https://us-east-1.console.aws.amazon.com/iam):
+following AWS-managed policies using the [AWS IAM console](https://console.aws.amazon.com/iam/):
 
 - AmazonEC2FullAccess
+
+For more information on how to add IAM identity permissions, see 
+[here](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_manage-attach-detach.html).
 
 ### Bootstrapping Terraform: Create an S3 bucket for storing and sharing Terraform state
 Terraform is able to modify and delete computing resources that were created using Terraform. To do this,
