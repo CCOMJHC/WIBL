@@ -527,7 +527,6 @@ resource "aws_lb_listener" "frontend_listener" {
 # Using images pushed to ECR above, create task definitions
 # Instantiate wibl-manager task definition from template and register task with ECS
 
-# TODO: Make new template files to match the format ${variable name}
 # Manager Task Definition
 resource "aws_ecs_task_definition" "wibl_manager" {
   family                   = "wibl-manager"
@@ -548,7 +547,7 @@ resource "aws_ecs_task_definition" "wibl_manager" {
   }
   # Decode the JSON template after variable substitution
   container_definitions = (
-    templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/manager-container-definition.proto", {
+    templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/terraform-manager-container-definition.proto", {
       REPLACEME_ACCOUNT_NUMBER = var.account_number
       REPLACEME_AWS_EFS_FS_ID  = aws_efs_file_system.manager-efs.id
       REPLACEME_AWS_REGION     = var.region
@@ -623,7 +622,7 @@ resource "aws_ecs_task_definition" "frontend" {
   }
   # Decode the JSON template after variable substitution
   container_definitions = (
-    templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/frontend-container-definition.proto", {
+    templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/terraform-frontend-container-definition.proto", {
       REPLACEME_ACCOUNT_NUMBER  = var.account_number
       REPLACEME_AWS_EFS_FS_ID   = aws_efs_file_system.fronted-efs.id
       REPLACEME_AWS_REGION      = var.region
