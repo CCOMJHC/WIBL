@@ -29,6 +29,6 @@
 import os
 
 S3_WIBL_BUCKET_NAME = os.environ.get('S3_WIBL_BUCKET_NAME',
-                                     "WIBL-Metadata-Bucket")
+                                     "wibl-metadata-bucket")
 S3_GEOJSON_BUCKET_NAME = os.environ.get('S3_GEOJSON_BUCKET_NAME',
-                                        "GeoJSON-Metadata-Bucket")
+                                        "geojson-metadata-bucket")

@@ -2,7 +2,6 @@ from fastapi.responses import StreamingResponse
 from fastapi import APIRouter, HTTPException
 import boto3
 from botocore.exceptions import ClientError
-from jinja2.bccache import Bucket
 
 from src.wibl_manager.app_globals import S3_WIBL_BUCKET_NAME, S3_GEOJSON_BUCKET_NAME
 from src.wibl_manager import ReturnCodes
