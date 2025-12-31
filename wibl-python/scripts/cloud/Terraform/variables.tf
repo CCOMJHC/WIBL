@@ -116,3 +116,16 @@ variable "python_version" {
 variable "account_number" {
     type = string
 }
+
+variable "manager_db_name" {
+    type = string
+}
+
+variable "manager_db_size" {
+    type = string
+    description = "The size of the managers database in GB"
+}
+
+variable "manager_db_password" {
+    type = string
+}

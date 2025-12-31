@@ -524,6 +524,59 @@ resource "aws_lb_listener" "frontend_listener" {
   }
 }
 
+resource "aws_security_group" "private_rds_sg" {
+  name = "wibl-rds"
+  vpc_id = aws_vpc.main_vpc.id
+  description = "Security Group for the WIBL Managers RDS Postgres database"
+
+  tags = {
+    Name = "wibl-rds"
+  }
+}
+
+# TODO: Make a second private subnet
+
+# First create the RDS instance for the manager, and all of the vpc setup
+resource "aws_vpc_security_group_ingress_rule" "private_rds_sg_rule1" {
+  ip_protocol       = "tcp"
+  from_port = 5432
+  to_port = 5432
+  security_group_id = aws_security_group.private_rds_sg.id
+  referenced_security_group_id = aws_security_group.private_sg.id
+}
+
+resource "aws_vpc_security_group_egress_rule" "private_rds_sg_rule2" {
+  ip_protocol       = "-1"
+  security_group_id = aws_security_group.private_rds_sg.id
+  from_port = 0
+  to_port = 0
+  cidr_ipv4 = "0.0.0.0/0"
+}
+
+resource "aws_db_subnet_group" "manager_db_subnet_group" {
+  name = "manager_db_subnet_group"
+  subnet_ids = [aws_subnet.private_subnet_1.id]
+  tags = {
+    Name = "manager_db_subnet_group"
+  }
+}
+
+resource "aws_db_instance" "manager_db_instance" {
+  allocated_storage    = var.manager_db_size
+  db_name              = var.manager_db_name
+  engine               = "postgres"
+  instance_class       = "db.t4g.micro"
+  username             = "postgres"
+  password             = var.manager_db_password
+  db_subnet_group_name = aws_db_subnet_group.manager_db_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.private_rds_sg.id]
+  tags = {
+    Name = var.manager_db_name
+  }
+  publicly_accessible = false
+}
+
+
 # Using images pushed to ECR above, create task definitions
 # Instantiate wibl-manager task definition from template and register task with ECS
 
@@ -551,6 +604,7 @@ resource "aws_ecs_task_definition" "wibl_manager" {
       REPLACEME_ACCOUNT_NUMBER = var.account_number
       REPLACEME_AWS_EFS_FS_ID  = aws_efs_file_system.manager-efs.id
       REPLACEME_AWS_REGION     = var.region
+      REPLACEME_DATABASE_URI    = "postgresql+psycopg://postgres:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
     })
   )
 }
@@ -680,4 +734,6 @@ resource "aws_ecs_service" "wibl_frontend" {
 
   depends_on = [aws_lb_target_group.frontend_tg]
 }
+
+
 

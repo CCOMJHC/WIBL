@@ -34,3 +34,15 @@ variable "src_path" {
 variable "account_number" {
     type = string
 }
+
+variable "manager_db_size" {
+  type = string
+}
+
+variable "manager_db_name" {
+  type = string
+}
+
+variable "manager_db_password" {
+  type = string
+}

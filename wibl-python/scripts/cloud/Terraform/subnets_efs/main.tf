@@ -257,3 +257,4 @@ resource "aws_vpc_security_group_ingress_rule" "private_sg_rule5" {
     Name = "wibl-manager-efs-mount-point"
   }
 }
+

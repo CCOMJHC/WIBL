@@ -55,6 +55,9 @@ module "configure-manager-ecs" {
     viz_lambda_name = var.viz_lambda_name
     architecture = var.architecture
     src_path = var.src_path
+    manager_db_size = var.manager_db_size
+    manager_db_name = var.manager_db_name
+    manager_db_password = var.manager_db_password
 }
 
 module "configure-lambda" {

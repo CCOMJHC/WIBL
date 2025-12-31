@@ -17,7 +17,7 @@
   "environment": [
     {
       "name": "MANAGER_DATABASE_URI",
-      "value": "sqlite:////var/wibl/database.db"
+      "value": "${REPLACEME_DATABASE_URI}"
     }
   ],
   "logConfiguration": {

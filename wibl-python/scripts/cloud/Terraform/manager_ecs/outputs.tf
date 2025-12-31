@@ -13,3 +13,11 @@ output "private_subnet" {
 output "private_sg" {
     value = aws_security_group.private_sg.id
 }
+
+output "private_rds_sg_id" {
+    value = aws_security_group.private_rds_sg.id
+}
+
+output "manager_db_subnet_group_name" {
+    value = aws_db_subnet_group.manager_db_subnet_group.name
+}
