@@ -53,11 +53,10 @@
           "awslogs-stream-prefix": "wibl-frontend"
         }
       },
-      "command": ["gunicorn",
-        "wibl_frontend.application:app",
-        "--workers", "1",
-        "--bind", "0.0.0.0:8000",
-        "--access-logfile", "-"
+      "command": ["daphne",
+        "wiblfe.asgi:application",
+        "-b", "0.0.0.0",
+        "-p", "8000"
       ],
       "healthCheck": {
         "command": ["CMD", "curl", "-f", "http://localhost:8000/heartbeat"],

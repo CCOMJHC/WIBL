@@ -7,7 +7,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: frontend
     command: >
       bash -c "set -e && 
@@ -43,7 +43,7 @@ services:
   worker:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     command: celery --app=wiblfe worker --pool threads --loglevel=info
     volumes:
       - ./src:/var/local/wibl/frontend
