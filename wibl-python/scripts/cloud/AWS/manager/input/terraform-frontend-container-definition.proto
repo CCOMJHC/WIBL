@@ -16,8 +16,20 @@
       ],
       "environment": [
         {
-          "name": "FRONTEND_DATABASE_URI",
-          "value": "sqlite:////var/wibl/database.db"
+          "name": "FRONTEND_DATABASE_NAME",
+          "value": "${REPLACEME_DATABASE_NAME}"
+        },
+        {
+          "name": "FRONTEND_DATABASE_USER",
+          "value": "${REPLACEME_DATABASE_USER}"
+        },
+        {
+          "name": "FRONTEND_DATABASE_PASSWORD",
+          "value": "${REPLACEME_DATABASE_PASSWORD}"
+        },
+        {
+          "name": "FRONTEND_DATABASE_HOST",
+          "value": "${REPLACEME_DATABASE_HOST}"
         },
         {
           "name": "MANAGEMENT_URL",

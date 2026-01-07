@@ -32,7 +32,10 @@ resource "docker_image" "frontend_image" {
     platform   = "linux/${var.architecture}"
   }
   triggers = {
-    dockerfile_hash = sha1(filemd5("${var.src_path}/wibl-frontend/Dockerfile"))
+    source_hash = sha1(join("", [
+      for f in fileset("${var.src_path}/wibl-frontend", "**/*") :
+      filemd5("${var.src_path}/wibl-frontend/${f}")
+    ]))
   }
 
 }
@@ -51,7 +54,10 @@ resource "docker_image" "manager_image" {
     platform   = "linux/${var.architecture}"
   }
   triggers = {
-    dockerfile_hash = sha1(filemd5("${var.src_path}/wibl-manager/Dockerfile"))
+    source_hash = sha1(join("", [
+      for f in fileset("${var.src_path}/wibl-manager", "**/*") :
+      filemd5("${var.src_path}/wibl-manager/${f}")
+    ]))
   }
 }
 
@@ -188,6 +194,15 @@ resource "aws_subnet" "private_subnet_1" {
     }
 }
 
+resource "aws_subnet" "private_subnet_2" {
+    vpc_id = aws_vpc.main_vpc.id
+    cidr_block = "10.0.1.0/24"
+    availability_zone = "${var.region}a"
+    tags = {
+      Name = "wibl-private-ecs2"
+    }
+}
+
 # Create a routing table for private subnets to the VPC
 # Tag the route table with a name
 # Update route table in private subnet to route to NAT gateway
@@ -207,6 +222,11 @@ resource "aws_route_table" "private_route_table" {
 # Associate the custom routing table with the private subnets:
 resource "aws_route_table_association" "private1" {
   subnet_id      = aws_subnet.private_subnet_1.id
+  route_table_id = aws_route_table.private_route_table.id
+}
+
+resource "aws_route_table_association" "private2" {
+  subnet_id      = aws_subnet.private_subnet_2.id
   route_table_id = aws_route_table.private_route_table.id
 }
 
@@ -362,6 +382,12 @@ resource "aws_efs_mount_target" "mount_frontend" {
   security_groups = [aws_security_group.private_sg.id]
 }
 
+resource "aws_efs_mount_target" "mount_frontend2" {
+  file_system_id = aws_efs_file_system.fronted-efs.id
+  subnet_id = aws_subnet.private_subnet_2.id
+  security_groups = [aws_security_group.private_sg.id]
+}
+
 # Create ingress rule to allow NFS connections from the subnet (e.g., EFS mount points)
 # Tag the NFS ingress rule with a name:
 resource "aws_vpc_security_group_ingress_rule" "private_sg_rule5" {
@@ -428,7 +454,7 @@ resource "aws_lb" "wibl_manager" {
   name               = "wibl-manager-ecs-elb"
   internal           = true
   load_balancer_type = "network"
-  subnets            = [aws_subnet.private_subnet_1.id]
+  subnets            = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
 }
 # Tag the security group with a name
 resource "aws_security_group" "fe_elb_public" {
@@ -527,14 +553,12 @@ resource "aws_lb_listener" "frontend_listener" {
 resource "aws_security_group" "private_rds_sg" {
   name = "wibl-rds"
   vpc_id = aws_vpc.main_vpc.id
-  description = "Security Group for the WIBL Managers RDS Postgres database"
+  description = "Security Group for the WIBL Manager/Frontend RDS Postgres databases"
 
   tags = {
     Name = "wibl-rds"
   }
 }
-
-# TODO: Make a second private subnet
 
 # First create the RDS instance for the manager, and all of the vpc setup
 resource "aws_vpc_security_group_ingress_rule" "private_rds_sg_rule1" {
@@ -555,7 +579,7 @@ resource "aws_vpc_security_group_egress_rule" "private_rds_sg_rule2" {
 
 resource "aws_db_subnet_group" "manager_db_subnet_group" {
   name = "manager_db_subnet_group"
-  subnet_ids = [aws_subnet.private_subnet_1.id]
+  subnet_ids = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
   tags = {
     Name = "manager_db_subnet_group"
   }
@@ -566,8 +590,9 @@ resource "aws_db_instance" "manager_db_instance" {
   db_name              = var.manager_db_name
   engine               = "postgres"
   instance_class       = "db.t4g.micro"
-  username             = "postgres"
+  username             = var.manager_db_user
   password             = var.manager_db_password
+  skip_final_snapshot = true
   db_subnet_group_name = aws_db_subnet_group.manager_db_subnet_group.name
   vpc_security_group_ids = [aws_security_group.private_rds_sg.id]
   tags = {
@@ -576,6 +601,193 @@ resource "aws_db_instance" "manager_db_instance" {
   publicly_accessible = false
 }
 
+resource "aws_db_instance" "frontend_db_instance" {
+  allocated_storage    = var.frontend_db_size
+  db_name              = var.frontend_db_name
+  engine               = "postgres"
+  instance_class       = "db.t4g.micro"
+  username             = var.frontend_db_user
+  password             = var.frontend_db_password
+  skip_final_snapshot = true
+  db_subnet_group_name = aws_db_subnet_group.manager_db_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.private_rds_sg.id]
+  tags = {
+    Name = var.frontend_db_name
+  }
+  publicly_accessible = false
+}
+
+# Create one off ECS tasks for frontend and manager setup
+
+# Create a cloudwatch group for the managers setup
+resource "aws_cloudwatch_log_group" "manager_setup" {
+  name              = "/ecs/manager_setup"
+  retention_in_days = 14
+}
+
+# Create a cloudwatch group for the frontends setup
+resource "aws_cloudwatch_log_group" "frontend_setup" {
+  name = "/ecs/frontend_setup"
+  retention_in_days = 14
+}
+
+# Mount the frontend's static files in efs
+resource "aws_efs_access_point" "frontend_static_ap" {
+  file_system_id = aws_efs_file_system.fronted-efs.id
+
+  posix_user {
+    uid = 1000
+    gid = 1000
+  }
+
+  root_directory {
+    path = "/static"
+    creation_info {
+      owner_uid   = 1000
+      owner_gid   = 1000
+      permissions =  "755"
+    }
+  }
+}
+
+resource "aws_ecs_task_definition" "frontend_setup" {
+  family                   = "frontend_setup"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  memory                   = 512
+  cpu                      = 256
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_execution_role.arn
+
+  container_definitions = jsonencode([{
+    name      = "frontend_setup"
+    image     = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/frontend:latest"
+    essential = true
+    command   = ["bash", "-c", <<EOT
+      set -e
+      echo "Running migrations..."
+      python manage.py migrate
+      echo "Collecting static files..."
+      python manage.py collectstatic --noinput
+EOT
+    ]
+    environment = [
+      { name = "FRONTEND_DATABASE_NAME", value = var.frontend_db_name },
+      { name = "FRONTEND_DATABASE_USER", value = var.frontend_db_user },
+      { name = "FRONTEND_DATABASE_PASSWORD", value = var.frontend_db_password },
+      { name = "FRONTEND_DATABASE_HOST", value = aws_db_instance.frontend_db_instance.address }
+    ]
+    mountPoints = [{
+      sourceVolume  = "frontend-static"
+      containerPath = "/var/local/wibl/frontend/static"
+      readOnly      = false
+    }]
+    logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/frontend_setup"
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+  }])
+
+  volume {
+    name = "frontend-static"
+    efs_volume_configuration {
+      file_system_id          = aws_efs_file_system.fronted-efs.id
+      transit_encryption      = "ENABLED"
+      authorization_config {
+        access_point_id = aws_efs_access_point.frontend_static_ap.id
+      }
+    }
+  }
+}
+
+resource "null_resource" "run_frontend_setup" {
+  depends_on = [aws_ecs_task_definition.frontend_setup, aws_cloudwatch_log_group.frontend_setup, aws_db_instance.frontend_db_instance]
+
+  provisioner "local-exec" {
+    command = <<EOT
+aws ecs run-task \
+  --region ${var.region} \
+  --cluster ${aws_ecs_cluster.wibl_manager.id} \
+  --launch-type FARGATE \
+  --task-definition ${aws_ecs_task_definition.frontend_setup.family} \
+  --network-configuration "awsvpcConfiguration={subnets=[${aws_subnet.private_subnet_1.id},${aws_subnet.private_subnet_2.id}],securityGroups=[${aws_security_group.private_sg.id}],assignPublicIp=DISABLED}"
+EOT
+  }
+}
+
+
+resource "aws_ecs_task_definition" "manager_setup" {
+  family                   = "manager_setup"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_execution_role.arn
+
+  cpu    = 256
+  memory = 512
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = "manager_setup"
+      image     = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/manager:latest"
+      essential = true
+
+      command = [
+        "bash", "-c",
+        <<EOT
+set -e
+echo "Running Alembic migrations..."
+alembic upgrade head
+echo "Migrations complete."
+EOT
+      ]
+
+      environment = [
+        {
+          name  = "DATABASE_URI"
+          value = "postgresql+psycopg://${var.manager_db_user}:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/manager_setup"
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    }
+  ])
+}
+
+resource "null_resource" "run_manager_migrations" {
+  depends_on = [
+    aws_ecs_task_definition.manager_setup,
+    aws_db_instance.manager_db_instance,
+    aws_cloudwatch_log_group.manager_setup
+  ]
+
+  provisioner "local-exec" {
+    command = <<EOT
+aws ecs run-task \
+  --region ${var.region} \
+  --cluster ${aws_ecs_cluster.wibl_manager.id} \
+  --launch-type FARGATE \
+  --task-definition ${aws_ecs_task_definition.manager_setup.family} \
+  --network-configuration "awsvpcConfiguration={subnets=[${aws_subnet.private_subnet_1.id},${aws_subnet.private_subnet_2.id}],securityGroups=[${aws_security_group.private_sg.id}],assignPublicIp=DISABLED}"
+EOT
+  }
+}
 
 # Using images pushed to ECR above, create task definitions
 # Instantiate wibl-manager task definition from template and register task with ECS
@@ -604,7 +816,7 @@ resource "aws_ecs_task_definition" "wibl_manager" {
       REPLACEME_ACCOUNT_NUMBER = var.account_number
       REPLACEME_AWS_EFS_FS_ID  = aws_efs_file_system.manager-efs.id
       REPLACEME_AWS_REGION     = var.region
-      REPLACEME_DATABASE_URI    = "postgresql+psycopg://postgres:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
+      REPLACEME_DATABASE_URI    = "postgresql+psycopg://${var.manager_db_user}:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
     })
   )
 }
@@ -677,14 +889,18 @@ resource "aws_ecs_task_definition" "frontend" {
   # Decode the JSON template after variable substitution
   container_definitions = (
     templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/terraform-frontend-container-definition.proto", {
-      REPLACEME_ACCOUNT_NUMBER  = var.account_number
-      REPLACEME_AWS_EFS_FS_ID   = aws_efs_file_system.fronted-efs.id
-      REPLACEME_AWS_REGION      = var.region
-      REPLACEME_MANAGEMENT_URL  = "http://${aws_lb.frontend_alb.dns_name}"
-      REPLACEME_INCOMING_BUCKET = var.incoming_bucket_name
-      REPLACEME_STAGING_BUCKET  = var.staging_bucket_name
-      REPLACEME_VIZ_BUCKET      = var.viz_bucket_name
-      REPLACEME_VIZ_LAMBDA      = var.viz_lambda_name
+      REPLACEME_ACCOUNT_NUMBER    = var.account_number
+      REPLACEME_AWS_EFS_FS_ID     = aws_efs_file_system.fronted-efs.id
+      REPLACEME_AWS_REGION        = var.region
+      REPLACEME_MANAGEMENT_URL    = "http://${aws_lb.frontend_alb.dns_name}"
+      REPLACEME_INCOMING_BUCKET   = var.incoming_bucket_name
+      REPLACEME_STAGING_BUCKET    = var.staging_bucket_name
+      REPLACEME_VIZ_BUCKET        = var.viz_bucket_name
+      REPLACEME_VIZ_LAMBDA        = var.viz_lambda_name
+      REPLACEME_DATABASE_NAME     = var.frontend_db_name
+      REPLACEME_DATABASE_USER     = var.frontend_db_user
+      REPLACEME_DATABASE_PASSWORD = var.frontend_db_password
+      REPLACEME_DATABASE_HOST     = aws_db_instance.frontend_db_instance.address
     })
   )
 }
@@ -696,9 +912,10 @@ resource "aws_ecs_service" "wibl_manager" {
   task_definition = aws_ecs_task_definition.wibl_manager.arn
   desired_count   = 1
   launch_type     = "FARGATE"
+  force_new_deployment = true
 
   network_configuration {
-    subnets         = [aws_subnet.private_subnet_1.id]
+    subnets         = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
     security_groups = [aws_security_group.private_sg.id]
     assign_public_ip = false
   }
@@ -709,7 +926,7 @@ resource "aws_ecs_service" "wibl_manager" {
     container_port   = 8000
   }
 
-  depends_on = [aws_lb_target_group.manager_tg]
+  depends_on = [aws_lb_target_group.manager_tg, null_resource.run_manager_migrations]
 }
 
 # Frontend ECS Service
@@ -719,9 +936,10 @@ resource "aws_ecs_service" "wibl_frontend" {
   task_definition = aws_ecs_task_definition.frontend.arn
   desired_count   = 1
   launch_type     = "FARGATE"
+  force_new_deployment = true
 
   network_configuration {
-    subnets         = [aws_subnet.private_subnet_1.id]
+    subnets         = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
     security_groups = [aws_security_group.private_sg.id]
     assign_public_ip = true
   }
@@ -732,7 +950,7 @@ resource "aws_ecs_service" "wibl_frontend" {
     container_port   = 8000
   }
 
-  depends_on = [aws_lb_target_group.frontend_tg]
+  depends_on = [aws_lb_target_group.frontend_tg, null_resource.run_frontend_setup]
 }
 
 

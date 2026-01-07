@@ -13,6 +13,12 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+# Source - https://stackoverflow.com/a
+# Posted by Thomas Turner, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-01-05, License - CC BY-SA 4.0
+
+from socket import gethostname, gethostbyname_ex
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -26,8 +32,9 @@ SECRET_KEY = 'django-insecure-&$!is&8jepj03)%%a8*=!qrdcmg+eo9h9*^hmg4rskd67dy_d%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_CIDR_NETS = ['10.0.0.0/24', '10.0.1.0/24']
 
+ALLOWED_HOSTS = [".amazonaws.com", "wibl-manager-ecs-svc", "wibl-frontend-ecs-svc", "localhost", "127.0.0.1"]
 
 # Application definition
 
@@ -47,6 +54,7 @@ INSTALLED_APPS = [
 ASGI_APPLICATION = 'wiblfe.asgi.application'
 
 MIDDLEWARE = [
+    'allow_cidr.middleware.AllowCIDRMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -57,8 +65,6 @@ MIDDLEWARE = [
     'django_plotly_dash.middleware.BaseMiddleware',
     'django_plotly_dash.middleware.ExternalRedirectionMiddleware'
 ]
-
-
 
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
@@ -99,11 +105,12 @@ WSGI_APPLICATION = 'wiblfe.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'frontendDB',
+        'NAME': os.environ['FRONTEND_DATABASE_NAME'],
+        'USER': os.environ['FRONTEND_DATABASE_USER'],
+        'PASSWORD': os.environ['FRONTEND_DATABASE_PASSWORD'],
+        'HOST': os.environ['FRONTEND_DATABASE_HOST'],
         'PORT': '5432',
+        "CONN_MAX_AGE": 60
     },
 }
 
@@ -175,3 +182,6 @@ PLOTLY_COMPONENTS = [
 ]
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

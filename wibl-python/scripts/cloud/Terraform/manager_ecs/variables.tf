@@ -43,6 +43,27 @@ variable "manager_db_name" {
   type = string
 }
 
+variable "manager_db_user" {
+    type = string
+}
+
 variable "manager_db_password" {
   type = string
+}
+
+variable "frontend_db_name" {
+    type = string
+}
+
+variable "frontend_db_size" {
+    type = string
+    description = "The size of the frontend database in GB"
+}
+
+variable "frontend_db_user" {
+    type = string
+}
+
+variable "frontend_db_password" {
+    type = string
 }

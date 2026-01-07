@@ -57,7 +57,12 @@ module "configure-manager-ecs" {
     src_path = var.src_path
     manager_db_size = var.manager_db_size
     manager_db_name = var.manager_db_name
+    manager_db_user = var.manager_db_user
     manager_db_password = var.manager_db_password
+    frontend_db_name = var.frontend_db_name
+    frontend_db_size = var.frontend_db_size
+    frontend_db_user = var.frontend_db_user
+    frontend_db_password = var.frontend_db_password
 }
 
 module "configure-lambda" {
