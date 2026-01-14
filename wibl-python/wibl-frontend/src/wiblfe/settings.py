@@ -12,7 +12,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import os
 from pathlib import Path
-
+import boto3
+from botocore.exceptions import NoCredentialsError
 # Source - https://stackoverflow.com/a
 # Posted by Thomas Turner, modified by community. See post 'Timeline' for change history
 # Retrieved 2026-01-05, License - CC BY-SA 4.0
@@ -27,10 +28,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-&$!is&8jepj03)%%a8*=!qrdcmg+eo9h9*^hmg4rskd67dy_d%'
+SECRET_KEY = os.environ["FRONTEND_SECRET_KEY"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG_MODE: bool = bool(int(os.environ.get("DEBUG_MODE", 0)))
+DEBUG = DEBUG_MODE
 
 ALLOWED_CIDR_NETS = ['10.0.0.0/24', '10.0.1.0/24']
 
@@ -42,13 +44,14 @@ INSTALLED_APPS = [
     'daphne',
     'frontend',
     'channels',
+    'storages',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_plotly_dash.apps.DjangoPlotlyDashConfig'
+    'django_plotly_dash.apps.DjangoPlotlyDashConfig',
 ]
 
 ASGI_APPLICATION = 'wiblfe.asgi.application'
@@ -74,6 +77,7 @@ STATICFILES_FINDERS = [
     'django_plotly_dash.finders.DashComponentFinder',
     'django_plotly_dash.finders.DashAppDirectoryFinder'
 ]
+
 
 ROOT_URLCONF = 'wiblfe.urls'
 
@@ -149,8 +153,25 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
-STATIC_ROOT = '/var/local/wibl/frontend/static'
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "storages.backends.s3boto3.S3ManifestStaticStorage",
+        "OPTIONS": {
+            "bucket_name": os.environ["STATIC_BUCKET_NAME"],
+            "region_name": os.environ["AWS_REGION"],
+            "default_acl": None,
+        },
+    },
+}
+
+# Verify creds
+try:
+    session = boto3.Session()
+    creds = session.get_credentials()
+    if creds is None:
+        raise RuntimeError("No AWS credentials found for static S3 storage")
+except Exception as e:
+    raise RuntimeError(f"S3 static storage cannot be initialized: {e}")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

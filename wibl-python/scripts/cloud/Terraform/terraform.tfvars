@@ -2,6 +2,7 @@ region           = "us-east-2"
 incoming_bucket_name  = "incoming-bucket-gt-test-1"
 staging_bucket_name   = "staging-bucket-gt-test-1"
 viz_bucket_name       = "viz-bucket-gt-test-1"
+static_bucket_name = "gt-static-files-bucket"
 
 conversion_lambda_name = "gt-conversion-lambda"
 conversion_start_lambda_name = "gt-conversion-start-lambda"
@@ -23,3 +24,11 @@ frontend_db_name = "frontendDB"
 frontend_db_size = "5"
 frontend_db_user = "postgres"
 frontend_db_password = "test_test"
+
+superuser_username = "foo"
+superuser_password = "bar"
+
+// 1 = debug mode is on, 0 = debug mode is off
+debug_mode = 1
+// Use this site to generate your own key, https://djecrety.ir/
+frontend_secret_key = "default__test_dev_key__"

@@ -3,14 +3,14 @@
 {% load static %}
 
 {% block content %}
-    <script src="{% static 'frontend/js/ol.js' %}"></script>
-    <script src="{% static 'frontend/js/SocketManager.js' %}"></script>
-    <script type="module" src="{% static 'frontend/js/IndexEventManager.js' %}"></script>
-    <script type="module" src="{% static 'frontend/js/WIBLDetailTable.js' %}"></script>
-    <script type="module" src="{% static 'frontend/js/WIBLFileTable.js' %}"></script>
-    <script type="module" src="{% static 'frontend/js/GeojsonDetailTable.js' %}"></script>
-    <script type="module" src="{% static 'frontend/js/GeojsonFileTable.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'frontend/css/ol.css' %}">
+    <script src="{% static 'js/ol.js' %}"></script>
+    <script src="{% static 'js/SocketManager.js' %}"></script>
+    <script type="module" src="{% static 'js/IndexEventManager.js' %}"></script>
+    <script type="module" src="{% static 'js/WIBLDetailTable.js' %}"></script>
+    <script type="module" src="{% static 'js/WIBLFileTable.js' %}"></script>
+    <script type="module" src="{% static 'js/GeojsonDetailTable.js' %}"></script>
+    <script type="module" src="{% static 'js/GeojsonFileTable.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'css/ol.css' %}">
     <section class="container is-fluid">
         <div class="columns is-centered">
             <div class="column"  id="tableColumn">
@@ -204,10 +204,10 @@
     </style>
     <script type="module">
 
-        import { WIBLFileTable } from '/static/frontend/js/WIBLFileTable.js';
-        import { GeojsonFileTable } from '/static/frontend/js/GeojsonFileTable.js';
-        import { GeojsonMap } from '/static/frontend/js/GeojsonMap.js';
-        import { RawFileRetrieve } from '/static/frontend/js/RawFileRetrieve.js';
+        import { WIBLFileTable } from '/static/js/WIBLFileTable.js';
+        import { GeojsonFileTable } from '/static/js/GeojsonFileTable.js';
+        import { GeojsonMap } from '/static/js/GeojsonMap.js';
+        import { RawFileRetrieve } from '/static/js/RawFileRetrieve.js';
 
         const wiblFileTable = document.getElementById("wibl-file-table");
         const geojsonFileTable = document.getElementById("geojson-file-table");

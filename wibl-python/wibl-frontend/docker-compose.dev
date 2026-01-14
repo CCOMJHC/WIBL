@@ -10,7 +10,7 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     command: >
-      bash -c "set -e && 
+      bash -c "set -e &&
                   python manage.py collectstatic --noinput &&
                   daphne -b 0.0.0.0 -p 8000 wiblfe.asgi:application"
     depends_on:
@@ -21,6 +21,15 @@ services:
     env_file:
       - frontend.env
     environment:
+      - DEBUG=1
+      - SUPERUSER_USERNAME=foo
+      - SUPERUSER_PASSWORD=bar
+      - FRONTEND_DATABASE_NAME=postgres
+      - FRONTEND_DATABASE_USER=postgres
+      - FRONTEND_DATABASE_PASSWORD=postgres
+      - FRONTEND_DATABASE_HOST=frontendDB
+      - FRONTEND_DATABASE_PORT=5432
+      - DATABASE_NAME=postgres
       - MANAGEMENT_URL=http://manager:5000
       - MANAGEMENT_HEARTBEAT_PATH=/heartbeat
       - CELERY_BROKER=redis://redis:6379/0
@@ -46,6 +55,8 @@ services:
     volumes:
       - ./src:/var/local/wibl/frontend
     environment:
+      - DEBUG=1
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
       - MANAGEMENT_URL=http://manager:5000
       - MANAGEMENT_HEARTBEAT_PATH=/heartbeat
       - CELERY_BROKER=redis://redis:6379/0

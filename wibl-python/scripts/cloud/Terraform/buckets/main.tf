@@ -12,3 +12,8 @@ resource "aws_s3_bucket" "viz_bucket" {
     bucket = var.viz_bucket
     force_destroy = true
 }
+
+resource "aws_s3_bucket" "static_bucket" {
+    bucket = var.static_bucket
+    force_destroy = true
+}

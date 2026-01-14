@@ -144,6 +144,7 @@ variable "provider_auth" {
 variable "account_number" {
     type = string
     default = "111111111110"
+    sensitive = true
 }
 
 variable "package_path" {

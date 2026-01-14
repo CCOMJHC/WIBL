@@ -25,6 +25,7 @@ data "aws_ecr_authorization_token" "ecr" {}
 
 provider "aws" {
   region = var.region
+  s3_use_path_style = true
 }
 
 module "configure-buckets" {
@@ -33,6 +34,7 @@ module "configure-buckets" {
     incoming_bucket = var.incoming_bucket_name
     staging_bucket = var.staging_bucket_name
     viz_bucket = var.viz_bucket_name
+    static_bucket = var.static_bucket_name
 }
 
 module "configure-sns" {
@@ -53,6 +55,8 @@ module "configure-manager-ecs" {
     staging_bucket_name = var.staging_bucket_name
     viz_bucket_name = var.viz_bucket_name
     viz_lambda_name = var.viz_lambda_name
+    static_bucket_name = var.static_bucket_name
+
     architecture = var.architecture
     src_path = var.src_path
     manager_db_size = var.manager_db_size
@@ -63,6 +67,13 @@ module "configure-manager-ecs" {
     frontend_db_size = var.frontend_db_size
     frontend_db_user = var.frontend_db_user
     frontend_db_password = var.frontend_db_password
+
+    superuser_username = var.superuser_username
+    superuser_password = var.superuser_password
+
+    frontend_secret_key = var.frontend_secret_key
+
+    debug_mode = var.debug_mode
 }
 
 module "configure-lambda" {

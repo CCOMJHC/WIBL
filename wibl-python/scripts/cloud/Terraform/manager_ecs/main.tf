@@ -589,6 +589,7 @@ resource "aws_db_instance" "manager_db_instance" {
   allocated_storage    = var.manager_db_size
   db_name              = var.manager_db_name
   engine               = "postgres"
+  engine_version = "17"
   instance_class       = "db.t4g.micro"
   username             = var.manager_db_user
   password             = var.manager_db_password
@@ -631,25 +632,6 @@ resource "aws_cloudwatch_log_group" "frontend_setup" {
   retention_in_days = 14
 }
 
-# Mount the frontend's static files in efs
-resource "aws_efs_access_point" "frontend_static_ap" {
-  file_system_id = aws_efs_file_system.fronted-efs.id
-
-  posix_user {
-    uid = 1000
-    gid = 1000
-  }
-
-  root_directory {
-    path = "/static"
-    creation_info {
-      owner_uid   = 1000
-      owner_gid   = 1000
-      permissions =  "755"
-    }
-  }
-}
-
 resource "aws_ecs_task_definition" "frontend_setup" {
   family                   = "frontend_setup"
   requires_compatibilities = ["FARGATE"]
@@ -657,7 +639,12 @@ resource "aws_ecs_task_definition" "frontend_setup" {
   memory                   = 512
   cpu                      = 256
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_frontend_task_role.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
 
   container_definitions = jsonencode([{
     name      = "frontend_setup"
@@ -667,6 +654,8 @@ resource "aws_ecs_task_definition" "frontend_setup" {
       set -e
       echo "Running migrations..."
       python manage.py migrate
+      echo "Creating superuser..."
+      python manage.py create_superuser
       echo "Collecting static files..."
       python manage.py collectstatic --noinput
 EOT
@@ -675,13 +664,14 @@ EOT
       { name = "FRONTEND_DATABASE_NAME", value = var.frontend_db_name },
       { name = "FRONTEND_DATABASE_USER", value = var.frontend_db_user },
       { name = "FRONTEND_DATABASE_PASSWORD", value = var.frontend_db_password },
-      { name = "FRONTEND_DATABASE_HOST", value = aws_db_instance.frontend_db_instance.address }
+      { name = "FRONTEND_DATABASE_HOST", value = aws_db_instance.frontend_db_instance.address },
+      { name = "SUPERUSER_USERNAME", value = var.superuser_username},
+      { name = "SUPERUSER_PASSWORD", value = var.superuser_password},
+      { name = "FRONTEND_SECRET_KEY", value = var.frontend_secret_key},
+      { name = "DEBUG_MODE", value = var.debug_mode},
+      { name = "STATIC_BUCKET_NAME", value = var.static_bucket_name},
+      { name = "AWS_REGION", value = var.region}
     ]
-    mountPoints = [{
-      sourceVolume  = "frontend-static"
-      containerPath = "/var/local/wibl/frontend/static"
-      readOnly      = false
-    }]
     logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -691,17 +681,6 @@ EOT
         }
       }
   }])
-
-  volume {
-    name = "frontend-static"
-    efs_volume_configuration {
-      file_system_id          = aws_efs_file_system.fronted-efs.id
-      transit_encryption      = "ENABLED"
-      authorization_config {
-        access_point_id = aws_efs_access_point.frontend_static_ap.id
-      }
-    }
-  }
 }
 
 resource "null_resource" "run_frontend_setup" {
@@ -719,6 +698,23 @@ EOT
   }
 }
 
+# resource "null_resource" "enable_manager_postgis" {
+#   depends_on = [aws_db_instance.manager_db_instance]
+#
+#   provisioner "local-exec" {
+#     command = <<EOT
+# psql "host=${aws_db_instance.manager_db_instance.address} \
+#       port = 5432 \
+#       dbname = ${var.manager_db_name} \
+#       password = ${var.manager_db_password} \
+#       user = ${var.manager_db_user} \
+#       sslmode=require" <<SQL
+# CREATE EXTENSION IF NOT EXISTS postgis;
+# CREATE EXTENSION IF NOT EXISTS postgis_topology;
+# SQL
+# EOT
+#   }
+# }
 
 resource "aws_ecs_task_definition" "manager_setup" {
   family                   = "manager_setup"
@@ -753,7 +749,7 @@ EOT
 
       environment = [
         {
-          name  = "DATABASE_URI"
+          name  = "MANAGER_DATABASE_URI"
           value = "postgresql+psycopg://${var.manager_db_user}:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
         }
       ]
@@ -806,10 +802,12 @@ resource "aws_ecs_task_definition" "wibl_manager" {
   }
   cpu = 256
   memory = 512
+
   runtime_platform {
     operating_system_family = "LINUX"
     cpu_architecture = "ARM64"
   }
+
   # Decode the JSON template after variable substitution
   container_definitions = (
     templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/terraform-manager-container-definition.proto", {
@@ -835,7 +833,7 @@ data "aws_iam_policy_document" "frontend_s3_access" {
     actions = ["s3:*"]
 
     resources = flatten([
-      for b in [var.incoming_bucket_name, var.staging_bucket_name, var.viz_bucket_name] : [
+      for b in [var.incoming_bucket_name, var.staging_bucket_name, var.viz_bucket_name, var.static_bucket_name] : [
         "arn:aws:s3:::${b}",
         "arn:aws:s3:::${b}/*"
       ]
@@ -873,6 +871,7 @@ resource "aws_ecs_task_definition" "frontend" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn = aws_iam_role.ecs_frontend_task_role.arn
   volume {
     name = "wibl-frontend-ecs-task-efs"
     efs_volume_configuration {
@@ -882,25 +881,36 @@ resource "aws_ecs_task_definition" "frontend" {
   }
   memory = 512
   cpu = 256
+
   runtime_platform {
     operating_system_family = "LINUX"
     cpu_architecture = "ARM64"
   }
+
   # Decode the JSON template after variable substitution
   container_definitions = (
     templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/terraform-frontend-container-definition.proto", {
-      REPLACEME_ACCOUNT_NUMBER    = var.account_number
-      REPLACEME_AWS_EFS_FS_ID     = aws_efs_file_system.fronted-efs.id
-      REPLACEME_AWS_REGION        = var.region
-      REPLACEME_MANAGEMENT_URL    = "http://${aws_lb.frontend_alb.dns_name}"
-      REPLACEME_INCOMING_BUCKET   = var.incoming_bucket_name
-      REPLACEME_STAGING_BUCKET    = var.staging_bucket_name
-      REPLACEME_VIZ_BUCKET        = var.viz_bucket_name
-      REPLACEME_VIZ_LAMBDA        = var.viz_lambda_name
-      REPLACEME_DATABASE_NAME     = var.frontend_db_name
-      REPLACEME_DATABASE_USER     = var.frontend_db_user
-      REPLACEME_DATABASE_PASSWORD = var.frontend_db_password
-      REPLACEME_DATABASE_HOST     = aws_db_instance.frontend_db_instance.address
+      REPLACEME_ACCOUNT_NUMBER     = var.account_number
+      REPLACEME_AWS_EFS_FS_ID      = aws_efs_file_system.fronted-efs.id
+      REPLACEME_AWS_REGION         = var.region
+      REPLACEME_MANAGEMENT_URL     = "http://${aws_lb.frontend_alb.dns_name}"
+
+      REPLACEME_INCOMING_BUCKET    = var.incoming_bucket_name
+      REPLACEME_STAGING_BUCKET     = var.staging_bucket_name
+      REPLACEME_VIZ_BUCKET         = var.viz_bucket_name
+      REPLACEME_VIZ_LAMBDA         = var.viz_lambda_name
+      REPLACEME_STATIC_BUCKET      = var.static_bucket_name
+
+      REPLACEME_DATABASE_NAME      = var.frontend_db_name
+      REPLACEME_DATABASE_USER      = var.frontend_db_user
+      REPLACEME_DATABASE_PASSWORD  = var.frontend_db_password
+      REPLACEME_DATABASE_HOST      = aws_db_instance.frontend_db_instance.address
+
+      REPLACEME_SUPERUSER_USERNAME = var.superuser_username
+      REPLACEME_SUPERUSER_PASSWORD = var.superuser_password
+
+      REPLACEME_SECRET_KEY         = var.frontend_secret_key
+      REPLACEME_DEBUG_MODE         = var.debug_mode
     })
   )
 }

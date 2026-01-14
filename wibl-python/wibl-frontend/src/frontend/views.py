@@ -65,7 +65,7 @@ async def checkFileAvail(request, fileid):
 
 @login_required
 def dashboard(request):
-    return render(request, 'frontend/dashboard.html')
+    return render(request, 'dashboard.html')
 
 @login_required
 def index(request: HttpRequest):
@@ -77,7 +77,7 @@ def index(request: HttpRequest):
     context = {
         'wsURL': f"ws://{request.get_host()}/ws/"
     }
-    return render(request, 'frontend/index.html', context)
+    return render(request, 'index.html', context)
 
 
 @login_required

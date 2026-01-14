@@ -23,6 +23,11 @@ variable "viz_bucket_name" {
     type = string
 }
 
+variable "static_bucket_name" {
+    description = "Name of the bucket that holds the frontend's static files"
+    type = string
+}
+
 variable "conversion_lambda_name" {
     type = string
 }
@@ -62,7 +67,6 @@ variable "submission_lambda_role_name" {
 variable "viz_lambda_role_name" {
     type = string
 }
-
 
 variable DCDB_PROVIDER_ID {
     type = string
@@ -115,6 +119,7 @@ variable "python_version" {
 
 variable "account_number" {
     type = string
+    sensitive = true
 }
 
 variable "manager_db_name" {
@@ -132,6 +137,7 @@ variable "manager_db_user" {
 
 variable "manager_db_password" {
     type = string
+    sensitive = true
 }
 
 variable "frontend_db_name" {
@@ -148,5 +154,24 @@ variable "frontend_db_user" {
 }
 
 variable "frontend_db_password" {
+    type = string
+    sensitive = true
+}
+
+variable "superuser_username" {
+    type = string
+}
+
+variable "superuser_password" {
+    type = string
+    sensitive = true
+}
+
+variable "frontend_secret_key" {
+    type = string
+    sensitive = true
+}
+
+variable "debug_mode" {
     type = string
 }

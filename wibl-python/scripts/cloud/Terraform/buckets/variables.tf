@@ -12,3 +12,8 @@ variable "viz_bucket" {
     description = "Name of the viz s3 bucket"
     type = string
 }
+
+variable "static_bucket" {
+    description = "Name of the static bucket"
+    type = string
+}

@@ -16,6 +16,10 @@
       ],
       "environment": [
         {
+          "name" : "AWS_REGION",
+          "value" : "${REPLACEME_AWS_REGION}"
+        },
+        {
           "name": "FRONTEND_DATABASE_NAME",
           "value": "${REPLACEME_DATABASE_NAME}"
         },
@@ -30,6 +34,26 @@
         {
           "name": "FRONTEND_DATABASE_HOST",
           "value": "${REPLACEME_DATABASE_HOST}"
+        },
+        {
+          "name": "SUPERUSER_USERNAME",
+          "value": "${REPLACEME_SUPERUSER_USERNAME}"
+        },
+        {
+          "name": "SUPERUSER_PASSWORD",
+          "value": "${REPLACEME_SUPERUSER_PASSWORD}"
+        },
+        {
+          "name": "FRONTEND_SECRET_KEY",
+          "value": "${REPLACEME_SECRET_KEY}"
+        },
+        {
+          "name" : "DEBUG_MODE",
+          "value" : "${REPLACEME_DEBUG_MODE}"
+        },
+        {
+          "name" : "FRONTEND_SECRET_KEY",
+          "value" : "${REPLACEME_SECRET_KEY}"
         },
         {
           "name": "MANAGEMENT_URL",
@@ -54,6 +78,10 @@
         {
           "name": "VIZ_LAMBDA",
           "value": "${REPLACEME_VIZ_LAMBDA}"
+        },
+        {
+          "name" : "STATIC_BUCKET_NAME",
+          "value" : "${REPLACEME_STATIC_BUCKET}"
         }
       ],
       "logConfiguration": {
