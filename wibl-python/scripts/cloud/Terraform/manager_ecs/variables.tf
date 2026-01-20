@@ -93,3 +93,7 @@ variable "frontend_secret_key" {
 variable "debug_mode" {
     type = string
 }
+
+variable "domain_host_name" {
+    type = string
+}

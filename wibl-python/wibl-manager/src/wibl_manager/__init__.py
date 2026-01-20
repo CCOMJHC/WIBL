@@ -132,7 +132,7 @@ class ManagerInterface:
             endpoint = ''
 
         if endpoint and 'MANAGEMENT_URL' in os.environ and os.environ['MANAGEMENT_URL']:
-            self.rest_url = os.environ['MANAGEMENT_URL'] + endpoint + '/' + fileid
+            self.rest_url = os.environ['MANAGEMENT_URL'] + '/' + endpoint + '/' + fileid
         else:
             self.rest_url = None
 

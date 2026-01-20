@@ -56,6 +56,10 @@
           "value" : "${REPLACEME_SECRET_KEY}"
         },
         {
+          "name" : "ALB_DNS_NAME",
+          "value" : "${REPLACEME_ALB_DNS}"
+        },
+        {
           "name": "MANAGEMENT_URL",
           "value": "${REPLACEME_MANAGEMENT_URL}"
         },

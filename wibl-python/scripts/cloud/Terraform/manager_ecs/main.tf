@@ -37,7 +37,6 @@ resource "docker_image" "frontend_image" {
       filemd5("${var.src_path}/wibl-frontend/${f}")
     ]))
   }
-
 }
 
 resource "docker_registry_image" "frontend" {
@@ -541,8 +540,10 @@ resource "aws_lb_listener" "manager_listener" {
 # wibl-frontend TLS listener
 resource "aws_lb_listener" "frontend_listener" {
   load_balancer_arn = aws_lb.frontend_alb.arn
-  port              = 80
-  protocol          = "HTTP"
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = aws_acm_certificate_validation.frontend.certificate_arn
 
   default_action {
     type             = "forward"
@@ -670,7 +671,8 @@ EOT
       { name = "FRONTEND_SECRET_KEY", value = var.frontend_secret_key},
       { name = "DEBUG_MODE", value = var.debug_mode},
       { name = "STATIC_BUCKET_NAME", value = var.static_bucket_name},
-      { name = "AWS_REGION", value = var.region}
+      { name = "AWS_REGION", value = var.region},
+      { name = "ALB_DNS_NAME", value = aws_lb.frontend_alb.dns_name}
     ]
     logConfiguration = {
         logDriver = "awslogs"
@@ -911,6 +913,8 @@ resource "aws_ecs_task_definition" "frontend" {
 
       REPLACEME_SECRET_KEY         = var.frontend_secret_key
       REPLACEME_DEBUG_MODE         = var.debug_mode
+
+      REPLACEME_ALB_DNS            = aws_lb.frontend_alb.dns_name
     })
   )
 }

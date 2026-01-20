@@ -86,54 +86,47 @@ variable "viz_bucket_arn" {
     type = string
 }
 
-variable TOPIC_ARN_VALIDATION {
+variable "TOPIC_ARN_VALIDATION" {
     type = string
     default = ""
 }
 
-variable DCDB_PROVIDER_ID {
+variable "DCDB_PROVIDER_ID" {
     type = string
     default = ""
 }
 
-variable DCDB_UPLOAD_URL {
+variable "DCDB_UPLOAD_URL" {
     type = string
     default = ""
 }
 
-variable MANAGEMENT_URL {
+variable "MANAGEMENT_URL" {
     type = string
-    default = ""
 }
 
 variable private_subnet {
     type = string
-    default = ""
 }
 
 variable private_sg {
     type = string
-    default = ""
 }
 
 variable "conversion_topic_arn" {
     type = string
-    default = ""
 }
 
 variable "validation_topic_arn" {
     type = string
-    default = ""
 }
 
 variable "submission_topic_arn" {
     type = string
-    default = ""
 }
 
 variable "submitted_topic_arn" {
     type = string
-    default = ""
 }
 
 variable "provider_auth" {
@@ -143,7 +136,6 @@ variable "provider_auth" {
 
 variable "account_number" {
     type = string
-    default = "111111111110"
     sensitive = true
 }
 

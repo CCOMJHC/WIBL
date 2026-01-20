@@ -14,6 +14,7 @@ terraform {
 }
 
 provider "docker" {
+  alias = "ecr"
   registry_auth {
     address  = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com"
     username = data.aws_ecr_authorization_token.ecr.user_name
@@ -74,6 +75,11 @@ module "configure-manager-ecs" {
     frontend_secret_key = var.frontend_secret_key
 
     debug_mode = var.debug_mode
+    domain_host_name = var.domain_host_name
+    providers = {
+        docker = docker.ecr
+        aws = aws
+    }
 }
 
 module "configure-lambda" {
@@ -88,6 +94,7 @@ module "configure-lambda" {
     viz_lambda_name = var.viz_lambda_name
 
     account_number = var.account_number
+    MANAGEMENT_URL = module.configure-manager-ecs.manager_url
 
     conversion_lambda_role_name = var.conversion_lambda_role_name
     conversion_start_lambda_role_name = var.conversion_start_lambda_role_name

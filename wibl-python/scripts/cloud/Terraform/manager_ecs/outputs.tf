@@ -21,3 +21,7 @@ output "private_rds_sg_id" {
 output "manager_db_subnet_group_name" {
     value = aws_db_subnet_group.manager_db_subnet_group.name
 }
+
+output "manager_url" {
+    value = "http://${aws_lb.wibl_manager.dns_name}"
+}

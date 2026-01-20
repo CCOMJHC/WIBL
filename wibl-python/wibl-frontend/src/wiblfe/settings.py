@@ -36,7 +36,7 @@ DEBUG = DEBUG_MODE
 
 ALLOWED_CIDR_NETS = ['10.0.0.0/24', '10.0.1.0/24']
 
-ALLOWED_HOSTS = [".amazonaws.com", "wibl-manager-ecs-svc", "wibl-frontend-ecs-svc", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = [".amazonaws.com", "wibl-manager-ecs-svc", "wibl-frontend-ecs-svc", "localhost", "127.0.0.1", os.environ["ALB_DNS_NAME"]]
 
 # Application definition
 
@@ -164,14 +164,7 @@ STORAGES = {
     },
 }
 
-# Verify creds
-try:
-    session = boto3.Session()
-    creds = session.get_credentials()
-    if creds is None:
-        raise RuntimeError("No AWS credentials found for static S3 storage")
-except Exception as e:
-    raise RuntimeError(f"S3 static storage cannot be initialized: {e}")
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
