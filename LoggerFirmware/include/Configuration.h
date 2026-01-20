@@ -37,8 +37,8 @@ namespace logger {
 
 // Firmware software version (i.e., overall firmware, rather than components like Command Processor, etc.)
 const int firmware_major = 1;
-const int firmware_minor = 6;
-const int firmware_patch = 1;
+const int firmware_minor = 8;
+const int firmware_patch = 0;
 
 /// @brief Stringify the version information for the firmware itself
 String FirmwareVersion(void);
@@ -75,6 +75,7 @@ class Config {
             CONFIG_BRIDGE_B,        /* Binary: Bridge UDP broadcast packets to NMEA0183 */
             CONFIG_WEBSERVER_B,     /* Binary: Use web server interface to configure system */
             CONFIG_UPLOAD_B,        /* Binary: enable auto-upload when online */
+            CONFIG_GNSS_B,          /* Binary: GNSS logging configured on */
             CONFIG_MODULEID_S,      /* String: User-specified unique identifier for the module */
             CONFIG_SHIPNAME_S,      /* String: User-specific name for the ship hosting the WIBL */
             CONFIG_AP_SSID_S,       /* String: WiFi SSID for AP */

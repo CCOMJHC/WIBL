@@ -62,6 +62,7 @@ const String lookup[] = {
     "Bridge",           ///< Control whether to start the UDP->RS-422 bridge on WiFi startup (binary)
     "WebServer",        ///< Control whether to use the web server interface to configure the system (binary)
     "Upload",           ///< Control whether to auto-upload files when online (binary)
+    "GNSS",             ///< Control logging of GNSS data (binary)
     "modid",            ///< Set the module's Unique ID (string)
     "shipname",         ///< Set the ship's name (string)
     "ap_ssid",          ///< Set the WiFi SSID (string)

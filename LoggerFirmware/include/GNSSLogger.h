@@ -29,11 +29,34 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "LogManager.h"
+#include "SparkFun_u-blox_GNSS_v3.h"
+
 namespace gnss {
 
+/// \class Logger
+/// \brief Provide abstracted interface to a u-blox GNSS receiver
+///
+/// This provides the WIBL interface abstraction to a u-blox GNSS receiver, typically the F9P or better,
+/// that is used to initialise, configure, and extract data (both real-time position and time, and raw
+/// observations for post-processing) from the GNSS recevier.  The system will generate output serialiser
+/// packets for raw data (storing the binary transferred from the receiver), and separate GNSS and
+/// SystemTime packets from the receiver's real-time solutions.
+
 class Logger {
-    Logger(void);
+public:
+    Logger(logger::Manager *output);
     ~Logger(void);
+
+    /// \brief Generate reporting string for the software module
+    static String SoftwareVersion(void);
+    /// \brief Extract the software version for the module (for further computation)
+    static void SoftwareVersion(uint16_t& major, uint16_t& minor, uint16_t& patch);
+
+private:
+    SFE_UBLOX_GNSS  *m_sensor;  ///< Pointer to the receiver abstraction
+    logger::Manager *m_output;  ///< Pointer to the (shared) output log manager for data reporting
+    bool            m_verbose;  ///< Flag: True => lots more output information
 };
 
 }

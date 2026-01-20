@@ -29,18 +29,42 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
- #include "GNSSLogger.h"
+#include "GNSSLogger.h"
 
 namespace gnss {
 
-Logger::Logger(void)
-{
+const int SoftwareVersionMajor = 1; ///< Software major version for the logger
+const int SoftwareVersionMinor = 0; ///< Software minor version for the logger
+const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
+Logger::Logger(logger::Manager *output)
+: m_output(output), m_verbose(false)
+{
+    m_sensor = new SFE_UBLOX_GNSS();
 }
 
 Logger::~Logger(void)
 {
+    delete m_sensor;
+}
 
+/// Assemble a logger version string
+///
+/// \return Printable version of the version information
+
+String Logger::SoftwareVersion(void)
+{
+    String rtn;
+    rtn = String(SoftwareVersionMajor) + "." + String(SoftwareVersionMinor) +
+            "." + String(SoftwareVersionPatch);
+    return rtn;
+}
+
+void Logger::SoftwareVersion(uint16_t& major, uint16_t& minor, uint16_t& patch)
+{
+    major = SoftwareVersionMajor;
+    minor = SoftwareVersionMinor;
+    patch = SoftwareVersionPatch;   
 }
 
 }

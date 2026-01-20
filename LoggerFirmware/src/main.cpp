@@ -36,6 +36,7 @@
 #include "StatusLED.h"
 #include "MemController.h"
 #include "IMULogger.h"
+#include "GNSSLogger.h"
 #include "SupplyMonitor.h"
 #include "Configuration.h"
 #include "HeapMonitor.h"
@@ -62,6 +63,7 @@ const unsigned long ReceiveMessages[] PROGMEM =
 nmea::N2000::Logger     *N2000Logger = nullptr;     ///< Pointer for NMEA2000 CANbus logger object
 nmea::N0183::Logger     *N0183Logger = nullptr;     ///< Pointer for serial NMEA data logger object
 imu::Logger             *IMULogger = nullptr;       ///< Pointer for local IMU data logger
+gnss::Logger            *GNSSLogger = nullptr;      ///< Pointer for local GNSS data logger
 logger::Manager         *logManager = nullptr;      ///< SD log file manager object
 StatusLED               *LEDs = nullptr;            ///< Pointer to the status LED manager object
 SerialCommand           *CommandProcessor = nullptr;///< Pointer for the command processor object
@@ -141,7 +143,7 @@ void setup()
     logManager->AddInventory();
     Serial.printf("DBG: After inventory object start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
     
-    bool start_nmea_2000, start_nmea_0183, start_motion_sensor;
+    bool start_nmea_2000, start_nmea_0183, start_motion_sensor, start_gnss_sensor;
     if (logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_NMEA2000_B, start_nmea_2000)
             && start_nmea_2000) {
         Serial.println("Configuring NEMA2000 logger ...");
@@ -164,6 +166,12 @@ void setup()
         IMULogger = new imu::Logger(logManager);
 
         Serial.printf("DBG: After IMU logger start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+    }
+
+    if (logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_GNSS_B, start_gnss_sensor) && start_gnss_sensor) {
+        Serial.println("Configuring GNSS logger ...");
+        GNSSLogger = new gnss::Logger(logManager);
+        Serial.printf("DBG: After GNSS logger start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
     }
 
     Serial.println("Configuring command processor ...");
