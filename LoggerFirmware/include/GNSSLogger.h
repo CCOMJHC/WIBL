@@ -48,15 +48,22 @@ public:
     Logger(logger::Manager *output);
     ~Logger(void);
 
+    /// \brief Determine whether the GNSS module is configured and available
+    bool isAvailable(void);
+
+    /// \brief Run-loop for checking call-backs, and processing data that has arrived 
+    void TransferData(void);
+
     /// \brief Generate reporting string for the software module
     static String SoftwareVersion(void);
     /// \brief Extract the software version for the module (for further computation)
     static void SoftwareVersion(uint16_t& major, uint16_t& minor, uint16_t& patch);
 
 private:
-    SFE_UBLOX_GNSS  *m_sensor;  ///< Pointer to the receiver abstraction
-    logger::Manager *m_output;  ///< Pointer to the (shared) output log manager for data reporting
-    bool            m_verbose;  ///< Flag: True => lots more output information
+    SFE_UBLOX_GNSS  *m_sensor;      ///< Pointer to the receiver abstraction
+    logger::Manager *m_output;      ///< Pointer to the (shared) output log manager for data reporting
+    bool            m_verbose;      ///< Flag: True => lots more output information
+    uint8_t         *m_pktBuffer;   ///< Buffer for packets transferred before writing
 };
 
 }

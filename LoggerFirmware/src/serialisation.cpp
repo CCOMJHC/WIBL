@@ -182,6 +182,18 @@ void Serialisable::operator+=(const char *p)
     }
 }
 
+/// Serialise a buffer of bytes to the output buffer, with given length.
+///
+/// \param buffer   Pointer to the buffer to copy
+/// \param n        Length of the buffer in bytes
+
+void Serialisable::deposit(uint8_t *buffer, uint32_t n)
+{
+    EnsureSpace(n);
+    memcpy(m_buffer + m_nData, buffer, n);
+    m_nData += n;
+}
+
 /// Constructor for the serialiser, which writes \a Serialisable objects to file.  The file has
 /// to be opened in binary mode in order for this to work effectively.
 ///

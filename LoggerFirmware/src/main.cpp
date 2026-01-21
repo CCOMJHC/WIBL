@@ -239,6 +239,9 @@ void loop()
     if (IMULogger != nullptr) {
         IMULogger->TransferData();
     }
+    if (GNSSLogger != nullptr) {
+        GNSSLogger->TransferData();
+    }
     if (LEDs != nullptr) {
         LEDs->ProcessFlash();
     }

@@ -29,6 +29,8 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <functional>
+#include <Wire.h>
 #include "GNSSLogger.h"
 
 namespace gnss {
@@ -37,15 +39,85 @@ const int SoftwareVersionMajor = 1; ///< Software major version for the logger
 const int SoftwareVersionMinor = 0; ///< Software minor version for the logger
 const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
+const int RawDataPacketSize = 1024; ///< Size of raw byte packets transferred from the GNSS
+const int ReceiverDataBufferSize = 16384; ///< Size of internal logging buffer for GNSS
+
+logger::Manager *callback_log_output = nullptr;
+
+void sfrbx_rcv(UBX_RXM_SFRBX_data_t *ubxDataStruct)
+{
+
+}
+
+void rawx_rcv(UBX_RXM_RAWX_data_t *ubxDataStruct)
+{
+
+}
+
+void pvt_rcv(UBX_NAV_PVT_data_t * ubxDataStruct)
+{
+
+}
+
 Logger::Logger(logger::Manager *output)
 : m_output(output), m_verbose(false)
 {
     m_sensor = new SFE_UBLOX_GNSS();
+    if (!Wire.begin()) {
+        Serial.println("Error: Failed to initialise Wire interface for GNSS module; logging disabled.");
+        delete m_sensor;  m_sensor = nullptr; m_output = nullptr;
+        return;
+    }
+    if (!m_sensor->setPacketCfgPayloadSize(3000)) {
+        Serial.println("Error: failed to set receive packet size for GNSS module; logging disabled.");
+        delete m_sensor;  m_sensor = nullptr; m_output = nullptr;
+        return;
+    }
+    m_sensor->setFileBufferSize(ReceiverDataBufferSize);
+    callback_log_output = output; // !ick!
+    if (!m_sensor->begin()) {
+        Serial.println("Error: failed to start GNSS module; logging disabled.");
+        delete m_sensor;  m_sensor = nullptr; m_output = nullptr;
+        return;
+    }
+
+    // Configuration for real-time PVT and raw observations for post-processing
+    m_sensor->setI2COutput(COM_TYPE_UBX);
+    m_sensor->saveConfigSelective(VAL_CFG_SUBSEC_IOPORT);
+    m_sensor->setAutoRXMSFRBXcallbackPtr(&sfrbx_rcv);
+    m_sensor->logRXMSFRBX();
+    m_sensor->setAutoRXMRAWXcallbackPtr(&rawx_rcv);
+    m_sensor->logRXMRAWX();
+    m_sensor->setAutoPVTcallbackPtr(&pvt_rcv);
+    m_sensor->logNAVPVT();
+    m_sensor->setDynamicModel(DYN_MODEL_SEA);
+    m_sensor->setNavigationFrequency(1); // RAWX is a lot of data; we don't need more than 1Hz
+    m_pktBuffer = new uint8_t[RawDataPacketSize];
 }
 
 Logger::~Logger(void)
 {
     delete m_sensor;
+}
+
+bool Logger::isAvailable(void)
+{
+    return m_sensor != nullptr;
+}
+
+void Logger::TransferData(void)
+{
+    if (!isAvailable()) return;
+    m_sensor->checkUblox();
+    m_sensor->checkCallbacks();
+    while (m_sensor->fileBufferAvailable() >= RawDataPacketSize) {
+        Serialisable pkt(RawDataPacketSize);
+        m_sensor->extractFileBufferData(m_pktBuffer, RawDataPacketSize);
+        pkt.deposit(m_pktBuffer, RawDataPacketSize);
+        m_output->Record(logger::Manager::PacketIDs::Pkt_RawGNSS, pkt);
+        m_sensor->checkUblox();
+        m_sensor->checkCallbacks();
+    }
 }
 
 /// Assemble a logger version string
