@@ -111,6 +111,15 @@ bucket name must be unique. A good practice is to include your organization name
 characters in your bucket name, for example "unhjhc-1wdvhu89-wibl-upload". For more information about bucket
 naming rules, see [here](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html).
 
+> Very important!!! Once you've updated the `terraform_state_bucket`, `terraform_state_key`, `aws_region` variables
+> in [terraform.tfvars](./scripts/cloud/Terraform/aws/terraform.tfvars), you MUST ALSO update the corresponding
+> values in the `backend "s3"` configuration in the `terraform` configuration defined at the top of 
+> [main.tf](./scripts/cloud/Terraform/aws/main.tf). That is, YOU MUST set `bucket` to the same value as 
+> `terraform_state_bucket`, `region` to the same value as `aws_region`, and `key` to the same value as 
+> `terraform_state_key`. The reason for this is that Terraform loads the `terraform` configuration block in `main.tf`
+> before it has read in any externally defined variables, so the backend configuration values must be set in both
+> `terraform.tfvars` and in `main.tf`.
+
 You will probably also want to change the 
 [AWS region](https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-regions.html) to deploy to by 
 editing the `aws_region` variable to use your preferred region. When doing so, you must also choose a corresponding 
