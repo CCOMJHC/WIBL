@@ -42,6 +42,8 @@ add certain IAM roles to the AWS account you want to use. To do so, first make s
 following AWS-managed policies using the [AWS IAM console](https://console.aws.amazon.com/iam/):
 
 - AmazonEC2FullAccess
+- AmazonSNSFullAccess
+- IAMFullAccess
 
 For more information on how to add IAM identity permissions, see 
 [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_manage-attach-detach.html).
