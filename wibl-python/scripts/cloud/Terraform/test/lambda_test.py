@@ -44,7 +44,7 @@ def lambda_client():
 
 
 def test_lambda():
-    lambda_url = "https://psfw4lcm6nkz3vdwilamvl3dny0zzzby.lambda-url.us-east-2.on.aws/"
+    lambda_url = ("https://ku2ldih2fxtosls6s2t63t3ppi0zinvk.lambda-url.us-east-2.on.aws/")
 
     payload = {
         "object": "test-algo-dedup.wibl"

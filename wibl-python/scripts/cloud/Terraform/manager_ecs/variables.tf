@@ -94,6 +94,7 @@ variable "debug_mode" {
     type = string
 }
 
-variable "domain_host_name" {
+variable "origin_secret" {
     type = string
+    sensitive = true
 }

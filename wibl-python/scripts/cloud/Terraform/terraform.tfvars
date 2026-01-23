@@ -28,12 +28,10 @@ frontend_db_password = "test_test"
 superuser_username = "foo"
 superuser_password = "bar"
 
-// What the frontend domain name will be, so the default site is "ccomwibltest.xyz"
-// Uses the domain extension .xyz because it is the cheapest
-domain_host_name = "ccomwibltest"
-
-
 // 1 = debug mode is on, 0 = debug mode is off
 debug_mode = 1
 // Use this site to generate your own key, https://djecrety.ir/
 frontend_secret_key = "default__test_dev_key__"
+
+// Origin Secret, replace with a unique value to secure traffic between cloudfront and the frontend alb
+origin_secret = "default"

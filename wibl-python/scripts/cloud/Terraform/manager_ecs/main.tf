@@ -320,87 +320,8 @@ resource "aws_vpc_security_group_ingress_rule" "private_sg_rule4" {
   }
 }
 
-####################
-# Phase 3: Create EFS volumes and mount points for private subnet
+# Ripped out the EFS, no more Phase 3
 
-# Create the volumes
-# Note: Make sure your account has the `AmazonElasticFileSystemFullAccess` permissions policy
-# attached to it.
-# wibl-manager volume
-
-resource "aws_efs_file_system" "manager-efs" {
-  creation_token = "wibl-manager-ecs-task-efs"
-
-  encrypted = true
-  performance_mode = "generalPurpose"
-  throughput_mode = "bursting"
-  tags = {
-    Name = "wibl-manager-ecs-task-efs"
-  }
-}
-
-resource "aws_efs_backup_policy" "bp1" {
-  file_system_id = aws_efs_file_system.manager-efs.id
-
-  backup_policy {
-    status = "ENABLED"
-  }
-}
-
-# wibl-frontend volume
-resource "aws_efs_file_system" "fronted-efs" {
-  creation_token = "wibl-frontend-ecs-task-efs"
-
-  encrypted = true
-  performance_mode = "generalPurpose"
-  throughput_mode = "bursting"
-  tags = {
-    Name = "wibl-frontend-ecs-task-efs"
-  }
-}
-
-resource "aws_efs_backup_policy" "bp2" {
-  file_system_id = aws_efs_file_system.fronted-efs.id
-
-  backup_policy {
-    status = "ENABLED"
-  }
-}
-
-# Create mount targets for EFS volume within our VPC subnet
-# wibl-manager mount target
-resource "aws_efs_mount_target" "mount_manager" {
-  file_system_id = aws_efs_file_system.manager-efs.id
-  subnet_id = aws_subnet.private_subnet_1.id
-  security_groups = [aws_security_group.private_sg.id]
-}
-# wibl-frontend mount target 1 (in first subnet in the AZ)
-resource "aws_efs_mount_target" "mount_frontend" {
-  file_system_id = aws_efs_file_system.fronted-efs.id
-  subnet_id = aws_subnet.private_subnet_1.id
-  security_groups = [aws_security_group.private_sg.id]
-}
-
-resource "aws_efs_mount_target" "mount_frontend2" {
-  file_system_id = aws_efs_file_system.fronted-efs.id
-  subnet_id = aws_subnet.private_subnet_2.id
-  security_groups = [aws_security_group.private_sg.id]
-}
-
-# Create ingress rule to allow NFS connections from the subnet (e.g., EFS mount points)
-# Tag the NFS ingress rule with a name:
-resource "aws_vpc_security_group_ingress_rule" "private_sg_rule5" {
-  security_group_id = aws_security_group.private_sg.id
-
-  cidr_ipv4 = "10.0.0.0/16"
-  from_port   = 2049
-  ip_protocol = "tcp"
-  to_port     = 2049
-
-  tags = {
-    Name = "wibl-manager-efs-mount-point"
-  }
-}
 
 ####################
 # Phase 4: Setup ECS cluster and task definitions
@@ -540,14 +461,34 @@ resource "aws_lb_listener" "manager_listener" {
 # wibl-frontend TLS listener
 resource "aws_lb_listener" "frontend_listener" {
   load_balancer_arn = aws_lb.frontend_alb.arn
-  port              = 443
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = aws_acm_certificate_validation.frontend.certificate_arn
+  port              = 80
+  protocol          = "HTTP"
 
   default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      status_code  = "403"
+      content_type = "text/plain"
+      message_body = "Forbidden"
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "require_header" {
+  listener_arn = aws_lb_listener.frontend_listener.arn
+  priority     = 1
+
+  action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.frontend_tg.arn
+  }
+
+  condition {
+    http_header {
+      http_header_name = "X-Origin-Verify"
+      values           = [var.origin_secret]
+    }
   }
 }
 
@@ -700,24 +641,6 @@ EOT
   }
 }
 
-# resource "null_resource" "enable_manager_postgis" {
-#   depends_on = [aws_db_instance.manager_db_instance]
-#
-#   provisioner "local-exec" {
-#     command = <<EOT
-# psql "host=${aws_db_instance.manager_db_instance.address} \
-#       port = 5432 \
-#       dbname = ${var.manager_db_name} \
-#       password = ${var.manager_db_password} \
-#       user = ${var.manager_db_user} \
-#       sslmode=require" <<SQL
-# CREATE EXTENSION IF NOT EXISTS postgis;
-# CREATE EXTENSION IF NOT EXISTS postgis_topology;
-# SQL
-# EOT
-#   }
-# }
-
 resource "aws_ecs_task_definition" "manager_setup" {
   family                   = "manager_setup"
   requires_compatibilities = ["FARGATE"]
@@ -787,6 +710,54 @@ EOT
   }
 }
 
+resource "aws_cloudfront_distribution" "frontend" {
+  enabled = true
+
+  origin {
+    domain_name = aws_lb.frontend_alb.dns_name
+    origin_id   = "alb-origin"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+
+    custom_header {
+      name  = "X-Origin-Verify"
+      value = var.origin_secret
+    }
+  }
+
+  default_cache_behavior {
+    target_origin_id       = "alb-origin"
+    viewer_protocol_policy = "redirect-to-https"
+
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"]
+    cached_methods  = ["GET", "HEAD"]
+
+    forwarded_values {
+      query_string = true
+
+      cookies {
+        forward = "all"
+      }
+    }
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+}
+
+
 # Using images pushed to ECR above, create task definitions
 # Instantiate wibl-manager task definition from template and register task with ECS
 
@@ -796,12 +767,6 @@ resource "aws_ecs_task_definition" "wibl_manager" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
-  volume {
-    name = "wibl-manager-ecs-task-efs"
-    efs_volume_configuration {
-      file_system_id = aws_efs_file_system.manager-efs.id
-    }
-  }
   cpu = 256
   memory = 512
 
@@ -814,7 +779,6 @@ resource "aws_ecs_task_definition" "wibl_manager" {
   container_definitions = (
     templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/terraform-manager-container-definition.proto", {
       REPLACEME_ACCOUNT_NUMBER = var.account_number
-      REPLACEME_AWS_EFS_FS_ID  = aws_efs_file_system.manager-efs.id
       REPLACEME_AWS_REGION     = var.region
       REPLACEME_DATABASE_URI    = "postgresql+psycopg://${var.manager_db_user}:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
     })
@@ -874,13 +838,6 @@ resource "aws_ecs_task_definition" "frontend" {
   network_mode             = "awsvpc"
   execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn = aws_iam_role.ecs_frontend_task_role.arn
-  volume {
-    name = "wibl-frontend-ecs-task-efs"
-    efs_volume_configuration {
-      file_system_id = aws_efs_file_system.fronted-efs.id
-      transit_encryption = "ENABLED"
-    }
-  }
   memory = 512
   cpu = 256
 
@@ -893,9 +850,8 @@ resource "aws_ecs_task_definition" "frontend" {
   container_definitions = (
     templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/terraform-frontend-container-definition.proto", {
       REPLACEME_ACCOUNT_NUMBER     = var.account_number
-      REPLACEME_AWS_EFS_FS_ID      = aws_efs_file_system.fronted-efs.id
       REPLACEME_AWS_REGION         = var.region
-      REPLACEME_MANAGEMENT_URL     = "http://${aws_lb.frontend_alb.dns_name}"
+      REPLACEME_MANAGEMENT_URL     = "http://${aws_lb.wibl_manager.dns_name}"
 
       REPLACEME_INCOMING_BUCKET    = var.incoming_bucket_name
       REPLACEME_STAGING_BUCKET     = var.staging_bucket_name
@@ -914,7 +870,7 @@ resource "aws_ecs_task_definition" "frontend" {
       REPLACEME_SECRET_KEY         = var.frontend_secret_key
       REPLACEME_DEBUG_MODE         = var.debug_mode
 
-      REPLACEME_ALB_DNS            = aws_lb.frontend_alb.dns_name
+      REPLACEME_ALB_DNS            = aws_cloudfront_distribution.frontend.domain_name
     })
   )
 }
@@ -966,6 +922,5 @@ resource "aws_ecs_service" "wibl_frontend" {
 
   depends_on = [aws_lb_target_group.frontend_tg, null_resource.run_frontend_setup]
 }
-
 
 

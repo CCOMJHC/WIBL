@@ -18,8 +18,6 @@ from botocore.exceptions import NoCredentialsError
 # Posted by Thomas Turner, modified by community. See post 'Timeline' for change history
 # Retrieved 2026-01-05, License - CC BY-SA 4.0
 
-from socket import gethostname, gethostbyname_ex
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -37,6 +35,9 @@ DEBUG = DEBUG_MODE
 ALLOWED_CIDR_NETS = ['10.0.0.0/24', '10.0.1.0/24']
 
 ALLOWED_HOSTS = [".amazonaws.com", "wibl-manager-ecs-svc", "wibl-frontend-ecs-svc", "localhost", "127.0.0.1", os.environ["ALB_DNS_NAME"]]
+
+
+CRSF_TRUSTED_ORIGINS = [f"https://{os.environ['ALB_DNS_NAME']}"]
 
 # Application definition
 
@@ -164,7 +165,10 @@ STORAGES = {
     },
 }
 
+STATIC_URL = "/static/"
 
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles_build"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -199,3 +203,9 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SAMESITE = "None"

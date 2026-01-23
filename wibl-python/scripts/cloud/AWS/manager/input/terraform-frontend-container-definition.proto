@@ -8,12 +8,6 @@
           "protocol": "tcp"
         }
       ],
-      "mountPoints": [
-        {
-          "containerPath": "/var/wibl",
-          "sourceVolume": "wibl-frontend-ecs-task-efs"
-        }
-      ],
       "environment": [
         {
           "name" : "AWS_REGION",

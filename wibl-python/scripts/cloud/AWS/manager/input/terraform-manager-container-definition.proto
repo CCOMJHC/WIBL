@@ -8,12 +8,6 @@
       "protocol": "tcp"
     }
   ],
-  "mountPoints": [
-    {
-      "containerPath": "/var/wibl",
-      "sourceVolume": "wibl-manager-ecs-task-efs"
-    }
-  ],
   "environment": [
     {
       "name": "MANAGER_DATABASE_URI",

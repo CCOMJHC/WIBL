@@ -73,9 +73,8 @@ module "configure-manager-ecs" {
     superuser_password = var.superuser_password
 
     frontend_secret_key = var.frontend_secret_key
-
+    origin_secret = var.origin_secret
     debug_mode = var.debug_mode
-    domain_host_name = var.domain_host_name
     providers = {
         docker = docker.ecr
         aws = aws
