@@ -12,8 +12,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import os
 from pathlib import Path
-import boto3
-from botocore.exceptions import NoCredentialsError
 # Source - https://stackoverflow.com/a
 # Posted by Thomas Turner, modified by community. See post 'Timeline' for change history
 # Retrieved 2026-01-05, License - CC BY-SA 4.0
