@@ -35,8 +35,7 @@ ALLOWED_CIDR_NETS = ['10.0.0.0/24', '10.0.1.0/24']
 ALLOWED_HOSTS = [".amazonaws.com", "wibl-manager-ecs-svc", "wibl-frontend-ecs-svc", "localhost", "127.0.0.1", os.environ["ALB_DNS_NAME"]]
 
 
-CRSF_TRUSTED_ORIGINS = [f"https://{os.environ['ALB_DNS_NAME']}"]
-
+CSRF_TRUSTED_ORIGINS = [f"https://{os.environ['ALB_DNS_NAME']}"]
 # Application definition
 
 INSTALLED_APPS = [
