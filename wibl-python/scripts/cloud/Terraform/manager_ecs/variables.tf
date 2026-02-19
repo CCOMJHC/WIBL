@@ -98,3 +98,7 @@ variable "origin_secret" {
     type = string
     sensitive = true
 }
+
+variable "static_bucket_regional_dns_name" {
+    type = string
+}

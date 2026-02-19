@@ -25,3 +25,11 @@ output "manager_db_subnet_group_name" {
 output "manager_url" {
     value = "http://${aws_lb.wibl_manager.dns_name}"
 }
+
+output "alb_url" {
+    value = "https://${aws_lb.frontend_alb.dns_name}"
+}
+
+output "oai_iam_arn" {
+    value = aws_cloudfront_origin_access_identity.static_oai.iam_arn
+}

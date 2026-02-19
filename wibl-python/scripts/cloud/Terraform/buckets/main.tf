@@ -13,42 +13,40 @@ resource "aws_s3_bucket" "viz_bucket" {
     force_destroy = true
 }
 
-
 resource "aws_s3_bucket" "static_bucket" {
     bucket = var.static_bucket
     force_destroy = true
 }
 
-resource "aws_s3_bucket_public_access_block" "static_files" {
-  bucket = aws_s3_bucket.static_bucket.id
+data "aws_iam_policy_document" "static_bucket_policy" {
+  statement {
+    actions = ["s3:GetObject"]
 
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-resource "aws_s3_bucket_policy" "static_files_public_read" {
-  bucket = aws_s3_bucket.static_bucket.id
-  depends_on = [aws_s3_bucket_public_access_block.static_files]
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "PublicReadGetObject"
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = "s3:GetObject"
-        Resource  = "arn:aws:s3:::gt-static-files-bucket/*"
-      }
+    resources = [
+      "${aws_s3_bucket.static_bucket.arn}/static/*"
     ]
-  })
-}
 
-resource "aws_s3_bucket_ownership_controls" "static_files" {
-  bucket = aws_s3_bucket.static_bucket.id
-
-  rule {
-    object_ownership = "BucketOwnerPreferred"
+    principals {
+      type        = "AWS"
+      identifiers = [var.oai_iam_arn]
+    }
   }
 }
+
+resource "aws_s3_bucket_policy" "static" {
+  bucket = aws_s3_bucket.static_bucket.id
+  policy = data.aws_iam_policy_document.static_bucket_policy.json
+}
+
+resource "aws_s3_bucket_cors_configuration" "static_files" {
+  bucket = aws_s3_bucket.static_bucket.id
+
+  cors_rule {
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = [var.alb_url]
+    allowed_headers = ["*"]
+    max_age_seconds = 3000
+  }
+  depends_on = [aws_s3_bucket.static_bucket]
+}
+

@@ -12,13 +12,13 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import os
 from pathlib import Path
+
 # Source - https://stackoverflow.com/a
 # Posted by Thomas Turner, modified by community. See post 'Timeline' for change history
 # Retrieved 2026-01-05, License - CC BY-SA 4.0
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -32,8 +32,9 @@ DEBUG = DEBUG_MODE
 
 ALLOWED_CIDR_NETS = ['10.0.0.0/24', '10.0.1.0/24']
 
-ALLOWED_HOSTS = [".amazonaws.com", "wibl-manager-ecs-svc", "wibl-frontend-ecs-svc", "localhost", "127.0.0.1", os.environ["ALB_DNS_NAME"]]
-
+ALLOWED_HOSTS = [".amazonaws.com", "wibl-manager-ecs-svc", "wibl-frontend-ecs-svc", "localhost", "127.0.0.1",
+                 os.environ["ALB_DNS_NAME"]]
+WEB_SOCKET_SCHEME = 'wss://'
 
 CSRF_TRUSTED_ORIGINS = [f"https://{os.environ['ALB_DNS_NAME']}"]
 # Application definition
@@ -76,7 +77,6 @@ STATICFILES_FINDERS = [
     'django_plotly_dash.finders.DashAppDirectoryFinder'
 ]
 
-
 ROOT_URLCONF = 'wiblfe.urls'
 
 LOGIN_REDIRECT_URL = '/'
@@ -100,7 +100,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'wiblfe.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -115,7 +114,6 @@ DATABASES = {
         "CONN_MAX_AGE": 60
     },
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -135,7 +133,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -147,39 +144,46 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "storages.backends.s3boto3.S3ManifestStaticStorage",
-        "OPTIONS": {
-            "bucket_name": os.environ["STATIC_BUCKET_NAME"],
-            "region_name": os.environ["AWS_REGION"],
-            "default_acl": None,
-        },
+        "BACKEND": "wiblfe.storage_backends.StaticStorage",
     },
 }
 
-STATIC_URL = "/static/"
+# https://anupamkush9.medium.com/storing-django-static-and-media-files-on-amazon-s3-private-bucket-and-serve-it-through-cloudfront-7e5906735656
 
+# aws settings
+
+AWS_STORAGE_BUCKET_NAME = os.environ['STATIC_BUCKET_NAME']
+AWS_S3_REGION_NAME = os.environ["AWS_REGION"]
+CLOUDFRONT_DOMAIN = os.environ["ALB_DNS_NAME"]
+AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+
+# s3 static settings
+AWS_LOCATION = 'static'
+STATIC_URL = f'{CLOUDFRONT_DOMAIN}/{AWS_LOCATION}/'
+STATICFILES_STORAGE = 'wiblfe.storage_backends.StaticStorage'
+STATIC_ROOT = "/tmp/staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles_build"
+# <link rel="stylesheet" href="https://gt-static-files-bucket.s3.amazonaws.com/css/ol.css">
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER", "redis://redis:6379/0")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_BROKER", "redis://redis:6379/0")
+REDIS_HOST = os.environ['REDIS_URL']
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}:6379/0"
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("redis", 6379)],
+            "hosts": [(REDIS_HOST, 6379)],
         },
     },
 }

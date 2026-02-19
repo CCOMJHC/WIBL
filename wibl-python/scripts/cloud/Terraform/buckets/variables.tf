@@ -17,3 +17,12 @@ variable "static_bucket" {
     description = "Name of the static bucket"
     type = string
 }
+
+variable "alb_url" {
+    description = "Frontend cloudfront distribution url"
+    type = string
+}
+
+variable "oai_iam_arn" {
+    type = string
+}

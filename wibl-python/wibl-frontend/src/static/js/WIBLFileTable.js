@@ -1,4 +1,3 @@
-
 const output_headers = ["File ID", "Processed time"]
 const input_headers = ["fileid", "processtime", "platform", "logger", "starttime", "endtime"]
 

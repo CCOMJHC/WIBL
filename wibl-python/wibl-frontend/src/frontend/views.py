@@ -6,10 +6,17 @@ from django.shortcuts import render
 from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.views.decorators.cache import cache_control
-
+from django.conf import settings
 from wiblfe.celery import app as celery
 import httpx
 import os
+
+_ws_scheme: str | None = None
+def get_ws_scheme() -> str:
+    global _ws_scheme
+    if _ws_scheme is None:
+        _ws_scheme = settings.WEB_SOCKET_SCHEME
+    return _ws_scheme
 
 @login_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
@@ -75,7 +82,7 @@ def index(request: HttpRequest):
     # back to the client via the websocket...
     # celery.send_task('get-wibl-files', (request.session.session_key,))
     context = {
-        'wsURL': f"ws://{request.get_host()}/ws/"
+        "wsURL": f"{get_ws_scheme()}{request.get_host()}/ws/"
     }
     return render(request, 'index.html', context)
 

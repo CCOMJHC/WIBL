@@ -12,3 +12,7 @@ output "staging_bucket_arn"  {
 output "viz_bucket_arn" {
     value = aws_s3_bucket.viz_bucket.arn
 }
+
+output "static_bucket_regional_dns_name" {
+    value = aws_s3_bucket.static_bucket.bucket_regional_domain_name
+}

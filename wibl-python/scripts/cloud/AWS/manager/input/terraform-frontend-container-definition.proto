@@ -80,6 +80,9 @@
         {
           "name" : "STATIC_BUCKET_NAME",
           "value" : "${REPLACEME_STATIC_BUCKET}"
+        }, {
+           "name" : "REDIS_URL",
+           "value" : "${REPLACEME_REDIS_URL}"
         }
       ],
       "logConfiguration": {

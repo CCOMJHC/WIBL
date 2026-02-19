@@ -29,6 +29,12 @@ provider "aws" {
   s3_use_path_style = true
 }
 
+# module "configure-domain" {
+#   source = "./domain"
+#
+#   domain_name = "gt-wibl-test-domain-name.xyz"
+# }
+
 module "configure-buckets" {
     source = "./buckets"
 
@@ -36,6 +42,8 @@ module "configure-buckets" {
     staging_bucket = var.staging_bucket_name
     viz_bucket = var.viz_bucket_name
     static_bucket = var.static_bucket_name
+    alb_url = module.configure-manager-ecs.alb_url
+    oai_iam_arn = module.configure-manager-ecs.oai_iam_arn
 }
 
 module "configure-sns" {
@@ -57,6 +65,7 @@ module "configure-manager-ecs" {
     viz_bucket_name = var.viz_bucket_name
     viz_lambda_name = var.viz_lambda_name
     static_bucket_name = var.static_bucket_name
+    static_bucket_regional_dns_name = module.configure-buckets.static_bucket_regional_dns_name
 
     architecture = var.architecture
     src_path = var.src_path

@@ -574,6 +574,40 @@ resource "aws_cloudwatch_log_group" "frontend_setup" {
   retention_in_days = 14
 }
 
+
+# Create an elasticache redis instance
+resource "aws_elasticache_subnet_group" "redis" {
+  name = "wibl-redis"
+  subnet_ids = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
+}
+
+resource "aws_security_group" "redis" {
+  name   = "wibl-redis-sg"
+  vpc_id = aws_vpc.main_vpc.id
+}
+
+resource "aws_security_group_rule" "redis_ingress" {
+  type                     = "ingress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.redis.id
+  source_security_group_id = aws_security_group.private_sg.id
+}
+
+resource "aws_elasticache_replication_group" "redis" {
+  description = "redis instance"
+  replication_group_id       = "wibl-redis"
+  engine                     = "redis"
+  node_type                  = "cache.t4g.micro"
+  num_cache_clusters         = 1
+  port                       = 6379
+  subnet_group_name          = aws_elasticache_subnet_group.redis.name
+  security_group_ids         = [aws_security_group.redis.id]
+  automatic_failover_enabled = false
+}
+
+# Create one off ecs tasks to configure the frontend and manager respectively
 resource "aws_ecs_task_definition" "frontend_setup" {
   family                   = "frontend_setup"
   requires_compatibilities = ["FARGATE"]
@@ -613,7 +647,8 @@ EOT
       { name = "DEBUG_MODE", value = var.debug_mode},
       { name = "STATIC_BUCKET_NAME", value = var.static_bucket_name},
       { name = "AWS_REGION", value = var.region},
-      { name = "ALB_DNS_NAME", value = aws_lb.frontend_alb.dns_name}
+      { name = "ALB_DNS_NAME", value = aws_lb.frontend_alb.dns_name},
+      { name = "REDIS_URL", value = aws_elasticache_replication_group.redis.primary_endpoint_address}
     ]
     logConfiguration = {
         logDriver = "awslogs"
@@ -710,6 +745,22 @@ EOT
   }
 }
 
+data "aws_cloudfront_cache_policy" "caching_disabled" {
+  name = "Managed-CachingDisabled"
+}
+
+data "aws_cloudfront_origin_request_policy" "all_viewer" {
+  name = "Managed-AllViewer"
+}
+
+data "aws_cloudfront_cache_policy" "optimized" {
+  name = "Managed-CachingOptimized"
+}
+
+resource "aws_cloudfront_origin_access_identity" "static_oai" {
+  comment = "OAI for static frontend assets"
+}
+
 resource "aws_cloudfront_distribution" "frontend" {
   enabled = true
 
@@ -730,20 +781,53 @@ resource "aws_cloudfront_distribution" "frontend" {
     }
   }
 
+  origin {
+    domain_name = var.static_bucket_regional_dns_name
+    origin_id   = "s3-static-origin"
+
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.static_oai.cloudfront_access_identity_path
+    }
+  }
+
   default_cache_behavior {
     target_origin_id       = "alb-origin"
     viewer_protocol_policy = "redirect-to-https"
 
-    allowed_methods = ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"]
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
     cached_methods  = ["GET", "HEAD"]
 
-    forwarded_values {
-      query_string = true
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
+  }
 
-      cookies {
-        forward = "all"
-      }
-    }
+  ordered_cache_behavior {
+    path_pattern     = "/ws/*"
+    target_origin_id = "alb-origin"
+
+    viewer_protocol_policy = "redirect-to-https"
+
+    allowed_methods = ["GET", "HEAD"]
+    cached_methods = ["GET", "HEAD"]
+
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
+
+    compress = false
+
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "/static/*"
+    target_origin_id = "s3-static-origin"
+
+    viewer_protocol_policy = "redirect-to-https"
+
+    allowed_methods = ["GET", "HEAD"]
+    cached_methods  = ["GET", "HEAD"]
+    cache_policy_id = data.aws_cloudfront_cache_policy.optimized.id
+
+    compress = true
   }
 
   restrictions {
@@ -757,11 +841,15 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 }
 
-
 # Using images pushed to ECR above, create task definitions
 # Instantiate wibl-manager task definition from template and register task with ECS
 
 # Manager Task Definition
+# TODO: Pass manager essential information for downloading from s3
+# TODO: Figure out why dash components and admin aren't in the s3 static bucket
+# TODO: Figure out why geojson file metadata isn't propagating correctly on the front end
+# TODO: Take a look at the index's css styling (line under table heading)
+
 resource "aws_ecs_task_definition" "wibl_manager" {
   family                   = "wibl-manager"
   requires_compatibilities = ["FARGATE"]
@@ -871,6 +959,8 @@ resource "aws_ecs_task_definition" "frontend" {
       REPLACEME_DEBUG_MODE         = var.debug_mode
 
       REPLACEME_ALB_DNS            = aws_cloudfront_distribution.frontend.domain_name
+
+      REPLACEME_REDIS_URL          = aws_elasticache_replication_group.redis.primary_endpoint_address
     })
   )
 }
