@@ -111,7 +111,7 @@ else {
 Expand-Archive -Path $Source -DestinationPath $OutputFolder -Force | Out-Null
 
 # Get all of the files in the output directory
-$AllFiles = Get-ChildItem -Path $OutputFolder -Filter "*.dat" -Recurse
+$AllFiles = Get-ChildItem -Path $OutputFolder -recurse | where {$_.extension -in ".DAT",".tsv"}
 
 # Get the full path to log convert since we move directories quite often
 $FullLogConvertPath = Resolve-Path $LogConvertPath
