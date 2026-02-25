@@ -67,8 +67,8 @@ Commands:
 
 #### Linux or macOS
 To install `wibl-python` in a local Python environment, first install Python 3 for your operating system; version 
-3.11 or greater is recommended, but 3.8 or later will work (though Python 3.8 will reach 
-[end-of-life](https://devguide.python.org/versions/) status in October 2024).
+3.12 or greater is recommended, but 3.10 or later will work (though Python 3.10 will reach 
+[end-of-life](https://devguide.python.org/versions/) status in October 2026).
 
 Next, we'll need to install non-Python dependencies required by `wibl-python`. Currently, the only such dependency
 is [GDAL](https://gdal.org/download.html). If you are using Linux, your distribution likely has a recent-enough
