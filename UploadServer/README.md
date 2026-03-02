@@ -375,7 +375,11 @@ MD5_DIGEST=$(md5sum --quiet $WIBL_FILE)
 
 curl -v --http1.1 \
 	-u TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
-	--cacert ./aws-build/certs/ca.crt --fail-with-body "https://42.23.32.24/update" \                            
+	--cacert ./aws-build/certs/ca.crt --fail-with-body "https://42.23.32.24/update" \
+	-H 'accept: application/json' \
+    -H 'Content-Type: application/octet-stream' \
+    -H "Digest: md5=$MD5_DIGEST" \
+    --data-binary "@${WIBL_FILE}"                         
 
 32+0 records in
 32+0 records out
