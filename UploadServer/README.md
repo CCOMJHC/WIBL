@@ -356,6 +356,10 @@ EOF
 * Connection #0 to host 42.23.32.24 left intact
 ```
 
+> Note: When configuring your WIBL loggers to use your upload server, make sure to use the DNS name for your instance,
+> for example `ec2-42-23-32-24.us-east-2.compute.amazonaws.com`, rather than the IP address. Otherwise, the logger
+> firmware will be unable to verify the security certificate.
+
 This will result in the log `tail` in the SSH terminal to be updated with the new entry in the access log:
 ```shell
 ...
