@@ -1,5 +1,5 @@
 {
-	"verbose":				false,
+	"verbose":				true,
 	"elapsed_time_width":	32,
 	"fault_limit":			10,
 	"local":				false

@@ -1,19 +1,12 @@
+import os
+
 from fastapi.responses import StreamingResponse
 from fastapi import APIRouter, HTTPException
 import boto3
 from botocore.exceptions import ClientError
-
-from src.wibl_manager.app_globals import S3_WIBL_BUCKET_NAME, S3_GEOJSON_BUCKET_NAME
+from src.wibl_manager.app_globals import S3_WIBL_BUCKET_NAME, S3_GEOJSON_BUCKET_NAME, S3_CLIENT
 from src.wibl_manager import ReturnCodes
 import json
-
-# TODO: Configure the boto client from environment variables
-# Creates local client for testing, will eventually be a global configuration
-s3_client = boto3.client('s3',
-                         endpoint_url="http://localstack:4566",
-                         use_ssl=False,
-                         aws_access_key_id='test',
-                         aws_secret_access_key='test')
 
 DownloadRouter = APIRouter()
 
@@ -22,7 +15,7 @@ class Download:
     @staticmethod
     @DownloadRouter.get("/{extension}/check/{fileid}")
     def check_file(extension, fileid):
-        if extension == "geojson":
+        if extension == "json":
             bucket = S3_GEOJSON_BUCKET_NAME
         elif extension == "wibl":
             bucket = S3_WIBL_BUCKET_NAME
@@ -31,7 +24,7 @@ class Download:
             raise HTTPException(status_code=ReturnCodes.FAILED.value,
                                 detail=f"Invalid extension {extension}")
         try:
-            s3_client.get_object(Bucket=bucket, Key=fileid)
+            S3_CLIENT.get_object(Bucket=bucket, Key=fileid)
             return
         except ClientError as e:
             code = e.response["Error"]["Code"]
@@ -49,7 +42,7 @@ class Download:
     @staticmethod
     @DownloadRouter.get("/{extension}/download/{fileid}")
     def file_download(extension, fileid):
-        if extension == "geojson":
+        if extension == "json":
             bucket = S3_GEOJSON_BUCKET_NAME
         elif extension == "wibl":
             bucket = S3_WIBL_BUCKET_NAME
@@ -58,7 +51,7 @@ class Download:
             raise HTTPException(status_code=ReturnCodes.FAILED.value,
                                 detail=f"Invalid extension {extension}")
 
-        s3_file = s3_client.get_object(Bucket=bucket, Key=fileid)
+        s3_file = S3_CLIENT.get_object(Bucket=bucket, Key=fileid)
 
         # Define iterable to be returned
         def create_stream():
@@ -71,7 +64,7 @@ class Download:
     @DownloadRouter.get("/geojson/raw/{fileid}")
     def geojson_raw(fileid):
         try:
-            s3_file = s3_client.get_object(Bucket=S3_GEOJSON_BUCKET_NAME, Key=fileid)
+            s3_file = S3_CLIENT.get_object(Bucket=S3_GEOJSON_BUCKET_NAME, Key=fileid)
             file_content = s3_file['Body'].read().decode('utf-8')
             json_content = json.loads(file_content)
             return json_content

@@ -154,7 +154,6 @@ STORAGES = {
 }
 
 # https://anupamkush9.medium.com/storing-django-static-and-media-files-on-amazon-s3-private-bucket-and-serve-it-through-cloudfront-7e5906735656
-
 # aws settings
 
 AWS_STORAGE_BUCKET_NAME = os.environ['STATIC_BUCKET_NAME']
@@ -165,10 +164,8 @@ AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
 # s3 static settings
 AWS_LOCATION = 'static'
 STATIC_URL = f'{CLOUDFRONT_DOMAIN}/{AWS_LOCATION}/'
-STATICFILES_STORAGE = 'wiblfe.storage_backends.StaticStorage'
 STATIC_ROOT = "/tmp/staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-# <link rel="stylesheet" href="https://gt-static-files-bucket.s3.amazonaws.com/css/ol.css">
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -189,7 +186,7 @@ CHANNEL_LAYERS = {
 }
 
 PLOTLY_DASH = {
-    "serve_locally": True,
+    "serve_locally": False,
     "insert_demo_migrations": False,
     "cache_timeout_initial_arguments": 60,
     "use_iframe": False

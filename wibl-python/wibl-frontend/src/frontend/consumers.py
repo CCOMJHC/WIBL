@@ -75,7 +75,8 @@ class WiblFileConsumer(FileConsumer):
                 "starttime": wf['starttime'],
                 "endtime": wf['endtime'],
                 "status": wf['status'],
-                "messages": wf['messages']
+                "messages": wf['messages'],
+                "state": wf['state']
             })
         print("sending to websocket...")
         await self.send(text_data=json.dumps({
@@ -156,7 +157,8 @@ class WiblFileDetailConsumer(FileConsumer):
                           "starttime": "",
                           "endtime": "",
                           "status": "",
-                          "messages": ""}
+                          "messages": "",
+                          "state": ""}
 
         # Make call to WIBL manager
         manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
@@ -273,7 +275,8 @@ class GeojsonFileConsumer(FileConsumer):
                 'size':         wf['size'],
                 'soundings':    wf['soundings'],
                 'status':       wf['status'],
-                'messages':     wf['messages']
+                'messages':     wf['messages'],
+                'state':        wf['state']
             })
         print("sending to websocket...")
         await self.send(text_data=json.dumps({
@@ -324,7 +327,8 @@ class GeojsonFileDetailConsumer(FileConsumer):
                           "size": "",
                           "soundings": "",
                           "status": "",
-                          "messages": ""}
+                          "messages": "",
+                          "state": ""}
 
         # Make call to WIBL manager
         manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")

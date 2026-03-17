@@ -1,6 +1,6 @@
 const output_headers = ["File ID", "Upload Time"]
 const input_headers = ["fileid", "uploadtime", "updatetime", "notifytime",
-    "logger", "size", "soundings", "status", "messages"]
+    "logger", "size", "soundings", "status", "messages", "state"]
 import { FileTable } from './FileTable.js';
 
 export class GeojsonFileTable extends FileTable {

@@ -77,7 +77,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
     meta: WIBLMetadata = WIBLMetadata()
     lineage: Lineage = Lineage()
     meta.size = item.source_size/(1024.0*1024.0)
-    meta.status = WIBLStatus.PROCESSING_FAILED.value  # Until further notice ...
+    meta.status = WIBLStatus.PROCESSING_STARTED.value  # Until further notice ...
     manager: ManagerInterface = ManagerInterface(MetadataType.WIBL_METADATA, item.source_key, config['verbose'])
     if not manager.register(meta.size):
         print('error: failed to register file with REST management interface.')

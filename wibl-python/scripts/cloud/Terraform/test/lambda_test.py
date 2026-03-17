@@ -8,8 +8,8 @@ import requests
 REGION = "us-east-2"
 BUCKET_NAME = "incoming-bucket-gt-test-1"
 LAMBDA_NAME = "gt-conversion-start-lambda"
-TEST_FILE_PATH = "./test-algo-dedup.wibl"
-TEST_KEY = "test-algo-dedup.wibl"
+TEST_FILE_PATH = "./test_file.wibl"
+TEST_KEY = "test_file.wibl"
 
 test_event_json = {
   "version": "2.0",
@@ -29,7 +29,7 @@ test_event_json = {
       "path": "/"
     }
   },
-  "body": "{\"object\": \"test-algo-dedup.wibl\"}",
+  "body": "{\"object\": \"test_file.wibl\"}",
   "isBase64Encoded": False
 }
 
@@ -67,7 +67,7 @@ def test_lambda(lambda_client):
                 "userAgent": "pytest"
             }
         },
-        "body": "{\"object\": \"test-algo-dedup.wibl\"}",
+        "body": "{\"object\": \"test_file.wibl\"}",
         "isBase64Encoded": False
     }
 

@@ -35,14 +35,16 @@ from http.client import HTTPException
 
 from sqlalchemy import select, Delete
 # noinspection PyInterpreter
-from src.wibl_manager import ReturnCodes, GeoJSONStatus
+from src.wibl_manager import ReturnCodes, GeoJSONStatus, FileState
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, HTTPException, Depends
 from .database import Base, get_async_db
 from src.wibl_manager.schemas import WIBLDataModel
 from src.wibl_manager.schemas import GeoJSONDataModel
+from src.wib_manager.app_globals import S3_CLIENT, S3_GEOJSON_BUCKET_NAME
 from pydantic import BaseModel, ConfigDict
 
+from botocore.exceptions import ClientError
 # # Arguments passable to the GeoJSON end-point to POST a new record's metadata
 class GeoJSONPostParse(BaseModel):
     size: float
@@ -55,6 +57,7 @@ class GeoJSONPutParse(BaseModel):
     notifytime: str = None
     status: int = None
     messages: str = None
+    state: int = None
 
 # Data mapping for marshalling GeoJSONDataModel for transfer
 class GeoJSONMarshModel(BaseModel):
@@ -67,6 +70,7 @@ class GeoJSONMarshModel(BaseModel):
     soundings: int
     status: int
     messages: str
+    state: int
 
 url = "/geojson/{fileid}"
 GeoJSONRouter = APIRouter()
@@ -146,9 +150,9 @@ class GeoJSONData:
 
         timestamp = datetime.now(timezone.utc).isoformat()
         geojson_file = GeoJSONDataModel(fileid=fileid, uploadtime=timestamp, updatetime='Unknown', notifytime='Unknown',
-                                        logger='Unknown', size=data.size,
-                                        soundings=-1, status=GeoJSONStatus.UPLOAD_STARTED.value, messages='')
-
+                                        logger='Unknown', size=data.size, soundings=-1,
+                                        status=GeoJSONStatus.UPLOAD_STARTED.value, messages='',
+                                        state=FileState.ONLINE.value)
         db.add(geojson_file)
         await db.commit()
         return geojson_file
@@ -193,6 +197,8 @@ class GeoJSONData:
             geojson_file.status = data.status
         if data.messages:
             geojson_file.messages = data.messages[:1024]
+        if data.state:
+            geojson_file.state = data.state
         await db.commit()
         return geojson_file
 
@@ -211,7 +217,17 @@ class GeoJSONData:
 
          """
         if fileid == "all":
-            await db.execute(Delete(GeoJSONDataModel))
+            result = await db.execute(select(GeoJSONDataModel))
+            geojson_files = result.scalars().all()
+            for geojson_file in geojson_files:
+                geojson_name = f"{geojson_file.fileid}.json"
+                try:
+                    S3_CLIENT.delete_object(Bucket=S3_GEOJSON_BUCKET_NAME, Key=geojson_name)
+                except ClientError:
+                    print(f"Could not find file {geojson_name} in bucket {S3_GEOJSON_BUCKET_NAME}")
+                    raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
+                                        detail=f"File {geojson_name} does not exist in the bucket {S3_GEOJSON_BUCKET_NAME}")
+                geojson_file.state = FileState.DELETED.value
             await db.commit()
             return
         else:
@@ -220,7 +236,12 @@ class GeoJSONData:
             if not geojson_file:
                 raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
                                     detail='That GeoJSON file does not exist in the database, and therefore cannot be deleted.')
-
-            await db.execute(Delete(GeoJSONDataModel).where(GeoJSONDataModel.fileid == fileid))
+            try:
+                S3_CLIENT.delete_object(Bucket=S3_GEOJSON_BUCKET_NAME, Key=fileid)
+            except ClientError:
+                print(f"Could not find file {fileid} in bucket {S3_GEOJSON_BUCKET_NAME}")
+                raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
+                                    detail=f"File {fileid} does not exist in the bucket {S3_GEOJSON_BUCKET_NAME}")
+            geojson_file.state = FileState.DELETED.value
             await db.commit()
             return

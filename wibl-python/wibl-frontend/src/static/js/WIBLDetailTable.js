@@ -1,8 +1,8 @@
-const output_Headers = ["File Id", "Processed Time", "Update Time", "Notify Time", "Logger", "Platform", "Size"
-    , "Observations", "Soundings", "Start Time", "End Time", "Status", "Messages"];
+const output_Headers = ["File Id", "Processed Time", "Update Time", "Notify Time", "Logger", "Platform", "Size",
+"Observations", "Soundings", "Start Time", "End Time", "Status", "Messages", "State"];
 
-const input_Headers = ["fileid", "processtime", "updatetime", "notifytime", "logger", "platform", "size"
-            , "observations", "soundings", "starttime", "endtime", "status", "messages"];
+const input_Headers = ["fileid", "processtime", "updatetime", "notifytime", "logger", "platform", "size",
+"observations", "soundings", "starttime", "endtime", "status", "messages", "state"];
 
 import { DetailTable } from './DetailTable.js';
 

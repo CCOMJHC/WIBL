@@ -12,6 +12,18 @@
     {
       "name": "MANAGER_DATABASE_URI",
       "value": "${REPLACEME_DATABASE_URI}"
+    },
+    {
+      "name": "AWS_REGION",
+      "value": "${REPLACEME_AWS_REGION}"
+    },
+    {
+       "name": "WIBL_METADATA_BUCKET",
+       "value": "${REPLACEME_WIBL_BUCKET}"
+    },
+    {
+       "name": "GEOJSON_METADATA_BUCKET",
+       "value": "${REPLACEME_GEOJSON_BUCKET}"
     }
   ],
   "logConfiguration": {

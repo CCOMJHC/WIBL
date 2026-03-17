@@ -61,6 +61,11 @@ class GeoJSONStatus(IntFlag):
     UPLOAD_FAILED = 0x20
     EMPTY_UPLOAD = ~(UPLOAD_STARTED | UPLOAD_SUCCESSFUL | UPLOAD_FAILED)
 
+class FileState(Enum):
+    ONLINE = 0
+    DELETED = 1
+    ARCHIVED = 2
+
 @dataclass_json
 @dataclass
 class FileMetadata:

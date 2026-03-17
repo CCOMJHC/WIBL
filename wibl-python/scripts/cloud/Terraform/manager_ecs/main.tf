@@ -355,6 +355,27 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+data "aws_iam_policy_document" "manager_s3_access" {
+  statement {
+    sid    = "ManagerAllowS3AccessAll"
+    effect = "Allow"
+    actions = ["s3:*"]
+
+    resources = flatten([
+      for b in [var.incoming_bucket_name, var.staging_bucket_name, var.viz_bucket_name] : [
+        "arn:aws:s3:::${b}",
+        "arn:aws:s3:::${b}/*"
+      ]
+    ])
+  }
+}
+
+resource "aws_iam_role_policy" "manager_s3_access_all" {
+  name   = "manager-s3-access-all"
+  role   = aws_iam_role.ecs_task_execution_role.id
+  policy = data.aws_iam_policy_document.manager_s3_access.json
+}
+
 # Associate CloudWatch policy to `ecsInstanceRole` to allow ECS tasks to send logs to CloudWatch
 # Create policy
 resource "aws_iam_policy" "ecs_cloudwatch_logs" {
@@ -846,8 +867,6 @@ resource "aws_cloudfront_distribution" "frontend" {
 
 # Manager Task Definition
 # TODO: Pass manager essential information for downloading from s3
-# TODO: Figure out why dash components and admin aren't in the s3 static bucket
-# TODO: Figure out why geojson file metadata isn't propagating correctly on the front end
 # TODO: Take a look at the index's css styling (line under table heading)
 
 resource "aws_ecs_task_definition" "wibl_manager" {
@@ -855,6 +874,7 @@ resource "aws_ecs_task_definition" "wibl_manager" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn = aws_iam_role.ecs_task_execution_role.arn
   cpu = 256
   memory = 512
 
@@ -866,9 +886,11 @@ resource "aws_ecs_task_definition" "wibl_manager" {
   # Decode the JSON template after variable substitution
   container_definitions = (
     templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/terraform-manager-container-definition.proto", {
-      REPLACEME_ACCOUNT_NUMBER = var.account_number
-      REPLACEME_AWS_REGION     = var.region
+      REPLACEME_ACCOUNT_NUMBER  = var.account_number
+      REPLACEME_AWS_REGION      = var.region
       REPLACEME_DATABASE_URI    = "postgresql+psycopg://${var.manager_db_user}:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
+      REPLACEME_WIBL_BUCKET     = var.incoming_bucket_name
+      REPLACEME_GEOJSON_BUCKET  = var.staging_bucket_name
     })
   )
 }
@@ -879,15 +901,15 @@ resource "aws_iam_role" "ecs_frontend_task_role" {
   assume_role_policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/task-execution-assume-role.json")
 }
 
-# Allow frontend ECS task role to access S3 buckets
+# Allow frontend ECS task role to access the static S3 bucket
 data "aws_iam_policy_document" "frontend_s3_access" {
   statement {
-    sid    = "FrontendAllowS3AccessAll"
+    sid    = "FrontendAllowS3StaticAccess"
     effect = "Allow"
     actions = ["s3:*"]
 
     resources = flatten([
-      for b in [var.incoming_bucket_name, var.staging_bucket_name, var.viz_bucket_name, var.static_bucket_name] : [
+      for b in [var.static_bucket_name] : [
         "arn:aws:s3:::${b}",
         "arn:aws:s3:::${b}/*"
       ]
@@ -895,8 +917,8 @@ data "aws_iam_policy_document" "frontend_s3_access" {
   }
 }
 
-resource "aws_iam_role_policy" "frontend_s3_access_all" {
-  name   = "frontend-s3-access-all"
+resource "aws_iam_role_policy" "frontend_s3_static_access" {
+  name   = "frontend-s3-static-access"
   role   = aws_iam_role.ecs_frontend_task_role.id
   policy = data.aws_iam_policy_document.frontend_s3_access.json
 }

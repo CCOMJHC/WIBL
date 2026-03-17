@@ -165,17 +165,6 @@ resource "aws_lambda_function_url" "conversion_start_lambda_url" {
   depends_on = [aws_lambda_function.conversion_start_lambda]
 }
 
-resource "aws_s3_bucket_notification" "s3-notification" {
-  bucket = var.incoming_bucket_id
-
-  topic {
-    events = ["s3:ObjectCreated:Put",
-              "s3:ObjectCreated:CompleteMultipartUpload"]
-    topic_arn = var.conversion_topic_arn
-  }
-  depends_on = [aws_sns_topic_policy.conversion-topic-access-policy]
-}
-
 resource "aws_sns_topic_subscription" "sns_conversion_subscribe" {
     protocol = "lambda"
     topic_arn = var.conversion_topic_arn

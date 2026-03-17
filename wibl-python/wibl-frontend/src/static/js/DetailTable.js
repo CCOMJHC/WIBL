@@ -82,8 +82,73 @@ export class DetailTable extends HTMLElement {
                     const td1 = document.createElement("td");
                     td1.textContent = outputHeaders[i];
                     const td2 = document.createElement("td");
-                    td2.textContent = messageFile[inputHeaders[i]];
-                    td2.setAttribute("id", inputHeaders[i]);
+                    if (outputHeaders[i] === "Status") {
+                        let x = messageFile[inputHeaders[i]];
+                        switch(x) {
+                            case 0:
+                                td2.textContent = "Processing Started";
+                                break;
+                            case 1:
+                                td2.textContent = "Processing Successful";
+                                break;
+                            case 2:
+                                td2.textContent = "Processing Failed";
+                                break;
+                            default:
+                                td2.textContent = "Unknown";
+                                break;
+                        }
+                    } else if (outputHeaders[i] === "Validation Status") {
+                        const x = messageFile[inputHeaders[i]] & 0x7;
+                        switch(x) {
+                            case 0x1:
+                                td2.textContent = "Validation Started";
+                                break;
+                            case 0x2:
+                                td2.textContent = "Validation Successful";
+                                break;
+                            case 0x4:
+                                td2.textContent = "Validation Failed";
+                                break;
+                            default:
+                                td2.textContent = "Validation Status Unknown";
+                                break;
+                        }
+                    } else if (outputHeaders[i] === "Upload Status") {
+                        const x = messageFile[inputHeaders[i]] & 0x38
+                        switch(x) {
+                            case 0x8:
+                                td2.textContent = "Upload Started";
+                                break;
+                            case 0x10:
+                                td2.textContent = "Upload Successful";
+                                break;
+                            case 0x20:
+                                td2.textContent = "Upload Failed";
+                                break;
+                            default:
+                                td2.textContent = "Upload Status Unknown"
+                                break;
+                        }
+                    } else if (outputHeaders[i] === "State") {
+                        const x = messageFile[inputHeaders[i]];
+                        switch(x) {
+                            case 0:
+                                td2.textContent = "Online";
+                                break;
+                            case 1:
+                                td2.textContent = "Deleted";
+                                break;
+                            case 2:
+                                td2.textContent = "Archived";
+                                break;
+                            default:
+                                td2.textContent = "Unknown";
+                                break;
+                    } else {
+                        td2.textContent = messageFile[inputHeaders[i]];
+                        td2.setAttribute("id", inputHeaders[i]);
+                    }
                     row.appendChild(td1);
                     row.appendChild(td2);
                     tbody.appendChild(row);

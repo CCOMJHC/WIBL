@@ -95,13 +95,19 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
         # TODO: Should the upload fail if we can't report status to the manager?
         print(f'warning: unable to determine of file to upload. local_file was: {local_file}.')
     manager: ManagerInterface = ManagerInterface(MetadataType.GEOJSON_METADATA, filename, config['verbose'])
-    if not manager.register(filesize):
-        # TODO: Should the upload fail if we can't report status to the manager?
-        print('warning: failed to register file with REST management service.')
-    meta: GeoJSONMetadata = GeoJSONMetadata()
-    meta.size = filesize
-    meta.logger = source_info["logger"]
-    meta.soundings = source_info["soundings"]
+    # if not manager.register(filesize):
+    #     # TODO: Should the upload fail if we can't report status to the manager?
+    #     print('warning: failed to register file with REST management service.')
+
+    rc, meta = manager.lookup()
+    if not rc:
+        if config['verbose']:
+            print(f'error: failed to find metadata on {source_file_name} from database manager.')
+        return rc
+    # meta: GeoJSONMetadata = GeoJSONMetadata()
+    # meta.size = filesize
+    # meta.logger = source_info["logger"]
+    # meta.soundings = source_info["soundings"]
 
     clearedStatus = meta.status & GeoJSONStatus.EMPTY_UPLOAD.value
     meta.status = clearedStatus | GeoJSONStatus.UPLOAD_STARTED.value
@@ -163,15 +169,15 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
         json_code = json_response['success']
         if json_code:
             rc = True
-            meta.status = UploadStatus.UPLOAD_SUCCESSFUL.value
+            meta.status = GeoJSONStatus.UPLOAD_SUCCESSFUL.value
         else:
             rc = False
-            meta.status = UploadStatus.UPLOAD_FAILED.value
+            meta.status = GeoJSONStatus.UPLOAD_FAILED.value
             manager.logmsg(f'error: DCDB responded {json_response}')
 
     except json.decoder.JSONDecodeError:
         rc = False
-        meta.status = UploadStatus.UPLOAD_FAILED.value
+        meta.status = GeoJSONStatus.UPLOAD_FAILED.value
         manager.logmsg(f'error: DCDB responded {json_response}')
 
     manager.update(meta)
