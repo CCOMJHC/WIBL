@@ -2,7 +2,7 @@ const output_Headers = ["File ID", "Upload Time", "Update Time", "Notify Time", 
 "Validation Status", "Upload Status", "Messages", "State"];
 
 const input_Headers = ["fileid", "uploadtime", "updatetime", "notifytime",
-    "logger", "size", "soundings", "status", "status", "messages"]
+    "logger", "size", "soundings", "status", "status", "messages", "state"]
 
 import { DetailTable } from './DetailTable.js';
 

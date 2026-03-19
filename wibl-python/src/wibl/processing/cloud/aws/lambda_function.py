@@ -131,18 +131,22 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         print(f"Error reading packet from WIBL file: {str(e)}")
     except ts.NoTimeSource:
         manager.logmsg(f'error: failed to convert data({local_file}): no time source known.')
+        meta.status = WIBLStatus.PROCESSING_FAILED.value
         manager.update(meta)
         return False
     except ts.NewerDataFile:
         manager.logmsg(f'error: failed to convert data({local_file}): file data format is newer than latest version known to code.')
+        meta.status = WIBLStatus.PROCESSING_FAILED.value
         manager.update(meta)
         return False
     except ts.NoData:
         manager.logmsg(f'error: failed to convert data({local_file}): no bathymetric data in file.')
+        meta.status = WIBLStatus.PROCESSING_FAILED.value
         manager.update(meta)
         return False
     except UnknownAlgorithm as e:
         manager.logmsg(f'error: failed to convert data({local_file}): {str(e)}')
+        meta.status = WIBLStatus.PROCESSING_FAILED.value
         manager.update(meta)
         return False
 
@@ -152,6 +156,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         submit_data = gj.translate(source_data, lineage, local_file, config)
     except UnknownAlgorithm as e:
         manager.logmsg(str(e))
+        meta.status = WIBLStatus.PROCESSING_FAILED.value
         manager.update(meta)
         print(f"Aborting processing due to error: {str(e)}")
         return False

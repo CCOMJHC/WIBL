@@ -44,7 +44,6 @@ class ReturnCodes(Enum):
     FILE_NOT_FOUND = 404
     RECORD_CONFLICT = 409
 
-
 class WIBLStatus(Enum):
     PROCESSING_STARTED = 0
     PROCESSING_SUCCESSFUL = 1

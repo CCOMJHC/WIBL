@@ -43,7 +43,7 @@ from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Depends
 from src.wibl_manager.schemas import WIBLDataModel
 from src.wibl_manager.app_globals import S3_WIBL_BUCKET_NAME, S3_CLIENT
-
+from botocore.exceptions import ClientError
 
 class WIBLPostParse(BaseModel):
     size: float
@@ -243,7 +243,15 @@ class WIBLData:
             result = await db.execute(select(WIBLDataModel))
             wibl_files = result.scalars().all()
             for wibl_file in wibl_files:
-                wibl_file.state = FileState.DELETED.value
+                wibl_name = f"{wibl_file.fileid}.json"
+                if wibl_file.state != FileState.DELETED.value:
+                    try:
+                        S3_CLIENT.delete_object(Bucket=S3_WIBL_BUCKET_NAME, Key=wibl_name)
+                    except ClientError:
+                        print(f"Could not find file {wibl_name} in bucket {S3_WIBL_BUCKET_NAME}")
+                        raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
+                                            detail=f"File {wibl_name} does not exist in the bucket {S3_WIBL_BUCKET_NAME}")
+                    wibl_file.state = FileState.DELETED.value
             await db.commit()
             return
         else:
@@ -253,6 +261,12 @@ class WIBLData:
                 raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
                                     detail=f'The WIBL file {fileid} does not exist in the database, '
                                            f'and therefore cannot be deleted.')
-            await db.execute(Delete(WIBLDataModel).where(WIBLDataModel.fileid == fileid))
+            try:
+                S3_CLIENT.delete_object(Bucket=S3_WIBL_BUCKET_NAME, Key=fileid)
+            except ClientError:
+                print(f"Could not find file {fileid} in bucket {S3_WIBL_BUCKET_NAME}")
+                raise HTTPException(status_code=ReturnCodes.FILE_NOT_FOUND.value,
+                                    detail=f"File {fileid} does not exist in the bucket {S3_WIBL_BUCKET_NAME}")
+            wibl_file.state = FileState.DELETED.value
             await db.commit()
             return

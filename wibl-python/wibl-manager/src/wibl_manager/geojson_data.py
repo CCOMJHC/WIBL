@@ -39,9 +39,8 @@ from src.wibl_manager import ReturnCodes, GeoJSONStatus, FileState
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, HTTPException, Depends
 from .database import Base, get_async_db
-from src.wibl_manager.schemas import WIBLDataModel
 from src.wibl_manager.schemas import GeoJSONDataModel
-from src.wib_manager.app_globals import S3_CLIENT, S3_GEOJSON_BUCKET_NAME
+from src.wibl_manager.app_globals import S3_CLIENT, S3_GEOJSON_BUCKET_NAME
 from pydantic import BaseModel, ConfigDict
 
 from botocore.exceptions import ClientError

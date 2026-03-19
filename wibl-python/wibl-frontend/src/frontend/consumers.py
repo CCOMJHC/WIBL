@@ -143,7 +143,7 @@ class WiblFileConsumer(FileConsumer):
 class WiblFileDetailConsumer(FileConsumer):
     async def send_wibl_details(self, file_id: str):
         HEADERS = ["fileid", "processtime", "updatetime", "notifytime", "logger", "platform", "size"
-            , "observations", "soundings", "starttime", "endtime", "status", "messages"]
+            , "observations", "soundings", "starttime", "endtime", "status", "messages", "state"]
         print("send_wibl_details called")
         wibl_file_data = {"fileid": "",
                           "processtime": "",
@@ -317,7 +317,7 @@ class GeojsonFileDetailConsumer(FileConsumer):
 
     async def send_geojson_details(self, file_id: str):
         HEADERS = ["fileid", "uploadtime", "updatetime", "notifytime", "logger", "size",
-                   "soundings", "status", "messages"]
+                   "soundings", "status", "messages", "state"]
         print("send_wibl_details called")
         geojson_file_data = {"fileid": "",
                           "uploadtime": "",

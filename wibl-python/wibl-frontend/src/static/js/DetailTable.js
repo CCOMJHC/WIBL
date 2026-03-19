@@ -52,14 +52,67 @@ export class DetailTable extends HTMLElement {
         let input_count = inputHeaders.length;
         let active = this._active;
 
-        function listFileDetails(message){
+        function listFileDetails(message) {
+            function formatStatus(header, content) {
+                if (header === "Status") {
+                    switch(content) {
+                        case 0:
+                            return "Processing Started";
+                        case 1:
+                            return "Processing Successful";
+                        case 2:
+                            return "Processing Failed";
+                        default:
+                            return "Unknown";
+                    }
+                } else if (header === "Validation Status") {
+                    const x = content & 0x7;
+                    switch(x) {
+                        case 0x1:
+                            return  "Validation Started";
+                        case 0x2:
+                            return "Validation Successful";
+                        case 0x4:
+                            return "Validation Failed";
+                        default:
+                            return "Validation Status Unknown";
+                    }
+                } else if (header === "Upload Status") {
+                    const x = content & 0x38
+                    switch(x) {
+                        case 0x8:
+                            return "Upload Started";
+                        case 0x10:
+                            return "Upload Successful";
+                        case 0x20:
+                            return "Upload Failed";
+                        default:
+                            return "Upload Status Unknown";
+                    }
+                } else if (header === "State") {
+                    switch(content) {
+                        case 0:
+                            return "Online";
+                        case 1:
+                            return "Deleted";
+                        case 2:
+                            return "Archived";
+                        default:
+                            return "Unknown";
+                    }
+                } else {
+                    return content;
+                }
+            }
+
             console.log("In listFileDetails...");
             const table = shadow.getElementById(`${fileType}-detail-table`);
             const messageFile = message.message;
+
             if (active.value === true) {
                 for (let i = 0; i < output_count; i++) {
-                    const td = shadow.getElementById(inputHeaders[i]);
-                    td.textContent = messageFile[inputHeaders[i]];
+                    const td = shadow.getElementById(outputHeaders[i]);
+                    td.textContent = formatStatus(outputHeaders[i], messageFile[inputHeaders[i]]);
                 }
             } else {
                 shadow.getElementById("defaultText").classList.add("is-hidden")
@@ -82,81 +135,17 @@ export class DetailTable extends HTMLElement {
                     const td1 = document.createElement("td");
                     td1.textContent = outputHeaders[i];
                     const td2 = document.createElement("td");
-                    if (outputHeaders[i] === "Status") {
-                        let x = messageFile[inputHeaders[i]];
-                        switch(x) {
-                            case 0:
-                                td2.textContent = "Processing Started";
-                                break;
-                            case 1:
-                                td2.textContent = "Processing Successful";
-                                break;
-                            case 2:
-                                td2.textContent = "Processing Failed";
-                                break;
-                            default:
-                                td2.textContent = "Unknown";
-                                break;
-                        }
-                    } else if (outputHeaders[i] === "Validation Status") {
-                        const x = messageFile[inputHeaders[i]] & 0x7;
-                        switch(x) {
-                            case 0x1:
-                                td2.textContent = "Validation Started";
-                                break;
-                            case 0x2:
-                                td2.textContent = "Validation Successful";
-                                break;
-                            case 0x4:
-                                td2.textContent = "Validation Failed";
-                                break;
-                            default:
-                                td2.textContent = "Validation Status Unknown";
-                                break;
-                        }
-                    } else if (outputHeaders[i] === "Upload Status") {
-                        const x = messageFile[inputHeaders[i]] & 0x38
-                        switch(x) {
-                            case 0x8:
-                                td2.textContent = "Upload Started";
-                                break;
-                            case 0x10:
-                                td2.textContent = "Upload Successful";
-                                break;
-                            case 0x20:
-                                td2.textContent = "Upload Failed";
-                                break;
-                            default:
-                                td2.textContent = "Upload Status Unknown"
-                                break;
-                        }
-                    } else if (outputHeaders[i] === "State") {
-                        const x = messageFile[inputHeaders[i]];
-                        switch(x) {
-                            case 0:
-                                td2.textContent = "Online";
-                                break;
-                            case 1:
-                                td2.textContent = "Deleted";
-                                break;
-                            case 2:
-                                td2.textContent = "Archived";
-                                break;
-                            default:
-                                td2.textContent = "Unknown";
-                                break;
-                    } else {
-                        td2.textContent = messageFile[inputHeaders[i]];
-                        td2.setAttribute("id", inputHeaders[i]);
-                    }
+                    const result = formatStatus(outputHeaders[i], messageFile[inputHeaders[i]])
+                    td2.textContent = result;
+                    td2.setAttribute("id", outputHeaders[i]);
                     row.appendChild(td1);
                     row.appendChild(td2);
                     tbody.appendChild(row);
                 }
-            table.appendChild(tbody);
+                table.appendChild(tbody);
             }
             active.value = true;
-        };
+        }
         sock.addHandler(`list-${fileType}-details`, listFileDetails);
     }
 
