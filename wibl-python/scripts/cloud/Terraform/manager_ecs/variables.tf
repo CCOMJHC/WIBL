@@ -102,3 +102,7 @@ variable "origin_secret" {
 variable "static_bucket_regional_dns_name" {
     type = string
 }
+
+variable "map_name" {
+    type = string
+}

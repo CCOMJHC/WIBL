@@ -8,6 +8,13 @@ export class GeojsonMap {
     content = null;
     closer = null;
 
+    buildTileSource() {
+        return new ol.source.XYZ({
+            url: '/mapTile/{z}/{x}/{y}/',
+            attributions: '© OpenStreetMap contributors'
+        });
+    }
+
     // Places the data inside the detail popup.
     renderTable(data, container) {
         const tableHTML = `
@@ -52,7 +59,6 @@ export class GeojsonMap {
         return view.getZoomForResolution(resolution);
     }
 
-
     async loadGeojson(map, fileid) {
 
         let layers = map.getLayers();
@@ -75,7 +81,8 @@ export class GeojsonMap {
 
             // Return a list of features based on the manager response
             const features = geojsonFormat.readFeatures(geojsonObject.geojson, {
-                featureProjection: 'EPSG:4326'
+                dataProjection: 'EPSG:4326',
+                featureProjection: 'EPSG:3857'
             });
 
             var avg_X = 0;
@@ -107,7 +114,7 @@ export class GeojsonMap {
             map.addLayer(vectorLayer);
 
             // Configure the map view to match the features.
-            map.getView().setCenter([avg_X, avg_Y]);
+            map.getView().setCenter(ol.proj.fromLonLat([avg_X, avg_Y]));
             const zoom = this.calculateZoom(map, features);
             map.getView().setZoom(zoom == 0 ? zoom: zoom - 1);
 
@@ -148,7 +155,7 @@ export class GeojsonMap {
     }
 
     // Initialization of the geojson map.
-    init(geojsonFileTable) {
+    async init(geojsonFileTable) {
         this.mapButton = document.getElementById("mapButton");
         this.container = document.getElementById('popup');
         this.content = document.getElementById('popup-content');
@@ -188,12 +195,12 @@ export class GeojsonMap {
             overlays: [this.overlay],
             layers: [
                 new ol.layer.Tile({
-                  source: new ol.source.OSM(),
+                    source: this.buildTileSource()
                 }),
             ],
             view: new ol.View({
-                projection: "EPSG:4326",
-                center: [0, 0],
+                projection: 'EPSG:3857',
+                center: ol.proj.fromLonLat([0, 0]),
                 zoom: 0,
             }),
         });

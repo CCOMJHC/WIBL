@@ -18,7 +18,7 @@ conversion_start_lambda_role_name = "gt-conversion-start-lambda-role"
 validation_lambda_role_name = "gt-validation-lambda-role"
 submission_lambda_role_name = "gt-submission-lambda-role"
 viz_lambda_role_name = "gt-viz-lambda-role"
-
+map_name = "WIBLOpenLayersMap"
 manager_db_name = "managerDB"
 manager_db_size = "5"
 manager_db_user = "postgres"
@@ -39,3 +39,4 @@ frontend_secret_key = "default__test_dev_key__"
 
 // Origin Secret, replace with a unique value to secure traffic between cloudfront and the frontend alb
 origin_secret = "default"
+

@@ -5,6 +5,7 @@ redis~=5.1.1
 channels[daphne]
 channels-redis
 httpx[http2,brotli,zstd]
+boto3
 dash
 django-plotly-dash
 django-allow-cidr

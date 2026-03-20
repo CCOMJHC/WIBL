@@ -78,6 +78,7 @@ module "configure-manager-ecs" {
     frontend_db_user = var.frontend_db_user
     frontend_db_password = var.frontend_db_password
 
+    map_name = var.map_name
     superuser_username = var.superuser_username
     superuser_password = var.superuser_password
 

@@ -180,3 +180,7 @@ variable "origin_secret" {
     type = string
     sensitive = true
 }
+
+variable "map_name" {
+    type = string
+}

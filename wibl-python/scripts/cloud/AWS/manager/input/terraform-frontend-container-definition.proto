@@ -83,6 +83,9 @@
         }, {
            "name" : "REDIS_URL",
            "value" : "${REPLACEME_REDIS_URL}"
+        }, {
+           "name" : "MAP_NAME",
+           "value" : "${REPLACEME_MAP_NAME}"
         }
       ],
       "logConfiguration": {

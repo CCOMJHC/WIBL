@@ -669,7 +669,8 @@ EOT
       { name = "STATIC_BUCKET_NAME", value = var.static_bucket_name},
       { name = "AWS_REGION", value = var.region},
       { name = "ALB_DNS_NAME", value = aws_lb.frontend_alb.dns_name},
-      { name = "REDIS_URL", value = aws_elasticache_replication_group.redis.primary_endpoint_address}
+      { name = "REDIS_URL", value = aws_elasticache_replication_group.redis.primary_endpoint_address},
+      { name = "MAP_NAME", value = aws_location_map.map.map_name}
     ]
     logConfiguration = {
         logDriver = "awslogs"
@@ -895,6 +896,14 @@ resource "aws_ecs_task_definition" "wibl_manager" {
   )
 }
 
+# Frontend map
+resource "aws_location_map" "map" {
+  map_name = var.map_name
+  configuration {
+    style = "VectorEsriTopographic"
+  }
+}
+
 # Frontend ECS task role
 resource "aws_iam_role" "ecs_frontend_task_role" {
   name = "ecsFrontEndTaskRole"
@@ -941,6 +950,21 @@ resource "aws_iam_role_policy" "frontend_invoke_vizlambda" {
   policy = data.aws_iam_policy_document.frontend_invoke_vizlambda.json
 }
 
+data "aws_iam_policy_document" "frontend_invoke_map" {
+  statement {
+    sid = "FrontendAllowLocationServicesInvoke"
+    effect = "Allow"
+    actions = ["geo:GetMap*"]
+    resources = [aws_location_map.map.map_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "frontend_invoke_maps" {
+  name = "frontend-invoke_maps"
+  role = aws_iam_role.ecs_frontend_task_role.id
+  policy = data.aws_iam_policy_document.frontend_invoke_map.json
+}
+
 # Frontend Task Definition
 resource "aws_ecs_task_definition" "frontend" {
   family                   = "wibl-frontend"
@@ -983,6 +1007,8 @@ resource "aws_ecs_task_definition" "frontend" {
       REPLACEME_ALB_DNS            = aws_cloudfront_distribution.frontend.domain_name
 
       REPLACEME_REDIS_URL          = aws_elasticache_replication_group.redis.primary_endpoint_address
+
+      REPLACEME_MAP_NAME           = aws_location_map.map.map_name
     })
   )
 }

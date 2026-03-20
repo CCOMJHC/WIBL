@@ -10,5 +10,6 @@ urlpatterns = [
     path('downloadFile/<str:fileid>', views.downloadFile, name="downloadFile"),
     path('saveGeojsonFile/<str:fileid>', views.rawGeojsonFile, name="saveGeojsonFile"),
     path('check/<str:fileid>', views.checkFileAvail, name="checkFileAvail"),
-    path('django_plotly_dash/', include('django_plotly_dash.urls'))
+    path('django_plotly_dash/', include('django_plotly_dash.urls')),
+    path('mapTile/<int:z>/<int:x>/<int:y>/', views.mapTileProxy, name='mapTileProxy')
 ]

@@ -6,10 +6,17 @@ from django.shortcuts import render
 from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.views.decorators.cache import cache_control
+from django.core.cache import cache
 from django.conf import settings
-from wiblfe.celery import app as celery
 import httpx
-import os
+from os import environ
+import boto3
+import requests
+from botocore.auth import SigV4Auth
+from botocore.awsrequest import AWSRequest
+
+MAP_NAME = environ['MAP_NAME']
+REGION = environ['AWS_REGION']
 
 _ws_scheme: str | None = None
 def get_ws_scheme() -> str:
@@ -21,7 +28,7 @@ def get_ws_scheme() -> str:
 @login_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 async def downloadFile(request, fileid):
-    manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+    manager_url: str = environ.get('MANAGEMENT_URL', "http://manager:5000")
     extension = fileid.split(".")[-1]
 
     download_url = f"{manager_url}/{extension}/download/{fileid}"
@@ -45,7 +52,7 @@ async def downloadFile(request, fileid):
 
 @login_required
 async def rawGeojsonFile(request, fileid):
-    manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+    manager_url: str = environ.get('MANAGEMENT_URL', "http://manager:5000")
     full_url = f"{manager_url}/geojson/raw/{fileid}"
 
     client = httpx.AsyncClient()
@@ -57,7 +64,7 @@ async def rawGeojsonFile(request, fileid):
 
 @login_required
 async def checkFileAvail(request, fileid):
-    manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+    manager_url: str = environ.get('MANAGEMENT_URL', "http://manager:5000")
     extension = fileid.split(".")[-1]
 
     test_url = f"{manager_url}/{extension}/check/{fileid}"
@@ -93,3 +100,38 @@ def logout(request: HttpRequest):
 
 def heartbeat(request):
     return HttpResponse(status=200)
+
+# TODO: Check to make sure map is displaying correct for client.
+
+def mapTileProxy(request, x, y, z):
+    cache_key = f"map_tile_{z}_{x}_{y}"
+    cached = cache.get(cache_key)
+
+    if cached:
+        return HttpResponse(cached, content_type='image/png')
+
+    session = boto3.Session()
+    credentials = session.get_credentials()
+
+    if credentials is None:
+        print("ERROR: No credentials found")
+        return HttpResponse("No credentials", status=500)
+
+    frozen = credentials.get_frozen_credentials()
+    print(f"Access key: {frozen.access_key[:5]}...")
+    print(f"Token present: {frozen.token is not None}")
+
+    url = f"https://maps.geo.{REGION}.amazonaws.com/maps/v0/maps/{MAP_NAME}/tiles/{z}/{x}/{y}"
+
+    # Create and sign the request using botocore
+    aws_request = AWSRequest(method='GET', url=url)
+    SigV4Auth(credentials, 'geo', REGION).add_auth(aws_request)
+
+    # Forward the signed request to AWS
+    response = requests.get(url, headers=dict(aws_request.headers))
+
+    cache.set(cache_key, response.content, timeout=60 * 60 * 24)  # 24 hours
+    return HttpResponse(
+        response.content,
+        content_type=response.headers.get('Content-Type', 'image/png')
+    )
