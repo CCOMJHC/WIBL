@@ -11,28 +11,19 @@ param(
 
 Get-ChildItem -Path $inPath -Filter "*.$extension" -File -Recurse |
   ForEach-Object -Process {
-    Write-Host "Validating: $($_.Name)..." -ForegroundColor Cyan -NoNewline
-    
-    # Run validation and capture both standard output and errors into $results
-    if ( $PSBoundParameters.ContainsKey('schema') ) {
-        $results = csbschema validate -f $_.FullName --version $schema 2>&1
+    Write-Output "Validating file $($_.FullName)..."
+        if ( $PSBoundParameters.ContainsKey('schema') ) {
+        csbschema validate -f $_.FullName --version $schema
     } else {
-        $results = csbschema validate -f $_.FullName 2>&1
+        csbschema validate -f $_.FullName
     }
 
     if ($LASTEXITCODE -eq 0) {
-        Write-Host " [PASS]" -ForegroundColor Green
+        Write-Host "Successfully validated against CSB schema" -ForegroundColor Green
     } else {
-        Write-Host " [FAIL]" -ForegroundColor Red
-        
-        # Extract just the first few lines of the error to see why it failed 
-        # without printing every single coordinate.
-        $summaryError = $results | Where-Object { $_ -like "*error:*" } | Select-Object -First 3
-        
-        Write-Host "  Reason: Data is missing required properties (depth/time)." -ForegroundColor Yellow
-        if ($summaryError) {
-            Write-Host "  Details: $summaryError" -ForegroundColor Gray
-        }
-        Write-Host "  ----------------------------------------------------" -ForegroundColor Red
+        Write-Host "Failed to validate against CSB schema" -ForegroundColor Red
     }
+    
+    # Add a small gap between files for readability
+    Write-Output "" 
   }
