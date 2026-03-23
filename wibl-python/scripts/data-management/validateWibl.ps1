@@ -29,7 +29,7 @@ Get-ChildItem -Path $inPath -Filter "*.$extension" -File -Recurse |
         # without printing every single coordinate.
         $summaryError = $results | Where-Object { $_ -like "*error:*" } | Select-Object -First 3
         
-        Write-Host "  Reason: Data is missing required properties (depth/time)." -ForegroundColor Yellow
+        Write-Host "  Partial error output: Data is missing required properties (depth/time)." -ForegroundColor Yellow
         if ($summaryError) {
             Write-Host "  Details: $summaryError" -ForegroundColor Gray
         }
