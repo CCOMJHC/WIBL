@@ -75,6 +75,7 @@ class Config {
             CONFIG_BRIDGE_B,        /* Binary: Bridge UDP broadcast packets to NMEA0183 */
             CONFIG_WEBSERVER_B,     /* Binary: Use web server interface to configure system */
             CONFIG_UPLOAD_B,        /* Binary: enable auto-upload when online */
+            CONFIG_WIFI_OPENCONNECT_B, /* Binary: enable Open WiFi Connect fallback */
             CONFIG_MODULEID_S,      /* String: User-specified unique identifier for the module */
             CONFIG_SHIPNAME_S,      /* String: User-specific name for the ship hosting the WIBL */
             CONFIG_AP_SSID_S,       /* String: WiFi SSID for AP */
@@ -99,6 +100,21 @@ class Config {
             CONFIG_UPLOAD_INTERVAL_S,/* String: interval (seconds) between upload attempts */
             CONFIG_UPLOAD_DURATION_S,/* String: duration (seconds) for each upload event */
             CONFIG_UPLOAD_CERT_S,   /* String: certificate to pass to upload server for authentication */
+            CONFIG_UPLOAD_WIFI_SSID1_S,   /* String: preset WiFi SSID 1 */
+            CONFIG_UPLOAD_WIFI_SSID2_S,   /* String: preset WiFi SSID 2 */
+            CONFIG_UPLOAD_WIFI_SSID3_S,   /* String: preset WiFi SSID 3 */
+            CONFIG_UPLOAD_WIFI_SSID4_S,   /* String: preset WiFi SSID 4 */
+            CONFIG_UPLOAD_WIFI_SSID5_S,   /* String: preset WiFi SSID 5 */
+            CONFIG_UPLOAD_WIFI_PASS1_S,   /* String: preset WiFi password 1 */
+            CONFIG_UPLOAD_WIFI_PASS2_S,   /* String: preset WiFi password 2 */
+            CONFIG_UPLOAD_WIFI_PASS3_S,   /* String: preset WiFi password 3 */
+            CONFIG_UPLOAD_WIFI_PASS4_S,   /* String: preset WiFi password 4 */
+            CONFIG_UPLOAD_WIFI_PASS5_S,   /* String: preset WiFi password 5 */
+            CONFIG_UPLOAD_IGNORED_SSID1_S,/* String: ignored WiFi SSID 1 */
+            CONFIG_UPLOAD_IGNORED_SSID2_S,/* String: ignored WiFi SSID 2 */
+            CONFIG_UPLOAD_IGNORED_SSID3_S,/* String: ignored WiFi SSID 3 */
+            CONFIG_UPLOAD_IGNORED_SSID4_S,/* String: ignored WiFi SSID 4 */
+            CONFIG_UPLOAD_IGNORED_SSID5_S, /* String: ignored WiFi SSID 5 */
             CONFIG_MDNS_NAME_S      /* String: recognition name for mDNS responder (hostname: name.local) */
         };
 

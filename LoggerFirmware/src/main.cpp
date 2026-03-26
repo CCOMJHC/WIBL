@@ -109,6 +109,16 @@ void setup()
             delay(100);
         }
     } else {
+        // Sync WiFi status to current mode so boot config dump and early clients see accurate status (not stale from NVRAM)
+        String wifi_mode;
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_WIFIMODE_S, wifi_mode);
+        if (wifi_mode == "Station") {
+            logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "Station-Stopped");
+        } else if (wifi_mode == "AP+Station") {
+            logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "AP+Station-Stopped");
+        } else {
+            logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "AP-Stopped");
+        }
         Serial.println("INF: Configuration is now:");
         DynamicJsonDocument config(logger::ConfigJSON::ExtractConfig(true));
         String config_str;
@@ -118,28 +128,29 @@ void setup()
     
     Serial.println("Bringing up Storage Controller ...");
     memController = mem::MemControllerFactory::Create();
-    
+
+    bool storage_ready = false;
     Serial.println("Starting memory interface ...");
     #ifdef DEBUG_LOG_MANAGER
     Serial.println("DBG: Ignoring memory sub-system for debug purposes.");
     #else
     if (!memController->Start()) {
-        Serial.println("ERR: Memory system didn't start ... halting.");
-        // Card is not present, or didn't start ... that's a fatal error
-        LEDs->SetStatus(StatusLED::Status::sFATAL_ERROR);
-        while (1) {
-            LEDs->ProcessFlash(); /* Busy loop to make sure the LED flashes */
-            delay(100);
-        }
+        Serial.println("ERR: Memory system didn't start; continuing without SD/MMC (logging disabled).");
+    } else {
+        storage_ready = true;
+        Serial.printf("DBG: After memory interface start, free heap = %d B, delta = %d B\n",
+                      heap.CurrentSize(), heap.DeltaSinceLast());
     }
     #endif
-
-    Serial.printf("DBG: After memory interface start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
     Serial.println("Configuring logger manager ...");
     logManager = new logger::Manager(LEDs, memController);
     Serial.printf("DBG: After log manager start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
-    logManager->AddInventory();
-    Serial.printf("DBG: After inventory object start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+    if (storage_ready) {
+        logManager->AddInventory();
+        Serial.printf("DBG: After inventory object start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+    } else {
+        Serial.println("INF: Skipping log inventory (storage not ready).");
+    }
     
     bool start_nmea_2000, start_nmea_0183, start_motion_sensor;
     if (logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_NMEA2000_B, start_nmea_2000)
@@ -171,10 +182,13 @@ void setup()
 
     Serial.printf("DBG: After SerialCommand start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
 
-    Serial.println("Starting log manager interface to SD card ...");
-    logManager->StartNewLog();
-
-    Serial.printf("DBG: After new log file start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+    if (storage_ready) {
+        Serial.println("Starting log manager interface to SD card ...");
+        logManager->StartNewLog();
+        Serial.printf("DBG: After new log file start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+    } else {
+        Serial.println("INF: Skipping new log file (storage not ready).");
+    }
   
     if (start_nmea_2000) {
         Serial.println("Starting NMEA2000 bus interface ...");

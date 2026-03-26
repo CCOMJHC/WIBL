@@ -148,6 +148,7 @@ private:
             return false;
         }
         f.print(value);
+        f.flush();
         f.close();
         return true;
     }

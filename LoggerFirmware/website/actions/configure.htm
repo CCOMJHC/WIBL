@@ -1,144 +1,210 @@
-<!DOCTYPE html>
+<!doctype html>
+<html lang="en">
 <head>
     <title>Configuration Interface</title>
-    <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/forms.css">
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/forms.css" />
 </head>
-<html>
+<body>
     <header class="primary-header">
         <a href="../index.htm">
-            <img src="../images/WIBL-Logo.gif" alt="The WIBL Project Logo" width="80" class="logo"/>
+            <img src="../images/WIBL-Logo.gif" alt="The WIBL Project Logo" width="80" class="logo" />
         </a>
         <h1 class="title">Wireless Inexpensive Bathymetry Logger</h1>
     </header>
-    <body>
-        <script src="../js/common.js"></script>
-        <script src="../js/configuration.js"></script>
-        <div class="main-wrapper">
-            <form action="#" method="post">
-                <div class="group-wrapper">
-                    <fieldset class="metadata">
-                        <legend>Metadata</legend>
-                        <label for="unique-id">Unique Identifier</label>
-                        <input type="text" name="uuid" id="unique-id" required/>
-                        <button class="uuid-gen" type="button" onclick="generateUniqueID()">Generate UUID</button>
-                        <br>
-                        <label for="ship-name">Ship Name</label>
-                        <input type="text" name="shipname" id="ship-name" required/>
+    <script src="../js/common.js"></script>
+    <script src="../js/configuration.js"></script>
+    <div class="main-wrapper">
+        <form action="#" method="post">
+            <div class="group-wrapper">
+                <fieldset class="metadata">
+                    <legend>Metadata</legend>
+                    <label for="unique-id">Unique Identifier</label>
+                    <input type="text" name="uuid" id="unique-id" required />
+                    <button class="uuid-gen" type="button" onclick="generateUniqueID()">Generate UUID</button>
+                    <br />
+                    <label for="ship-name">Ship Name</label>
+                    <input type="text" name="shipname" id="ship-name" required />
+                </fieldset>
+            </div>
+            <div class="group-wrapper">
+                <fieldset class="checkboxes">
+                    <legend>Options</legend>
+                    <input type="checkbox" name="nmea0183" id="nmea0183" value="on" />
+                    <label for="nmea0183">NMEA0183 Logger</label><br />
+                    <input type="checkbox" name="nmea2000" id="nmea2000" value="on" />
+                    <label for="nmea2000">NMEA2000 Logger</label><br />
+                    <input type="checkbox" name="imu" id="imu" value="on" />
+                    <label for="imu">IMU Logger</label><br />
+                    <input type="checkbox" name="epower" id="epower" value="on" />
+                    <label for="epower">Emergency Power Monitor</label><br />
+                    <input type="checkbox" name="memctrl" id="memcontroller" value="on" />
+                    <label for="memcontroller">SD/MMC Memory Controller</label><br />
+                    <input type="checkbox" name="bridge" id="nmeabridge" value="on" />
+                    <label for="nmeabridge">UDP NMEA0183 Bridge</label><br />
+                    <input type="checkbox" name="webserver" id="webserveronboot" value="on" />
+                    <label for="webserveronboot">Webserver On Boot</label><br />
+                    <input type="checkbox" name="upload" id="autoupload" value="on" />
+                    <label for="autoupload">Auto-upload Logfiles</label><br />
+                    <input type="checkbox" name="openwificonnect" id="open-wifi-connect" value="on" />
+                    <label for="open-wifi-connect">Open WiFi Connect</label><br />
+                </fieldset>
+            </div>
+            <div class="group-wrapper">
+                <fieldset>
+                    <legend>WiFi Configuration</legend>
+                    <label for="wifimode">Mode</label>
+                    <select name="wifimode" id="wifimode">
+                        <option value="AP">AP</option>
+                        <option value="Station">Station</option>
+                        <option value="AP+Station">AP+Station</option>
+                    </select>
+                    <br />
+                    <fieldset class="internal">
+                        <legend>Station Join Configuration</legend>
+                        <label for="retry-delay">Retry Delay (s)</label>
+                        <input type="number" name="retrydelay" id="retry-delay" />
+                        <br />
+                        <label for="retry-count">Retry Count</label>
+                        <input type="number" name="retrycount" id="retry-count" />
+                        <br />
+                        <label for="join-timeout">Join Timeout (s)</label>
+                        <input type="number" name="jointimeout" id="join-timeout" />
+                        <br />
                     </fieldset>
-                </div>
-                <div class="group-wrapper">
-                    <fieldset class="checkboxes">
-                        <legend>Options</legend>
-                        <input type="checkbox" name="nmea0183" id="nmea0183" value="on"/>
-                        <label for="nmea0183">NMEA0183 Logger</label><br>
-                        <input type="checkbox" name="nmea2000" id="nmea2000" value="on"/>
-                        <label for="nmea2000">NMEA2000 Logger</label><br>
-                        <input type="checkbox" name="imu" id="imu" value="on"/>
-                        <label for="nmea2000">IMU Logger</label><br>
-                        <input type="checkbox" name="epower" id="epower" value="on"/>
-                        <label for="nmea2000">Emergency Power Monitor</label><br>
-                        <input type="checkbox" name="memctrl" id="memcontroller" value="on"/>
-                        <label for="nmea2000">SD/MMC Memory Controller</label><br>
-                        <input type="checkbox" name="bridge" id="nmeabridge" value="on"/>
-                        <label for="nmea2000">UDP NMEA0183 Bridge</label><br>
-                        <input type="checkbox" name="webserver" id="webserveronboot" value="on"/>
-                        <label for="webserveronboot">Webserver On Boot</label><br>
-                        <input type="checkbox" name="upload" id="autoupload" value="on"/>
-                        <label for="autoupload">Auto-upload Logfiles</label><br>
+                    <fieldset class="internal">
+                        <legend>Identification</legend>
+                        <label for="ap-ssid">AP SSID</label>
+                        <input type="text" name="apssid" id="ap-ssid" />
+                        <br />
+                        <label for="ap-password">AP Password</label>
+                        <input type="text" name="appwd" id="ap-password" />
+                        <br />
+                        <label for="station-ssid">Station SSID</label>
+                        <input type="text" name="stationssid" id="station-ssid" />
+                        <br />
+                        <label for="station-password">Station Password</label>
+                        <input type="text" name="stationpwd" id="station-password" />
+                        <br />
+                        <label for="connected-ssid">Connected SSID</label>
+                        <input type="text" id="connected-ssid" readonly />
+                        <br />
+                        <label for="wifi-status">WiFi status</label>
+                        <input type="text" id="wifi-status" readonly />
+                        <br />
+                        <label for="mdns-name">mDNS Name</label>
+                        <input type="text" name="mdnsname" id="mdns-name" />
+                        <br />
                     </fieldset>
-                </div>
-                <div class="group-wrapper">
-                    <fieldset>
-                        <legend>WiFi Configuration</legend>
-                        <label for="wifimode">Mode</label>
-                        <select name="wifimode" id="wifimode">
-                            <option value="AP">AP</option>
-                            <option value="Station">Station</option>
-                        </select>
-                        <br>
-                        <fieldset class="internal">
-                            <legend>Station Join Configuration</legend>
-                            <label for="retry-delay">Retry Delay (s)</label>
-                            <input type="number" name="retrydelay" id="retry-delay"/>
-                            <br>
-                            <label for="retry-count">Retry Count</label>
-                            <input type="number" name="retrycount" id="retry-count"/>
-                            <br>
-                            <label for="join-timeout">Join Timeout (s)</label>
-                            <input type="number" name="jointimeout" id="join-timeout"/>
-                            <br>
-                        </fieldset>
-                        <fieldset class="internal">
-                            <legend>Identification</legend>
-                            <label for="ap-ssid">AP SSID</label>
-                            <input type="text" name="apssid" id="ap-ssid"/>
-                            <br>
-                            <label for="ap-password">AP Password</label>
-                            <input type="text" name="appwd" id="ap-password"/>
-                            <br>
-                            <label for="station-ssid">Station SSID</label>
-                            <input type="text" name="stationssid" id="station-ssid"/>
-                            <br>
-                            <label for="station-password">Station Password</label>
-                            <input type="text" name="stationpwd" id="station-password"/>
-                            <br>
-                            <label for="mdns-name">mDNS Name</label>
-                            <input type="text" name="mdnsname" id="mdns-name"/>
-                            <br>
-                        </fieldset>
+                </fieldset>
+            </div>
+            <div class="group-wrapper">
+                <fieldset class="upload">
+                    <legend>Auto-upload Configuration</legend>
+                    <label for="upload-server">Server IP</label>
+                    <input type="text" name="serverip" id="upload-server" />
+                    <br />
+                    <label for="upload-port">Server Port</label>
+                    <input type="number" name="serverport" id="upload-port" />
+                    <br />
+                    <label for="upload-timeout">Connection Timeout (s)</label>
+                    <input type="number" name="timeout" id="upload-timeout" />
+                    <br />
+                    <label for="upload-interval">Upload Interval (s)</label>
+                    <input type="number" name="interval" id="upload-interval" />
+                    <br />
+                    <label for="upload-duration">Upload Duration (s)</label>
+                    <input type="number" name="duration" id="upload-duration" />
+                    <br />
+                </fieldset>
+            </div>
+            <div class="group-wrapper">
+                <fieldset class="baudrates">
+                    <legend>NMEA0183 Baud Rates</legend>
+                    <label for="port1-baud">Port 1 (Baud)</label>
+                    <input type="number" name="port1rate" id="port1-baud" />
+                    <br />
+                    <label for="port2-baud">Port 2 (Baud)</label>
+                    <input type="number" name="port2rate" id="port2-baud" />
+                    <br />
+                </fieldset>
+            </div>
+            <div class="group-wrapper">
+                <fieldset>
+                    <legend>UDP Bridge</legend>
+                    <label for="bridge-port">Port</label>
+                    <input type="number" name="bridgeport" id="bridge-port" />
+                </fieldset>
+            </div>
+            <div class="group-wrapper">
+                <fieldset>
+                    <legend>Connection</legend>
+                    <fieldset class="connections">
+                        <legend>Preset Wifi APs</legend>
+                        <div>
+                            <label for="wifi-ssid1">SSID 1</label>
+                            <input type="text" id="wifi-ssid1" name="wifi-ssid1" placeholder="SSID" />
+                            <input type="password" id="wifi-pass1" name="wifi-pass1" placeholder="Password" />
+                        </div>
+                        <div>
+                            <label for="wifi-ssid2">SSID 2</label>
+                            <input type="text" id="wifi-ssid2" name="wifi-ssid2" placeholder="SSID" />
+                            <input type="password" id="wifi-pass2" name="wifi-pass2" placeholder="Password" />
+                        </div>
+                        <div>
+                            <label for="wifi-ssid3">SSID 3</label>
+                            <input type="text" id="wifi-ssid3" name="wifi-ssid3" placeholder="SSID" />
+                            <input type="password" id="wifi-pass3" name="wifi-pass3" placeholder="Password" />
+                        </div>
+                        <div>
+                            <label for="wifi-ssid4">SSID 4</label>
+                            <input type="text" id="wifi-ssid4" name="wifi-ssid4" placeholder="SSID" />
+                            <input type="password" id="wifi-pass4" name="wifi-pass4" placeholder="Password" />
+                        </div>
+                        <div>
+                            <label for="wifi-ssid5">SSID 5</label>
+                            <input type="text" id="wifi-ssid5" name="wifi-ssid5" placeholder="SSID" />
+                            <input type="password" id="wifi-pass5" name="wifi-pass5" placeholder="Password" />
+                        </div>
                     </fieldset>
-                </div>
-                <div class="group-wrapper">
-                    <fieldset class="upload">
-                        <legend>Auto-upload Configuration</legend>
-                        <label for="upload-server">Server IP</label>
-                        <input type="text" name="serverip" id="upload-server"/>
-                        <br>
-                        <label for="upload-port">Server Port</label>
-                        <input type="number" name="serverport" id="upload-port"/>
-                        <br>
-                        <label for="upload-timeout">Connection Timeout (s)</label>
-                        <input type="number" name="timeout" id="upload-timeout"/>
-                        <br>
-                        <label for="upload-interval">Upload Interval (s)</label>
-                        <input type="number" name="interval" id="upload-interval"/>
-                        <br>
-                        <label for="upload-duration">Upload Duration (s)</label>
-                        <input type="number" name="duration" id="upload-duration"/>
-                        <br>
+
+                    <fieldset class="connections">
+                        <legend>Ignored Wifi APs</legend>
+                        <div>
+                            <label for="ignored-wifi-ssid1">SSID 1</label>
+                            <input type="text" id="ignored-wifi-ssid1" name="ignored-wifi-ssid1" placeholder="SSID" />
+                        </div>
+                        <div>
+                            <label for="ignored-wifi-ssid2">SSID 2</label>
+                            <input type="text" id="ignored-wifi-ssid2" name="ignored-wifi-ssid2" placeholder="SSID" />
+                        </div>
+                        <div>
+                            <label for="ignored-wifi-ssid3">SSID 3</label>
+                            <input type="text" id="ignored-wifi-ssid3" name="ignored-wifi-ssid3" placeholder="SSID" />
+                        </div>
+                        <div>
+                            <label for="ignored-wifi-ssid4">SSID 4</label>
+                            <input type="text" id="ignored-wifi-ssid4" name="ignored-wifi-ssid4" placeholder="SSID" />
+                        </div>
+                        <div>
+                            <label for="ignored-wifi-ssid5">SSID 5</label>
+                            <input type="text" id="ignored-wifi-ssid5" name="ignored-wifi-ssid5" placeholder="SSID" />
+                        </div>
                     </fieldset>
-                </div>
-                <div class="group-wrapper">
-                    <fieldset class="baudrates">
-                        <legend>NMEA0183 Baud Rates</legend>
-                        <label for="port1-baud">Port 1 (Baud)</label>
-                        <input type="number" name="port1rate" id="port1-baud"/>
-                        <br>
-                        <label for="port2-baud">Port 2 (Baud)</label>
-                        <input type="number" name="port2rate" id="port2-baud"/>
-                        <br>
-                    </fieldset>
-                </div>
-                <div class="group-wrapper">
-                    <fieldset>
-                        <legend>UDP Bridge</legend>
-                        <label for="bridge-port">Port</label>
-                        <input type="number" name="bridgeport" id="bridge-port"/>
-                    </fieldset>
-                </div>
-                <div class="group-wrapper">
-                    <input type="button" value="Set Working Config" onclick="uploadCurrentConfig()"/>
-                    <input type="button" value="Set Default Config" onclick="uploadDefaultConfig()"/>
-                    <input type="button" value="Load from Disc" onclick="loadConfigLocally()">
-                    <input type="button" value="Download Working Config" onclick="saveConfigLocally()">
-                    <input type="button" value="Download Default Config" onclick="saveDefaultLocally()">
-                </div>
-            </form>
-            <iframe id="downloadFrame" style="position:absolute;width:0;height:0;border:0;"></iframe>
-            <script>
-                bootstrapConfig();
-            </script>
-        </div>
-    </body>
+                </fieldset>
+            </div>
+            <div class="group-wrapper">
+                <input type="button" value="Set Working Config" onclick="uploadCurrentConfig()" />
+                <input type="button" value="Set Default Config" onclick="uploadDefaultConfig()" />
+                <input type="button" value="Load from Disc" onclick="loadConfigLocally()" />
+                <input type="button" value="Download Working Config" onclick="saveConfigLocally()" />
+                <input type="button" value="Download Default Config" onclick="saveDefaultLocally()" />
+            </div>
+        </form>
+        <iframe id="downloadFrame" style="position: absolute; width: 0; height: 0; border: 0"></iframe>
+        <script>
+            bootstrapConfig();
+        </script>
+    </div>
+</body>
 </html>

@@ -78,7 +78,8 @@ public:
     
     enum WirelessMode {
         ADAPTER_STATION,    ///< Join the configured network when activated
-        ADAPTER_SOFTAP      ///< Create the configured network when activated
+        ADAPTER_SOFTAP,     ///< Create the configured network when activated
+        ADAPTER_AP_STA      ///< Simultaneous AP and station (join client network while hosting AP)
     };
     /// \brief Set up wireless mode for the adapter (i.e., AP or STA)
     static void SetWirelessMode(WirelessMode mode);

@@ -39,7 +39,7 @@
 
 const uint32_t CommandMajorVersion = 1;
 const uint32_t CommandMinorVersion = 4;
-const uint32_t CommandPatchVersion = 1;
+const uint32_t CommandPatchVersion = 2;
 
 /// Default constructor for the SerialCommand object.  This stores the pointers for the logger and
 /// status LED controllers for reference, and then generates a BLE service object.  This turns on
@@ -771,8 +771,8 @@ void SerialCommand::ConfigurePassthrough(String const& params, CommandSource src
 /// Report the current configuration of the logger using JSON formatting.  This can
 /// be much more efficient if you want to grab a configuration and transfer to
 /// another system.  For output on the serial channel (where there's a human behind
-/// the wheel), the JSON if formatted; for output on the WiFi channel (where there's
-/// a computer behind the terminal), it's unformatted.
+/// the wheel), the JSON is formatted; for output on the WirelessPort channel (where there's
+/// a computer behind the terminal), it's unformatted and sent via the web adapter.
 ///
 /// @param src  Command channel that provided the command (and therefore gets the result)
 /// @param secure Flag: true if the channel is trusted, and password information can be given
@@ -780,12 +780,12 @@ void SerialCommand::ConfigurePassthrough(String const& params, CommandSource src
 
 void SerialCommand::ReportConfigurationJSON(CommandSource src, bool secure)
 {
-    DynamicJsonDocument json(logger::ConfigJSON::ExtractConfig());
+    DynamicJsonDocument json(logger::ConfigJSON::ExtractConfig(secure));
     if (src == CommandSource::SerialPort) {
         String s;
         serializeJsonPretty(json, s);
         EmitMessage(s + "\n", src);
-    } else {
+    } else if (src == CommandSource::WirelessPort) {
         if (m_wifi != nullptr)
             m_wifi->SetMessage(json);
     }
@@ -1196,10 +1196,10 @@ void SerialCommand::ReportLabDefaults(CommandSource src)
     }
 }
 
-/// Set the JSON-formatted configuration set to use when the user wants to attempt to reset
-/// the configuration of the logger to a "known good" state.  Note that the logger does not
-/// attempt to validate the JSON data at this stage, so it's entirely possible for the user
-/// to mess up the configuration and then have a problem when trying to reset ...
+/// Set the JSON-formatted configuration stored for \c lab reset, and also apply it to the
+/// working ParamStore when the JSON validates (same rules as \c setup: \c version.commandproc
+/// must match \c SoftwareVersion()).  If validation fails, the blob is still stored for later
+/// \c lab reset attempts.
 ///
 /// \param spec JSON-formatted serialised \a String with default configuration
 /// \param src  Channel on which this command was received
@@ -1208,12 +1208,24 @@ void SerialCommand::ReportLabDefaults(CommandSource src)
 void SerialCommand::SetLabDefaults(String const& spec, CommandSource src)
 {
     logger::LoggerConfig.SetConfigString(logger::Config::CONFIG_DEFAULTS_S, spec);
+    bool const applied = logger::ConfigJSON::SetConfig(spec);
     if (src == CommandSource::SerialPort) {
-        EmitMessage("INF: set lab defaults.\n", src);
+        if (applied) {
+            EmitMessage("INF: Lab defaults stored and working configuration updated; reboot may be required for some changes.\n",
+                        src);
+        } else {
+            EmitMessage("INF: Lab defaults stored.\n", src);
+            EmitMessage(
+                "ERR: Working configuration not updated (invalid JSON, or version.commandproc does not match this firmware).\n",
+                src);
+        }
     } else if (m_wifi != nullptr) {
-        if (!EmitJSON(spec, src)) {
+        if (!applied) {
             m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
-            m_wifi->AddMessage("Invalid input JSON string");
+            m_wifi->AddMessage(
+                "Lab defaults stored but not applied: check JSON and version.commandproc matches firmware.");
+        } else {
+            ReportConfigurationJSON(src);
         }
     }
 }

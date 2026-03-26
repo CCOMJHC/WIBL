@@ -26,6 +26,7 @@
 #include <functional>
 #include <queue>
 #include <vector>
+#include <algorithm>
 
 #include <WiFi.h>
 #include <WiFiAP.h>
@@ -134,17 +135,20 @@ public:
             Serial.printf("DBG: starting ConnectionStateMachine; boot status is %s\n", boot_status.c_str());
         }
         m_lastConnectAttempt = m_lastStatusCheck = millis();
-        
-        m_connectionRetries = maximumReties();
         m_retryDelay = retryDelay();
         m_connectDelay = connectionDelay();
-
         m_statusDelay = 500;    // Delay between status checks in milliseconds
+        logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_WIFI_OPENCONNECT_B, m_openConnectEnabled);
+        m_openConnectTried = false;
+        m_currentCandidateIndex = 0;
 
         m_currentState = STOPPED;
         String status;
-        if (WiFiAdapter::GetWirelessMode() == WiFiAdapter::WirelessMode::ADAPTER_SOFTAP) {
+        WiFiAdapter::WirelessMode mode = WiFiAdapter::GetWirelessMode();
+        if (mode == WiFiAdapter::WirelessMode::ADAPTER_SOFTAP) {
             status = "AP-Stopped";
+        } else if (mode == WiFiAdapter::WirelessMode::ADAPTER_AP_STA) {
+            status = "AP+Station-Stopped";
         } else {
             status = "Station-Stopped";
         }
@@ -156,13 +160,32 @@ public:
 
     void Start(void)
     {
-        if (WiFiAdapter::GetWirelessMode() == WiFiAdapter::WirelessMode::ADAPTER_SOFTAP) {
+        WiFiAdapter::WirelessMode mode = WiFiAdapter::GetWirelessMode();
+        if (mode == WiFiAdapter::WirelessMode::ADAPTER_SOFTAP) {
+            // AP-only: bring up AP and never attempt a station join.
             m_currentState = AP_MODE;
             logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "AP-Enabled");
             apSetup();
+        } else if (mode == WiFiAdapter::WirelessMode::ADAPTER_AP_STA) {
+            // AP+Station: bring up AP and immediately try a single station join sequence.
+            WiFi.mode(WIFI_AP_STA);
+            WiFi.setAutoReconnect(false);   // one-shot join; do not auto-retry in background
+            m_currentState = AP_MODE;
+            apSetup();
+            logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "AP+Station-Enabled,Connecting");
+            m_currentState = STATION_CONNECTING;
+            m_currentCandidateIndex = 0;
+            m_lastConnectAttempt = millis();
+            if (attemptStationJoin())
+                m_currentState = STATION_CONNECTED;
         } else {
+            // Station-only: immediately try a single station join sequence.
+            WiFi.mode(WIFI_STA);
+            WiFi.setAutoReconnect(false);   // one-shot join; do not auto-retry in background
             logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "Station-Enabled,Connecting");
             m_currentState = STATION_CONNECTING;
+            m_currentCandidateIndex = 0;
+            m_lastConnectAttempt = millis();
             if (attemptStationJoin())
                 m_currentState = STATION_CONNECTED;
         }
@@ -177,11 +200,9 @@ public:
             case STOPPED:
                 break;
             case AP_MODE:
-                // Once in AP mode and established, we stay in the state.
+                // AP-only mode or AP side of AP+Station; nothing to do here.
                 break;
             case STATION_CONNECTING:
-                // We're waiting for the connection to complete, so check status
-                // if we've waiting long enough.
                 if ((now - m_lastStatusCheck) > m_statusDelay) {
                     if (m_verbose) {
                         Serial.printf("DBG: checking for connection at %d\n", now);
@@ -190,97 +211,104 @@ public:
                         m_currentState = STATION_CONNECTED;
                         if (m_verbose)
                             Serial.print("DBG: station now connected.\n");
+                    } else if ((now - m_lastConnectAttempt) > m_connectDelay) {
+                        if (m_currentCandidateIndex <= 5) {
+                            if (attemptStationJoin()) {
+                                m_currentState = STATION_CONNECTED;
+                                if (m_verbose)
+                                    Serial.print("DBG: station now connected on new candidate.\n");
+                            }
+                        } else {
+                            if (!m_openConnectTried && m_openConnectEnabled && attemptOpenConnectScan()) {
+                                m_currentState = STATION_CONNECTED;
+                                if (m_verbose)
+                                    Serial.print("DBG: station connected via Open WiFi Connect.\n");
+                            } else {
+                                wl_status_t status = WiFi.status();
+                                Serial.printf("INF: station join failed for SSID \"%s\" after %d ms (WiFi.status=%d).\n",
+                                              m_lastCandidateSsid.c_str(), now - m_lastConnectAttempt, (int)status);
+                                WiFiAdapter::WirelessMode mode = WiFiAdapter::GetWirelessMode();
+                                WiFi.setAutoReconnect(false);
+                                WiFi.disconnect(true, true);  // fully drop station so core doesn't auto-retry
+                                if (mode == WiFiAdapter::WirelessMode::ADAPTER_AP_STA) {
+                                    logger::LoggerConfig.SetConfigString(
+                                        logger::Config::ConfigParam::CONFIG_WS_STATUS_S,
+                                        "AP+Station-Enabled,Station-Join-Failed");
+                                    m_currentState = AP_MODE;
+                                    if (m_verbose)
+                                        Serial.print("DBG: station join failed; staying in AP+Station with AP only (no further attempts).\n");
+                                } else {
+                                    logger::LoggerConfig.SetConfigString(
+                                        logger::Config::ConfigParam::CONFIG_WS_STATUS_S,
+                                        "Station-Enabled,Station-Join-Failed");
+                                    m_currentState = STOPPED;
+                                    if (m_verbose)
+                                        Serial.print("DBG: station join failed; stopping further station attempts until reboot.\n");
+                                }
+                            }
+                        }
                     } else {
-                        // Still not connected, so we need to determine if
-                        // we need to terminate this try.
                         if (m_verbose)
                             Serial.print("DBG: station still not connected.\n");
-                        if ((now - m_lastConnectAttempt) > m_connectDelay) {
-                            m_currentState = STATION_RETRY;
-                            LoggerConfig.SetConfigString(Config::CONFIG_WS_STATUS_S, "Station-Enabled,Connect-Timeout-Retrying");
-                            if (m_verbose)
-                                Serial.printf("DBG: join attempt timed out since last attempt was %d (%d ago)\n", m_lastConnectAttempt, now - m_lastConnectAttempt);
-                        }
                     }
                 }
                 break;
-            case STATION_RETRY:
-                // We're attempting a retry for a station connection, if we've
-                // waited long enough
-                if ((now - m_lastConnectAttempt) > m_retryDelay) {
-                    if (m_verbose)
-                        Serial.printf("DBG: attempting to join again since last attempt was %d ago.\n", now - m_lastConnectAttempt);
-                    if (m_connectionRetries > 0) {
-                        --m_connectionRetries;
-                        if (m_verbose)
-                            Serial.printf("DBG: attempting retry; %d remaining.\n", m_connectionRetries);
-                        if (attemptStationJoin())
-                            m_currentState = STATION_CONNECTED;
-                        else
-                            m_currentState = STATION_CONNECTING;
-                    } else {
-                        m_currentState = MOVE_TO_SAFE_MODE;
-                        if (m_verbose)
-                            Serial.print("DBG: out of retry attempts, moving back to safe mode.\n");
-                    }
-                }
-                break;
-            case MOVE_TO_SAFE_MODE:
-                // We're out of retries for a station connection, so we have to assume
-                // that the network isn't there, or there's a problem with the password
-                // etc. -- so we revert to AP mode.
-                WiFiAdapter::SetWirelessMode(WiFiAdapter::WirelessMode::ADAPTER_SOFTAP);
-                logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "AP-Enabled,Station-Join-Failed");
-                if (m_verbose)
-                    Serial.print("DBG: set status to Station-Join-Failed, rebooting to AP safe mode.\n");
-                ESP.restart();
-                break;
-            case STATION_CONNECTED:
-                // The system (finally?) connected, so we update status, and then go into
-                // connection checking mode.
-                logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "Station-Enabled,Connected");
+            case STATION_CONNECTED: {
+                const char *connected_status = (WiFiAdapter::GetWirelessMode() == WiFiAdapter::WirelessMode::ADAPTER_AP_STA)
+                    ? "AP+Station-Enabled,Connected" : "Station-Enabled,Connected";
+                logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, connected_status);
                 m_currentState = CONNECTION_CHECK;
                 if (m_verbose) {
                     Serial.print("DBG: station connected to network, setting state to Connected.\n");
                 }
                 completeStationJoin();
                 break;
+            }
             case CONNECTION_CHECK:
-                // Once connected, we need to periodically check that we're still connected,
-                // going back into connection mode if not.
                 if ((now - m_lastStatusCheck) > m_retryDelay) {
                     if (m_verbose) {
                         Serial.printf("DBG: checking connection status since last check was %d ago.\n", now - m_lastStatusCheck);
                     }
                     if (!isConnected()) {
+                        WiFiAdapter::WirelessMode mode = WiFiAdapter::GetWirelessMode();
+                        const char *disco_status = (mode == WiFiAdapter::WirelessMode::ADAPTER_AP_STA)
+                            ? "AP+Station-Enabled,Disconnected" : "Station-Enabled,Disconnected";
+                        logger::LoggerConfig.SetConfigString(
+                            logger::Config::ConfigParam::CONFIG_WS_STATUS_S, disco_status);
                         if (m_verbose) {
-                            Serial.print("DBG: station disconnected, so switching back to retry.\n");
+                            Serial.print("DBG: station disconnected; not retrying until reboot.\n");
                         }
-                        logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "Station-Enabled,Disconnected-Retrying");
-                        m_currentState = STATION_RETRY;
+                        m_currentState = (mode == WiFiAdapter::WirelessMode::ADAPTER_AP_STA) ? AP_MODE : STOPPED;
                     }
                 }
                 break;
         }
     }
+
+    bool IsConnectionPending(void) const
+    {
+        return m_currentState == STATION_CONNECTING;
+    }
+
 private:
     enum State {
         STOPPED = 0,
         AP_MODE,
         STATION_CONNECTING,
         STATION_CONNECTED,
-        STATION_RETRY,
-        MOVE_TO_SAFE_MODE,
         CONNECTION_CHECK
     };
-    State   m_currentState;         // Current state of the SM
-    bool    m_verbose;              // Flag for debug information to happen
-    int     m_lastConnectAttempt;   // Time (ms) for last connection attempt
-    int     m_lastStatusCheck;      // Time (ms) for last connection status attempt
-    int     m_connectionRetries;    // Count of remaining connection attempts
-    int     m_retryDelay;           // Delay (ms) before attempt to retry to connect
-    int     m_statusDelay;          // Delay (ms) before checking connection status again
-    int     m_connectDelay;         // Delay (ms) before assuming a connect attempt failed
+    State   m_currentState;
+    bool    m_verbose;
+    int     m_lastConnectAttempt;
+    int     m_lastStatusCheck;
+    int     m_retryDelay;
+    int     m_statusDelay;
+    int     m_connectDelay;
+    int     m_currentCandidateIndex;
+    String  m_lastCandidateSsid;
+    bool    m_openConnectEnabled;
+    bool    m_openConnectTried;
 
     void apSetup(void)
     {
@@ -290,7 +318,7 @@ private:
         // On first bring-up, the SSID and password are not going to be set; this ensures that when the
         // logger first boots, the WIFi comes up with known SSID and password.
         if (ssid.length() == 0) ssid = "wibl-config";
-        if (ssid.length() == 0) password = "wibl-config-password";
+        if (password.length() == 0) password = "wibl-config-password";
         WiFi.softAP(ssid.c_str(), password.c_str());
         WiFi.setSleep(false);
         IPAddress server_address = WiFi.softAPIP();
@@ -312,31 +340,173 @@ private:
 
     bool attemptStationJoin(void)
     {
-        String ssid, password;
-        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_STATION_SSID_S, ssid);
-        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_STATION_PASSWD_S, password);
-        // Note: we do not attempt to set a default SSID and password here --- if we're joining another network as
-        // a station, there's no way to guess these.  We have to have at least an SSID, but the password could be
-        // empty (for an unsecured network).
-        if (ssid.length() == 0) {
-            Serial.print("ERR: attempting to join a WiFi network as a station without a specified SSID\n");
+        String ignored_ssids[5];
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_UPLOAD_IGNORED_SSID1_S, ignored_ssids[0]);
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_UPLOAD_IGNORED_SSID2_S, ignored_ssids[1]);
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_UPLOAD_IGNORED_SSID3_S, ignored_ssids[2]);
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_UPLOAD_IGNORED_SSID4_S, ignored_ssids[3]);
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_UPLOAD_IGNORED_SSID5_S, ignored_ssids[4]);
+
+        auto isIgnored = [&ignored_ssids](String const& candidate) -> bool {
+            for (int i = 0; i < 5; ++i) {
+                if (ignored_ssids[i].length() > 0 && candidate == ignored_ssids[i])
+                    return true;
+            }
+            return false;
+        };
+
+        static const logger::Config::ConfigParam preset_ssid[] = {
+            logger::Config::CONFIG_UPLOAD_WIFI_SSID1_S, logger::Config::CONFIG_UPLOAD_WIFI_SSID2_S,
+            logger::Config::CONFIG_UPLOAD_WIFI_SSID3_S, logger::Config::CONFIG_UPLOAD_WIFI_SSID4_S,
+            logger::Config::CONFIG_UPLOAD_WIFI_SSID5_S
+        };
+        static const logger::Config::ConfigParam preset_pass[] = {
+            logger::Config::CONFIG_UPLOAD_WIFI_PASS1_S, logger::Config::CONFIG_UPLOAD_WIFI_PASS2_S,
+            logger::Config::CONFIG_UPLOAD_WIFI_PASS3_S, logger::Config::CONFIG_UPLOAD_WIFI_PASS4_S,
+            logger::Config::CONFIG_UPLOAD_WIFI_PASS5_S
+        };
+
+        for (int slot = m_currentCandidateIndex; slot <= 5; ++slot) {
+            String ssid, password;
+            if (slot == 0) {
+                logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_STATION_SSID_S, ssid);
+                logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_STATION_PASSWD_S, password);
+            } else {
+                logger::LoggerConfig.GetConfigString(preset_ssid[slot - 1], ssid);
+                logger::LoggerConfig.GetConfigString(preset_pass[slot - 1], password);
+            }
+            if (ssid.length() == 0)
+                continue;
+            if (isIgnored(ssid))
+                continue;
+
+            m_currentCandidateIndex = slot + 1;
+            m_lastConnectAttempt = millis();
+            m_lastCandidateSsid = ssid;
+            Serial.printf("INF: attempting station join candidate #%d SSID=\"%s\" PASSWORD=\"%s\".\n",
+                          slot, ssid.c_str(), password.c_str());
+
+            wl_status_t status = WiFi.begin(ssid.c_str(), password.c_str());
+            WiFi.setSleep(false);
+            if (m_verbose) {
+                Serial.printf("DBG: started network join candidate #%d %s at %d with immediate status %d\n",
+                              slot, ssid.c_str(), m_lastConnectAttempt, (int)status);
+            }
+            return status == WL_CONNECTED;
+        }
+
+        m_currentCandidateIndex = 6;
+        if (WiFi.status() == WL_CONNECTED)
+            return true;
+        Serial.print("ERR: no valid station candidate (tried slots 0..5); check Station SSID and presets.\n");
+        return false;
+    }
+
+    bool attemptOpenConnectScan(void)
+    {
+        m_openConnectTried = true;
+
+        int n = WiFi.scanNetworks();
+        if (n <= 0) {
+            Serial.print("INF: Open WiFi Connect: no networks found during scan.\n");
             return false;
         }
-        wl_status_t status = WiFi.begin(ssid.c_str(), password.c_str());
-        WiFi.setSleep(false);
-        m_lastConnectAttempt = millis();
-        if (m_verbose) {
-            Serial.printf("DBG: started network join on %s:%s at %d with immediate status %d\n", ssid.c_str(), password.c_str(), m_lastConnectAttempt, (int)status);
+
+        String ignored_ssids[5];
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_UPLOAD_IGNORED_SSID1_S, ignored_ssids[0]);
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_UPLOAD_IGNORED_SSID2_S, ignored_ssids[1]);
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_UPLOAD_IGNORED_SSID3_S, ignored_ssids[2]);
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_UPLOAD_IGNORED_SSID4_S, ignored_ssids[3]);
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_UPLOAD_IGNORED_SSID5_S, ignored_ssids[4]);
+
+        String explicit_ssids[6];
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_STATION_SSID_S, explicit_ssids[0]);
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_UPLOAD_WIFI_SSID1_S, explicit_ssids[1]);
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_UPLOAD_WIFI_SSID2_S, explicit_ssids[2]);
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_UPLOAD_WIFI_SSID3_S, explicit_ssids[3]);
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_UPLOAD_WIFI_SSID4_S, explicit_ssids[4]);
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_UPLOAD_WIFI_SSID5_S, explicit_ssids[5]);
+
+        auto isIgnored = [&ignored_ssids](String const& candidate) -> bool {
+            for (int i = 0; i < 5; ++i) {
+                if (ignored_ssids[i].length() > 0 && candidate == ignored_ssids[i])
+                    return true;
+            }
+            return false;
+        };
+
+        auto isExplicit = [&explicit_ssids](String const& candidate) -> bool {
+            for (int i = 0; i < 6; ++i) {
+                if (explicit_ssids[i].length() > 0 && candidate == explicit_ssids[i])
+                    return true;
+            }
+            return false;
+        };
+
+        std::vector<int> indices;
+        indices.reserve((size_t)n);
+        for (int i = 0; i < n; ++i)
+            indices.push_back(i);
+        std::sort(indices.begin(), indices.end(), [](int a, int b) {
+            return WiFi.RSSI(a) > WiFi.RSSI(b);
+        });
+
+        static const char *fallbackPassword = "12345678";
+
+        for (int idx : indices) {
+            String ssid = WiFi.SSID(idx);
+            if (ssid.length() == 0)
+                continue;
+            if (isIgnored(ssid))
+                continue;
+            if (isExplicit(ssid))
+                continue;
+
+            wifi_auth_mode_t auth = WiFi.encryptionType(idx);
+            Serial.printf("INF: Open WiFi Connect: trying SSID=\"%s\" (RSSI=%d, auth=%d).\n",
+                          ssid.c_str(), WiFi.RSSI(idx), (int)auth);
+            (void)auth;
+
+            WiFi.begin(ssid.c_str());
+            unsigned long start = millis();
+            while ((millis() - start) < (unsigned long)m_connectDelay) {
+                if (WiFi.status() == WL_CONNECTED) {
+                    m_lastCandidateSsid = ssid;
+                    return true;
+                }
+                delay(100);
+            }
+
+            Serial.printf("INF: Open WiFi Connect: retry with fallback password for SSID=\"%s\".\n",
+                          ssid.c_str());
+            WiFi.begin(ssid.c_str(), fallbackPassword);
+            start = millis();
+            while ((millis() - start) < (unsigned long)m_connectDelay) {
+                if (WiFi.status() == WL_CONNECTED) {
+                    m_lastCandidateSsid = ssid;
+                    return true;
+                }
+                delay(100);
+            }
+
+            Serial.printf("INF: Open WiFi Connect: failed to join SSID=\"%s\".\n", ssid.c_str());
         }
-        return status == WL_CONNECTED;
+
+        Serial.print("INF: Open WiFi Connect: no suitable open networks succeeded.\n");
+        return false;
     }
 
     void completeStationJoin(void)
     {
         IPAddress server_address = WiFi.localIP();
         logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WIFIIP_S, server_address.toString());
+        String connected_ssid = WiFi.SSID();
+        if (connected_ssid.length() > 0) {
+            logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_STATION_SSID_S, connected_ssid);
+        }
         if (m_verbose) {
-            Serial.printf("DBG: completing station join at IP %s, hostname reported as |%s|\n", server_address.toString().c_str(), WiFi.getHostname());
+            Serial.printf("DBG: completing station join at IP %s, hostname reported as |%s| on SSID |%s|\n",
+                          server_address.toString().c_str(), WiFi.getHostname(), connected_ssid.c_str());
         }
         startMDNSResponder();
     }
@@ -349,13 +519,6 @@ private:
             Serial.printf("DBG: checking WiFi status at %d with status %d\n", m_lastStatusCheck, (int)status);
         }
         return status == WL_CONNECTED;
-    }
-
-    int maximumReties(void)
-    {
-        String val;
-        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_STATION_RETRIES_S, val);
-        return val.toInt();
     }
 
     int retryDelay(void)
@@ -423,6 +586,52 @@ private:
         }
     }
 
+    /// Read raw POST body (same pattern for /setup and /labdefaults).
+    void readPostedPlainBody(String &body, size_t maxLen)
+    {
+        body = "";
+        if (m_server->hasArg("plain")) {
+            body = m_server->arg("plain");
+        } else {
+            int cl = -1;
+            if (m_server->hasHeader("Content-Length"))
+                cl = m_server->header("Content-Length").toInt();
+            if (cl > 0 && (size_t)cl <= maxLen) {
+                body.reserve((unsigned)cl);
+                WiFiClient c = m_server->client();
+                for (int n = 0; n < cl && c.connected(); ++n) {
+                    if (c.available())
+                        body += (char)c.read();
+                    else
+                        delay(1);
+                }
+            }
+        }
+        body.trim();
+    }
+
+    /// @brief Handle POST /setup with raw JSON body (avoids form field size limits so passwords are not truncated)
+    void handleSetup(void)
+    {
+        String body;
+        readPostedPlainBody(body, 8192);
+        if (body.length() > 0) {
+            if (body.startsWith("{"))
+                m_commands.push("setup " + body);
+            else
+                m_commands.push(body);
+        }
+    }
+
+    /// @brief Handle POST /labdefaults with raw JSON (same size limits as /setup)
+    void handleLabDefaults(void)
+    {
+        String body;
+        readPostedPlainBody(body, 8192);
+        if (body.length() > 0)
+            m_commands.push("lab defaults " + body);
+    }
+
     /// @brief Provide a simple endpoint for HTTP GET to indicate presence
     ///
     /// It's not always possible to tell whether you have a web-server available on a known IP
@@ -465,6 +674,8 @@ private:
             // Configure the endpoints served by the server
             m_server->on("/heartbeat", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::heartbeat, this));
             m_server->on("/command", HTTPMethod::HTTP_POST, std::bind(&ESP32WiFiAdapter::handleCommand, this));
+            m_server->on("/setup", HTTPMethod::HTTP_POST, std::bind(&ESP32WiFiAdapter::handleSetup, this));
+            m_server->on("/labdefaults", HTTPMethod::HTTP_POST, std::bind(&ESP32WiFiAdapter::handleLabDefaults, this));
             m_server->on("/archive", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::transferLogs, this));
             m_server->serveStatic("/logs", m_storage->Controller(), "/logs/");
             m_server->serveStatic("/", LittleFS, "/website/"); // Note trailing '/' since this is a directory being served.
@@ -599,9 +810,16 @@ private:
 
     void runLoop(void)
     {
+        yield();
         m_state.StepState();
-        if (m_server != nullptr)
-            m_server->handleClient();
+        if (m_server != nullptr) {
+            int n = m_state.IsConnectionPending() ? 12 : 1;
+            for (int i = 0; i < n; ++i) {
+                m_server->handleClient();
+                if (i < n - 1)
+                    delay(1);
+            }
+        }
     }
 };
 
@@ -661,6 +879,8 @@ void WiFiAdapter::SetWirelessMode(WirelessMode mode)
         value = "Station";
     } else if (mode == WirelessMode::ADAPTER_SOFTAP) {
         value = "AP";
+    } else if (mode == WirelessMode::ADAPTER_AP_STA) {
+        value = "AP+Station";
     } else {
         Serial.println("ERR: unknown wireless adapater mode.");
         return;
@@ -684,6 +904,8 @@ WiFiAdapter::WirelessMode WiFiAdapter::GetWirelessMode(void)
     }
     if (value == "Station")
         rc = WirelessMode::ADAPTER_STATION;
+    else if (value == "AP+Station")
+        rc = WirelessMode::ADAPTER_AP_STA;
     else
         rc = WirelessMode::ADAPTER_SOFTAP;
     return rc;
