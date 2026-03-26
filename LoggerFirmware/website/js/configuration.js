@@ -29,6 +29,10 @@ function generateUniqueID() {
     document.getElementById("unique-id").value = identifier;
 }
 
+// Use the command processor version reported by the device config.
+// This avoids SetConfig/lab defaults rejection when firmware version changes.
+let commandProcVersion = "1.4.2";
+
 /** Escape string for use inside a JSON double-quoted value (backslash and quote). */
 function escapeJsonString(s) {
     if (s == null) return "";
@@ -83,7 +87,7 @@ function createJSONConfig() {
     const ignoredWifiSsid5 = document.getElementById("ignored-wifi-ssid5").value;
     let config = `{
         "version": {
-            "commandproc": "1.4.2"
+            "commandproc": "${escapeJsonString(commandProcVersion)}"
         },
         "uniqueID": "${escapeJsonString(uniqueID)}",
         "shipname": "${escapeJsonString(shipname)}",
@@ -152,6 +156,10 @@ function parseConfigJSON(config) {
      * in the right format, and therefore avoid the system resetting other components in
      * the configuration and over-writing correct values.
      */
+    if (config.version && typeof config.version.commandproc === "string" && config.version.commandproc.length > 0) {
+        commandProcVersion = config.version.commandproc;
+    }
+
     document.getElementById("nmea0183").checked = config.enable.nmea0183;
     document.getElementById("nmea2000").checked = config.enable.nmea2000;
     document.getElementById("imu").checked = config.enable.imu;
