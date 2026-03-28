@@ -1,6 +1,6 @@
 {
     "version": {
-        "commandproc":  "1.4.2"
+        "commandproc":  "1.4.3"
     },
     "enable": {
         "nmea0183":     true,
@@ -10,7 +10,8 @@
         "sdmmc":        false,
         "udpbridge":    false,
         "webserver":    true,
-        "upload":       false
+        "upload":       false,
+        "uploadDropbox": false
     },
     "wifi": {
         "mode":         "AP",
@@ -42,6 +43,8 @@
         "port": 8000,
         "timeout": 5.0,
         "interval": 1800.0,
-        "duration": 10.0
+        "duration": 10.0,
+        "dropboxPath": "",
+        "dropboxToken": ""
     }
 }

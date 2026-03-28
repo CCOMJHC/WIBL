@@ -38,7 +38,7 @@ namespace logger {
 // Firmware software version (i.e., overall firmware, rather than components like Command Processor, etc.)
 const int firmware_major = 1;
 const int firmware_minor = 6;
-const int firmware_patch = 1;
+const int firmware_patch = 2;
 
 /// @brief Stringify the version information for the firmware itself
 String FirmwareVersion(void);
@@ -115,7 +115,10 @@ class Config {
             CONFIG_UPLOAD_IGNORED_SSID3_S,/* String: ignored WiFi SSID 3 */
             CONFIG_UPLOAD_IGNORED_SSID4_S,/* String: ignored WiFi SSID 4 */
             CONFIG_UPLOAD_IGNORED_SSID5_S, /* String: ignored WiFi SSID 5 */
-            CONFIG_MDNS_NAME_S      /* String: recognition name for mDNS responder (hostname: name.local) */
+            CONFIG_MDNS_NAME_S,      /* String: recognition name for mDNS responder (hostname: name.local) */
+            CONFIG_UPLOAD_DROPBOX_B, /* Binary: upload log files to Dropbox when online */
+            CONFIG_DROPBOX_PATH_S,  /* String: Dropbox folder path (e.g. /Apps/MyApp) */
+            CONFIG_DROPBOX_TOKEN_S   /* String: Dropbox OAuth2 access token */
         };
 
         /// \brief Extract a configuration string for the specified parameter

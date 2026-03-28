@@ -7,7 +7,7 @@
 <html>
     <header class="primary-header">
         <a href="../index.htm">
-            <img src="../images/WIBL-Logo.gif" alt="The WIBL Project Logo" width="80" class="logo"/>
+            <img src="../images/WIBL-Logo.svg" alt="The WIBL Project Logo" width="80" height="32" class="logo"/>
         </a>
         <h1 class="title">Wireless Inexpensive Bathymetry Logger</h1>
     </header>
@@ -25,10 +25,24 @@
                 <textarea name="cert" id="cert-output" class="cert-output" rows="20" readonly placeholder="Upload Certificate"></textarea>
             </fieldset>
             <fieldset class="algorithms">
-                <legend>Reset Token</legend>
+                <legend>Cloud / custom server token</legend>
                 <label for="add-item">Token:</label>
                 <input style="width: 80%" type="text" name="add" id="add-item"/>
-                <button onclick="resetToken()">Add</button>
+                <button onclick="resetToken()">Set token</button>
+            </fieldset>
+            <fieldset class="algorithms">
+                <legend>Dropbox OAuth access token</legend>
+                <p id="dropbox-token-display"></p>
+                <label for="dropbox-token-input">Token (from Dropbox App Console):</label>
+                <input style="width: 80%" type="password" name="dropbox" id="dropbox-token-input" autocomplete="off" />
+                <button onclick="resetDropboxToken()">Set Dropbox token</button>
+                <button type="button" onclick="testDropboxUpload()">Test Dropbox upload</button>
+                <p id="dropbox-test-result" class="dropbox-test-result"></p>
+                <p><small>The test can take <strong>10&ndash;25 seconds</strong> from the browser while the logger frees WiFi heap before TLS.</small></p>
+                <p><small>Used with <em>Upload log files to Dropbox</em> on the configure page. Path must start with <code>/</code> (e.g. <code>/Apps/MyApp</code>).</small></p>
+                <p><small>If the test returns <code>invalid_access_token</code>, Dropbox does not recognize the string: regenerate under
+                    <strong>Settings → OAuth 2 → Generated access token</strong> (after <strong>Permissions → files.content.write</strong>).
+                    Paste the token alone—no <code>Bearer</code>, no quotes. Do not use the app secret or a refresh token here.</small></p>
             </fieldset>
             <fieldset style="margin-top: 20px; width: 95%">
                 <legend>Configure Certificate</legend>

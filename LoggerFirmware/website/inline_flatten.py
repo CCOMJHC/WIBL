@@ -29,6 +29,7 @@
 
 from bs4 import BeautifulSoup
 import re
+import shutil
 from typing import List
 import os
 
@@ -87,6 +88,14 @@ def convert_directory(indir: str, outdir: str) -> None:
         outname = os.path.join(outdir, target)
         print(f'Converting {target} to {outname} ...')
         convert_file(target, outname)
+    imdir = os.path.join(indir, "images")
+    if os.path.isdir(imdir):
+        dest = os.path.join(outdir, "images")
+        os.makedirs(outdir, exist_ok=True)
+        if os.path.isdir(dest):
+            shutil.rmtree(dest)
+        shutil.copytree(imdir, dest)
+        print(f"Copied {imdir} -> {dest}")
 
 if __name__ == "__main__":
     convert_directory(".", "../data/website")

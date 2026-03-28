@@ -32,6 +32,14 @@
 #include "SPIFFS.h"
 #include "LittleFS.h"
 
+static void log_littlefs_write_failure(char const *ctx, char const *key)
+{
+    size_t total = LittleFS.totalBytes();
+    size_t used = LittleFS.usedBytes();
+    Serial.printf("ERR: %s |%s| failed (LittleFS free ~%u B of %u B)\n",
+                  ctx, key, (unsigned)(total - used), (unsigned)total);
+}
+
 /// \class SPIFSParamStore
 /// \brief Implement a key-value pair object in flash storage on the SPIFFS module in the ESP32
 class SPIFSParamStore : public ParamStore {
@@ -144,7 +152,7 @@ private:
     {
         fs::File f = LittleFS.open(String("/") + key + ".par", FILE_WRITE, true);
         if (!f) {
-            Serial.printf("ERR: failed to write config key |%s| to filesystem.\n", key.c_str());
+            log_littlefs_write_failure("failed to write config key", key.c_str());
             return false;
         }
         f.print(value);
@@ -164,8 +172,8 @@ private:
     {
         String filename(String("/") + key + ".par");
         if (!LittleFS.exists(filename)) {
-            File f = LittleFS.open(filename, FILE_WRITE, true);
-            f.close();
+            value = "";
+            return true;
         }
         fs::File f = LittleFS.open(filename, FILE_READ);
         if (!f) {

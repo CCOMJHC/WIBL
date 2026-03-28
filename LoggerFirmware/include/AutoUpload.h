@@ -28,6 +28,7 @@
  */
 
 #ifndef __AUTO_UPLOAD_H__
+#define __AUTO_UPLOAD_H__
 
 #include "LogManager.h"
 #include "Configuration.h"
@@ -51,10 +52,22 @@ private:
     
     unsigned long   m_lastUploadCycle;  ///< Timestamp for the last upload cycle (ms)
 
+    bool            m_modeDropbox;      ///< Use Dropbox API instead of custom HTTPS server
+    String          m_dropboxPath;      ///< Folder path on Dropbox (POSIX, leading /)
+    String          m_dropboxToken;     ///< Dropbox OAuth2 bearer token
+
     bool ReportStatus(void);
     bool TransferFile(fs::FS& controller, uint32_t file_id);
+    void DropboxUploadCycle(void);
+    bool TransferFileDropbox(fs::FS& controller, uint32_t file_id);
     
 };
+
+/// In-memory test upload to Dropbox (path + token from config). Does not require auto-upload to be enabled.
+bool TestDropboxUpload(String *detail_message = nullptr);
+
+/// Normalize Dropbox access token from NVM/web (trim, UTF-8 BOM, embedded newlines) so it matches a compile-time token string.
+void NormaliseDropboxAccessToken(String *token);
 
 }
 

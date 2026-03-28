@@ -28,6 +28,7 @@
 
 #include <Arduino.h>
 #include "Configuration.h"
+#include "AutoUpload.h"
 #include "ArduinoJson.h"
 #include "N0183Logger.h"
 #include "N2kLogger.h"
@@ -102,7 +103,10 @@ const String lookup[] = {
     "UploadIgnoredSsid3", ///< WiFi SSID 3 to ignore for upload
     "UploadIgnoredSsid4", ///< WiFi SSID 4 to ignore for upload
     "UploadIgnoredSsid5", ///< WiFi SSID 5 to ignore for upload
-    "mDNSName"
+    "mDNSName",
+    "UploadDropbox",   ///< Upload log files to Dropbox (binary)
+    "DropboxPath",     ///< Dropbox destination path (string)
+    "DropboxToken"     ///< Dropbox OAuth2 access token (string)
 };
 
 /// Default constructor.  This sets up for a dummy parameter store, which is configured
@@ -212,7 +216,7 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
 {
     using namespace ArduinoJson;
     // Match SetConfig buffer: extended WiFi + upload preset fields need headroom.
-    DynamicJsonDocument params(2048);
+    DynamicJsonDocument params(4096);
     params["version"]["firmware"] = FirmwareVersion();
     params["version"]["commandproc"] = SerialCommand::SoftwareVersion();
     params["version"]["nmea0183"] = nmea::N0183::Logger::SoftwareVersion();
@@ -222,7 +226,7 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
 
     // Enable/disable for the various loggers and features
     bool nmea0183_enable, nmea2000_enable, imu_enable, powmon_enable, sdmmc_enable,
-         udp_bridge_enable, webserver_on_boot, upload_online, wifi_openconnect;
+         udp_bridge_enable, webserver_on_boot, upload_online, upload_dropbox, wifi_openconnect;
     LoggerConfig.GetConfigBinary(Config::CONFIG_NMEA0183_B, nmea0183_enable);
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_NMEA2000_B, nmea2000_enable);
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_MOTION_B, imu_enable);
@@ -231,6 +235,7 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_BRIDGE_B, udp_bridge_enable);
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_WEBSERVER_B, webserver_on_boot);
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_UPLOAD_B, upload_online);
+    LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_UPLOAD_DROPBOX_B, upload_dropbox);
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_WIFI_OPENCONNECT_B, wifi_openconnect);
     params["enable"]["nmea0183"] = nmea0183_enable;
     params["enable"]["nmea2000"] = nmea2000_enable;
@@ -240,6 +245,7 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     params["enable"]["udpbridge"] = udp_bridge_enable;
     params["enable"]["webserver"] = webserver_on_boot;
     params["enable"]["upload"] = upload_online;
+    params["enable"]["uploadDropbox"] = upload_dropbox;
 
     // String configurations for the various parameters in configuration
     String wifi_station_delay, wifi_station_retries, wifi_station_timeout, wifi_ip_address, wifi_mode, wifi_status;
@@ -329,6 +335,14 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     params["upload"]["ignoredWifiSsid4"] = ignored_wifi_ssid4;
     params["upload"]["ignoredWifiSsid5"] = ignored_wifi_ssid5;
 
+    String dropbox_path, dropbox_token;
+    LoggerConfig.GetConfigString(Config::CONFIG_DROPBOX_PATH_S, dropbox_path);
+    LoggerConfig.GetConfigString(Config::CONFIG_DROPBOX_TOKEN_S, dropbox_token);
+    params["upload"]["dropboxPath"] = dropbox_path;
+    if (!secure) {
+        params["upload"]["dropboxToken"] = dropbox_token;
+    }
+
     return params;
 }
 
@@ -344,8 +358,8 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
 
 bool ConfigJSON::SetConfig(String const& json_string)
 {
-    // SSIDs, passwords, and upload fields can make the payload large.
-    DynamicJsonDocument params(2048);
+    // SSIDs, passwords, upload fields, and Dropbox tokens can make the payload large.
+    DynamicJsonDocument params(4096);
     if (deserializeJson(params, json_string) != DeserializationError::Ok)
         return false;
 
@@ -370,6 +384,8 @@ bool ConfigJSON::SetConfig(String const& json_string)
                 LoggerConfig.SetConfigBinary(Config::CONFIG_WEBSERVER_B, params["enable"]["webserver"].as<bool>());
             if (params["enable"].containsKey("upload"))
                 LoggerConfig.SetConfigBinary(Config::CONFIG_UPLOAD_B, params["enable"]["upload"].as<bool>());
+            if (params["enable"].containsKey("uploadDropbox"))
+                LoggerConfig.SetConfigBinary(Config::CONFIG_UPLOAD_DROPBOX_B, params["enable"]["uploadDropbox"].as<bool>());
         }
         if (params.containsKey("wifi")) {
             if (params["wifi"].containsKey("mode"))
@@ -452,6 +468,17 @@ bool ConfigJSON::SetConfig(String const& json_string)
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_IGNORED_SSID4_S, params["upload"]["ignoredWifiSsid4"].as<String>());
             if (params["upload"].containsKey("ignoredWifiSsid5"))
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_IGNORED_SSID5_S, params["upload"]["ignoredWifiSsid5"].as<String>());
+            if (params["upload"].containsKey("dropboxPath")) {
+                String p = params["upload"]["dropboxPath"].as<String>();
+                p.trim();
+                LoggerConfig.SetConfigString(Config::CONFIG_DROPBOX_PATH_S, p);
+            }
+            if (params["upload"].containsKey("dropboxToken")) {
+                String t = params["upload"]["dropboxToken"].as<String>();
+                t.trim();
+                net::NormaliseDropboxAccessToken(&t);
+                LoggerConfig.SetConfigString(Config::CONFIG_DROPBOX_TOKEN_S, t);
+            }
         }
     } else {
         return false;
@@ -459,7 +486,7 @@ bool ConfigJSON::SetConfig(String const& json_string)
     return true;
 }
 
-static const char *stable_config = "{\"version\": {\"commandproc\": \"1.4.2\"}, \"enable\": {\"nmea0183\": true, \"nmea2000\": true, \"imu\": false, \"powermonitor\": false, \"sdmmc\": false, \"udpbridge\": false, \"webserver\": true, \"upload\": false}, \"wifi\": {\"mode\": \"AP\", \"openconnect\": false, \"address\": \"192.168.4.1\", \"station\": {\"delay\": 20, \"retries\": 5, \"timeout\": 5, \"mdns\": \"wibl\"}, \"ssids\": {\"ap\": \"wibl-config\", \"station\": \"wibl-logger\"}, \"passwords\": {\"ap\": \"wibl-config-password\", \"station\": \"wibl-logger-password\"}}, \"uniqueID\": \"TNODEID\", \"shipname\": \"Anonymous\", \"baudrate\": {\"port1\": 4800, \"port2\": 4800}, \"udpbridge\": 12345, \"upload\": {\"server\": \"192.168.4.2\", \"port\": 80, \"timeout\": 5.0, \"interval\": 1800.0, \"duration\": 10.0, \"wifiSsid1\": \"\", \"wifiSsid2\": \"\", \"wifiSsid3\": \"\", \"wifiSsid4\": \"\", \"wifiSsid5\": \"\", \"wifiPass1\": \"\", \"wifiPass2\": \"\", \"wifiPass3\": \"\", \"wifiPass4\": \"\", \"wifiPass5\": \"\", \"ignoredWifiSsid1\": \"\", \"ignoredWifiSsid2\": \"\", \"ignoredWifiSsid3\": \"\", \"ignoredWifiSsid4\": \"\", \"ignoredWifiSsid5\": \"\"}}";
+static const char *stable_config = "{\"version\": {\"commandproc\": \"1.4.3\"}, \"enable\": {\"nmea0183\": true, \"nmea2000\": true, \"imu\": false, \"powermonitor\": false, \"sdmmc\": false, \"udpbridge\": false, \"webserver\": true, \"upload\": false, \"uploadDropbox\": false}, \"wifi\": {\"mode\": \"AP\", \"openconnect\": false, \"address\": \"192.168.4.1\", \"station\": {\"delay\": 20, \"retries\": 5, \"timeout\": 5, \"mdns\": \"wibl\"}, \"ssids\": {\"ap\": \"wibl-config\", \"station\": \"wibl-logger\"}, \"passwords\": {\"ap\": \"wibl-config-password\", \"station\": \"wibl-logger-password\"}}, \"uniqueID\": \"TNODEID\", \"shipname\": \"Anonymous\", \"baudrate\": {\"port1\": 4800, \"port2\": 4800}, \"udpbridge\": 12345, \"upload\": {\"server\": \"192.168.4.2\", \"port\": 80, \"timeout\": 5.0, \"interval\": 1800.0, \"duration\": 10.0, \"wifiSsid1\": \"\", \"wifiSsid2\": \"\", \"wifiSsid3\": \"\", \"wifiSsid4\": \"\", \"wifiSsid5\": \"\", \"wifiPass1\": \"\", \"wifiPass2\": \"\", \"wifiPass3\": \"\", \"wifiPass4\": \"\", \"wifiPass5\": \"\", \"ignoredWifiSsid1\": \"\", \"ignoredWifiSsid2\": \"\", \"ignoredWifiSsid3\": \"\", \"ignoredWifiSsid4\": \"\", \"ignoredWifiSsid5\": \"\", \"dropboxPath\": \"\", \"dropboxToken\": \"\"}}";
 
 bool ConfigJSON::SetStableConfig(void)
 {

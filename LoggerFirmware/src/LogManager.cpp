@@ -402,6 +402,11 @@ Manager::Manager(StatusLED *led, mem::MemController *storage)
 : m_storage(storage), m_led(led), m_inventory(nullptr), m_noDataAlgEmitted(false)
 {
 #if defined(ARDUINO_ARCH_ESP32) || defined(ESP32)
+    // Web server may serve /logs and inventory walks this directory before StartNewLog()
+    // creates it; ensure the folder exists as soon as the log manager owns storage.
+    if (!m_storage->Controller().exists("/logs")) {
+        m_storage->Controller().mkdir("/logs");
+    }
     m_consoleLog = m_storage->Controller().open("/console.log", FILE_APPEND);
 #else
     m_consoleLog = m_storage->Controller().open("/console.log", FILE_WRITE);
@@ -821,7 +826,13 @@ void Manager::TransferLogFile(uint32_t file_num, MD5Hash const& filehash, Stream
 uint32_t Manager::count(uint32_t *filenumbers)
 {
     uint32_t file_count = 0;
+    if (!m_storage->Controller().exists("/logs")) {
+        m_storage->Controller().mkdir("/logs");
+    }
     File logdir = m_storage->Controller().open("/logs");
+    if (!logdir) {
+        return 0;
+    }
     File entry = logdir.openNextFile();
 
     while (entry) {

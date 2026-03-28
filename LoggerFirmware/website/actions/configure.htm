@@ -8,7 +8,7 @@
 <body>
     <header class="primary-header">
         <a href="../index.htm">
-            <img src="../images/WIBL-Logo.gif" alt="The WIBL Project Logo" width="80" class="logo" />
+            <img src="../images/WIBL-Logo.svg" alt="The WIBL Project Logo" width="80" height="32" class="logo" />
         </a>
         <h1 class="title">Wireless Inexpensive Bathymetry Logger</h1>
     </header>
@@ -115,6 +115,14 @@
                     <br />
                     <label for="upload-duration">Upload Duration (s)</label>
                     <input type="number" name="duration" id="upload-duration" />
+                    <br />
+                    <input type="checkbox" name="uploaddropbox" id="upload-dropbox" value="on" />
+                    <label for="upload-dropbox">Upload log files to Dropbox (requires token on Authentication page)</label>
+                    <br />
+                    <label for="upload-dropbox-path">Dropbox folder path</label>
+                    <input type="text" name="dropboxpath" id="upload-dropbox-path" placeholder="/Apps/MyApp" />
+                    <br />
+                    <small>OAuth access token is set under <a href="auth.htm">Upload Authentication Management</a>. When Dropbox is enabled, the custom HTTPS server upload is skipped.</small>
                     <br />
                 </fieldset>
             </div>

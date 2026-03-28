@@ -93,6 +93,7 @@ private:
     logger::IncBuffer   m_serialBuffer; ///< Space to assemble serial commands that doesn't block runtime
     bool                m_echoOn;       ///< Flag: indicate that characters from serial should be echoed back
     bool                m_passThrough;  ///< Flag: indicate that strings should be passed through to NMEA0183 transmit
+    uint8_t             m_wirelessDropboxDeferCount; ///< >0: count down main-loop ticks before running Dropbox TLS (web POST + X509 peak RAM)
 
     /// \brief Print the console log on the output stream(s)
     void ReportConsoleLog(CommandSource src);
@@ -188,6 +189,8 @@ private:
     void ReportUploadConfig(CommandSource src);
     /// @brief Set the auto-upload configuration status
     void ConfigureUpload(String const& command, CommandSource src);
+    /// @brief POST a small test file to Dropbox (token + path must be configured; WiFi Station + internet)
+    void TestDropboxUploadCmd(CommandSource src);
     /// \brief Check for commands, and execute them if found
     void Execute(String const& command, CommandSource src);
     

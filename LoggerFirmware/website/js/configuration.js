@@ -31,7 +31,7 @@ function generateUniqueID() {
 
 // Use the command processor version reported by the device config.
 // This avoids SetConfig/lab defaults rejection when firmware version changes.
-let commandProcVersion = "1.4.2";
+let commandProcVersion = "1.4.3";
 
 /** Escape string for use inside a JSON double-quoted value (backslash and quote). */
 function escapeJsonString(s) {
@@ -53,6 +53,7 @@ function createJSONConfig() {
     const udpbr_en = document.getElementById("nmeabridge").checked ? true : false;
     const webserver_en = document.getElementById("webserveronboot").checked ? true : false;
     const upload_en = document.getElementById("autoupload").checked ? true : false;
+    const upload_dropbox_en = document.getElementById("upload-dropbox").checked ? true : false;
     const openWifiConnect_en = document.getElementById("open-wifi-connect").checked ? true : false;
     const wifiMode = document.getElementById("wifimode").value;
     const stationDelay = document.getElementById("retry-delay").value;
@@ -68,6 +69,7 @@ function createJSONConfig() {
     const uploadTimeout = document.getElementById("upload-timeout").value;
     const uploadInterval = document.getElementById("upload-interval").value;
     const uploadDuration = document.getElementById("upload-duration").value;
+    const dropboxPath = document.getElementById("upload-dropbox-path").value;
     const port1BaudRate = document.getElementById("port1-baud").value;
     const port2BaudRate = document.getElementById("port2-baud").value;
     const wifiSsid1 = document.getElementById("wifi-ssid1").value;
@@ -100,7 +102,8 @@ function createJSONConfig() {
             "sdmmc": ${sdmmc_en},
             "udpbridge": ${udpbr_en},
             "webserver": ${webserver_en},
-            "upload": ${upload_en}
+            "upload": ${upload_en},
+            "uploadDropbox": ${upload_dropbox_en}
         },
         "wifi": {
             "mode": "${escapeJsonString(wifiMode)}",
@@ -130,6 +133,7 @@ function createJSONConfig() {
             "timeout": "${escapeJsonString(uploadTimeout)}",
             "interval": "${escapeJsonString(uploadInterval)}",
             "duration": "${escapeJsonString(uploadDuration)}",
+            "dropboxPath": "${escapeJsonString(dropboxPath)}",
             "wifiSsid1": "${escapeJsonString(wifiSsid1)}",
             "wifiSsid2": "${escapeJsonString(wifiSsid2)}",
             "wifiSsid3": "${escapeJsonString(wifiSsid3)}",
@@ -168,6 +172,7 @@ function parseConfigJSON(config) {
     document.getElementById("nmeabridge").checked = config.enable.udpbridge;
     document.getElementById("webserveronboot").checked = config.enable.webserver;
     document.getElementById("autoupload").checked = config.enable.upload;
+    document.getElementById("upload-dropbox").checked = config.enable.uploadDropbox || false;
     document.getElementById("unique-id").value = config.uniqueID;
     document.getElementById("ship-name").value = config.shipname;
     document.getElementById("bridge-port").value = config.udpbridge;
@@ -194,6 +199,8 @@ function parseConfigJSON(config) {
     document.getElementById("upload-timeout").value = config.upload.timeout;
     document.getElementById("upload-interval").value = config.upload.interval;
     document.getElementById("upload-duration").value = config.upload.duration;
+    document.getElementById("upload-dropbox-path").value =
+        (config.upload && typeof config.upload.dropboxPath === "string") ? config.upload.dropboxPath : "";
     if (config.upload) {
         document.getElementById("wifi-ssid1").value = config.upload.wifiSsid1 || "";
         document.getElementById("wifi-ssid2").value = config.upload.wifiSsid2 || "";

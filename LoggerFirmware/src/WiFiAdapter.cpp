@@ -677,8 +677,13 @@ private:
             m_server->on("/setup", HTTPMethod::HTTP_POST, std::bind(&ESP32WiFiAdapter::handleSetup, this));
             m_server->on("/labdefaults", HTTPMethod::HTTP_POST, std::bind(&ESP32WiFiAdapter::handleLabDefaults, this));
             m_server->on("/archive", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::transferLogs, this));
-            m_server->serveStatic("/logs", m_storage->Controller(), "/logs/");
-            m_server->serveStatic("/", LittleFS, "/website/"); // Note trailing '/' since this is a directory being served.
+            if (!m_storage->Controller().exists("/logs")) {
+                m_storage->Controller().mkdir("/logs");
+            }
+            // Use "/logs" not "/logs/" for the FS root: StaticRequestHandler ctor opens this path;
+            // a trailing slash on SD/FAT can trigger spurious VFS create errors on some ESP-IDF builds.
+            m_server->serveStatic("/logs", m_storage->Controller(), "/logs");
+            m_server->serveStatic("/", LittleFS, "/website/");
         }
         //m_state.Verbose(true);
         m_state.Start();

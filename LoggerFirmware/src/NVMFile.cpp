@@ -26,6 +26,7 @@
 
 #include <set>
 #include "NVMFile.h"
+#include "FS.h"
 #include "LittleFS.h"
 #include "LogManager.h"
 #include "serialisation.h"
@@ -46,10 +47,17 @@ NVMFile::NVMFile(String const& filename)
 : m_backingStore(filename), m_changed(false)
 {
     if (!LittleFS.exists(filename)) {
-        File f = LittleFS.open(filename, "w", true);
-        f.close();
+        File nf = LittleFS.open(filename, FILE_WRITE, true);
+        if (nf) {
+            nf.close();
+        } else {
+            Serial.printf("ERR: NVMFile could not create |%s| (LittleFS free ~%u B of %u B)\n",
+                          filename.c_str(),
+                          (unsigned)(LittleFS.totalBytes() - LittleFS.usedBytes()),
+                          (unsigned)LittleFS.totalBytes());
+        }
     }
-    File f = LittleFS.open(filename.c_str(), "r"); // Create if it doesn't already exist
+    File f = LittleFS.open(filename, FILE_READ);
     if (!f) {
         Serial.printf("ERR: failed to open \"%s\" for NVM file read.\n", filename.c_str());
         m_backingStore = "";
@@ -76,9 +84,11 @@ NVMFile::~NVMFile(void)
 {
     if (Valid()) {
         if (m_changed) {
-            File f = LittleFS.open(m_backingStore.c_str(), "w", true);
+            File f = LittleFS.open(m_backingStore, FILE_WRITE, true);
             if (!f) {
-                Serial.printf("ERR: failed to open |%s| for NVM file write.\n", m_backingStore.c_str());
+                Serial.printf("ERR: failed to open |%s| for NVM file write (LittleFS free ~%u B).\n",
+                              m_backingStore.c_str(),
+                              (unsigned)(LittleFS.totalBytes() - LittleFS.usedBytes()));
                 return;
             }
             //Serial.printf("DBG: ~NVMFile() writing |%s| to |%s|.\n", m_contents.c_str(), m_backingStore.c_str());

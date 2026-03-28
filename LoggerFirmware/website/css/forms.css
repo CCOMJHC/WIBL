@@ -165,3 +165,11 @@ fieldset.algorithms {
     border-width: 1px;
     width: 100%;
 }
+
+.dropbox-test-result {
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 100%;
+    margin-top: 0.5em;
+    font-size: 14px;
+}
