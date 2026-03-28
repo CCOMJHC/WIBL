@@ -39,37 +39,48 @@
 #include "AutoUpload.h"
 #include "Configuration.h"
 #include "Status.h"
+#include "WiFiAdapter.h"
+
+#include <cstdio>
+#include <cstring>
 
 namespace {
 
-/// Claim and release the largest internal free block so it is one contiguous run (helps mbedTLS peak).
-void ConsolidateLargestInternalBlock(void)
-{
-    size_t const n = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
-    if (n > 4096u) {
-        void *const p = heap_caps_malloc(n, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
-        if (p != nullptr) {
-            heap_caps_free(p);
+struct ScopePauseWebForTls {
+    WiFiAdapter *m_w;
+    explicit ScopePauseWebForTls(WiFiAdapter *w) : m_w(w)
+    {
+        if (m_w != nullptr) {
+            m_w->PauseConfigWebServerDuringTls();
         }
     }
+    ~ScopePauseWebForTls()
+    {
+        if (m_w != nullptr) {
+            m_w->ResumeConfigWebServerAfterTls();
+        }
+    }
+};
+
+void LogDropboxRequestMeta(char const *ctx, size_t payload_bytes, bool body_in_arduino_string, size_t content_length,
+                           int custom_header_count)
+{
+    Serial.printf("DBG: DropboxTLS req |%s| payload_bytes=%u body_in_String=%d content_length=%u custom_headers=%d\n",
+                  ctx,
+                  static_cast<unsigned>(payload_bytes),
+                  body_in_arduino_string ? 1 : 0,
+                  static_cast<unsigned>(content_length),
+                  custom_header_count);
 }
 
-/// Idle long enough for lwIP/WebServer to release buffers; consolidate heap before/after.
+/// Tiny scheduler nudge before outbound TLS (heap prep delays/nudge removed — they did not help peak RAM).
 void PrepareInternalHeapForTls(void)
 {
-    ConsolidateLargestInternalBlock();
-    for (int n = 0; n < 20; ++n) {
-        yield();
-        delay(25);
-    }
-    ConsolidateLargestInternalBlock();
-    for (int n = 0; n < 15; ++n) {
-        yield();
-        delay(25);
-    }
+    yield();
+    yield();
 }
 
-/// When HTTPClient returns a negative code, mbedTLS/WiFi errors are in WiFiClientSecure; read before http.end().
+/// When TLS fails, mbedTLS/WiFi errors are in WiFiClientSecure.
 void AppendTlsFailureDetail(String *detail, WiFiClientSecure &client)
 {
     if (detail == nullptr) {
@@ -91,25 +102,236 @@ void AppendTlsFailureDetail(String *detail, WiFiClientSecure &client)
     }
 }
 
-/// Same shape as working Arduino sample: {"path":"...","mode":"...","autorename":false,"mute":false,"strict_conflict":false}
-String MakeDropboxFilesUploadApiArg(String const& dropboxPath, char const *mode)
+/// Same shape as Dropbox files/upload API: {"path":"...","mode":"...","autorename":false,...} into a fixed buffer.
+bool FormatDropboxApiArgJson(String const& dropboxPath, char const *mode, char *out, size_t cap)
 {
-    String pathEscaped;
-    pathEscaped.reserve(dropboxPath.length() + 4U);
+    if (cap < 48U || mode == nullptr) {
+        return false;
+    }
+    size_t o = 0;
+    auto append_c = [&](char c) -> bool {
+        if (o + 1U >= cap) {
+            return false;
+        }
+        out[o++] = c;
+        return true;
+    };
+    auto append_raw = [&](char const *s) -> bool {
+        for (; *s != '\0'; ++s) {
+            if (!append_c(*s)) {
+                return false;
+            }
+        }
+        return true;
+    };
+    if (!append_raw("{\"path\":\"")) {
+        return false;
+    }
     for (unsigned i = 0; i < dropboxPath.length(); ++i) {
         char c = dropboxPath.charAt(i);
         if (c == '\\' || c == '"') {
-            pathEscaped += '\\';
+            if (!append_c('\\')) {
+                return false;
+            }
         }
-        pathEscaped += c;
+        if (!append_c(c)) {
+            return false;
+        }
     }
-    return String("{\"path\":\"") + pathEscaped + "\",\"mode\":\"" + mode +
-           "\",\"autorename\":false,\"mute\":false,\"strict_conflict\":false}";
+    if (!append_raw("\",\"mode\":\"")) {
+        return false;
+    }
+    for (char const *m = mode; *m != '\0'; ++m) {
+        if (!append_c(*m)) {
+            return false;
+        }
+    }
+    if (!append_raw("\",\"autorename\":false,\"mute\":false,\"strict_conflict\":false}")) {
+        return false;
+    }
+    out[o] = '\0';
+    return true;
+}
+
+static bool WriteAll(WiFiClient &c, uint8_t const *data, size_t len)
+{
+    size_t w = 0;
+    while (w < len) {
+        size_t const remain = len - w;
+        size_t const n = c.write(data + w, remain);
+        if (n == 0U) {
+            return false;
+        }
+        w += n;
+        yield();
+    }
+    return true;
+}
+
+static bool ReadLineWiFiClient(WiFiClient &c, char *buf, size_t cap, unsigned long deadline_ms)
+{
+    size_t n = 0;
+    while (n + 1U < cap) {
+        if (!c.connected() && c.available() == 0) {
+            break;
+        }
+        while (c.available() == 0) {
+            if (millis() > deadline_ms) {
+                return false;
+            }
+            if (!c.connected()) {
+                buf[n] = '\0';
+                return n > 0;
+            }
+            yield();
+        }
+        int ch = c.read();
+        if (ch < 0) {
+            break;
+        }
+        if (ch == '\n') {
+            buf[n] = '\0';
+            if (n > 0 && buf[n - 1U] == '\r') {
+                buf[n - 1U] = '\0';
+            }
+            return true;
+        }
+        buf[n++] = static_cast<char>(ch);
+    }
+    buf[n] = '\0';
+    return n > 0;
+}
+
+static int ParseHttpStatusCode(char const *line)
+{
+    char const *p = strstr(line, "HTTP/");
+    if (p == nullptr) {
+        return -1;
+    }
+    p = strchr(p, ' ');
+    if (p == nullptr) {
+        return -1;
+    }
+    return atoi(p + 1);
+}
+
+static int DropboxReadHttpStatusAndSnippet(WiFiClient &c, unsigned long deadline_ms, char *snippet, size_t snippet_cap)
+{
+    char line[144];
+    if (!ReadLineWiFiClient(c, line, sizeof(line), deadline_ms)) {
+        return -2;
+    }
+    int const code = ParseHttpStatusCode(line);
+    for (;;) {
+        if (!ReadLineWiFiClient(c, line, sizeof(line), deadline_ms)) {
+            break;
+        }
+        if (line[0] == '\0') {
+            break;
+        }
+    }
+    size_t sn = 0;
+    while (sn + 1U < snippet_cap) {
+        if (millis() > deadline_ms) {
+            break;
+        }
+        if (c.available() == 0) {
+            if (!c.connected()) {
+                break;
+            }
+            yield();
+            continue;
+        }
+        int const ch = c.read();
+        if (ch < 0) {
+            break;
+        }
+        snippet[sn++] = static_cast<char>(ch);
+    }
+    snippet[sn] = '\0';
+    return code;
+}
+
+static bool DropboxSendContentUploadHeadersAndMemBody(WiFiClientSecure &c, char const *token, char const *api_arg_json,
+                                                      uint8_t const *body, size_t body_len)
+{
+    char head[1856];
+    int const hn = snprintf(head, sizeof(head),
+                            "POST /2/files/upload HTTP/1.1\r\n"
+                            "Host: content.dropboxapi.com\r\n"
+                            "User-Agent: WIBL\r\n"
+                            "Authorization: Bearer %s\r\n"
+                            "Content-Type: application/octet-stream\r\n"
+                            "Dropbox-API-Arg: %s\r\n"
+                            "Content-Length: %lu\r\n"
+                            "Connection: close\r\n"
+                            "\r\n",
+                            token, api_arg_json, static_cast<unsigned long>(body_len));
+    if (hn <= 0 || static_cast<size_t>(hn) >= sizeof(head)) {
+        return false;
+    }
+    if (!WriteAll(c, reinterpret_cast<uint8_t const *>(head), static_cast<size_t>(hn))) {
+        return false;
+    }
+    return WriteAll(c, body, body_len);
+}
+
+static bool DropboxSendContentUploadHeadersOnly(WiFiClientSecure &c, char const *token, char const *api_arg_json,
+                                                size_t content_length)
+{
+    char head[1856];
+    int const hn = snprintf(head, sizeof(head),
+                            "POST /2/files/upload HTTP/1.1\r\n"
+                            "Host: content.dropboxapi.com\r\n"
+                            "User-Agent: WIBL\r\n"
+                            "Authorization: Bearer %s\r\n"
+                            "Content-Type: application/octet-stream\r\n"
+                            "Dropbox-API-Arg: %s\r\n"
+                            "Content-Length: %lu\r\n"
+                            "Connection: close\r\n"
+                            "\r\n",
+                            token, api_arg_json, static_cast<unsigned long>(content_length));
+    if (hn <= 0 || static_cast<size_t>(hn) >= sizeof(head)) {
+        return false;
+    }
+    return WriteAll(c, reinterpret_cast<uint8_t const *>(head), static_cast<size_t>(hn));
+}
+
+static bool DropboxStreamFileBody(WiFiClientSecure &c, File &f, size_t total_len)
+{
+    constexpr size_t kChunk = 1024;
+    uint8_t buf[kChunk];
+    size_t left = total_len;
+    while (left > 0U) {
+        size_t const chunk = left > kChunk ? kChunk : left;
+        size_t const br = f.read(buf, chunk);
+        if (br != chunk) {
+            return false;
+        }
+        if (!WriteAll(c, buf, br)) {
+            return false;
+        }
+        left -= br;
+    }
+    return true;
 }
 
 } // namespace
 
 namespace net {
+
+void LogTlsInternalHeapCheckpoint(char const *tag)
+{
+    constexpr uint32_t caps = MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL;
+    size_t const internal_free = heap_caps_get_free_size(caps);
+    size_t const largest = heap_caps_get_largest_free_block(caps);
+    uint32_t const min_heap_watermark = ESP.getMinFreeHeap();
+    Serial.printf("DBG: DropboxTLS heap |%s| internal_free=%u largest_internal=%u min_heap_watermark=%u\n",
+                  tag,
+                  static_cast<unsigned>(internal_free),
+                  static_cast<unsigned>(largest),
+                  static_cast<unsigned>(min_heap_watermark));
+}
 
 void NormaliseDropboxAccessToken(String *token)
 {
@@ -139,8 +361,8 @@ void NormaliseDropboxAccessToken(String *token)
 }
 
 
-UploadManager::UploadManager(logger::Manager *logManager)
-: m_logManager(logManager), m_timeout(-1), m_lastUploadCycle(0), m_modeDropbox(false)
+UploadManager::UploadManager(logger::Manager *logManager, WiFiAdapter *wifi)
+: m_logManager(logManager), m_timeout(-1), m_lastUploadCycle(0), m_modeDropbox(false), m_wifiAdapter(wifi)
 {
     String server, port, upload_interval, upload_duration, timeout;
     logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_UPLOAD_SERVER_S, server);
@@ -432,34 +654,68 @@ bool UploadManager::TransferFileDropbox(fs::FS& controller, uint32_t file_id)
         dropbox_file += "/";
     dropbox_file += LogBasename(file_name);
 
-    String const argHeader = MakeDropboxFilesUploadApiArg(dropbox_file, "overwrite");
+    char apiArgBuf[512];
+    if (!FormatDropboxApiArgJson(dropbox_file, "overwrite", apiArgBuf, sizeof(apiArgBuf))) {
+        Serial.printf("ERR: Dropbox API path too long for buffer (|...%s|).\n", file_name.c_str());
+        f.close();
+        return false;
+    }
 
+    int32_t const effective_to = (m_timeout > 0 ? m_timeout : 15000);
+    uint32_t timeout_sec = static_cast<uint32_t>(effective_to / 1000);
+    if (timeout_sec == 0U) {
+        timeout_sec = 1U;
+    }
+    if (timeout_sec > 120U) {
+        timeout_sec = 120U;
+    }
+    unsigned long const deadline_ms = millis() + static_cast<unsigned long>(effective_to);
+
+    ScopePauseWebForTls pause(m_wifiAdapter);
     PrepareInternalHeapForTls();
     WiFiClientSecure client;
     client.setInsecure();
+    client.setTimeout(timeout_sec);
+    client.setHandshakeTimeout(static_cast<unsigned long>(effective_to));
 
-    HTTPClient http;
-    const char *uploadUrl = "https://content.dropboxapi.com/2/files/upload";
-    http.setConnectTimeout(m_timeout);
-    http.setTimeout(static_cast<uint16_t>(m_timeout));
     bool ok = false;
-    if (http.begin(client, uploadUrl)) {
-        http.addHeader("Authorization", String("Bearer ") + m_dropboxToken);
-        http.addHeader("Content-Type", "application/octet-stream");
-        http.addHeader("Dropbox-API-Arg", argHeader);
-        int code = http.sendRequest("POST", &f, sz);
+    char snippet[320];
+    snippet[0] = '\0';
+    int code = -1;
+
+    LogTlsInternalHeapCheckpoint("before TLS connect");
+    if (!client.connect("content.dropboxapi.com", 443)) {
+        LogTlsInternalHeapCheckpoint("after TLS connect fail");
+        LogDropboxRequestMeta("dropbox file upload", sz, false, sz, 0);
+        client.stop();
+        LogTlsInternalHeapCheckpoint("after client.stop");
+        f.close();
+        return false;
+    }
+    LogTlsInternalHeapCheckpoint("after TLS connect ok");
+    LogDropboxRequestMeta("dropbox file upload", sz, false, sz, 3);
+    LogTlsInternalHeapCheckpoint("before write request");
+    if (!DropboxSendContentUploadHeadersOnly(client, m_dropboxToken.c_str(), apiArgBuf, sz) ||
+        !DropboxStreamFileBody(client, f, sz)) {
+        LogTlsInternalHeapCheckpoint("after write fail");
+        code = -1;
+    } else {
+        LogTlsInternalHeapCheckpoint("after write body");
+        code = DropboxReadHttpStatusAndSnippet(client, deadline_ms, snippet, sizeof(snippet));
+        LogTlsInternalHeapCheckpoint("after response");
         if (code == 200) {
             ok = true;
         } else {
-            Serial.printf("DBG: Dropbox upload HTTP %d: %s\n", code, http.getString().c_str());
+            Serial.printf("DBG: Dropbox upload HTTP %d: %s\n", code, snippet);
         }
     }
-    http.end();
+    client.stop();
+    LogTlsInternalHeapCheckpoint("after client.stop");
     f.close();
     return ok;
 }
 
-bool TestDropboxUpload(String *detail_message)
+bool TestDropboxUpload(String *detail_message, WiFiAdapter *wifi)
 {
     using namespace logger;
 
@@ -500,59 +756,98 @@ bool TestDropboxUpload(String *detail_message)
     }
     remote += "wibl-dropbox-test.txt";
 
-    String payload = String("WIBL Dropbox connectivity test\nFirmware: ") + FirmwareVersion()
-        + "\nElapsed ms: " + String(millis()) + "\n";
-
-    String const argHeader = MakeDropboxFilesUploadApiArg(remote, "overwrite");
-
-    PrepareInternalHeapForTls();
-    WiFiClientSecure client;
-    client.setInsecure();
-
-    HTTPClient http;
-    const char *uploadUrl = "https://content.dropboxapi.com/2/files/upload";
-    http.setConnectTimeout(timeout_ms);
-    http.setTimeout(static_cast<uint16_t>(timeout_ms));
-    if (!http.begin(client, uploadUrl)) {
+    char apiArgBuf[512];
+    if (!FormatDropboxApiArgJson(remote, "overwrite", apiArgBuf, sizeof(apiArgBuf))) {
         if (detail_message) {
-            *detail_message = "HTTP client init failed";
+            *detail_message = "Dropbox folder path too long for API buffer.";
         }
         return false;
     }
-    http.addHeader("Authorization", String("Bearer ") + token);
-    http.addHeader("Content-Type", "application/octet-stream");
-    http.addHeader("Dropbox-API-Arg", argHeader);
 
-    int code =
-        http.sendRequest("POST", reinterpret_cast<uint8_t *>(const_cast<char *>(payload.c_str())), payload.length());
-    String resp = http.getString();
-    if (code < 0) {
-        Serial.printf("DBG: Dropbox test: free_heap=%u largest_internal_block=%u B (before end)\n",
-            static_cast<unsigned>(ESP.getFreeHeap()),
-            static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL)));
+    char bodyBuf[256];
+    String fw_ver = FirmwareVersion();
+    int const bl = snprintf(bodyBuf, sizeof(bodyBuf),
+                            "WIBL Dropbox connectivity test\nFirmware: %s\nElapsed ms: %lu\n",
+                            fw_ver.c_str(),
+                            static_cast<unsigned long>(millis()));
+    if (bl <= 0 || static_cast<size_t>(bl) >= sizeof(bodyBuf)) {
+        if (detail_message) {
+            *detail_message = "Internal error building test body.";
+        }
+        return false;
     }
-    if (detail_message) {
-        *detail_message = String("HTTP ") + String(code) + ": " + resp;
-        if (code < 0) {
+    size_t const content_len = static_cast<size_t>(bl);
+
+    uint32_t timeout_sec = static_cast<uint32_t>(timeout_ms / 1000);
+    if (timeout_sec == 0U) {
+        timeout_sec = 1U;
+    }
+    if (timeout_sec > 120U) {
+        timeout_sec = 120U;
+    }
+    unsigned long const deadline_ms = millis() + static_cast<unsigned long>(timeout_ms);
+
+    ScopePauseWebForTls pause(wifi);
+    PrepareInternalHeapForTls();
+    WiFiClientSecure client;
+    client.setInsecure();
+    client.setTimeout(timeout_sec);
+    client.setHandshakeTimeout(static_cast<unsigned long>(timeout_ms));
+
+    int code = -1;
+    char snippet[400];
+    snippet[0] = '\0';
+
+    LogTlsInternalHeapCheckpoint("before TLS connect");
+    if (!client.connect("content.dropboxapi.com", 443)) {
+        LogTlsInternalHeapCheckpoint("after TLS connect fail");
+        LogDropboxRequestMeta("dropbox test", content_len, false, content_len, 0);
+        if (detail_message) {
+            *detail_message = "TLS connect to content.dropboxapi.com failed";
             AppendTlsFailureDetail(detail_message, client);
-        } else if (code == 401) {
-            if (resp.indexOf("invalid_access_token") >= 0) {
-                *detail_message +=
-                    " Dropbox says invalid_access_token: the value on the logger is not a valid access token (wrong string, truncated, or expired). "
-                    "In Dropbox App Console: Permissions → enable files.content.write; Settings → Generated access token → Generate. "
-                    "Paste the token only (no Bearer prefix, no quotes). Set it again with auth dropbox or the web form.";
-            } else {
-                *detail_message += " Token rejected (401). Use an OAuth2 access token from the app (not app secret). "
-                                   "Enable scope files.content.write. https://www.dropbox.com/developers/apps";
+        }
+        client.stop();
+        LogTlsInternalHeapCheckpoint("after client.stop");
+        return false;
+    }
+    LogTlsInternalHeapCheckpoint("after TLS connect ok");
+    LogDropboxRequestMeta("dropbox test", content_len, false, content_len, 3);
+    LogTlsInternalHeapCheckpoint("before write request");
+    if (!DropboxSendContentUploadHeadersAndMemBody(client, token.c_str(), apiArgBuf,
+                                                   reinterpret_cast<uint8_t const *>(bodyBuf), content_len)) {
+        LogTlsInternalHeapCheckpoint("after write fail");
+        code = -1;
+        if (detail_message) {
+            *detail_message = "Write request or body failed";
+            AppendTlsFailureDetail(detail_message, client);
+        }
+    } else {
+        LogTlsInternalHeapCheckpoint("after write body");
+        code = DropboxReadHttpStatusAndSnippet(client, deadline_ms, snippet, sizeof(snippet));
+        LogTlsInternalHeapCheckpoint("after response");
+        if (detail_message) {
+            *detail_message = String("HTTP ") + String(code) + ": " + snippet;
+            if (code < 0) {
+                AppendTlsFailureDetail(detail_message, client);
+            } else if (code == 401) {
+                if (strstr(snippet, "invalid_access_token") != nullptr) {
+                    *detail_message +=
+                        " Dropbox says invalid_access_token: the value on the logger is not a valid access token (wrong string, truncated, or expired). "
+                        "In Dropbox App Console: Permissions → enable files.content.write; Settings → Generated access token → Generate. "
+                        "Paste the token only (no Bearer prefix, no quotes). Set it again with auth dropbox or the web form.";
+                } else {
+                    *detail_message += " Token rejected (401). Use an OAuth2 access token from the app (not app secret). "
+                                       "Enable scope files.content.write. https://www.dropbox.com/developers/apps";
+                }
             }
         }
     }
-    http.end();
+    client.stop();
+    LogTlsInternalHeapCheckpoint("after client.stop");
 
-    if (code == HTTP_CODE_OK) {
+    if (code == 200) {
         if (detail_message) {
-            *detail_message =
-                String("OK: uploaded ") + remote + " (" + String(payload.length()) + " bytes)";
+            *detail_message = String("OK: uploaded ") + remote + " (" + String(static_cast<unsigned>(content_len)) + " bytes)";
         }
         Serial.printf("INF: Dropbox test upload succeeded -> %s\n", remote.c_str());
         return true;
@@ -561,4 +856,4 @@ bool TestDropboxUpload(String *detail_message)
     return false;
 }
 
-};
+}

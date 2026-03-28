@@ -87,7 +87,12 @@ public:
     static WirelessMode GetWirelessMode(void);
 
     void RunLoop(void);
-    
+
+    /// Close the config HTTP listen socket temporarily to free RAM during outbound TLS (ESP32: no-op if no server).
+    virtual void PauseConfigWebServerDuringTls(void) {}
+    /// Pair with PauseConfigWebServerDuringTls after the TLS transaction completes.
+    virtual void ResumeConfigWebServerAfterTls(void) {}
+
 private:
     /// \brief Sub-class implementation of code to start the interface.
     virtual bool start(void) = 0;

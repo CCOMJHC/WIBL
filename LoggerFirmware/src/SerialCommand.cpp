@@ -88,7 +88,7 @@ SerialCommand::SerialCommand(nmea::N2000::Logger *CANLogger, nmea::N0183::Logger
             bool start_autoupload;
             logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_UPLOAD_B, start_autoupload);
             if (start_autoupload) {
-                m_uploadManager = new net::UploadManager(m_logManager);
+                m_uploadManager = new net::UploadManager(m_logManager, m_wifi);
                 Serial.printf("DBG: After UploadManager start, heap free = %d B, delta = %d B\n",
                     heap.CurrentSize(), heap.DeltaSinceLast());
             } else {
@@ -1530,7 +1530,8 @@ void SerialCommand::TestDropboxUploadCmd(CommandSource src)
     Serial.printf("DBG: Before dropbox test, free heap = %u B\n", static_cast<unsigned>(heap_before));
 
     String detail;
-    bool ok = net::TestDropboxUpload(&detail);
+    bool ok = net::TestDropboxUpload(&detail, m_wifi);
+    net::LogTlsInternalHeapCheckpoint("after TestDropboxUpload returns");
 
     uint32_t heap_after = ESP.getFreeHeap();
     int32_t const delta = static_cast<int32_t>(heap_after) - static_cast<int32_t>(heap_before);

@@ -561,10 +561,27 @@ public:
         delete m_storage; // Note that we're not stopping the interface, since it may still be required elsewhere
         delete m_messages;
     }
-    
+
+    void PauseConfigWebServerDuringTls(void) override
+    {
+        if (m_server != nullptr && !m_configWebTlsPaused) {
+            m_server->close();
+            m_configWebTlsPaused = true;
+        }
+    }
+
+    void ResumeConfigWebServerAfterTls(void) override
+    {
+        if (m_server != nullptr && m_configWebTlsPaused) {
+            m_server->begin();
+            m_configWebTlsPaused = false;
+        }
+    }
+
 private:
     mem::MemController  *m_storage;     ///< Pointer to the storage object to use
     ExtendedWebServer   *m_server;      ///< Pointer to the server object, if started.
+    bool                m_configWebTlsPaused = false;
     std::queue<String>  m_commands;     ///< Queue to handle commands sent by the user
     DynamicJsonDocument *m_messages;    ///< Accumulating message content to be send to the client
     HTTPReturnCodes     m_statusCode;   ///< Status code to return to the user with the transaction response
@@ -695,6 +712,7 @@ private:
     
     void stop(void)
     {
+        m_configWebTlsPaused = false;
         delete m_server;
         m_server = nullptr;
     }

@@ -33,11 +33,13 @@
 #include "LogManager.h"
 #include "Configuration.h"
 
+class WiFiAdapter;
+
 namespace net {
 
 class UploadManager {
 public:
-    UploadManager(logger::Manager *logManager);
+    UploadManager(logger::Manager *logManager, WiFiAdapter *wifi = nullptr);
     ~UploadManager();
 
     void UploadCycle(void);
@@ -55,6 +57,7 @@ private:
     bool            m_modeDropbox;      ///< Use Dropbox API instead of custom HTTPS server
     String          m_dropboxPath;      ///< Folder path on Dropbox (POSIX, leading /)
     String          m_dropboxToken;     ///< Dropbox OAuth2 bearer token
+    WiFiAdapter    *m_wifiAdapter;      ///< Optional: pause config web server during Dropbox TLS
 
     bool ReportStatus(void);
     bool TransferFile(fs::FS& controller, uint32_t file_id);
@@ -64,7 +67,11 @@ private:
 };
 
 /// In-memory test upload to Dropbox (path + token from config). Does not require auto-upload to be enabled.
-bool TestDropboxUpload(String *detail_message = nullptr);
+/// If \a wifi is non-null, the config web server listen socket is closed for the duration of the request.
+bool TestDropboxUpload(String *detail_message = nullptr, WiFiAdapter *wifi = nullptr);
+
+/// Debug: log internal heap (Dropbox TLS / SerialCommand traces). Same format as prep checkpoints.
+void LogTlsInternalHeapCheckpoint(char const *tag);
 
 /// Normalize Dropbox access token from NVM/web (trim, UTF-8 BOM, embedded newlines) so it matches a compile-time token string.
 void NormaliseDropboxAccessToken(String *token);
