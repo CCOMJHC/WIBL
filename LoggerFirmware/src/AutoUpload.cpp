@@ -43,6 +43,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <time.h>
 
 namespace {
 
@@ -764,11 +765,34 @@ bool TestDropboxUpload(String *detail_message, WiFiAdapter *wifi)
         return false;
     }
 
-    char bodyBuf[256];
+    String wibl_ap_ssid;
+    LoggerConfig.GetConfigString(Config::CONFIG_AP_SSID_S, wibl_ap_ssid);
+
+    String const station_ssid = WiFi.SSID();
+
+    char whenbuf[48];
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo, 10)) {
+        if (strftime(whenbuf, sizeof(whenbuf), "%Y-%m-%d %H:%M:%S", &timeinfo) == 0U) {
+            snprintf(whenbuf, sizeof(whenbuf), "(strftime failed)");
+        }
+    } else {
+        snprintf(whenbuf, sizeof(whenbuf), "(not set; uptime %lu ms)", static_cast<unsigned long>(millis()));
+    }
+
+    char bodyBuf[512];
     String fw_ver = FirmwareVersion();
     int const bl = snprintf(bodyBuf, sizeof(bodyBuf),
-                            "WIBL Dropbox connectivity test\nFirmware: %s\nElapsed ms: %lu\n",
+                            "WIBL Dropbox connectivity test\n"
+                            "Firmware: %s\n"
+                            "WIBL AP SSID (configured): %s\n"
+                            "Station connected to AP SSID: %s\n"
+                            "Local date/time: %s\n"
+                            "Elapsed ms since boot: %lu\n",
                             fw_ver.c_str(),
+                            wibl_ap_ssid.length() > 0 ? wibl_ap_ssid.c_str() : "(none)",
+                            station_ssid.length() > 0 ? station_ssid.c_str() : "(unknown)",
+                            whenbuf,
                             static_cast<unsigned long>(millis()));
     if (bl <= 0 || static_cast<size_t>(bl) >= sizeof(bodyBuf)) {
         if (detail_message) {

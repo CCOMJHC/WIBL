@@ -116,13 +116,14 @@
                     <label for="upload-duration">Upload Duration (s)</label>
                     <input type="number" name="duration" id="upload-duration" />
                     <br />
-                    <input type="checkbox" name="uploaddropbox" id="upload-dropbox" value="on" />
-                    <label for="upload-dropbox">Upload log files to Dropbox (requires token on Authentication page)</label>
-                    <br />
+                    <div class="upload-checkbox-row">
+                        <input type="checkbox" name="uploaddropbox" id="upload-dropbox" value="on" />
+                        <label for="upload-dropbox">Upload log files to Dropbox (requires token on Authentication page)</label>
+                    </div>
                     <label for="upload-dropbox-path">Dropbox folder path</label>
                     <input type="text" name="dropboxpath" id="upload-dropbox-path" placeholder="/Apps/MyApp" />
                     <br />
-                    <small>OAuth access token is set under <a href="auth.htm">Upload Authentication Management</a>. When Dropbox is enabled, the custom HTTPS server upload is skipped.</small>
+                    <small class="upload-dropbox-help">OAuth access token is set under <a href="auth.htm">Upload Authentication Management</a>. When Dropbox is enabled, the custom HTTPS server upload is skipped.</small>
                     <br />
                 </fieldset>
             </div>

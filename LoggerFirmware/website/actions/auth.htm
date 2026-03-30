@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="utf-8">
     <title>Upload Authentication Data</title>
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/forms.css">
 </head>
-<html>
     <header class="primary-header">
         <a href="../index.htm">
             <img src="../images/WIBL-Logo.svg" alt="The WIBL Project Logo" width="80" height="32" class="logo"/>
@@ -41,8 +42,8 @@
                 <p><small>The test can take <strong>10&ndash;25 seconds</strong> from the browser while the logger frees WiFi heap before TLS.</small></p>
                 <p><small>Used with <em>Upload log files to Dropbox</em> on the configure page. Path must start with <code>/</code> (e.g. <code>/Apps/MyApp</code>).</small></p>
                 <p><small>If the test returns <code>invalid_access_token</code>, Dropbox does not recognize the string: regenerate under
-                    <strong>Settings → OAuth 2 → Generated access token</strong> (after <strong>Permissions → files.content.write</strong>).
-                    Paste the token alone—no <code>Bearer</code>, no quotes. Do not use the app secret or a refresh token here.</small></p>
+                    <strong>Settings &rarr; OAuth 2 &rarr; Generated access token</strong> (after <strong>Permissions &rarr; files.content.write</strong>).
+                    Paste the token alone&mdash;no <code>Bearer</code>, no quotes. Do not use the app secret or a refresh token here.</small></p>
             </fieldset>
             <fieldset style="margin-top: 20px; width: 95%">
                 <legend>Configure Certificate</legend>
@@ -58,3 +59,4 @@
         </script>
     </body>
 </html>
+
