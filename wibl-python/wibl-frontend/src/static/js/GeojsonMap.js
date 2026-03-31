@@ -1,4 +1,3 @@
-
 export class GeojsonMap {
 
     olMap = null;
@@ -9,8 +8,9 @@ export class GeojsonMap {
     closer = null;
 
     buildTileSource() {
-        return new ol.source.XYZ({
+        return new ol.source.VectorTile({
             url: '/mapTile/{z}/{x}/{y}/',
+            format: new ol.format.MVT(),
             attributions: '© OpenStreetMap contributors'
         });
     }
@@ -55,8 +55,13 @@ export class GeojsonMap {
         const view = map.getView();
 
         const resolution = view.getResolutionForExtent(extent, mapSize);
+        const zoom = view.getZoomForResolution(resolution);
 
-        return view.getZoomForResolution(resolution);
+        if (!zoom || !isFinite(zoom)) {
+            return 5;
+        }
+
+        return zoom;
     }
 
     async loadGeojson(map, fileid) {
@@ -114,9 +119,9 @@ export class GeojsonMap {
             map.addLayer(vectorLayer);
 
             // Configure the map view to match the features.
-            map.getView().setCenter(ol.proj.fromLonLat([avg_X, avg_Y]));
+            map.getView().setCenter([avg_X, avg_Y]);
             const zoom = this.calculateZoom(map, features);
-            map.getView().setZoom(zoom == 0 ? zoom: zoom - 1);
+            map.getView().setZoom(zoom <= 1 ? zoom : zoom - 1);
 
             // Add a selection interaction to each map feature.
             const selectInteraction = new ol.interaction.Select({
@@ -190,19 +195,22 @@ export class GeojsonMap {
               },
         });
 
-        this.olMap = new ol.Map({
-            target: 'map',
-            overlays: [this.overlay],
-            layers: [
-                new ol.layer.Tile({
-                    source: this.buildTileSource()
-                }),
-            ],
-            view: new ol.View({
-                projection: 'EPSG:3857',
-                center: ol.proj.fromLonLat([0, 0]),
-                zoom: 0,
-            }),
-        });
+        this.olMap = await olms.apply('map', '/mapStyle/');
+
+        this.olMap.addOverlay(this.overlay);
+//        this.olMap = new ol.Map({
+//            target: 'map',
+//            overlays: [this.overlay],
+//            layers: [
+//                new ol.layer.VectorTile({
+//                    source: this.buildTileSource()
+//                }),
+//            ],
+//            view: new ol.View({
+//                projection: 'EPSG:3857',
+//                center: ol.proj.fromLonLat([0, 0]),
+//                zoom: 2,
+//            }),
+//        });
     }
 }

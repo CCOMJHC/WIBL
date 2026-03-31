@@ -14,7 +14,7 @@ import boto3
 import requests
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
-
+import json
 MAP_NAME = environ['MAP_NAME']
 REGION = environ['AWS_REGION']
 
@@ -104,34 +104,72 @@ def heartbeat(request):
 # TODO: Check to make sure map is displaying correct for client.
 
 def mapTileProxy(request, x, y, z):
-    cache_key = f"map_tile_{z}_{x}_{y}"
-    cached = cache.get(cache_key)
-
-    if cached:
-        return HttpResponse(cached, content_type='image/png')
-
     session = boto3.Session()
-    credentials = session.get_credentials()
-
-    if credentials is None:
-        print("ERROR: No credentials found")
-        return HttpResponse("No credentials", status=500)
-
-    frozen = credentials.get_frozen_credentials()
-    print(f"Access key: {frozen.access_key[:5]}...")
-    print(f"Token present: {frozen.token is not None}")
+    credentials = session.get_credentials().get_frozen_credentials()
 
     url = f"https://maps.geo.{REGION}.amazonaws.com/maps/v0/maps/{MAP_NAME}/tiles/{z}/{x}/{y}"
 
-    # Create and sign the request using botocore
     aws_request = AWSRequest(method='GET', url=url)
     SigV4Auth(credentials, 'geo', REGION).add_auth(aws_request)
 
-    # Forward the signed request to AWS
     response = requests.get(url, headers=dict(aws_request.headers))
 
-    cache.set(cache_key, response.content, timeout=60 * 60 * 24)  # 24 hours
     return HttpResponse(
         response.content,
-        content_type=response.headers.get('Content-Type', 'image/png')
+        content_type='application/x-protobuf'
     )
+
+def map_style_proxy(request):
+    session = boto3.Session()
+    credentials = session.get_credentials().get_frozen_credentials()
+
+    url = f"https://maps.geo.{REGION}.amazonaws.com/maps/v0/maps/{MAP_NAME}/style-descriptor"
+
+    aws_request = AWSRequest(method='GET', url=url)
+    SigV4Auth(credentials, 'geo', REGION).add_auth(aws_request)
+
+    response = requests.get(url, headers=dict(aws_request.headers))
+    style = response.json()
+
+    # Rewrite tile URLs
+    for source in style.get('sources', {}).values():
+        if 'tiles' in source:
+            source['tiles'] = ['/mapTile/{z}/{x}/{y}/']
+
+    if 'sprite' in style:
+        style['sprite'] = '/mapSprites/sprites'
+
+    if 'glyphs' in style:
+        style['glyphs'] = '/mapGlyphs/{fontstack}/{range}'
+
+    return HttpResponse(
+        json.dumps(style),
+        content_type='application/json'
+    )
+
+def map_sprites_proxy(request, filename):
+    session = boto3.Session()
+    credentials = session.get_credentials().get_frozen_credentials()
+
+    url = f"https://maps.geo.{REGION}.amazonaws.com/maps/v0/maps/{MAP_NAME}/sprites/{filename}"
+
+    aws_request = AWSRequest(method='GET', url=url)
+    SigV4Auth(credentials, 'geo', REGION).add_auth(aws_request)
+
+    response = requests.get(url, headers=dict(aws_request.headers))
+
+    content_type = 'application/json' if filename.endswith('.json') else 'image/png'
+    return HttpResponse(response.content, content_type=content_type)
+
+def map_glyphs_proxy(request, fontstack, range):
+    session = boto3.Session()
+    credentials = session.get_credentials().get_frozen_credentials()
+
+    url = f"https://maps.geo.{REGION}.amazonaws.com/maps/v0/maps/{MAP_NAME}/glyphs/{fontstack}/{range}"
+
+    aws_request = AWSRequest(method='GET', url=url)
+    SigV4Auth(credentials, 'geo', REGION).add_auth(aws_request)
+
+    response = requests.get(url, headers=dict(aws_request.headers))
+
+    return HttpResponse(response.content, content_type='application/x-protobuf')
