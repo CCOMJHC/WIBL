@@ -69,6 +69,11 @@ param (
     # The format to convert from, either YDVR or TeamSurv.
     [string]$Format = "YDVR"
 )
+$inExtension = switch ( $Format )
+{
+    YDVR { "dat" }
+    TeamSurv { "tsv"}
+}
 
 # Before starting, verify that we have access to our logconvert program.
 # This should be in a folder on the same level as the script
@@ -111,7 +116,7 @@ else {
 Expand-Archive -Path $Source -DestinationPath $OutputFolder -Force | Out-Null
 
 # Get all of the files in the output directory
-$AllFiles = Get-ChildItem -Path $OutputFolder -Filter "*.dat" -Recurse
+$AllFiles = Get-ChildItem -Path $OutputFolder -Filter "*.$inExtension" -Recurse
 
 # Get the full path to log convert since we move directories quite often
 $FullLogConvertPath = Resolve-Path $LogConvertPath
