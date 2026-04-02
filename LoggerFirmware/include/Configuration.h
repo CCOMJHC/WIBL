@@ -117,8 +117,11 @@ class Config {
             CONFIG_UPLOAD_IGNORED_SSID5_S, /* String: ignored WiFi SSID 5 */
             CONFIG_MDNS_NAME_S,      /* String: recognition name for mDNS responder (hostname: name.local) */
             CONFIG_UPLOAD_DROPBOX_B, /* Binary: upload log files to Dropbox when online */
-            CONFIG_DROPBOX_PATH_S,  /* String: Dropbox folder path (e.g. /Apps/MyApp) */
-            CONFIG_DROPBOX_TOKEN_S   /* String: Dropbox OAuth2 access token */
+            CONFIG_DROPBOX_PATH_S,   /* String: Dropbox folder path (e.g. /Apps/MyApp) */
+            CONFIG_DROPBOX_TOKEN_S,  /* String: Dropbox OAuth2 access token (legacy/manual mode) */
+            CONFIG_DROPBOX_APP_KEY_S,     /* String: Dropbox OAuth2 app key */
+            CONFIG_DROPBOX_APP_SECRET_S,  /* String: Dropbox OAuth2 app secret (optional with PKCE/public flow) */
+            CONFIG_DROPBOX_REFRESH_TOKEN_S /* String: Dropbox OAuth2 refresh token */
         };
 
         /// \brief Extract a configuration string for the specified parameter

@@ -44,6 +44,10 @@ public:
 
     void UploadCycle(void);
 
+    /// Sync Dropbox credentials from LoggerConfig (invalidate cached access token if they changed),
+    /// then return a usable access token — reuses in-memory token when still valid, otherwise OAuth.
+    bool PrepareAccessTokenForDropboxTest(String *access_token_out, String *detail_message = nullptr);
+
 private:
     logger::Manager *m_logManager;      ///< Pointer for the LogManager to use for file information
     String          m_serverURL;        ///< Based URL for the server and port
@@ -56,19 +60,25 @@ private:
 
     bool            m_modeDropbox;      ///< Use Dropbox API instead of custom HTTPS server
     String          m_dropboxPath;      ///< Folder path on Dropbox (POSIX, leading /)
-    String          m_dropboxToken;     ///< Dropbox OAuth2 bearer token
+    String          m_dropboxToken;     ///< Dropbox OAuth2 bearer token (legacy/manual mode)
+    String          m_dropboxAppKey;    ///< Dropbox OAuth2 app key
+    String          m_dropboxAppSecret; ///< Dropbox OAuth2 app secret
+    String          m_dropboxRefresh;   ///< Dropbox OAuth2 refresh token
+    String          m_dropboxAccessToken; ///< Cached short-lived access token
+    unsigned long   m_dropboxAccessExpiryMs; ///< millis() expiry for cached token
     WiFiAdapter    *m_wifiAdapter;      ///< Optional: pause config web server during Dropbox TLS
 
     bool ReportStatus(void);
     bool TransferFile(fs::FS& controller, uint32_t file_id);
     void DropboxUploadCycle(void);
     bool TransferFileDropbox(fs::FS& controller, uint32_t file_id);
+    bool RefreshDropboxAccessToken(bool force_refresh, String *detail_message = nullptr, bool *performed_oauth_out = nullptr);
     
 };
 
 /// In-memory test upload to Dropbox (path + token from config). Does not require auto-upload to be enabled.
 /// If \a wifi is non-null, the config web server listen socket is closed for the duration of the request.
-bool TestDropboxUpload(String *detail_message = nullptr, WiFiAdapter *wifi = nullptr);
+bool TestDropboxUpload(String *detail_message = nullptr, WiFiAdapter *wifi = nullptr, UploadManager *upload_manager = nullptr);
 
 /// Debug: log internal heap (Dropbox TLS / SerialCommand traces). Same format as prep checkpoints.
 void LogTlsInternalHeapCheckpoint(char const *tag);

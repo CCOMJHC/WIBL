@@ -1283,11 +1283,15 @@ void SerialCommand::GetAuthorisation(CommandSource src)
         EmitMessage("ERR: Request for upload token from unrecognised CommandSource - who are you?\n", src);
         return;
     }
-    String token, cert, dropbox;
+    String token, cert, dropbox, dropbox_app_key, dropbox_app_secret, dropbox_refresh;
     logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_UPLOAD_TOKEN_S, token);
     logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_UPLOAD_CERT_S, cert);
     logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_DROPBOX_TOKEN_S, dropbox);
-    if (token.length() == 0 && cert.length() == 0 && dropbox.length() == 0) {
+    logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_DROPBOX_APP_KEY_S, dropbox_app_key);
+    logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_DROPBOX_APP_SECRET_S, dropbox_app_secret);
+    logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_DROPBOX_REFRESH_TOKEN_S, dropbox_refresh);
+    if (token.length() == 0 && cert.length() == 0 && dropbox.length() == 0 &&
+        dropbox_app_key.length() == 0 && dropbox_app_secret.length() == 0 && dropbox_refresh.length() == 0) {
         if (src == CommandSource::SerialPort) {
             EmitMessage("ERR: no upload authorisation stored on logger to report.\n", src);
         } else {
@@ -1299,11 +1303,17 @@ void SerialCommand::GetAuthorisation(CommandSource src)
     if (src == CommandSource::SerialPort) {
         EmitMessage("Upload token: |" + token + "|\n", src);
         EmitMessage("Upload cert: |" + cert + "|\n", src);
-        EmitMessage("Dropbox token: |" + dropbox + "|\n", src);
+        EmitMessage("Dropbox token (legacy): |" + dropbox + "|\n", src);
+        EmitMessage("Dropbox app key: |" + dropbox_app_key + "|\n", src);
+        EmitMessage("Dropbox app secret: |" + dropbox_app_secret + "|\n", src);
+        EmitMessage("Dropbox refresh token: |" + dropbox_refresh + "|\n", src);
     } else {
         m_wifi->AddMessage(token);
         m_wifi->AddMessage(cert);
         m_wifi->AddMessage(dropbox);
+        m_wifi->AddMessage(dropbox_app_key);
+        m_wifi->AddMessage(dropbox_app_secret);
+        m_wifi->AddMessage(dropbox_refresh);
     }
 }
 
@@ -1343,6 +1353,33 @@ void SerialCommand::SetAuthorisation(String const& data, CommandSource src)
             }
             return;
         }
+    } else if (data.startsWith("dropbox_app_key")) {
+        String v = data.substring(16);
+        v.trim();
+        if (!logger::LoggerConfig.SetConfigString(logger::Config::CONFIG_DROPBOX_APP_KEY_S, v)) {
+            EmitMessage("Failed to set Dropbox app key. Probably an internal error.", src);
+            if (src == CommandSource::WirelessPort)
+                m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
+            return;
+        }
+    } else if (data.startsWith("dropbox_app_secret")) {
+        String v = data.substring(19);
+        v.trim();
+        if (!logger::LoggerConfig.SetConfigString(logger::Config::CONFIG_DROPBOX_APP_SECRET_S, v)) {
+            EmitMessage("Failed to set Dropbox app secret. Probably an internal error.", src);
+            if (src == CommandSource::WirelessPort)
+                m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
+            return;
+        }
+    } else if (data.startsWith("dropbox_refresh")) {
+        String v = data.substring(16);
+        v.trim();
+        if (!logger::LoggerConfig.SetConfigString(logger::Config::CONFIG_DROPBOX_REFRESH_TOKEN_S, v)) {
+            EmitMessage("Failed to set Dropbox refresh token. Probably an internal error.", src);
+            if (src == CommandSource::WirelessPort)
+                m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
+            return;
+        }
     } else if (data.startsWith("dropbox")) {
         int i = 7;
         while (i < (int)data.length() && data.charAt(i) == ' ')
@@ -1361,9 +1398,9 @@ void SerialCommand::SetAuthorisation(String const& data, CommandSource src)
         }
     } else {
         if (src == CommandSource::SerialPort) {
-            EmitMessage("ERR: auth command must contain 'token', 'cert', or 'dropbox' as first element.\n", src);
+            EmitMessage("ERR: auth command must contain 'token', 'cert', 'dropbox', 'dropbox_app_key', 'dropbox_app_secret', or 'dropbox_refresh' as first element.\n", src);
         } else {
-            EmitMessage("auth command must contain 'token', 'cert', or 'dropbox' as first element.", src);
+            EmitMessage("auth command must contain token/cert/dropbox/dropbox_app_key/dropbox_app_secret/dropbox_refresh.", src);
             m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
         }
     }
@@ -1530,7 +1567,12 @@ void SerialCommand::TestDropboxUploadCmd(CommandSource src)
     Serial.printf("DBG: Before dropbox test, free heap = %u B\n", static_cast<unsigned>(heap_before));
 
     String detail;
-    bool ok = net::TestDropboxUpload(&detail, m_wifi);
+    // Close the config web listen socket during Dropbox TLS so lwIP/internal heap can supply a
+    // large enough contiguous block for mbedTLS (wireless tests were failing with SSL alloc errors
+    // while ~77kB was "free" but largest_internal ~12kB). WebServer::close() does not drop the
+    // active _currentClient; deferred "dropbox test" runs Execute before RunLoop, then TransmitMessages.
+    WiFiAdapter *tls_pause_adapter = m_wifi;
+    bool ok = net::TestDropboxUpload(&detail, tls_pause_adapter, m_uploadManager);
     net::LogTlsInternalHeapCheckpoint("after TestDropboxUpload returns");
 
     uint32_t heap_after = ESP.getFreeHeap();
@@ -1548,10 +1590,8 @@ void SerialCommand::TestDropboxUploadCmd(CommandSource src)
         EmitMessage(String(ok ? "INF: " : "ERR: ") + detail + "\n", src);
         return;
     }
-    EmitMessage(String(ok ? "" : "ERR: ") + detail, src);
-    if (!ok && m_wifi != nullptr) {
-        m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
-    }
+    // Wireless: auth UI already got HTTP 200 from handleCommand; outcome only on serial.
+    Serial.printf("%s: dropbox test (wireless deferred) %s\n", ok ? "INF" : "ERR", detail.c_str());
 }
 
 /// Output a list of known commands, since there are now enough of them to make remembering them
@@ -1562,7 +1602,7 @@ void SerialCommand::Syntax(CommandSource src)
     EmitMessage(String("Command Syntax (V") + SoftwareVersion() + "):\n", src);
     EmitMessage("  accept [NMEA0183-ID | all]          Configure which NMEA0183 messages to accept.\n", src);
     EmitMessage("  algorithm [name params | none]      Add (or report) an algorithm request to the cloud processing.\n", src);
-    EmitMessage("  auth [cert|token|dropbox data]        Set or report upload auth (server token, TLS cert, Dropbox OAuth token).\n", src);
+    EmitMessage("  auth [cert|token|dropbox|dropbox_app_key|dropbox_app_secret|dropbox_refresh data]  Set/report upload auth.\n", src);
     EmitMessage("  configure [on|off logger-name]      Configure individual loggers on/off (or report config).\n", src);
     EmitMessage("  dropbox test                        Upload a small test file to Dropbox (token + dropboxPath; WiFi Station).\n", src);
     EmitMessage("  echo on|off                         Control character echo on serial line.\n", src);
@@ -1802,7 +1842,8 @@ void SerialCommand::ProcessCommand(void)
             if (m_wirelessDropboxDeferCount == 0U) {
                 Serial.printf("Found WiFi command (deferred): \"dropbox test\"\n");
                 Execute(String("dropbox test"), CommandSource::WirelessPort);
-                m_wifi->TransmitMessages();
+                // /command already sent JSON in handleCommand; do not TransmitMessages (would
+                // double-send or attach to a stale client).
             }
         }
 
@@ -1814,7 +1855,7 @@ void SerialCommand::ProcessCommand(void)
             if (cmd == "dropbox test") {
                 // Web POST + mbedTLS handshake (record buffers + parsing the server cert chain) need a
                 // large peak of internal RAM. Wait several main-loop ticks so lwIP/WebServer release buffers.
-                m_wirelessDropboxDeferCount = 15U;
+                m_wirelessDropboxDeferCount = 28U;
             } else {
                 Execute(cmd, CommandSource::WirelessPort);
                 m_wifi->TransmitMessages();

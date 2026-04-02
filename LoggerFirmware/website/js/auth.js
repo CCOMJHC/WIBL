@@ -9,6 +9,21 @@ function populateDisplay(data) {
         dropboxEl.textContent =
             (msgs[2] === undefined || msgs[2] === '') ? 'Not set' : msgs[2];
     }
+    const appKeyEl = document.getElementById('dropbox-app-key-display');
+    if (appKeyEl) {
+        appKeyEl.textContent =
+            (msgs[3] === undefined || msgs[3] === '') ? 'Not set' : msgs[3];
+    }
+    const appSecretEl = document.getElementById('dropbox-app-secret-display');
+    if (appSecretEl) {
+        appSecretEl.textContent =
+            (msgs[4] === undefined || msgs[4] === '') ? 'Not set' : msgs[4];
+    }
+    const refreshEl = document.getElementById('dropbox-refresh-display');
+    if (refreshEl) {
+        refreshEl.textContent =
+            (msgs[5] === undefined || msgs[5] === '') ? 'Not set' : msgs[5];
+    }
 }
 
 function resetToken() {
@@ -23,6 +38,30 @@ function resetDropboxToken() {
     const token = document.getElementById('dropbox-token-input').value;
     document.getElementById('dropbox-token-input').value = '';
     sendCommand(`auth dropbox ${token}`).then((data) => {
+        populateDisplay(data);
+    });
+}
+
+function resetDropboxAppKey() {
+    const val = document.getElementById('dropbox-app-key-input').value;
+    document.getElementById('dropbox-app-key-input').value = '';
+    sendCommand(`auth dropbox_app_key ${val}`).then((data) => {
+        populateDisplay(data);
+    });
+}
+
+function resetDropboxAppSecret() {
+    const val = document.getElementById('dropbox-app-secret-input').value;
+    document.getElementById('dropbox-app-secret-input').value = '';
+    sendCommand(`auth dropbox_app_secret ${val}`).then((data) => {
+        populateDisplay(data);
+    });
+}
+
+function resetDropboxRefreshToken() {
+    const val = document.getElementById('dropbox-refresh-input').value;
+    document.getElementById('dropbox-refresh-input').value = '';
+    sendCommand(`auth dropbox_refresh ${val}`).then((data) => {
         populateDisplay(data);
     });
 }

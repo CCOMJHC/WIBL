@@ -45,6 +45,9 @@
         "interval": 1800.0,
         "duration": 10.0,
         "dropboxPath": "",
-        "dropboxToken": ""
+        "dropboxToken": "",
+        "dropboxAppKey": "",
+        "dropboxAppSecret": "",
+        "dropboxRefreshToken": ""
     }
 }

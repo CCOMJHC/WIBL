@@ -54,7 +54,7 @@ String FirmwareVersion(void)
 // up the keys in ParamStore.  This list has to be in exactly the same order as the elements in the
 // Enum, of course, or everything will fall apart.
 
-const String lookup[] = {
+const char *lookup[] = {
     "N1Enable",         ///< Control logging of NMEA0183 data (binary)
     "N2Enable",         ///< Control logging of NMEA2000 data (binary)
     "IMUEnable",        ///< Control logging of motion sensor data (binary)
@@ -106,7 +106,10 @@ const String lookup[] = {
     "mDNSName",
     "UploadDropbox",   ///< Upload log files to Dropbox (binary)
     "DropboxPath",     ///< Dropbox destination path (string)
-    "DropboxToken"     ///< Dropbox OAuth2 access token (string)
+    "DropboxToken",    ///< Dropbox OAuth2 access token (legacy/manual mode)
+    "DropboxAppKey",   ///< Dropbox OAuth2 app key
+    "DropboxAppSecret",///< Dropbox OAuth2 app secret
+    "DropboxRefreshToken" ///< Dropbox OAuth2 refresh token
 };
 
 /// Default constructor.  This sets up for a dummy parameter store, which is configured
@@ -215,8 +218,8 @@ Config LoggerConfig;    ///< Static parameter to use for lookups (rather than ma
 DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
 {
     using namespace ArduinoJson;
-    // Match SetConfig buffer: extended WiFi + upload preset fields need headroom.
-    DynamicJsonDocument params(4096);
+    // Match SetConfig buffer: extended WiFi + upload/auth fields need generous headroom.
+    DynamicJsonDocument params(6144);
     params["version"]["firmware"] = FirmwareVersion();
     params["version"]["commandproc"] = SerialCommand::SoftwareVersion();
     params["version"]["nmea0183"] = nmea::N0183::Logger::SoftwareVersion();
@@ -335,12 +338,18 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     params["upload"]["ignoredWifiSsid4"] = ignored_wifi_ssid4;
     params["upload"]["ignoredWifiSsid5"] = ignored_wifi_ssid5;
 
-    String dropbox_path, dropbox_token;
+    String dropbox_path, dropbox_token, dropbox_app_key, dropbox_app_secret, dropbox_refresh_token;
     LoggerConfig.GetConfigString(Config::CONFIG_DROPBOX_PATH_S, dropbox_path);
     LoggerConfig.GetConfigString(Config::CONFIG_DROPBOX_TOKEN_S, dropbox_token);
+    LoggerConfig.GetConfigString(Config::CONFIG_DROPBOX_APP_KEY_S, dropbox_app_key);
+    LoggerConfig.GetConfigString(Config::CONFIG_DROPBOX_APP_SECRET_S, dropbox_app_secret);
+    LoggerConfig.GetConfigString(Config::CONFIG_DROPBOX_REFRESH_TOKEN_S, dropbox_refresh_token);
     params["upload"]["dropboxPath"] = dropbox_path;
     if (!secure) {
         params["upload"]["dropboxToken"] = dropbox_token;
+        params["upload"]["dropboxAppKey"] = dropbox_app_key;
+        params["upload"]["dropboxAppSecret"] = dropbox_app_secret;
+        params["upload"]["dropboxRefreshToken"] = dropbox_refresh_token;
     }
 
     return params;
@@ -358,16 +367,25 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
 
 bool ConfigJSON::SetConfig(String const& json_string)
 {
-    // SSIDs, passwords, upload fields, and Dropbox tokens can make the payload large.
-    DynamicJsonDocument params(4096);
-    if (deserializeJson(params, json_string) != DeserializationError::Ok)
-        return false;
-
-    if (!params.containsKey("version") || !params["version"].containsKey("commandproc")) {
+    // SSIDs, passwords, upload fields, and Dropbox auth fields can make the payload large.
+    DynamicJsonDocument params(6144);
+    DeserializationError const err = deserializeJson(params, json_string);
+    if (err) {
+        Serial.printf("ERR: SetConfig JSON parse failed: %s\n", err.c_str());
         return false;
     }
-    if (params["version"]["commandproc"].as<String>() == SerialCommand::SoftwareVersion()) {
-        if (params.containsKey("enable")) {
+
+    if (!params.containsKey("version") || !params["version"].containsKey("commandproc")) {
+        Serial.println("ERR: SetConfig missing version.commandproc.");
+        return false;
+    }
+    String const want_ver = SerialCommand::SoftwareVersion();
+    String const got_ver = params["version"]["commandproc"].as<String>();
+    if (got_ver != want_ver) {
+        Serial.printf("ERR: SetConfig version mismatch: got |%s|, need |%s|\n", got_ver.c_str(), want_ver.c_str());
+        return false;
+    }
+    if (params.containsKey("enable")) {
             if (params["enable"].containsKey("nmea0183"))
                 LoggerConfig.SetConfigBinary(Config::CONFIG_NMEA0183_B, params["enable"]["nmea0183"].as<bool>());
             if (params["enable"].containsKey("nmea2000"))
@@ -479,10 +497,22 @@ bool ConfigJSON::SetConfig(String const& json_string)
                 net::NormaliseDropboxAccessToken(&t);
                 LoggerConfig.SetConfigString(Config::CONFIG_DROPBOX_TOKEN_S, t);
             }
+            if (params["upload"].containsKey("dropboxAppKey")) {
+                String k = params["upload"]["dropboxAppKey"].as<String>();
+                k.trim();
+                LoggerConfig.SetConfigString(Config::CONFIG_DROPBOX_APP_KEY_S, k);
+            }
+            if (params["upload"].containsKey("dropboxAppSecret")) {
+                String s = params["upload"]["dropboxAppSecret"].as<String>();
+                s.trim();
+                LoggerConfig.SetConfigString(Config::CONFIG_DROPBOX_APP_SECRET_S, s);
+            }
+            if (params["upload"].containsKey("dropboxRefreshToken")) {
+                String r = params["upload"]["dropboxRefreshToken"].as<String>();
+                r.trim();
+                LoggerConfig.SetConfigString(Config::CONFIG_DROPBOX_REFRESH_TOKEN_S, r);
+            }
         }
-    } else {
-        return false;
-    }
     return true;
 }
 

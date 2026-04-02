@@ -47,6 +47,41 @@ fieldset.upload label {
     width: 250px;
 }
 
+/* Checkbox + long caption: full row so flex grid stays aligned with label/input pairs below */
+fieldset.upload .upload-checkbox-row {
+    display: flex;
+    flex-basis: 100%;
+    width: 100%;
+    align-items: flex-start;
+    column-gap: 10px;
+    margin-top: 5px;
+    box-sizing: border-box;
+}
+
+fieldset.upload .upload-checkbox-row input[type="checkbox"] {
+    flex-shrink: 0;
+    margin-top: 10px;
+}
+
+fieldset.upload .upload-checkbox-row label {
+    width: auto;
+    max-width: none;
+    text-align: left;
+    flex: 1;
+    margin-top: 5px;
+}
+
+fieldset.upload small.upload-dropbox-help {
+    display: block;
+    flex-basis: 100%;
+    width: 100%;
+    margin-top: 8px;
+    padding-left: 2px;
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.35;
+}
+
 fieldset input {
     font-size: 18px;
     padding: 2px;

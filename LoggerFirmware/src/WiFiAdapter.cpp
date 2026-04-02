@@ -549,7 +549,8 @@ public:
         if ((m_storage = mem::MemControllerFactory::Create()) == nullptr) {
             return;
         }
-        if ((m_messages = new DynamicJsonDocument(1024)) == nullptr) {
+        // Auth and status responses accumulate several strings; keep headroom for longer tokens/certs.
+        if ((m_messages = new DynamicJsonDocument(6144)) == nullptr) {
             return;
         }
     }
@@ -566,6 +567,7 @@ public:
     {
         if (m_server != nullptr && !m_configWebTlsPaused) {
             m_server->close();
+            maybeShrinkMessagesDocForTls();
             m_configWebTlsPaused = true;
         }
     }
@@ -587,19 +589,77 @@ private:
     HTTPReturnCodes     m_statusCode;   ///< Status code to return to the user with the transaction response
     ConnectionStateMachine m_state;     ///< Manager for connection state
 
+    /// While the config web is closed for TLS, shrink the JSON accumulator if it is still small so
+    /// mbedTLS ECDHE can obtain several contiguous internal-heap blocks (BIGNUM / MPI).
+    void maybeShrinkMessagesDocForTls(void)
+    {
+        if (m_messages == nullptr) {
+            return;
+        }
+        constexpr size_t kTlsTargetCap = 3072U;
+        size_t const cap = m_messages->capacity();
+        if (cap <= kTlsTargetCap) {
+            return;
+        }
+
+        size_t const measured = measureJson(*m_messages);
+        constexpr size_t kMaxSerializedForShrink = 384U;
+        if (measured > kMaxSerializedForShrink) {
+            return;
+        }
+
+        String probe;
+        probe.reserve(measured + 1U);
+        serializeJson(*m_messages, probe);
+
+        auto *nu = new DynamicJsonDocument(kTlsTargetCap);
+        if (nu == nullptr) {
+            return;
+        }
+        DeserializationError const err = deserializeJson(*nu, probe);
+        if (err) {
+            delete nu;
+            return;
+        }
+        delete m_messages;
+        m_messages = nu;
+    }
+
     /// @brief Handle HTTP requests to the /command endpoint
     ///
     /// HTTP POST endpoint handler for commands being sent to the logger through the web-server
     /// interface.  This simple captures any "command" arguments and queues them for the system
     /// to execute later.
     ///
+    /// Browsers request /favicon.ico; without a handler the static FS open fails and WebServer logs
+    /// "request handler failed to handle request".
+    void handleFavicon(void)
+    {
+        m_server->send(HTTPReturnCodes::OK, "text/plain", "");
+    }
+
     /// @return N/A
     void handleCommand(void)
     {
+        bool scheduled_dropbox_test = false;
         for (uint32_t i = 0; i < m_server->args(); ++i) {
             if (m_server->argName(i) == "command") {
-                m_commands.push(m_server->arg(i));
+                String cmd = m_server->arg(i);
+                cmd.trim();
+                m_commands.push(cmd);
+                if (cmd == "dropbox test") {
+                    scheduled_dropbox_test = true;
+                }
             }
+        }
+        // Dropbox TLS needs a large contiguous internal-heap peak. If we defer work but return
+        // without send(), WebServer keeps the POST transaction open; lwIP buffers + fragmentation
+        // then break mbedTLS writes (largest_internal ~3KB). Finish HTTP here; SerialCommand
+        // still runs the test after m_wirelessDropboxDeferCount without TransmitMessages().
+        if (scheduled_dropbox_test) {
+            m_server->send(HTTPReturnCodes::OK, "application/json",
+                           "{\"messages\":[\"Dropbox test accepted. Full result is on USB serial; "
+                           "this response is immediate so the browser releases RAM before TLS.\"]}");
         }
     }
 
@@ -609,18 +669,27 @@ private:
         body = "";
         if (m_server->hasArg("plain")) {
             body = m_server->arg("plain");
-        } else {
-            int cl = -1;
-            if (m_server->hasHeader("Content-Length"))
-                cl = m_server->header("Content-Length").toInt();
-            if (cl > 0 && (size_t)cl <= maxLen) {
-                body.reserve((unsigned)cl);
-                WiFiClient c = m_server->client();
-                for (int n = 0; n < cl && c.connected(); ++n) {
-                    if (c.available())
-                        body += (char)c.read();
-                    else
-                        delay(1);
+            body.trim();
+            return;
+        }
+        int cl = -1;
+        if (m_server->hasHeader("Content-Length"))
+            cl = m_server->header("Content-Length").toInt();
+        if (cl > 0 && (size_t)cl <= maxLen) {
+            body.reserve((unsigned)cl);
+            WiFiClient c = m_server->client();
+            unsigned long const started = millis();
+            while ((int)body.length() < cl && c.connected()) {
+                if (c.available()) {
+                    body += (char)c.read();
+                } else {
+                    if (millis() - started > 10000) {
+                        Serial.printf("ERR: readPostedPlainBody timeout (%d of %d bytes).\n",
+                                      body.length(), cl);
+                        break;
+                    }
+                    delay(1);
+                    yield();
                 }
             }
         }
@@ -690,6 +759,7 @@ private:
         } else {
             // Configure the endpoints served by the server
             m_server->on("/heartbeat", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::heartbeat, this));
+            m_server->on("/favicon.ico", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::handleFavicon, this));
             m_server->on("/command", HTTPMethod::HTTP_POST, std::bind(&ESP32WiFiAdapter::handleCommand, this));
             m_server->on("/setup", HTTPMethod::HTTP_POST, std::bind(&ESP32WiFiAdapter::handleSetup, this));
             m_server->on("/labdefaults", HTTPMethod::HTTP_POST, std::bind(&ESP32WiFiAdapter::handleLabDefaults, this));
@@ -836,11 +906,14 @@ private:
         yield();
         m_state.StepState();
         if (m_server != nullptr) {
-            int n = m_state.IsConnectionPending() ? 12 : 1;
+            // During station join, run extra handleClient passes so the AP side keeps serving, but avoid
+            // delay(1) between each (~11 ms/frame stalled the UI); yield lets WiFi/system tasks run.
+            int const n = m_state.IsConnectionPending() ? 12 : 1;
             for (int i = 0; i < n; ++i) {
                 m_server->handleClient();
-                if (i < n - 1)
-                    delay(1);
+                if (i + 1 < n) {
+                    yield();
+                }
             }
         }
     }

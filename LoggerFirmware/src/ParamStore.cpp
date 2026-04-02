@@ -31,6 +31,10 @@
 #include "FS.h"
 #include "SPIFFS.h"
 #include "LittleFS.h"
+#include <sys/stat.h>
+
+/// VFS path prefix for Arduino LittleFS (see LittleFS::begin default basePath "/littlefs").
+static char const kLittlefsMountPrefix[] = "/littlefs";
 
 static void log_littlefs_write_failure(char const *ctx, char const *key)
 {
@@ -170,16 +174,19 @@ private:
     
     bool get_key(String const& key, String& value)
     {
-        String filename(String("/") + key + ".par");
-        if (!LittleFS.exists(filename)) {
+        // Arduino-ESP32 2.x FS::open(path,"r") logs log_e on missing files (vfs_api.cpp). Use stat()
+        // first so routine "key not stored yet" checks stay quiet. (LittleFS.begin() uses /littlefs.)
+        String const rel(String("/") + key + ".par");
+        struct stat st;
+        String const abs_path = String(kLittlefsMountPrefix) + rel;
+        if (stat(abs_path.c_str(), &st) != 0 || !S_ISREG(st.st_mode)) {
             value = "";
             return true;
         }
-        fs::File f = LittleFS.open(filename, FILE_READ);
+        fs::File f = LittleFS.open(rel, FILE_READ);
         if (!f) {
-            Serial.printf("ERR: failed to find config key |%s| in filesystem.\n", key.c_str());
             value = "";
-            return false;
+            return true;
         }
         value = f.readString();
         f.close();

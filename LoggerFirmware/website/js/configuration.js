@@ -160,8 +160,8 @@ function parseConfigJSON(config) {
      * in the right format, and therefore avoid the system resetting other components in
      * the configuration and over-writing correct values.
      */
-    if (config.version && typeof config.version.commandproc === "string" && config.version.commandproc.length > 0) {
-        commandProcVersion = config.version.commandproc;
+    if (config.version && config.version.commandproc != null && String(config.version.commandproc).length > 0) {
+        commandProcVersion = String(config.version.commandproc);
     }
 
     document.getElementById("nmea0183").checked = config.enable.nmea0183;
