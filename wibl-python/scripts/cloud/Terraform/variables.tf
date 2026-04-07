@@ -70,12 +70,18 @@ variable "viz_lambda_role_name" {
 
 variable DCDB_PROVIDER_ID {
     type = string
-    default = ""
 }
 
-variable DCDB_UPLOAD_URL {
+variable DCDB_TEST_URL {
     type = string
-    default = ""
+}
+
+variable DCDB_mode {
+    type = string
+}
+variable DCDB_PROD_URL {
+    type = string
+    sensitive = true
 }
 
 variable MANAGEMENT_URL {
@@ -182,5 +188,9 @@ variable "origin_secret" {
 }
 
 variable "map_name" {
+    type = string
+}
+
+variable "auth_file_name" {
     type = string
 }

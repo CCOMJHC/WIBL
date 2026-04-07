@@ -157,8 +157,7 @@ observerSndCountGraph.update_layout(autosize=False, xaxis_title='Observer Name',
 
 config = {'displayModeBar': False}
 
-app = DjangoDash("Dashboard")
-
+app = DjangoDash("Dashboard", external_scripts=["https://cdn.plot.ly/plotly-2.27.0.min.js"])
 
 # Create the html layout of the dashboard
 app.layout = html.Div([
@@ -241,20 +240,19 @@ app.layout = html.Div([
 
 
 # Call the manager's statistics endpoint and return the response
-async def getData():
+def getData():
     manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
-
-    client = httpx.AsyncClient()
-    response = await client.get(manager_url + "/statistics")
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return None
+    with httpx.Client() as client:
+        response = client.get(manager_url + "/statistics")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
 
 # Use the getData() function to call the manager, then load the response into the respective figures.
 # All Numbers and Gauges have a new value injected without reload, but all Graphs must be regenerated.
-async def loadData():
-    manager_res = await getData()
+def loadData():
+    manager_res = getData()
     if not manager_res:
         return
 
@@ -277,7 +275,6 @@ async def loadData():
     newSubmissionGraph.update_layout(autosize=False, width=2 * graphWidth, height=1.7 * graphHeight,
                                      margin=dict(l=0, r=0, t=0, b=0),
                                      xaxis_title='Days', yaxis_title='Files Submitted')
-
 
     newObserverFileCountGraph = px.line(observer_file_total_df, x='observer', y='files')
     newObserverFileCountGraph.update_layout(autosize=False, width=2.4 * graphWidth, height=1.7 * graphHeight,
@@ -344,7 +341,7 @@ async def loadData():
     [dash.dependencies.Input('interval-component', 'n_intervals')]
 )
 def update_dashboard(n):
-    figures = asyncio.run(loadData())
+    figures = loadData()
     return (figures['submissionGraph'], figures['locationGraph'], figures['observerFileCountGraph'],
             figures['observerSndCountGraph'])
 

@@ -29,12 +29,6 @@ provider "aws" {
   s3_use_path_style = true
 }
 
-# module "configure-domain" {
-#   source = "./domain"
-#
-#   domain_name = "gt-wibl-test-domain-name.xyz"
-# }
-
 module "configure-buckets" {
     source = "./buckets"
 
@@ -125,5 +119,9 @@ module "configure-lambda" {
     validation_topic_arn = module.configure-sns.validation_topic_arn
     submission_topic_arn = module.configure-sns.submission_topic_arn
     submitted_topic_arn = module.configure-sns.submitted_topic_arn
+
+    DCDB_PROVIDER_ID = var.DCDB_PROVIDER_ID
+    DCDB_UPLOAD_URL = var.DCDB_mode == "1" ? var.DCDB_PROD_URL : var.DCDB_TEST_URL
+    auth_file_name = var.auth_file_name
     depends_on = [module.configure-buckets, module.configure-sns, module.configure-manager-ecs]
 }

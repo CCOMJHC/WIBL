@@ -867,8 +867,6 @@ resource "aws_cloudfront_distribution" "frontend" {
 # Instantiate wibl-manager task definition from template and register task with ECS
 
 # Manager Task Definition
-# TODO: Pass manager essential information for downloading from s3
-# TODO: Take a look at the index's css styling (line under table heading)
 
 resource "aws_ecs_task_definition" "wibl_manager" {
   family                   = "wibl-manager"

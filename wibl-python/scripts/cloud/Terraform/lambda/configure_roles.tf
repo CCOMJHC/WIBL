@@ -80,6 +80,12 @@ resource "aws_iam_policy_attachment" "submission_lambda_sns_submitted_policy_att
     policy_arn = aws_iam_policy.lambda-sns-access-submitted.arn
 }
 
+resource "aws_iam_policy_attachment" "submission_lambda_ssm_policy_attach" {
+  name       = "submission_lambda_ssm_policy_attach"
+  roles      = [aws_iam_role.submission_lambda_role.name]
+  policy_arn = aws_iam_policy.lambda-ssm-access-submission.arn
+}
+
 resource "aws_iam_policy_attachment" "conversion_start_lambda_s3_access_policy_attach" {
   name       = "conversion_start_lambda_s3_access_policy_attach"
   roles = [aws_iam_role.conversion_start_lambda_role.name]

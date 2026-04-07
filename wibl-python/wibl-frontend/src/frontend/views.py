@@ -101,9 +101,7 @@ def logout(request: HttpRequest):
 def heartbeat(request):
     return HttpResponse(status=200)
 
-# TODO: Check to make sure map is displaying correct for client.
-
-def mapTileProxy(request, x, y, z):
+def map_tile_proxy(request, x, y, z):
     session = boto3.Session()
     credentials = session.get_credentials().get_frozen_credentials()
 
@@ -131,7 +129,6 @@ def map_style_proxy(request):
     response = requests.get(url, headers=dict(aws_request.headers))
     style = response.json()
 
-    # Rewrite tile URLs
     for source in style.get('sources', {}).values():
         if 'tiles' in source:
             source['tiles'] = ['/mapTile/{z}/{x}/{y}/']

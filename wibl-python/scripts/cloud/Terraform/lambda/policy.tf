@@ -72,6 +72,21 @@ data "aws_iam_policy_document" "lambda-sns-access-submission-doc" {
     }
 }
 
+resource "aws_ssm_parameter" "secret" {
+  name = "/wibl/auth_secret"
+  type = "SecureString"
+  value = file("${path.root}/auth/${var.auth_file_name}")
+}
+
+data "aws_iam_policy_document" "lambda-ssm-access-submission-doc" {
+  statement {
+    sid = "LambdaAllowSSMAccessSubmission"
+    effect = "Allow"
+    actions = ["ssm:GetParameter"]
+    resources = [aws_ssm_parameter.secret.arn]
+  }
+}
+
 data "aws_iam_policy_document" "lambda-sns-access-submitted-doc" {
     statement {
       sid = "LambdaAllowSNSAccessSubmission"
@@ -141,6 +156,11 @@ resource "aws_iam_policy" "lambda-sns-access-validation" {
 resource "aws_iam_policy" "lambda-sns-access-submission" {
     name = "lambda-sns-access-submission"
     policy = data.aws_iam_policy_document.lambda-sns-access-submission-doc.json
+}
+
+resource "aws_iam_policy" "lambda-ssm-access-submission" {
+  name = "lambda-ssm-access-submission"
+  policy = data.aws_iam_policy_document.lambda-ssm-access-submission-doc.json
 }
 
 resource "aws_iam_policy" "lambda-sns-access-submitted" {

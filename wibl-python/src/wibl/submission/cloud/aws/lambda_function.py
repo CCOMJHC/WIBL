@@ -125,12 +125,10 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
     upload_point = getenv('UPLOAD_POINT')
 
     if config['local']:
-        print(f'Local mode: Transmitting to {upload_point} for source ID {source_info["sourceID"]} with destination ID {dest_uniqueID}.')
+        print(f'Local mode: Transmitting to {upload_point} ...')
         meta.status = GeoJSONStatus.UPLOAD_SUCCESSFUL.value
         rc = True
     else:
-        if config['verbose']:
-            print(f'Transmitting for source ID {source_info["sourceID"]} to {upload_point} as destination ID {dest_uniqueID}.')
         response = requests.post(upload_point, headers=headers, files=files)
         if config['verbose']:
             print(f'Submission status for file {local_file} was {response.status_code}')
@@ -147,38 +145,10 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
                 rc = False
                 meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
                 manager.logmsg(f'error: DCDB responded {json_response}')
-
-        except json.decoder.JSONDecodeError:
+        except (json.decoder.JSONDecodeError, KeyError):
             rc = False
             meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
             manager.logmsg(f'error: DCDB responded {json_response}')
-    if config['verbose']:
-        print(f'Transmitting for source ID {source_info["sourceID"]} to {upload_point} as destination ID {dest_uniqueID}.')
-
-    response = requests.post(upload_point, headers=headers, files=files)
-
-    if config['verbose']:
-        print(f'Submission status for file {local_file} was {response.status_code}')
-        print(f'\tResponse text was: {response.text}')
-
-    json_response = response.json()
-
-    if config['verbose']:
-        print(f'POST response is {json_response}')
-    try:
-        json_code = json_response['success']
-        if json_code:
-            rc = True
-            meta.status = GeoJSONStatus.UPLOAD_SUCCESSFUL.value
-        else:
-            rc = False
-            meta.status = GeoJSONStatus.UPLOAD_FAILED.value
-            manager.logmsg(f'error: DCDB responded {json_response}')
-
-    except json.decoder.JSONDecodeError:
-        rc = False
-        meta.status = GeoJSONStatus.UPLOAD_FAILED.value
-        manager.logmsg(f'error: DCDB responded {json_response}')
 
     manager.update(meta)
     return rc
@@ -205,9 +175,14 @@ def lambda_handler(event, context):
 
     # We obtain the DCDB provider uniqueID (i.e., the six-letter identifier for the Trusted Node) and
     # authorisation string (the shared secret for authentication) from the environment; they should be
-    # stored there when the Lambda is created.
+    # stored there when the Lambda is created
     provider_id = getenv('PROVIDER_ID')
-    provider_auth = getenv('PROVIDER_AUTH')
+
+    ssm = boto3.client('ssm')
+    provider_auth = ssm.get_parameter(
+        Name=getenv('PROVIDER_PATH'),
+        WithDecryption=True
+    )['Parameter']['Value']
     
     # Loop through all of the source files in the incoming bucket, attempting to upload each in turn, and
     # keeping track of those that succeed and fail.

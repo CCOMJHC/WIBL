@@ -24,6 +24,12 @@ manager_db_size = "5"
 manager_db_user = "postgres"
 manager_db_password = "test_test"
 
+DCDB_PROVIDER_ID = "UNHJHC"
+DCDB_TEST_URL = "https://www.ngdc.noaa.gov/ingest-external/upload/csb/test/geojson/"
+DCDB_PROD_URL = "https://www.ngdc.noaa.gov/ingest-external/upload/csb/geojson/"
+# The name of the file in the "auth" folder that contains your DCDB provider auth string
+auth_file_name = "test_auth.txt"
+
 frontend_db_name = "frontendDB"
 frontend_db_size = "5"
 frontend_db_user = "postgres"
@@ -34,9 +40,12 @@ superuser_password = "bar"
 
 // 1 = debug mode is on, 0 = debug mode is off
 debug_mode = 1
-// Use this site to generate your own key, https://djecrety.ir/
+// Use this site to generate your own Django secret key, https://djecrety.ir/
 frontend_secret_key = "default__test_dev_key__"
 
 // Origin Secret, replace with a unique value to secure traffic between cloudfront and the frontend alb
 origin_secret = "default"
+
+// 1 = Use the production DCDB URL, 0 = Use the test DCDB URL
+DCDB_mode = 0
 

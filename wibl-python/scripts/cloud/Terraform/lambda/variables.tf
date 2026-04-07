@@ -129,9 +129,8 @@ variable "submitted_topic_arn" {
     type = string
 }
 
-variable "provider_auth" {
+variable "auth_file_name" {
     type = string
-    default = ""
 }
 
 variable "account_number" {

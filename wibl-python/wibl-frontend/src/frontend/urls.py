@@ -11,7 +11,7 @@ urlpatterns = [
     path('saveGeojsonFile/<str:fileid>', views.rawGeojsonFile, name="saveGeojsonFile"),
     path('check/<str:fileid>', views.checkFileAvail, name="checkFileAvail"),
     path('django_plotly_dash/', include('django_plotly_dash.urls')),
-    path('mapTile/<int:z>/<int:x>/<int:y>/', views.mapTileProxy, name='mapTileProxy'),
+    path('mapTile/<int:z>/<int:x>/<int:y>/', views.map_tile_proxy, name='mapTileProxy'),
     path('mapStyle/', views.map_style_proxy),
     path('mapSprites/<str:filename>', views.map_sprites_proxy),
     path('mapGlyphs/<str:fontstack>/<str:range>', views.map_glyphs_proxy)
