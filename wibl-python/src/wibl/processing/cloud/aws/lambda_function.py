@@ -61,7 +61,8 @@ def read_local_event(event_file: str) -> Dict:
     return event
 
 
-def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt.Notifier, config: Dict[str,Any]) -> bool:
+def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt.Notifier,
+                 config: Dict[str, Any]) -> bool:
     """Implement the business logic to translate the file from WIBL binary into a GeoJSON file.  The
        file with metadata in 'item' is pulled from object store using 'controller.obtain()', run through
        the translation and time-stamping from the Timestamping module, and then converted to GeoJSON
@@ -76,12 +77,12 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
 
     meta: WIBLMetadata = WIBLMetadata()
     lineage: Lineage = Lineage()
-    meta.size = item.source_size/(1024.0*1024.0)
+    meta.size = item.source_size / (1024.0 * 1024.0)
     meta.status = WIBLStatus.PROCESSING_STARTED.value  # Until further notice ...
     manager: ManagerInterface = ManagerInterface(MetadataType.WIBL_METADATA, item.source_key, config['verbose'])
     if not manager.register(meta.size):
         print('error: failed to register file with REST management interface.')
-    
+
     if verbose:
         print(f'Attempting to obtain item {item} from S3 ...')
 
@@ -102,6 +103,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         meta.endtime = datetime.fromtimestamp(source_data['depth']['t'][-1]).isoformat()
 
         # Get the max and min coordinates to create a bounding box
+        # TODO: Find out why the bounding boxes aren't being initialized correctly
         max_lat = -9999.0
         min_lat = 9999.0
 
@@ -135,7 +137,8 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         manager.update(meta)
         return False
     except ts.NewerDataFile:
-        manager.logmsg(f'error: failed to convert data({local_file}): file data format is newer than latest version known to code.')
+        manager.logmsg(
+            f'error: failed to convert data({local_file}): file data format is newer than latest version known to code.')
         meta.status = WIBLStatus.PROCESSING_FAILED.value
         manager.update(meta)
         return False
@@ -185,8 +188,8 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         print('Attempting to notify SNS')
     notifier.notify(item)
     return True
-    
-    
+
+
 def lambda_handler(event, context):
     try:
         # The configuration file for the algorithm should be in the same directory as the lambda function file,
@@ -198,7 +201,7 @@ def lambda_handler(event, context):
             'statusCode': 400,
             'body': 'Bad configuration'
         }
-    
+
     # We instantiate the AWS versions of DataSource and CloudController explicitly, since we can't be using anything
     # else given the rest of the infrastructure here, which is AWS specific.
     # When using direct S3 triggers or custom WIBL lambda-generated SNS event payloads, use:
@@ -207,7 +210,7 @@ def lambda_handler(event, context):
     # source = ds.AWSSourceSNSTrigger(event, config)
     controller = ds.AWSController(config)
     notifier = nt.SNSNotifier(getenv('NOTIFICATION_ARN'))
-    
+
     p = source.nextSource()
     while p is not None:
         if not process_item(p, controller, notifier, config):
