@@ -41,7 +41,7 @@ downloadButton.addEventListener("click", async (event) => {
 
     var wiblResult = wiblFileTable.getSelectedFiles(1) ?? [];
     var geojsonResult = geojsonFileTable.getSelectedFiles(1) ?? [];
-    if
+
     var result = wiblResult.concat(geojsonResult);
 
     if (result != 0) {

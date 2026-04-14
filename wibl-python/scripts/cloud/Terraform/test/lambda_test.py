@@ -11,28 +11,6 @@ LAMBDA_NAME = "gt-conversion-start-lambda"
 TEST_FILE_PATH = "./test_file.wibl"
 TEST_KEY = "test_file.wibl"
 
-test_event_json = {
-  "version": "2.0",
-  "routeKey": "$default",
-  "rawPath": "/",
-  "rawQueryString": "",
-  "headers": {
-    "content-type": "application/json",
-    "accept": "*/*",
-    "host": "jqkkgh4zfk3v5jnyomv5koryym0syblr.lambda-url.us-east-1.on.aws",
-    "user-agent": "python-requests/2.x",
-    "x-amzn-trace-id": "Root=1-abc123..."
-  },
-  "requestContext": {
-    "http": {
-      "method": "POST",
-      "path": "/"
-    }
-  },
-  "body": "{\"object\": \"test_file.wibl\"}",
-  "isBase64Encoded": False
-}
-
 @pytest.fixture(scope="module")
 def s3_client():
     return boto3.client("s3", region_name=REGION)
