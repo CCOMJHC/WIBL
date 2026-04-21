@@ -16,13 +16,13 @@ At the same time, we recognise that getting data from the loggers into the natio
 
 The logger's functionality is deliberately constrained.  During normal operations, the logger monitors the NMEA0183 and/or NMEA2000 busses to which it is attached, and records any valid data packet received to local storage.  Timestamps are provided through the elapsed time counter on the microcontroller used, and although a pseudo-time is computed from NMEA2000 data packets if they are available, there is no expectation that timestamps will be assigned until the data is uploaded for processing.
 
-The logger provides an always-on Bluetooth Low Energy service that acts as a software UART.  Client software can connect to this service and pass ASCII commands to the logger to control logging, determine the files that have been logged and their sizes, manage log files, set non-volatile parameters for the system, and so on.  Critically, the BLE service can also be used to start and stop the logger's WiFi service, which is used to give higher-speed transfer of data (although it also responds to all of the same commands).  This avoids having another WiFi network on board the ship if it is not required.
+The logger provides a WiFi interface for monitoring, configuration, and control.  If there's no other option, the logger will provide its own access point (i.e., create its own WiFi network) to which users can connect, but it can also be configured to connect to a mobile hotspot or an infrastructure WiFi network if available.  The logger runs a web server so that any modern browser can be used to interact with the system (the logger provides the HTML and JavaScript for all required functionality), and also provides an API to send simple commands using a custom language and receive JSON-format responses for a programmatic interface.
 
-After upload to a mobile collection device (e.g., a cell-phone or tablet), the data is then sent to Amazon Web Services at the first stable communications connection of the mobile device, at which point it is processed, reformatted, packaged, and transmitted to DCDB for archive.
+After upload to a mobile collection device (e.g., a cell-phone or tablet), or direct uploading (via a separate upload server, also included, if the logger is on an infrastructure network with internet connection), the data is sent to Amazon Web Services, at which point it is processed, reformatted, packaged, and transmitted to DCDB for archive.
 
 ## Concept of Operations
 
-This logger is designed for supported, focussed, data collections.  In this mode, loggers would be provided by an organisation in a specific geographic location to support data collection in a particular area.  The goal here is to provide density of observations in an area, which greatly assists in processing the data, and making useful products.  In addition to providing the loggers (and recruiting the volunteer observers), the organisation would also provide local support personnel to visit the volunteer observers, pick up the collected data (via mobile device), and make sure that the loggers were still collecting data.  Having local support also ensures that there is continued communication with the observers, which is useful in sustaining the community in the long term.
+This logger is designed for supported, focussed, data collections.  In this mode, loggers would be provided by an organisation in a specific geographic location to support data collection in a particular area.  The goal here is to provide density of observations in an area, which greatly assists in processing the data, and making useful products.  In addition to providing the loggers (and recruiting the volunteer observers), the organisation would also provide local support personnel to visit the volunteer observers, pick up the collected data (via mobile device or through maintaining an upload server), and make sure that the loggers were still collecting data.  Having local support also ensures that there is continued communication with the observers, which is useful in sustaining the community in the long term.
 
 After each visit, all of the data collected (potentially from multiple observers) on the mobile device can be uploaded to any available service that implements the cloud segment of the software suite.  This could be something set up specifically for the organisation using the model provided here, or it could be a third-party that provides an equivalent.
 
@@ -31,31 +31,30 @@ After each visit, all of the data collected (potentially from multiple observers
 In order to provide for the widest possible use (and to avoid excuses ...) the hardware designs, firmware source, and supporting libraries are all released as Open Source under the MIT license.  The cloud segment is released under the MIT License for non-commercial use; for commercial licenses, please contact info@ccom.unh.edu.
 
 ## Where to Start
+
 See the "Logger firmware" section below to get started with the WIBL loggers. 
 See the "Data management" section below to get started using WIBL and 
 `wibl-python` tools to manage and process data generated by WIBL loggers.
 
-
 ### Logger firmware
 
-The source for the system is maintained in a [BitBucket repository](https://bitbucket.org/brian_r_calder/sb2030logger), which also includes a Wiki for details of the design and system development.
+The source for the system is maintained in a [GitHub repository](https://github.com/CCOMJHC/WIBL), which also includes a [Wiki](https://github.com/CCOMJHC/WIBL/wiki) for details of the design and system development.  The Wiki is the most useful source of current information to set up and programme the logger firmware, and to access the rest of the code resources.
 
-To build the system, you will need at least:
+To build the firmware and work with the hardware designs, you will need at least:
 
-1. A functional Python interpreter (at least 3.6).
+1. A functional Python interpreter (at least 3.13) (e.g., [MiniConda](https://www.anaconda.com/docs/getting-started/miniconda/main)).
 
-2. A working [Arduino](https://www.arduino.cc) development environment (at least 1.8.12), or equivalent (e.g., [embedXcode](https://embedxcode.weebly.com) 11.8.8).
+2. A working copy of [VSCode](https://code.visualstudio.com) and [PlatformIO](https://platformio.org) to build the firmware and other logger functionality.
 
-3. Support for [Espressif](https://www.espressif.com) ESP32 development (with Arduino 1.8.12 this can be installed from the IDE, see [here](https://github.com/espressif/arduino-esp32) for instructions).
+3. Support for NMEA2000 handling on ESP32 (you need the [base library](https://github.com/ttlappalainen/NMEA2000) and [ESP-specific](https://github.com/ttlappalainen/NMEA2000_esp32) extensions).
 
-4. Support for NMEA2000 handling on ESP32 (you need the [base library](https://github.com/ttlappalainen/NMEA2000) and [ESP-specific](https://github.com/ttlappalainen/NMEA2000_esp32) extensions).
+4. [KiCAD](https://www.kicad.org) (at least 9.0) to examine and edit the logger schematic and board layout.
 
-5. Eagle CAD (at least 9.5.2) for the hardware designs.
+5. [FreeCAD](https://www.freecad.org) (at least 1.0) to examine and edit the logger enclosure STEP files.
 
-6. A working C++11 (at least) compiler for the software data simulator.
+6. A working C++11 (at least) compiler for the software data simulator (the installation with VSCode works very well).
 
-With these prerequisites, the recommended place to start is with the logger firmware, followed with the data parser Python, which will allow you to demonstrate that your logger is actually logging data.  For benchtop testing, the hardware data simulator can be used (with the development board) to generate simulated data on both NMEA0183 and NMEA2000 for testing logger modifications.  The WiFi Command GUI can be used to interact with a logger once WiFi is enabled, allowing you to transfer files, and decode them.
-
+With these prerequisites, the recommended place to start is with the logger firmware, followed by the post-processing Python code, which will allow you to demonstrate that your logger is actually logging data.  For benchtop testing, the hardware data simulator can be used to generate simulated data on both NMEA0183 and NMEA2000 buses for testing logger modifications.
 
 ### Data management
 

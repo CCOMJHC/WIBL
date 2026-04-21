@@ -1,0 +1,232 @@
+(footprint "MWSA0603S"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at -3 -4 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "4706c79d-d49c-4b7d-9a9b-e79c6ef2b5fd")
+		(effects
+			(font
+				(size 1.1684 1.1684)
+				(thickness 0.1016)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Value" "MWSA0603S-150MT"
+		(at -6.5278 3.2004 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "2ac44842-ebda-4a85-ae7a-aead89260363")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1524)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "24de8547-cce9-4fdf-abc6-64734c1b9dc9")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "15 µH Shielded Drum Core, Wirewound Inductor 3 A 113mOhm Max Nonstandard"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "c4d11e63-6cdd-415e-a697-3722cb106754")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Mfr" "Shenzhen Sunlord Electronics Co., Ltd."
+		(at 0 0 0)
+		(layer "F.SilkS")
+		(hide yes)
+		(uuid "9b270b1c-13a0-4cef-92e6-69ddb7d25107")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+		)
+	)
+	(property "MPNum" "MWSA0603S-150MT"
+		(at 3.683 4.445 0)
+		(layer "F.SilkS")
+		(uuid "879dbc7b-3100-441a-ad8a-e64165b1ba18")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -3.6576 -3.4)
+		(end -3.6576 -1.9558)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "a29a0aa7-1ea7-4db7-86a5-b174748f7fa7")
+	)
+	(fp_line
+		(start -3.6576 1.9558)
+		(end -3.6576 3.4)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "a33dcc62-8e7b-4724-bc91-0d5805bce151")
+	)
+	(fp_line
+		(start -3.65 3.4)
+		(end 3.65 3.4)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "52cf8493-e183-422c-8998-83809103ea3d")
+	)
+	(fp_line
+		(start 3.65 1.9558)
+		(end 3.65 3.4)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "42661768-bc45-4e29-80a9-45c1fbb873a9")
+	)
+	(fp_line
+		(start 3.683 -3.4)
+		(end -3.65 -3.4)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "d91cb679-a45d-4b73-bf8e-b98aea25bdff")
+	)
+	(fp_line
+		(start 3.683 -3.4)
+		(end 3.683 -1.9558)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "0e47afc5-e3f1-4686-b161-56622391921c")
+	)
+	(fp_line
+		(start -4.572 -3.4798)
+		(end 4.3942 -3.4798)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "c347100d-d8ef-47a2-aaea-711bd6b252f3")
+	)
+	(fp_line
+		(start -4.572 3.5052)
+		(end -4.572 -3.4798)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "87038d1f-55b5-4eb6-b521-172ad3a63b39")
+	)
+	(fp_line
+		(start 4.3942 -3.4798)
+		(end 4.3942 3.5052)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "c2ac9af0-28c2-48ef-9db9-0a2b611fb923")
+	)
+	(fp_line
+		(start 4.3942 3.5052)
+		(end -4.572 3.5052)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "d87d916e-a634-4af8-8a79-368a734710d5")
+	)
+	(fp_rect
+		(start -4.5212 -3.429)
+		(end 4.3434 3.4544)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "bed474b1-c837-45a4-a8cf-27cb23755e59")
+	)
+	(fp_text user "${REFERENCE}"
+		(at -1.8288 0.2794 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "3820dd9c-326c-4057-92b5-f2670e049641")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom)
+		)
+	)
+	(pad "P$1" smd rect
+		(at -3.025 0)
+		(size 2.35 3.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "cb3d3876-e127-4242-a296-49c60e1d6603")
+	)
+	(pad "P$2" smd rect
+		(at 3.025 0)
+		(size 2.35 3.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "4e866bb2-8b92-42c5-b359-adfb3c432b2a")
+	)
+	(embedded_fonts no)
+	(model "${KICAD9_3DMODEL_DIR}/Inductor_SMD.3dshapes/L_Sunlord_MWSA0603S.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

@@ -139,7 +139,7 @@ public:
     void AddInventory(bool verbose = false);
     void EmitNoDataReject(void);
 
-    bool WriteSnapshot(String& name, String const& contents);
+    bool WriteSnapshot(const char *name, String const& contents, String& url);
 
 private:
     /// \class Inventory

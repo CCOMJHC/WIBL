@@ -23,12 +23,34 @@ type AWSInterface struct {
 func (c *AWSInterface) Configure(config *support.Config) error {
 	// Loading the default configuration will also do a search for AWS_ACCESS_KEY_ID and
 	// AWK_SECRET_ACCESS_KEY in the environment variables to set up credentials
-	cfg, err := awsConfig.LoadDefaultConfig(context.TODO(), awsConfig.WithRegion(config.AWS.Region))
+	var cfg aws.Config
+	var err error
+	var s3OptFn func(o *s3.Options)
+
+	if config.AWS.Endpoint != "" {
+		cfg, err = awsConfig.LoadDefaultConfig(context.TODO(),
+			awsConfig.WithRegion(config.AWS.Region),
+			awsConfig.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
+				func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+					return aws.Endpoint{URL: config.AWS.Endpoint}, nil
+				}),
+			),
+		)
+
+		s3OptFn = func(o *s3.Options) {
+			o.UsePathStyle = true
+			o.BaseEndpoint = &config.AWS.Endpoint
+		}
+	} else {
+		cfg, err = awsConfig.LoadDefaultConfig(context.TODO(), awsConfig.WithRegion(config.AWS.Region))
+		s3OptFn = func(o *s3.Options) {}
+	}
 	if err != nil {
 		support.Errorf("failed to load configuration, %v", err)
 		return err
 	}
-	c.S3Client = s3.NewFromConfig(cfg)
+
+	c.S3Client = s3.NewFromConfig(cfg, s3OptFn)
 	c.SnsClient = sns.NewFromConfig(cfg)
 	return nil
 }
@@ -72,6 +94,10 @@ func (c AWSInterface) UploadFile(meta ObjectDescription, data []byte) error {
 }
 
 func (c AWSInterface) PublishNotification(topic string, meta ObjectDescription) error {
+	if topic == "" {
+		support.Debugf("AWS-SNS: no topic defined, skipping notification.\n")
+		return nil
+	}
 	support.Debugf("AWS-SNS: publishing key %s on topic %s.\n", meta.Filename, topic)
 	msgstr, err := json.Marshal(meta)
 	if err != nil {

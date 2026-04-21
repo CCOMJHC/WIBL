@@ -48,7 +48,7 @@ public:
     SupplyMonitor(uint8_t monitor_pin = default_monitor_pin);
 
     /// \brief Sample the voltage on the monitoring pin, and determine whether we're on emergency power
-    bool EmergencyPower(uint16_t *value = nullptr);
+    bool EmergencyPower(void);
 
 private:
     bool    m_monitorPower; ///< Flag: True => power monitoring is happening, False => we don't care about power

@@ -82,3 +82,5 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+fp-info-cache
+WIBL-backups/

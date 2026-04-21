@@ -1,0 +1,301 @@
+(footprint "NMEA2000"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at 0.1524 12.0142 0)
+		(layer "F.SilkS")
+		(uuid "33d1abb0-a042-41ad-ac3b-bd040abc3be6")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "HMC_05PMMP_SF8001"
+		(at 0.0254 0 0)
+		(layer "F.Fab")
+		(uuid "5fa9bd27-a82c-487c-b9ff-eed15c006078")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "d8c6e3cc-f4da-4efd-a34e-4f0ca0623d82")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "5 Position Circular Connector Receptacle, Male Pins Solder Cup, NMEA 2000, MICRO, 4A, 05 PINS, R"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "2b3e93e8-9eed-4333-b14e-5209f8f967ce")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Mfr" "Amphenol LTW"
+		(at 0 0 0)
+		(layer "F.CrtYd")
+		(hide yes)
+		(uuid "4b9b349e-7606-41e2-8658-5e4312be976b")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(fp_circle
+		(center 2.492 1.627)
+		(end 2.820493 1.627)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.SilkS")
+		(uuid "0facee21-dcfc-49c3-ae44-684707b1ef46")
+	)
+	(fp_line
+		(start 3.683 6.604)
+		(end 5.842 4.953)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "B.SilkS")
+		(uuid "5121bf5e-0b35-40bb-81c7-8200dac438a1")
+	)
+	(fp_line
+		(start 5.08 8.636)
+		(end 3.683 6.604)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "B.SilkS")
+		(uuid "00bfb85b-5294-468e-9849-980c15e9b015")
+	)
+	(fp_line
+		(start 5.842 4.953)
+		(end 7.239 6.731)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "B.SilkS")
+		(uuid "40a9347c-ff6d-42ea-87ed-6db57425edaf")
+	)
+	(fp_circle
+		(center 0 0)
+		(end 10 0)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(fill no)
+		(layer "B.SilkS")
+		(uuid "f9c784b2-76f1-4562-8ffa-0ff7b5a54c7b")
+	)
+	(fp_circle
+		(center 0 0.0254)
+		(end 11 0.0254)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "B.CrtYd")
+		(uuid "985e4b9c-a26e-4db0-9aaf-cb1d510fd02c")
+	)
+	(fp_circle
+		(center 0 0.0254)
+		(end 5 0.0254)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "18e0fd42-5a91-4515-955e-12f403ab236e")
+	)
+	(fp_circle
+		(center 0.0254 0)
+		(end 10.1346 3.1242)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill no)
+		(layer "B.Fab")
+		(uuid "1901fb3a-3e12-426b-b70c-8b72e00d8fb4")
+	)
+	(fp_poly
+		(pts
+			(xy 4.0132 6.5278) (xy 5.8166 5.1308) (xy 7.5946 7.3914) (xy 6.5532 8.3566) (xy 5.5118 9.017) (xy 3.8862 6.6294)
+		)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill yes)
+		(layer "B.Fab")
+		(uuid "ec7dffe2-ddf4-4e9a-a80b-5b8ad1876f3a")
+	)
+	(fp_text user "GND"
+		(at -3.738 0.206 0)
+		(unlocked yes)
+		(layer "B.SilkS")
+		(uuid "556f9e75-168c-439a-a9f6-ae17c5f8bc2e")
+		(effects
+			(font
+				(size 0.46 0.46)
+				(thickness 0.04)
+			)
+			(justify left bottom mirror)
+		)
+	)
+	(fp_text user "CAN-L"
+		(at -1.6002 -1.6002 0)
+		(unlocked yes)
+		(layer "B.SilkS")
+		(uuid "5a3b7deb-b50c-4b7d-ac69-36209d4b4251")
+		(effects
+			(font
+				(size 0.46 0.46)
+				(thickness 0.04)
+			)
+			(justify left bottom mirror)
+		)
+	)
+	(fp_text user "CAN-H"
+		(at 1.048 -3.762 0)
+		(unlocked yes)
+		(layer "B.SilkS")
+		(uuid "77fbb446-dd53-4ec6-88ca-763854211a81")
+		(effects
+			(font
+				(size 0.46 0.46)
+				(thickness 0.04)
+			)
+			(justify left bottom mirror)
+		)
+	)
+	(fp_text user "SHIELD"
+		(at 6.207 0.317 0)
+		(unlocked yes)
+		(layer "B.SilkS")
+		(uuid "99ca0cfc-7bcc-4409-81dd-bacf97ce191f")
+		(effects
+			(font
+				(size 0.46 0.46)
+				(thickness 0.04)
+			)
+			(justify left bottom mirror)
+		)
+	)
+	(fp_text user "+12V"
+		(at 0.921 4.238 0)
+		(unlocked yes)
+		(layer "B.SilkS")
+		(uuid "aa4570cc-7003-4282-81eb-3604162183de")
+		(effects
+			(font
+				(size 0.46 0.46)
+				(thickness 0.04)
+			)
+			(justify left bottom mirror)
+		)
+	)
+	(fp_text user "${REFERENCE}"
+		(at -5.3086 -5.5372 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "2c0f926f-0912-4278-a42d-c12243af5d6c")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom)
+		)
+	)
+	(pad "1" thru_hole circle
+		(at 2.5 0 180)
+		(size 2 2)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "257fbefd-5c9b-43d1-a667-93889c5ef14f")
+	)
+	(pad "2" thru_hole circle
+		(at 0 2.5 90)
+		(size 2 2)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "840141ca-8347-4cef-b0d6-089b468525f4")
+	)
+	(pad "3" thru_hole circle
+		(at -2.5 0)
+		(size 2 2)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "c9a5f12b-0edd-45e7-96d2-6c4439132d06")
+	)
+	(pad "4" thru_hole circle
+		(at 0 -2.5 270)
+		(size 2 2)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "914ba671-ee35-4bcf-9abd-d5f1c0df0691")
+	)
+	(pad "5" thru_hole circle
+		(at 0 0)
+		(size 2 2)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "01d7262e-ab1c-46c3-9ecd-880505011033")
+	)
+	(embedded_fonts no)
+	(model "${KiCAD_Projects}/3D_models/LIB_HMC-05PMMS-SF8001/HMC-05PMMS-SF8001/3D/HMC-05PMMS-SF8001.stp"
+		(offset
+			(xyz 0 0 -23.5)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 135 90 -0)
+		)
+	)
+)

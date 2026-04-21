@@ -1,0 +1,249 @@
+(footprint "RFM-0505S"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at -4.699 -5.588 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "28cc5839-2373-47e2-a73b-0dc8bde42c14")
+		(effects
+			(font
+				(size 1.1684 1.1684)
+				(thickness 0.1016)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Value" "RFM-0505S"
+		(at -5.08 3.0734 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "438012d2-f742-4b41-9b8b-9b4abbd79d7a")
+		(effects
+			(font
+				(size 1.1684 1.1684)
+				(thickness 0.1016)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "19b97cf6-f02f-41be-b01a-d3e30f0502da")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "Isolated Module DC DC Converter 1 Output 5V 200mA - 5V Input"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "c885c74e-9003-4e1c-910b-c55b2db82064")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Mfr" "Recom Power"
+		(at 0 0 0)
+		(layer "F.CrtYd")
+		(hide yes)
+		(uuid "48644803-1a4c-48b0-83dd-1ea85a3201ac")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "MPNum" "RFM-0505S"
+		(at 0 0 0)
+		(layer "F.CrtYd")
+		(hide yes)
+		(uuid "49530335-80c7-4ab4-97a1-57d52b9c0847")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(fp_line
+		(start -5.75 -5.08)
+		(end -5.75 1.27)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "327545dd-0193-4ee2-8c4a-cbec1deb5ab1")
+	)
+	(fp_line
+		(start -5.75 1.27)
+		(end 5.75 1.27)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "26c345d9-657e-4962-8f03-34ea312ec829")
+	)
+	(fp_line
+		(start 5.75 -5.08)
+		(end -5.75 -5.08)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "e7b7e5b2-a373-4885-82f1-dabfc1ea8ea3")
+	)
+	(fp_line
+		(start 5.75 1.27)
+		(end 5.75 -5.08)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "2a4b5977-7669-4e99-8174-567e8c15150d")
+	)
+	(fp_line
+		(start -5.8928 -5.2324)
+		(end 5.8928 -5.2324)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "5c1c601b-7c99-4946-9ad8-1c052e4dd1e1")
+	)
+	(fp_line
+		(start -5.8928 1.4224)
+		(end -5.8928 -5.2324)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "57af67b2-b0b1-4ae7-8049-1959977125ed")
+	)
+	(fp_line
+		(start 5.8928 -5.2324)
+		(end 5.8928 1.4224)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "0315bfe0-21ba-44ed-bd79-97747aa18a45")
+	)
+	(fp_line
+		(start 5.8928 1.4224)
+		(end -5.8928 1.4224)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "feb772a7-149b-43ac-9a26-2bb8974a7bc5")
+	)
+	(fp_rect
+		(start -5.715 -5.08)
+		(end 5.715 1.2446)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "2c33ca2c-49ee-4173-a728-e8a446c70416")
+	)
+	(fp_text user "RFM-0505S"
+		(at -3.9878 -1.524 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "83d4d77d-b70a-4f4a-910b-c9cc98600935")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom)
+		)
+	)
+	(fp_text user "${REFERENCE}"
+		(at -3.5052 -3.3782 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "9ba40544-0ec1-4af6-8a51-7ae0c46d4ca5")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom)
+		)
+	)
+	(pad "1" thru_hole circle
+		(at -3.81 0 90)
+		(size 1.108 1.108)
+		(drill 0.6)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "c979522b-858e-41a6-9cfd-e92cb862515f")
+	)
+	(pad "2" thru_hole circle
+		(at -1.27 0 90)
+		(size 1.108 1.108)
+		(drill 0.6)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "4c8ebe9e-5019-4c65-af7f-b68bc9a33537")
+	)
+	(pad "3" thru_hole circle
+		(at 1.27 0 90)
+		(size 1.108 1.108)
+		(drill 0.6)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "8ca23c1f-8743-490e-9bd3-2ced2edf5c75")
+	)
+	(pad "4" thru_hole circle
+		(at 3.81 0 90)
+		(size 1.108 1.108)
+		(drill 0.6)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "50554c39-2db0-49d1-b6a6-395a41c6aeeb")
+	)
+	(embedded_fonts no)
+	(model "${KiCAD_Projects}/3D_models/RFM_0505S/RFM-0505S.STEP"
+		(offset
+			(xyz 0 1.75 0.5)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -90 -0 -0)
+		)
+	)
+)

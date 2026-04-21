@@ -11,11 +11,19 @@ param(
 
 Get-ChildItem -Path $inPath -Filter "*.$extension" -File -Recurse |
   ForEach-Object -Process {
-    # Run csbschema to validate
-    Write-Output "Validating file $_..."
-    if ( $PSBoundParameters.ContainsKey('schema') ) {
-        csbschema validate -f $_ --version $schema
+    Write-Output "Validating file $($_.FullName)..."
+        if ( $PSBoundParameters.ContainsKey('schema') ) {
+        csbschema validate -f $_.FullName --version $schema
     } else {
-        csbschema validate -f $_
+        csbschema validate -f $_.FullName
     }
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Successfully validated against CSB schema" -ForegroundColor Green
+    } else {
+        Write-Host "Failed to validate against CSB schema" -ForegroundColor Red
+    }
+    
+    # Add a small gap between files for readability
+    Write-Output "" 
   }

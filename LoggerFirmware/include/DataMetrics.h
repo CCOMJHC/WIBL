@@ -82,10 +82,13 @@ public:
 
     void RegisterObs(DataObs const& obs);
     DynamicJsonDocument LastKnownGood(void) const;
+    void SupplyVoltage(double voltage) { m_supplyVoltage = voltage; }
+    double SupplyVoltage(void) const { return m_supplyVoltage; }
 
 private:
     DataObs m_nmea0183[3];
     DataObs m_nmea2000[3];
+    double m_supplyVoltage;
 };
 
 extern DataMetrics Metrics;

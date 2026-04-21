@@ -9,10 +9,10 @@ ENV CC=/usr/bin/clang
 ENV CXX=/usr/bin/clang++
 
 # Checkout WIBL repo so that we can build LogConvert and install wibl-python
-ENV version=1.1.1
+ENV version=1.2.0
 WORKDIR /usr/src/wibl
 RUN wget https://github.com/CCOMJHC/WIBL/archive/refs/tags/wibl-python-${version}.tar.gz
-RUN echo "e092d83c6e323c41d12835abd52d7fc19d3fefa237285acd7c4cf529fc632de7  wibl-python-${version}.tar.gz" > wibl-python-${version}.tar.gz.sum
+RUN echo "7c30fbb4733ae8f5b2fa5280842acc6ca59fcdf8b69e241571af970a70e00433  wibl-python-${version}.tar.gz" > wibl-python-${version}.tar.gz.sum
 RUN sha256sum -c wibl-python-${version}.tar.gz.sum
 RUN tar xf wibl-python-${version}.tar.gz
 ENV WIBL_SRC=/usr/src/wibl/WIBL-wibl-python-${version}

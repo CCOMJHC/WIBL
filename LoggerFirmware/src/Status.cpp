@@ -114,6 +114,8 @@ DynamicJsonDocument CurrentStatus(logger::Manager *m)
 
     int now = millis();
     status["elapsed"] = now;
+    
+    status["supply"] = logger::Metrics.SupplyVoltage();
 
     String server_status, boot_status;
     logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, server_status);

@@ -24,6 +24,10 @@ func NewDatabase(dbfile string) (DBConnection, error) {
 		Errorf("DB: Failed to open SQLite database in %s: %v", dbfile, err)
 		return DBConnection{}, err
 	}
+	if err = rtn.db.Ping(); err != nil {
+		Errorf("DB: Failed to ping SQLite database in %s: %v.", dbfile, err)
+		return DBConnection{}, err
+	}
 	return rtn, nil
 }
 

@@ -1,0 +1,241 @@
+(footprint "CHIP-LED0603_259"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "Hyper CHIPLED Hyper-Bright LED\n\nLB Q993\nSource: http://www.osram.convergy.de/ ... Lb_q993.pdf")
+	(property "Reference" "REF**"
+		(at -0.635 0.635 90)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "5d79cb0a-8b83-49ae-a452-ef43eabe0d3e")
+		(effects
+			(font
+				(size 1.1684 1.1684)
+				(thickness 0.1016)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Value" "CHIP-LED0603_259"
+		(at 1.905 0.635 90)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "9800ae81-e06c-44a6-bda0-177109449a4d")
+		(effects
+			(font
+				(size 1.1684 1.1684)
+				(thickness 0.1016)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "8adaeeca-fc1e-4d32-9318-604279965e1c")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "Blue 470nm LED Indication - Discrete 2.85V 0603 (1608 Metric)"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "515c05b9-c513-4105-87ec-e7c8063e3583")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_rect
+		(start -0.56 -1.445)
+		(end 0.56 -1.315)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.SilkS")
+		(uuid "34d3f9d1-0c23-41c5-a3bf-48f4ff8e4444")
+	)
+	(fp_rect
+		(start -0.56 -1.31)
+		(end 0.56 1.32)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(fill no)
+		(layer "F.SilkS")
+		(uuid "4cca48d1-ed7b-41bf-bc18-0dfa1bb6cf5c")
+	)
+	(fp_poly
+		(pts
+			(xy -0.4548 0.1222) (xy -0.3048 0.1222) (xy -0.3048 -0.1778) (xy -0.4548 -0.1778)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill yes)
+		(layer "F.SilkS")
+		(uuid "4f58e6ac-5ca7-4199-aac1-2daa118b3c39")
+	)
+	(fp_poly
+		(pts
+			(xy -0.15 0.1222) (xy 0.15 0.1222) (xy 0.15 -0.1778) (xy -0.15 -0.1778)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill yes)
+		(layer "F.SilkS")
+		(uuid "15cbb02d-e86b-4007-9505-960209848b43")
+	)
+	(fp_poly
+		(pts
+			(xy 0.3 0.1222) (xy 0.45 0.1222) (xy 0.45 -0.1778) (xy 0.3 -0.1778)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill yes)
+		(layer "F.SilkS")
+		(uuid "9ec496a3-5f81-4178-a9c7-7fd78059de4c")
+	)
+	(fp_line
+		(start -0.5334 -1.2954)
+		(end -0.5334 1.2954)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "88f5684e-e1be-4333-9285-8f74baf8629d")
+	)
+	(fp_line
+		(start -0.5334 -1.2954)
+		(end 0.5334 -1.2954)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "8f0a9552-da69-462d-b86f-e821f3e0956a")
+	)
+	(fp_line
+		(start 0.5334 -1.2954)
+		(end 0.5334 1.2954)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "8817e1ea-5f73-4687-bcc2-c2c629c8ff87")
+	)
+	(fp_line
+		(start 0.5334 1.2954)
+		(end -0.5334 1.2954)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "e77ea900-f020-41eb-bb29-bc19d2cbc307")
+	)
+	(fp_line
+		(start -0.4 -0.45)
+		(end -0.4 0.45)
+		(stroke
+			(width 0.1016)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "d5f1e64e-6c45-4239-b944-78a759d72ff7")
+	)
+	(fp_line
+		(start 0.4 -0.45)
+		(end 0.4 0.45)
+		(stroke
+			(width 0.1016)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "d1009ccb-e8f5-4bec-b516-caa9929b13fd")
+	)
+	(fp_poly
+		(pts
+			(xy -0.45 -0.45) (xy 0.45 -0.45) (xy 0.45 -0.85) (xy -0.45 -0.85)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill yes)
+		(layer "F.Fab")
+		(uuid "c265438d-54a7-437a-b2d5-bd4820daf6c1")
+	)
+	(fp_poly
+		(pts
+			(xy -0.45 0.85) (xy 0.45 0.85) (xy 0.45 0.45) (xy -0.45 0.45)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill yes)
+		(layer "F.Fab")
+		(uuid "89d057ab-c5f3-4155-a35c-5ae5bd82f78c")
+	)
+	(fp_text user "${REFERENCE}"
+		(at -0.5842 1.3208 90)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "e77651dc-2a26-4a9d-81b8-5699b7a7e620")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom)
+		)
+	)
+	(pad "A" smd rect
+		(at 0 0.75)
+		(size 0.8 0.8)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "6326fc69-1fdc-4206-90d0-e105012ba898")
+	)
+	(pad "C" smd rect
+		(at 0 -0.75)
+		(size 0.8 0.8)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "d8b7c0df-5792-4d64-be01-aac0bc017474")
+	)
+	(embedded_fonts no)
+	(model "${KICAD9_3DMODEL_DIR}/LED_SMD.3dshapes/LED_0603_1608Metric_Castellated.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -0 -0 90)
+		)
+	)
+)

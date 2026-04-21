@@ -39,9 +39,10 @@
 #include "SupplyMonitor.h"
 #include "Configuration.h"
 #include "HeapMonitor.h"
+#include "DataMetrics.h"
 
 /// Hardware version for the logger implementation (for NMEA2000 declaration)
-#define LOGGER_HARDWARE_VERSION "2.4.1"
+#define LOGGER_HARDWARE_VERSION "2.5.1"
 
 const unsigned long TransmitMessages[] PROGMEM={0}; ///< List of messages the logger transmits (null set)
 const unsigned long ReceiveMessages[] PROGMEM =
@@ -236,10 +237,9 @@ void loop()
     if (CommandProcessor != nullptr) {
         CommandProcessor->ProcessCommand();
     }
-    uint16_t supply_voltage;
-    if (supplyMonitor->EmergencyPower(&supply_voltage)) {
+    if (supplyMonitor->EmergencyPower()) {
         // Eek!  Power went out, so we need to stop logging ASAP
-        //Serial.printf("DBG: Supply voltage ADC dropped to %hu\n", supply_voltage);
+        Serial.printf("DBG: Supply voltage dropped to %f V\n", logger::Metrics.SupplyVoltage());
         CommandProcessor->EmergencyStop();
     }
 }
