@@ -33,31 +33,43 @@ from csbschema import validate_data, DEFAULT_VALIDATOR_VERSION
 
 import wibl.core.datasource as ds
 import wibl.core.notification as nt
-from wibl_manager import ManagerInterface, ReturnCodes, GeoJSONStatus, MetadataType
+from wibl_manager import ManagerInterface, ReturnCodes, GeoJSONStatus, MetadataType, GeoJSONMetadata
 from wibl.core import getenv
 import wibl.core.config as conf
 from wibl.validation.cloud.aws import get_config_file
 
-def validate_metadata(local_file: str, config: Dict[str,Any]) -> bool:
+def validate_metadata(local_file: str, source_info: Dict[str,Any], config: Dict[str,Any]) -> bool:
     verbose = config['verbose']
 
     # Although we need to check the GeoJSON file for metadata, we need to update the status of the
     # WIBL file, since failed metadata is really a processing failure.  Hence, we need to generate
     # the WIBL file name from the GeoJSON file name (by subtracting the extension)
-    source_file_path = local_file.replace('.json', '.wibl')
-    source_file_name = os.path.split(source_file_path)[-1]
-    if source_file_name == '':
-        raise ValueError(f"Unable to determine filename from source file path: '{source_file_path}'")
+    # source_file_path = local_file.replace('.json', '.wibl')
+    # source_file_name = os.path.split(source_file_path)[-1]
+    # if source_file_name == '':
+    #     raise ValueError(f"Unable to determine filename from source file path: '{source_file_path}'")
 
-    manager: ManagerInterface = ManagerInterface(MetadataType.WIBL_METADATA, source_file_name, config['verbose'])
-    rc, meta = manager.lookup()
-    if not rc:
-        if verbose:
-            print(f'error: failed to find metadata on {source_file_name} from database manager.')
-        return rc
+    filesize = os.path.getsize(local_file) / (1024.0 * 1024.0)
+    filename = os.path.split(local_file)[-1]
+    if filename == '':
+        print(f'warning: unable to determine of file to upload. local_file was: {local_file}.')
+    manager: ManagerInterface = ManagerInterface(MetadataType.GEOJSON_METADATA, filename, config['verbose'])
+    if not manager.register(filesize):
+        print('warning: failed to register file with REST management service.')
+
+    meta: GeoJSONMetadata = GeoJSONMetadata()
+    meta.size = filesize
+    meta.logger = source_info["logger"]
+    meta.soundings = source_info["soundings"]
+
+    # rc, meta = manager.lookup()
+    # if not rc:
+    #     if verbose:
+    #         print(f'error: failed to find metadata on {source_file_name} from database manager.')
+    #     return rc
 
     if verbose:
-        print(f'info: Validating metadata in {source_file_name} for schema version {DEFAULT_VALIDATOR_VERSION}.')
+        print(f'info: Validating metadata in {filename} for schema version {DEFAULT_VALIDATOR_VERSION}.')
     
     rc, validate_info = validate_data(local_file)
     clearedStatus = meta.status & GeoJSONStatus.EMPTY_VALIDATION.value
@@ -96,6 +108,7 @@ def lambda_handler(event, context):
     # for each invocation.
     item: ds.DataItem = source.nextSource()
     local_file, source_info = controller.obtain(item)
+    print(f"source_info: {source_info}")
     if not source_info['sourceID']:
         if config['verbose']:
             print(f'error: failed to transfer {item} because it has no SourceID specified.')
@@ -103,11 +116,12 @@ def lambda_handler(event, context):
             'statusCode':   ReturnCodes.FAILED.value,
             'body':         'Bad SourceID on specified file.'
         }
-    rc = validate_metadata(local_file, config)
+    rc = validate_metadata(local_file, source_info, config)
     rtn = {
         'statusCode':   0,
         'body':         None
     }
+
     if rc:
         rtn['status_code'] = ReturnCodes.OK.value
         rtn['body'] = 'Succeeded metadata validation'

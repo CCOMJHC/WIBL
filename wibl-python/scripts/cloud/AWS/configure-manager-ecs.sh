@@ -1,5 +1,5 @@
 #!/bin/bash
-#
+
 # This script sets up the WIBL Cloud Manager service on AWS using ECS with Fargate as a capacity provider
 # (rather than EC2).
 
