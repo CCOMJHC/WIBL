@@ -82,10 +82,7 @@ void UploadManager::UploadCycle(void)
         return;
     }
 
-    auto * fileNumbers = new uint32_t[logger::MaxLogFiles];
-    auto fileCount = m_logManager->CountLogFiles(fileNumbers);
-    for (int i = 0; i < fileCount; ++i) {
-        auto fileNumber = fileNumbers[i];
+    for (auto fileNumber : m_logManager->GetLogFileNumbers()) {
         bool success = TransferFile(m_logManager->FileSystem(), fileNumber);
         if (success) {
             // File transferred to the server successfully, so we can delete locally
@@ -100,7 +97,6 @@ void UploadManager::UploadCycle(void)
             break;
         }
     }
-    delete [] fileNumbers;
 }
 
 class SecureClient {

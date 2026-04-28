@@ -44,19 +44,21 @@ namespace status {
 
 DynamicJsonDocument GenerateFilelist(logger::Manager *m)
 {
-    uint32_t *filenumbers = new uint32_t[logger::MaxLogFiles];
-    uint32_t n_files = m->CountLogFiles(filenumbers);
-    DynamicJsonDocument doc(100*n_files + 256); // Approximate guess, but can expand
+    auto fileNumbers = m->GetLogFileNumbers();
 
-    doc["files"]["count"] = n_files;
-    for (int n = 0; n < n_files; ++n) {
+    DynamicJsonDocument doc(100 * fileNumbers.size() + 256); // Approximate guess, but can expand
+
+    doc["files"]["count"] = fileNumbers.size();
+    for (int n = 0; n < fileNumbers.size(); ++n) {
+        auto fileNumber = fileNumbers[n];
+
         String filename;
         uint32_t filesize;
         logger::Manager::MD5Hash filehash;
         uint16_t uploadCount;
-        m->EnumerateLogFile(filenumbers[n], filename, filesize, filehash, uploadCount);
+        m->EnumerateLogFile(fileNumber, filename, filesize, filehash, uploadCount);
         StaticJsonDocument<256> entry;
-        entry["id"] = filenumbers[n];
+        entry["id"] = fileNumber;
         entry["len"] = filesize;
         if (!filehash.Empty())
             entry["md5"] = filehash.Value();
@@ -88,7 +90,6 @@ DynamicJsonDocument GenerateFilelist(logger::Manager *m)
             doc["files"]["detail"].add(entry.as<JsonObject>());
         }
     }
-    delete[] filenumbers;
     return doc;
 }
 

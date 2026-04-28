@@ -297,15 +297,14 @@ void Manager::RemoveAllLogfiles(void)
 /// Normally, this finds all of the log files on the SD card, counts the total number, and returns
 /// the internal reference numbers that are being used so that the user can request more details
 /// about a specific file later.  In this dummy version, it simply prints a debug message, and returns
-/// zero.
+/// an empty vector.
 ///
-/// \param filenumbers  Fixed size array (of \a MaxLogFiles) written with the internal reference numbers for the files
-/// \return Total number of files available on the SD card
+/// \return An empty vector
 
-int Manager::CountLogFiles(int filenumbers[MaxLogFiles])
+std::vector<uint32_t> Manager::GetLogFileNumbers()
 {
-    Serial.println("DBG: Call to count log files; returning zero.");
-    return 0;
+    Serial.println("DBG: Call to get log files numbers; returning empty vector.");
+    return {};
 }
 
 /// \brief Determine the size and file name of the specified file
@@ -506,44 +505,27 @@ bool Manager::RemoveLogFile(uint32_t file_num)
 
 void Manager::RemoveAllLogfiles(void)
 {
-    uint32_t *filenumbers = new uint32_t[MaxLogFiles];
+    auto fileNumbers = GetLogFileNumbers();
 
     CloseLogfile(); // All means all ...
     
-    uint32_t filecount = CountLogFiles(filenumbers);
     uint32_t files_closed = 0;
-    for (uint32_t f = 0; f < filecount; ++f) {
-        String filename = MakeLogName(filenumbers[f]);
+    for (auto fileNumber : fileNumbers) {
+        String filename = MakeLogName(fileNumber);
         Serial.printf("INFO: erasing log file: \"%s\".\n", filename.c_str());
         bool rc = m_storage->Controller().remove(filename);
         if (rc) {
             m_consoleLog.printf("INFO: erased log file \"%s\" by user command.\n", filename.c_str());
             ++files_closed;
-            if (m_inventory != nullptr) m_inventory->RemoveLogFile(filenumbers[f]);
+            if (m_inventory != nullptr) m_inventory->RemoveLogFile(fileNumber);
         } else {
             m_consoleLog.printf("ERR: failed to erase log file \"%s\" by user command.\n", filename.c_str());
         }
     }
-    delete[] filenumbers;
-    m_consoleLog.printf("INFO: erased %u log files of %u.\n", files_closed, filecount);
+
+    m_consoleLog.printf("INFO: erased %u log files of %u.\n", files_closed, fileNumbers.size());
     m_consoleLog.flush();
     StartNewLog(); // We need to have something running for the logging effort!
-}
-
-/// Count the number of log files on the SD card, so that the client can enumerate them
-/// and report to the user.
-///
-/// \param filenumbers  (Out) Array of the log file numbers on card
-/// \return Number of files on the SD card
-
-uint32_t Manager::CountLogFiles(uint32_t filenumbers[MaxLogFiles])
-{
-    uint32_t filecount;
-    if (m_inventory != nullptr) {
-        filecount = m_inventory->CountLogFiles(filenumbers);
-    } else
-        filecount = count(filenumbers);
-    return filecount;
 }
 
 uint32_t Manager::CountLogFiles(void)
@@ -554,6 +536,25 @@ uint32_t Manager::CountLogFiles(void)
     } else
         filecount = count(nullptr);
     return filecount;
+}
+
+std::vector<uint32_t> Manager::GetLogFileNumbers()
+{
+    // Temporarily allocate an array of max size...
+    auto * temp = new uint32_t[logger::MaxLogFiles];
+
+    size_t fileCount;
+    if (m_inventory != nullptr) {
+        fileCount = m_inventory->CountLogFiles(temp);
+    } else {
+        fileCount = count(temp);
+    }
+
+    std::vector<uint32_t> fileNumbers;
+    fileNumbers.assign(temp, temp + fileCount);
+
+    delete [] temp;
+    return fileNumbers;
 }
 
 /// Make a list of all of the files that exist on the SD card in the log directory, along with their

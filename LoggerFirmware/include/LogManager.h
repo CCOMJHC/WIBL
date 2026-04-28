@@ -74,9 +74,10 @@ public:
     void RemoveAllLogfiles(void);
 
     /// \brief Count the number of log files on the system
-    uint32_t CountLogFiles(uint32_t filenumbers[MaxLogFiles]);
-    /// \brief Count the number of log files on the system
     uint32_t CountLogFiles(void);
+
+    /// \brief Collect the file numbers of all log files on the system
+    std::vector<uint32_t> GetLogFileNumbers();
     
     class MD5Hash {
     public:
