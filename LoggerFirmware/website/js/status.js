@@ -224,21 +224,16 @@ function updateStatus(tablePrefix) {
         let detail = document.getElementById(detailTable);
         if (detail !== null) {
             detail.replaceChildren(assembleDetailHeader());
-            for (let n = 0; n < data.files.count; ++n) {
-                if (data.files.detail[n].hasOwnProperty('id') &&
-                    data.files.detail[n].hasOwnProperty('len') &&
-                    data.files.detail[n].hasOwnProperty('md5') &&
-                    data.files.detail[n].hasOwnProperty('url') &&
-                    data.files.detail[n].hasOwnProperty('uploads'))
-                    detail.appendChild(
-                        assembleDetailRow(
-                            data.files.detail[n].id,
-                            data.files.detail[n].len,
-                            data.files.detail[n].md5,
-                            data.files.detail[n].url,
-                            data.files.detail[n].uploads
-                        )
-                    );
+            for (const entry of data.files.detail) {
+                detail.appendChild(
+                    assembleDetailRow(
+                        entry.id ?? "?",
+                        entry.len ?? "?",
+                        entry.md5 ?? "?",
+                        entry.url ?? "?",
+                        entry.uploads ?? "?"
+                    )
+                );
             }
         }
     });
