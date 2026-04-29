@@ -99,8 +99,7 @@ Manager::Inventory::~Inventory(void)
 bool Manager::Inventory::Reinitialise(void)
 {
     uint32_t    *filenumbers = new uint32_t[MaxLogFiles];
-    uint32_t    filecount = m_logManager->count(filenumbers);
-    String      filename;
+    auto filecount = m_logManager->scanLogFolder(filenumbers, nullptr);
     Manager::MD5Hash emptyhash;
 
     if (m_verbose)
@@ -166,12 +165,15 @@ uint32_t Manager::Inventory::CountLogFiles(uint32_t filenumbers[MaxLogFiles])
     return filecount;
 }
 
-uint32_t Manager::Inventory::CountLogFiles(void)
+uint32_t Manager::Inventory::CountLogFiles(uint64_t * totalSizePtr)
 {
+    uint64_t totalSize = 0;
     uint32_t filecount = 0;
-    for (uint32_t entry = 0; entry < MaxLogFiles; ++entry) {
-        if (m_filesize[entry] != 0) ++filecount;
+    for (auto fileSize : m_filesize) {
+        totalSize += fileSize;
+        filecount += (fileSize != 0);
     }
+    if (totalSizePtr) *totalSizePtr = totalSize;
     return filecount;
 }
 
@@ -528,14 +530,10 @@ void Manager::RemoveAllLogfiles(void)
     StartNewLog(); // We need to have something running for the logging effort!
 }
 
-uint32_t Manager::CountLogFiles(void)
+uint32_t Manager::CountLogFiles(uint64_t * fileSize)
 {
-    uint32_t filecount;
-    if (m_inventory != nullptr) {
-        filecount = m_inventory->CountLogFiles();
-    } else
-        filecount = count(nullptr);
-    return filecount;
+    return m_inventory ? m_inventory->CountLogFiles(fileSize)
+                       : scanLogFolder(nullptr, fileSize);
 }
 
 std::vector<uint32_t> Manager::GetLogFileNumbers()
@@ -543,15 +541,9 @@ std::vector<uint32_t> Manager::GetLogFileNumbers()
     // Temporarily allocate an array of max size...
     auto * temp = new uint32_t[logger::MaxLogFiles];
 
-    size_t fileCount;
-    if (m_inventory != nullptr) {
-        fileCount = m_inventory->CountLogFiles(temp);
-    } else {
-        fileCount = count(temp);
-    }
-
-    std::vector<uint32_t> fileNumbers;
-    fileNumbers.assign(temp, temp + fileCount);
+    auto fileCount = m_inventory ? m_inventory->CountLogFiles(temp)
+                                 : scanLogFolder(temp, nullptr);
+    auto fileNumbers = std::vector<uint32_t>(temp, temp + fileCount);
 
     delete [] temp;
     return fileNumbers;
@@ -819,23 +811,22 @@ void Manager::TransferLogFile(uint32_t file_num, MD5Hash const& filehash, Stream
     Serial.printf("Sent %u B in %lu s.\n", bytes_transferred, duration);
 }
 
-uint32_t Manager::count(uint32_t *filenumbers)
+uint32_t Manager::scanLogFolder(uint32_t fileNumbers[MaxLogFiles], uint64_t * totalSize)
 {
     uint32_t file_count = 0;
     File logdir = m_storage->Controller().open("/logs");
-    File entry = logdir.openNextFile();
-
-    while (entry) {
+    while (File entry = logdir.openNextFile()) {
         // Because we can store snapshots of configuration information in the /logs directory
         // (so that they can be seen through the webserver's static website for download), we
         // need to count only the valid log files in the directory.
         int32_t lognumber = ExtractLogNumber(String(entry.name()));
-        if (lognumber >= 0) {
-            if (filenumbers != nullptr) filenumbers[file_count] = lognumber;
+        auto size = entry.size();
+        if (lognumber >= 0 && size > 0) {
+            if (fileNumbers != nullptr) fileNumbers[file_count] = lognumber;
+            if (totalSize) *totalSize += size;
             ++file_count;
         }
         entry.close();
-        entry = logdir.openNextFile();
     }
     logdir.close();
     return file_count;
