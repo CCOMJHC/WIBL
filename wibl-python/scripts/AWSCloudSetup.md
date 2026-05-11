@@ -1,3 +1,7 @@
+# IMPORTANT: 
+This file describes the deprecated scripting build approach. The intended build method is to use Terraform. Follow the 
+instructions in the README.md located in the Terraform folder, which is located at the relative path `./cloud/AWS/Terraform`.
+
 # Packaging and deploying AWS lambdas for DCDB processing
 There are a number of steps required to set up the AWS Lambdas, the S3 buckets, and associated triggers and permissions in order to make processing work in the cloud.  The steps are covered in detail below, and a corresponding set of scripts are available in the `wibl-python/AWS-setup` directory in the repository.  These scripts should *mostly* work, but will likely need some modficiation for a local configuration before being fully executable.  Consider the `configuration-parameters.sh` file first for this.
 

@@ -8,7 +8,7 @@ import requests
 REGION = "us-east-2"
 BUCKET_NAME = "incoming-bucket-gt-test-1"
 LAMBDA_NAME = "gt-conversion-start-lambda"
-TEST_FILE_PATH = "./test_file.wibl"
+TEST_FILE_PATH = "test_file.wibl"
 TEST_KEY = "test_file.wibl"
 
 @pytest.fixture(scope="module")

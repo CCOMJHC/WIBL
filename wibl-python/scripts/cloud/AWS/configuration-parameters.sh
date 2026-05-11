@@ -1,3 +1,8 @@
+
+# IMPORTANT: This file and all other scripts other than "build-lambda.sh" are apart of the deprecated scripting
+# build approach. The intended build method is to use Terraform. Follow the instructions in the README.md located in the
+# Terraform folder.
+
 # This provides information on the configuration of the lambdas
 # being generated, the specification for the buckets being used,
 # roles, and so on.  This is a separate file so that it can be
@@ -24,7 +29,7 @@ mkdir -p ${WIBL_BUILD_LOCATION} || exit $?
 # DCDB should provide you with a token to authorise you to upload; change this code
 # so that it can find where you've stashed it, and read it in to allow for setup of
 # the submission Lambda.
-#AUTHKEY=`cat ingest-external-${DCDB_PROVIDER_ID}.txt`
+AUTHKEY=`cat ingest-external-${DCDB_PROVIDER_ID}.txt`
 
 # These parameters configure the AWS region and technical details of the Lambda runtime
 # that will be used.  If you change the region, you will also want to change the NumPy

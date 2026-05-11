@@ -120,8 +120,8 @@ module "configure-lambda" {
     submission_topic_arn = module.configure-sns.submission_topic_arn
     submitted_topic_arn = module.configure-sns.submitted_topic_arn
 
-    DCDB_PROVIDER_ID = var.DCDB_PROVIDER_ID
-    DCDB_UPLOAD_URL = var.DCDB_mode == "1" ? var.DCDB_PROD_URL : var.DCDB_TEST_URL
+    DCDB_PROVIDER_ID = var.DCDB_provider_id
+    DCDB_UPLOAD_URL = var.DCDB_mode == "1" ? var.DCDB_prod_url : var.DCDB_test_url
     auth_file_name = var.auth_file_name
     depends_on = [module.configure-buckets, module.configure-sns, module.configure-manager-ecs]
 }

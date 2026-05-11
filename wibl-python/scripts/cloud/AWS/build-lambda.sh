@@ -19,8 +19,6 @@ HERE
 # Remove any previous packaging attempt, so it doesn't try to update what's there already
 rm -rf ${WIBL_SRC_LOCATION}/package
 
-
-
 # Package up the WIBL software so that it can be deployed as a ZIP file
 cat "${WIBL_BUILD_LOCATION}/package-setup.sh" | \
     docker run --platform linux/${ARCHITECTURE} --mount type=bind,source=${WIBL_SRC_LOCATION},target=/build \

@@ -1,5 +1,9 @@
 #!/bin/bash
-#
+
+# IMPORTANT: This file and all other scripts other than "build-lambda.sh" are apart of the deprecated scripting
+# build approach. The intended build method is to use Terraform. Follow the instructions in the README.md located in the
+# Terraform folder.
+
 # This sets up the permissions, triggers, and lambdas required for the WIBL code to run in
 # AWS.  If, of course, you have part of this set up already, then you're likely to encounter
 # difficulties.  Probably best to clean up in the console first, then try again.
