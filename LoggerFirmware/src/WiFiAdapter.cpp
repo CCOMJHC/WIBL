@@ -553,10 +553,14 @@ private:
     ///
     /// \param message \a String to use for the return message.
     /// \return N/A
-
-    void setMessage(DynamicJsonDocument const& message)
+    void setMessage(JsonDocument const& message)
     {
         *m_messages = message;
+    }
+    void setMessage(DynamicJsonDocument && message)
+    {
+        *m_messages = std::move(message);
+
     }
 
     /// Configure the HTTP status code that the response should use.  By default, the status code used
@@ -632,12 +636,6 @@ bool WiFiAdapter::TransferFile(String const& filename, uint32_t filesize, logger
 /// \param message  String for the message to send
 /// \return N/A
 void WiFiAdapter::AddMessage(String const& message) { accumulateMessage(message); }
-
-/// Pass-through implementation to the sub-class code to reset the message from straight JSON
-///
-/// @param message JSON document to send back to the client
-/// @return N/A
-void WiFiAdapter::SetMessage(DynamicJsonDocument const& message) { setMessage(message); }
 
 /// Pass-through implementation to the sub-class code to set status code
 ///

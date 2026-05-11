@@ -787,7 +787,7 @@ void SerialCommand::ReportConfigurationJSON(CommandSource src, bool secure)
         EmitMessage(s + "\n", src);
     } else {
         if (m_wifi != nullptr)
-            m_wifi->SetMessage(json);
+            m_wifi->SetMessage(std::move(json));
     }
 }
 
@@ -922,8 +922,7 @@ void SerialCommand::DisplayAlgorithmStore(logger::AlgoRequestStore& store, Comma
         String algorithms(store.JSONRepresentation(true));
         EmitMessage(algorithms + '\n', src);
     } else if (src == CommandSource::WirelessPort) {
-        DynamicJsonDocument doc(store.GetContents());
-        m_wifi->SetMessage(doc);
+        m_wifi->SetMessage(store.GetContents());
     } else {
         EmitMessage("ERR: request for unknown CommandSource - who are you?\n", src);
     }
@@ -1022,8 +1021,7 @@ void SerialCommand::DisplayNMEAFilter(logger::N0183IDStore& filter, CommandSourc
         String filter_ids(filter.JSONRepresentation(true));
         EmitMessage(filter_ids + '\n', src);
     } else if (src == CommandSource::WirelessPort) {
-        DynamicJsonDocument doc(filter.GetContents());
-        m_wifi->SetMessage(doc);
+        m_wifi->SetMessage(filter.GetContents());
     } else {
          EmitMessage("ERR: request for unknown CommandSource - who are you?\n", src);
     }
@@ -1174,7 +1172,7 @@ void SerialCommand::ReportCurrentStatus(CommandSource src)
         EmitMessage(json+"\n", src);
     } else {
         if (m_wifi != nullptr) {
-            m_wifi->SetMessage(status);
+            m_wifi->SetMessage(std::move(status));
         }
     }
 }
@@ -1789,7 +1787,7 @@ bool SerialCommand::EmitJSON(String const& source, CommandSource chan)
             break;
         case CommandSource::WirelessPort:
             if (m_wifi != nullptr) {
-                m_wifi->SetMessage(json);
+                m_wifi->SetMessage(std::move(json));
             }
             break;
         default:
