@@ -69,8 +69,7 @@ DynamicJsonDocument GenerateFilelist(logger::Manager *m)
         int entry_size = entry.memoryUsage();
         if (doc.memoryUsage() + entry_size > 0.95*doc.capacity()) {
             // It's likely that adding the entry will cause the document to run out of
-            // space.  We therefore double the capacity (since it's expensive, and we
-            // don't want to have to do it more than once) before we attempt the addition.
+            // space. We therefore increase the capacity before we attempt the addition.
             if(!GrowJsonDocument(doc)) return doc;
         }
         if (!doc["files"]["detail"].add(entry.as<JsonObject>())) {

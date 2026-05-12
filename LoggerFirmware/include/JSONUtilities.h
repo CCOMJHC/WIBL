@@ -20,8 +20,9 @@ inline bool GrowJsonDocumentBy(DynamicJsonDocument & json, size_t capacityIncrea
 
 inline bool GrowJsonDocument(DynamicJsonDocument & json)
 {
-    // Double the current capacity.
-    return GrowJsonDocumentBy(json, json.capacity());
+    // Grow capacity by 50%. A growth rate less than the golden ratio allows
+    // the document to potentially reuse allocations it previously occupied.
+    return GrowJsonDocumentBy(json, json.capacity() / 2);
 }
 
 #endif // JSONUTILITIES_H
