@@ -47,9 +47,12 @@ DynamicJsonDocument GenerateFilelist(logger::Manager *m)
 {
     auto fileNumbers = m->GetLogFileNumbers();
 
-    DynamicJsonDocument doc(100 * fileNumbers.size() + 256); // Approximate guess, but can expand
+    // Start small. We really don't want this first allocation to fail.
+    DynamicJsonDocument doc(512);
 
-    doc["files"]["count"] = fileNumbers.size();
+    // Assume the list will be truncated, because we might not have enough memory
+    // to set it to true later when allocation fails.
+    doc["files"]["isTruncated"] = true;
     for (int n = 0; n < fileNumbers.size(); ++n) {
         auto fileNumber = fileNumbers[n];
 
@@ -66,38 +69,35 @@ DynamicJsonDocument GenerateFilelist(logger::Manager *m)
         entry["url"] = filename;
         entry["uploads"] = uploadCount;
 
-        int entry_size = entry.memoryUsage();
-        if (doc.memoryUsage() + entry_size > 0.95*doc.capacity()) {
-            // It's likely that adding the entry will cause the document to run out of
-            // space. We therefore increase the capacity before we attempt the addition.
-            if(!GrowJsonDocument(doc)) return doc;
-        }
-        if (!doc["files"]["detail"].add(entry.as<JsonObject>())) {
-            // Out of memory, even after adding more above (most likely),
-            // so make a new allocation.  Note that the addition can partially
-            // work, so you can end up with a malformed entry in the array (and
-            // one more entry than you expect).  We therefore remove this last
+        while (!doc["files"]["detail"].add(entry.as<JsonObject>())) {
+            // Not enough free capacity to add the entry. Note that the addition
+            // can partially work, so you can end up with ain malformed entry at
+            // the end of the array.  We therefore remove this last
             // element before continuing -- luckily, it should be at the index in
             // the array of the file number.
             doc["files"]["detail"].remove(n);
-
-            if(!GrowJsonDocument(doc)) return doc;
-            doc["files"]["detail"].add(entry.as<JsonObject>());
+            
+            if(!GrowJsonDocument(doc))
+            {
+                // Allocation failed. Not really anything we can do other than
+                // return what we have.
+                return doc;
+            }
         }
     }
+    doc["files"]["isTruncated"] = false;
     return doc;
 }
 
 DynamicJsonDocument CurrentStatus(logger::Manager *m)
 {
-    DynamicJsonDocument filelist(GenerateFilelist(m));
     DynamicJsonDocument lkg(logger::Metrics.LastKnownGood());
 
     // The total capacity should be, approximately, the sum of the biggest components
     // (above), plus some limited information on versions, elapsed time, and boot
     // status.  We're assuming here that 1024B is enough for the extras ... that
     // might not always be the case.
-    int capacity = filelist.capacity() + lkg.capacity() + 1024;
+    int capacity = lkg.capacity() + 1024;
 
     DynamicJsonDocument status(capacity);
 
@@ -120,7 +120,12 @@ DynamicJsonDocument CurrentStatus(logger::Manager *m)
     status["webserver"]["boot"] = boot_status;
 
     status["data"] = lkg;
-    status["files"] = filelist["files"];
+
+    uint64_t totalFileSize = 0;
+    auto totalFileCount = m->CountLogFiles(&totalFileSize);
+    auto files = status.createNestedObject("files");
+    files["totalFileCount"] = totalFileCount;
+    files["totalFileSize"] = totalFileSize;
 
     return status;
 }
