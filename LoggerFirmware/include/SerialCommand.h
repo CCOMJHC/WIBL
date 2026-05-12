@@ -166,6 +166,8 @@ private:
     void ReportScalesElement(CommandSource src);
     /// \brief Report the number of log files available on the SD card
     void ReportFileCount(CommandSource src);
+    /// \brief Report the properties of all log files on the SD card
+    void ReportCatalog(CommandSource src);
     /// \brief Report the configuration of the web-server
     void ReportWebserverConfig(CommandSource src);
     /// \brief Configure the web-server for system config/management

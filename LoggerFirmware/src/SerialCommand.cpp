@@ -1089,6 +1089,11 @@ void SerialCommand::ReportFileCount(CommandSource src)
     EmitMessage(String(file_count) + "\n", src);
 }
 
+void SerialCommand::ReportCatalog(CommandSource src)
+{
+    EmitJSON(logger::status::GenerateFilelist(m_logManager), src);
+}
+
 void SerialCommand::ReportWebserverConfig(CommandSource src)
 {
     if (src == CommandSource::SerialPort) {
@@ -1538,6 +1543,8 @@ void SerialCommand::Execute(String const& cmd, CommandSource src)
         } else {
             SetAuthorisation(cmd.substring(5), src);
         }
+    } else if (cmd == "catalog") {
+        ReportCatalog(src);
     } else if (cmd.startsWith("configure")) {
         if (cmd.length() == 9) {
             ReportConfiguration(src);
