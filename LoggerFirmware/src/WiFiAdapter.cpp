@@ -586,7 +586,15 @@ private:
         serializeJson(m_messages, message);
         //Serial.printf("DBG: WiFi transmitting response |%s|\n", message.c_str());
         m_server->send(m_statusCode, "application/json", message);
-        m_messages.clear();
+
+        // If the JSON document got too large, replace it with a smaller one to avoid needlessly
+        // holding on to too much memory. Otherwise, just clear the document and reuse it.
+        if (defaultMessageBufferSize < m_messages.capacity()) {
+            m_messages = DynamicJsonDocument(defaultMessageBufferSize);
+        } else {
+            m_messages.clear();
+        }
+
         m_statusCode = HTTPReturnCodes::OK; // "OK" by default
         return true;
     }
