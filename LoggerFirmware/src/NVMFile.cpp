@@ -26,6 +26,7 @@
 
 #include <set>
 #include "NVMFile.h"
+#include "JSONUtilities.h"
 #include "LittleFS.h"
 #include "LogManager.h"
 #include "serialisation.h"
@@ -348,10 +349,7 @@ void AlgoRequestStore::AddAlgorithm(String const& alg_name, String const& alg_pa
     entry["parameters"] = alg_params;
     if ((doc.memoryUsage() + entry.capacity()) > 0.95*doc.capacity()) {
         // The document needs to be bigger to handle the new entry
-        int capacity = doc.memoryUsage() + entry.capacity() + 256;
-        DynamicJsonDocument new_doc(capacity);
-        new_doc.set(doc);
-        doc = new_doc;
+        GrowJsonDocumentBy(doc, entry.capacity());
     }
     doc["algorithm"].add(entry.as<JsonObject>());
     doc["count"] = count + 1;

@@ -25,6 +25,7 @@
  */
 
 #include "ArduinoJson.h"
+#include "JSONUtilities.h"
 #include "LogManager.h"
 #include "Configuration.h"
 #include "N0183Logger.h"
@@ -70,10 +71,7 @@ DynamicJsonDocument GenerateFilelist(logger::Manager *m)
             // It's likely that adding the entry will cause the document to run out of
             // space.  We therefore double the capacity (since it's expensive, and we
             // don't want to have to do it more than once) before we attempt the addition.
-            int capacity = doc.capacity() * 2;
-            DynamicJsonDocument new_doc(capacity);
-            new_doc.set(doc);
-            doc = new_doc;
+            if(!GrowJsonDocument(doc)) return doc;
         }
         if (!doc["files"]["detail"].add(entry.as<JsonObject>())) {
             // Out of memory, even after adding more above (most likely),
@@ -83,10 +81,8 @@ DynamicJsonDocument GenerateFilelist(logger::Manager *m)
             // element before continuing -- luckily, it should be at the index in
             // the array of the file number.
             doc["files"]["detail"].remove(n);
-            int capacity = doc.capacity() * 2;
-            DynamicJsonDocument new_doc(capacity);
-            new_doc.set(doc);
-            doc = new_doc;
+
+            if(!GrowJsonDocument(doc)) return doc;
             doc["files"]["detail"].add(entry.as<JsonObject>());
         }
     }

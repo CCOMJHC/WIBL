@@ -35,6 +35,7 @@
 #include <LittleFS.h>
 #include <ESP32-targz.h>
 
+#include "JSONUtilities.h"
 #include "LogManager.h"
 #include "WiFiAdapter.h"
 #include "Configuration.h"
@@ -531,14 +532,10 @@ private:
 
     void accumulateMessage(String const& message)
     {
-        if ((m_messages.memoryUsage() + message.length()) > 0.95 * m_messages.capacity()) {
-            // Expand capacity to ensure that the message will be added successfully
-            size_t new_capacity = m_messages.capacity() * 2;
-            DynamicJsonDocument new_doc(new_capacity);
-            if (new_doc.capacity() != 0) {
-                new_doc.set(m_messages);
-                m_messages = std::move(new_doc);
-            }
+        bool needToGrowBuffer = (m_messages.memoryUsage() + message.length()) > 0.95 * m_messages.capacity();
+        if (needToGrowBuffer && !GrowJsonDocument(m_messages)) {
+            Serial.printf("ERR: failed to grow buffer beyond %d bytes; messages will be lost.\n", m_messages.capacity());
+            return;
         }
         if (!m_messages["messages"].add(message)) {
             Serial.printf("ERR: failed to add message to accumulation buffer (capacity %d bytes); messages may be truncated.\n",
