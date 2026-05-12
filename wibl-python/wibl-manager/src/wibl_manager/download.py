@@ -15,7 +15,7 @@ class Download:
     @staticmethod
     @DownloadRouter.get("/{extension}/check/{fileid}")
     def check_file(extension, fileid):
-        if extension == "json":
+        if extension == "json" or extension == "geojson":
             bucket = S3_GEOJSON_BUCKET_NAME
         elif extension == "wibl":
             bucket = S3_WIBL_BUCKET_NAME
@@ -42,7 +42,7 @@ class Download:
     @staticmethod
     @DownloadRouter.get("/{extension}/download/{fileid}")
     def file_download(extension, fileid):
-        if extension == "json":
+        if extension == "json" or extension == "geojson":
             bucket = S3_GEOJSON_BUCKET_NAME
         elif extension == "wibl":
             bucket = S3_WIBL_BUCKET_NAME
