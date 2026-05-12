@@ -381,12 +381,9 @@ public:
     /// Default constructor for the ESP32 adapter.  This brings up the parameter store to use
     /// for WiFi parameters, but takes no other action until the user explicitly starts the AccessPoint.
     ESP32WiFiAdapter(void)
-    : m_storage(nullptr), m_server(nullptr), m_messages(nullptr), m_statusCode(HTTPReturnCodes::OK)
+    : m_storage(nullptr), m_server(nullptr), m_messages(defaultMessageBufferSize), m_statusCode(HTTPReturnCodes::OK)
     {
         if ((m_storage = mem::MemControllerFactory::Create()) == nullptr) {
-            return;
-        }
-        if ((m_messages = new DynamicJsonDocument(1024)) == nullptr) {
             return;
         }
     }
@@ -396,14 +393,15 @@ public:
     {
         stop();
         delete m_storage; // Note that we're not stopping the interface, since it may still be required elsewhere
-        delete m_messages;
     }
     
 private:
+    static constexpr size_t defaultMessageBufferSize = 1024;
+
     mem::MemController  *m_storage;     ///< Pointer to the storage object to use
     ExtendedWebServer   *m_server;      ///< Pointer to the server object, if started.
     std::queue<String>  m_commands;     ///< Queue to handle commands sent by the user
-    DynamicJsonDocument *m_messages;    ///< Accumulating message content to be send to the client
+    DynamicJsonDocument m_messages;     ///< Accumulating message content to be send to the client
     HTTPReturnCodes     m_statusCode;   ///< Status code to return to the user with the transaction response
     ConnectionStateMachine m_state;     ///< Manager for connection state
 
@@ -533,19 +531,18 @@ private:
 
     void accumulateMessage(String const& message)
     {
-        if ((m_messages->memoryUsage() + message.length()) > 0.95*m_messages->capacity()) {
+        if ((m_messages.memoryUsage() + message.length()) > 0.95 * m_messages.capacity()) {
             // Expand capacity to ensure that the message will be added successfully
-            size_t new_capacity = m_messages->capacity() * 2;
-            DynamicJsonDocument *new_doc = new DynamicJsonDocument(new_capacity);
-            if (new_doc != nullptr) {
-                new_doc->set(*m_messages);
-                delete m_messages;
-                m_messages = new_doc;
+            size_t new_capacity = m_messages.capacity() * 2;
+            DynamicJsonDocument new_doc(new_capacity);
+            if (new_doc.capacity() != 0) {
+                new_doc.set(m_messages);
+                m_messages = std::move(new_doc);
             }
         }
-        if (!(*m_messages)["messages"].add(message)) {
+        if (!m_messages["messages"].add(message)) {
             Serial.printf("ERR: failed to add message to accumulation buffer (capacity %d bytes); messages may be truncated.\n",
-                m_messages->capacity());
+                m_messages.capacity());
         }
     }
 
@@ -555,11 +552,11 @@ private:
     /// \return N/A
     void setMessage(JsonDocument const& message)
     {
-        *m_messages = message;
+        m_messages = message;
     }
     void setMessage(DynamicJsonDocument && message)
     {
-        *m_messages = std::move(message);
+        m_messages = std::move(message);
 
     }
 
@@ -586,10 +583,10 @@ private:
     bool transmitMessages(void)
     {
         String message;
-        serializeJson(*m_messages, message);
+        serializeJson(m_messages, message);
         //Serial.printf("DBG: WiFi transmitting response |%s|\n", message.c_str());
         m_server->send(m_statusCode, "application/json", message);
-        m_messages->clear();
+        m_messages.clear();
         m_statusCode = HTTPReturnCodes::OK; // "OK" by default
         return true;
     }
