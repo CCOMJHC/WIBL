@@ -29,9 +29,9 @@ folder, pay these no mind and continue to the next step.
 
 ### 3. Building The System With Terraform
 This step also requires `docker` to work, so ensure it is running. First, run the `plan.sh` script inside the Terraform 
-folder. This is where any you will be alerted of any misconfigured or missing variables. If script says "Plan: 122 to 
-add, 0 to change, 0 to destroy." without returning any errors, run the next script `build.sh`. You will be prompted 
-whether you would like to perform these actions, answer "yes".
+folder. This is where any you will be alerted of any misconfigured or missing variables. If script says "Plan: 125 to 
+add, 0 to change, 0 to destroy." without returning any errors, run the next script `build.sh`. If you do experience any 
+errors, you need to then run the `destroy.sh` script before you can attempt another build. 
 
 #### IMPORTANT: The system can take upwards of 15 to 25 minutes to fully build or destroy.
 

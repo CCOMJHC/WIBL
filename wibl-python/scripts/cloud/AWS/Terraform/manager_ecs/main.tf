@@ -103,14 +103,27 @@ resource "aws_eip" "elastic_ip" {
     domain = "vpc"
 }
 
-## Create NAT gateway
+resource "aws_eip" "elastic_ip_2" {
+    domain = "vpc"
+}
+
+# Create NAT gateway
 # Tag NAT gateway with lambda
 resource "aws_nat_gateway" "nat_gateway" {
     allocation_id = aws_eip.elastic_ip.id
     subnet_id = aws_subnet.public_subnet_1.id
 
     tags = {
-      Name = "wibl-lambda-nat"
+      Name = "wibl-lambda-nat-1"
+    }
+}
+
+resource "aws_nat_gateway" "nat_gateway_2" {
+    allocation_id = aws_eip.elastic_ip_2.id
+    subnet_id = aws_subnet.public_subnet_2.id
+
+    tags = {
+      Name = "wibl-lambda-nat-2"
     }
 }
 
@@ -209,12 +222,25 @@ resource "aws_route_table" "private_route_table" {
     vpc_id = aws_vpc.main_vpc.id
 
     tags = {
-        Name = "wibl-private-ecs"
+        Name = "wibl-private-ecs-1"
     }
 
     route {
       cidr_block = "0.0.0.0/0"
       nat_gateway_id = aws_nat_gateway.nat_gateway.id
+    }
+}
+
+resource "aws_route_table" "private_route_table_2" {
+    vpc_id = aws_vpc.main_vpc.id
+
+    tags = {
+        Name = "wibl-private-ecs2"
+    }
+
+    route {
+      cidr_block = "0.0.0.0/0"
+      nat_gateway_id = aws_nat_gateway.nat_gateway_2.id
     }
 }
 
@@ -226,7 +252,7 @@ resource "aws_route_table_association" "private1" {
 
 resource "aws_route_table_association" "private2" {
   subnet_id      = aws_subnet.private_subnet_2.id
-  route_table_id = aws_route_table.private_route_table.id
+  route_table_id = aws_route_table.private_route_table_2.id
 }
 
 # Create security group to give us control over ingress/egress
@@ -594,7 +620,6 @@ resource "aws_cloudwatch_log_group" "frontend_setup" {
   name = "/ecs/frontend_setup"
   retention_in_days = 14
 }
-
 
 # Create an elasticache redis instance
 resource "aws_elasticache_subnet_group" "redis" {

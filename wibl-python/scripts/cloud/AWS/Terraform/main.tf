@@ -97,7 +97,7 @@ module "configure-lambda" {
     viz_lambda_name = var.viz_lambda_name
 
     account_number = var.account_number
-    MANAGEMENT_URL = module.configure-manager-ecs.manager_url
+    management_url = module.configure-manager-ecs.manager_url
 
     conversion_lambda_role_name = var.conversion_lambda_role_name
     conversion_start_lambda_role_name = var.conversion_start_lambda_role_name
@@ -120,8 +120,8 @@ module "configure-lambda" {
     submission_topic_arn = module.configure-sns.submission_topic_arn
     submitted_topic_arn = module.configure-sns.submitted_topic_arn
 
-    DCDB_PROVIDER_ID = var.DCDB_provider_id
-    DCDB_UPLOAD_URL = var.DCDB_mode == "1" ? var.DCDB_prod_url : var.DCDB_test_url
+    DCDB_provider_id = var.DCDB_provider_id
+    DCDB_upload_url = var.DCDB_mode == "1" ? var.DCDB_prod_url : var.DCDB_test_url
     auth_file_name = var.auth_file_name
     depends_on = [module.configure-buckets, module.configure-sns, module.configure-manager-ecs]
 }

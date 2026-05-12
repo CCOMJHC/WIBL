@@ -86,22 +86,22 @@ variable "viz_bucket_arn" {
     type = string
 }
 
-variable "TOPIC_ARN_VALIDATION" {
+variable "Topic_arn_validation" {
     type = string
     default = ""
 }
 
-variable "DCDB_PROVIDER_ID" {
+variable "DCDB_provider_id" {
     type = string
     default = ""
 }
 
-variable "DCDB_UPLOAD_URL" {
+variable "DCDB_upload_url" {
     type = string
     default = ""
 }
 
-variable "MANAGEMENT_URL" {
+variable "management_url" {
     type = string
 }
 

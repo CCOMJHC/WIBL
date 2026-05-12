@@ -20,10 +20,10 @@ resource "aws_lambda_function" "conversion_lambda" {
     environment {
       variables = {
         "NOTIFICATION_ARN" = var.validation_topic_arn
-        "PROVIDER_ID" = var.DCDB_PROVIDER_ID,
+        "PROVIDER_ID" = var.DCDB_provider_id,
         "DEST_BUCKET" = var.staging_bucket_name,
-        "UPLOAD_POINT" = var.DCDB_UPLOAD_URL,
-        "MANAGEMENT_URL" = var.MANAGEMENT_URL
+        "UPLOAD_POINT" = var.DCDB_upload_url,
+        "MANAGEMENT_URL" = var.management_url
       }
     }
     vpc_config {
@@ -58,7 +58,7 @@ resource "aws_lambda_function" "validation_lambda" {
     variables = {
       "NOTIFICATION_ARN" = var.submission_topic_arn
       "DEST_BUCKET" = var.staging_bucket_name,
-      "MANAGEMENT_URL" = var.MANAGEMENT_URL
+      "MANAGEMENT_URL" = var.management_url
     }
   }
   vpc_config {
@@ -91,11 +91,11 @@ resource "aws_lambda_function" "submission_lambda" {
   environment {
     variables = {
       "NOTIFICATION_ARN" = var.submitted_topic_arn
-      "PROVIDER_ID" = var.DCDB_PROVIDER_ID,
+      "PROVIDER_ID" = var.DCDB_provider_id,
       "PROVIDER_PATH" = "/wibl/auth_secret",
       "DEST_BUCKET" = var.staging_bucket_name,
-      "UPLOAD_POINT" = var.DCDB_UPLOAD_URL,
-      "MANAGEMENT_URL" = var.MANAGEMENT_URL
+      "UPLOAD_POINT" = var.DCDB_upload_url,
+      "MANAGEMENT_URL" = var.management_url
     }
   }
   vpc_config {
@@ -129,8 +129,8 @@ resource "aws_lambda_function" "conversion_start_lambda" {
     variables = {
       "NOTIFICATION_ARN" = var.conversion_topic_arn
       "DEST_BUCKET" = var.staging_bucket_name,
-      "UPLOAD_POINT" = var.DCDB_UPLOAD_URL,
-      "MANAGEMENT_URL" = var.MANAGEMENT_URL,
+      "UPLOAD_POINT" = var.DCDB_upload_url,
+      "MANAGEMENT_URL" = var.management_url,
       "INCOMING_BUCKET" = var.incoming_bucket_name
     }
   }

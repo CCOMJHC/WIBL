@@ -18,10 +18,6 @@ class FileConsumer(ABC, AsyncWebsocketConsumer):
         self.channel_name = None
 
     async def connect(self):
-        # Get user session
-        # self.session_key = self.scope['session'].session_key
-        # print(f"{self.channel_name}.connect: session_key: {self.session_key}")
-        # await self.channel_layer.group_add(self.session_key, self.channel_name)
         # Use user ID for authenticated users, which is stable across reconnections
         user = self.scope.get('user')
         if user and user.is_authenticated:

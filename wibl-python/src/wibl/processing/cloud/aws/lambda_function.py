@@ -103,7 +103,6 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         meta.endtime = datetime.fromtimestamp(source_data['depth']['t'][-1]).isoformat()
 
         # Get the max and min coordinates to create a bounding box
-        # TODO: Find out why the bounding boxes aren't being initialized correctly
         max_lat = -9999.0
         min_lat = 9999.0
 

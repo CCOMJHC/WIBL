@@ -62,12 +62,6 @@ def validate_metadata(local_file: str, source_info: Dict[str,Any], config: Dict[
     meta.logger = source_info["logger"]
     meta.soundings = source_info["soundings"]
 
-    # rc, meta = manager.lookup()
-    # if not rc:
-    #     if verbose:
-    #         print(f'error: failed to find metadata on {source_file_name} from database manager.')
-    #     return rc
-
     if verbose:
         print(f'info: Validating metadata in {filename} for schema version {DEFAULT_VALIDATOR_VERSION}.')
     
