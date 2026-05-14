@@ -8,7 +8,7 @@ from http.client import HTTPException
 from typing import Optional
 from sqlalchemy import select, func, cast, Date
 from fastapi import APIRouter, HTTPException, Depends
-from src.wibl_manager import GeoJSONStatus
+from src.wibl_manager import GeoJSONStatus, WIBLStatus
 from src.wibl_manager.schemas import WIBLDataModel, GeoJSONDataModel
 import asyncio
 from geoalchemy2 import functions
@@ -49,7 +49,7 @@ async def getStats(db=Depends(get_async_db)):
     ConvertedTotalStmt = (
         select(func.count())
         .select_from(WIBLDataModel)
-        .where(WIBLDataModel.status == 1)
+        .where(WIBLDataModel.status == WIBLStatus.PROCESSING_SUCCESSFUL)
     )
 
     ObservationTotalStmt = (

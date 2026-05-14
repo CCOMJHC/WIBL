@@ -282,7 +282,7 @@ resource "aws_vpc_security_group_ingress_rule" "private_sg_rule" {
 }
 
 # Create an ingress rules to allow anything running in the same VPC (e.g., ECS, lambdas, EC2) to access other
-# services in the subnet via HTTPS and HTTPS (HTTPS allows access to VPC endpoints; HTTP rule only needed for accessing
+# services in the subnet via HTTP and HTTPS (HTTPS allows access to VPC endpoints; HTTP rule only needed for accessing
 # WIBL manager via ELB)
 # Tag the HTTP/HTTPS ingress rules with names
 resource "aws_vpc_security_group_ingress_rule" "private_sg_rule2" {
