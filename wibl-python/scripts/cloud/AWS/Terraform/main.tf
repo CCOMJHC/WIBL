@@ -10,6 +10,12 @@ terraform {
     }
   }
 
+  backend "s3" {
+    bucket = "unhjhc-wibl-tf-state"
+    region = "us-east-2"
+    key = "terraform/state/wibl-processing-server-deploy.tfstate"
+  }
+
   required_version = ">= 1.5.0"
 }
 

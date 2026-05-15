@@ -218,3 +218,13 @@ variable "auth_file_name" {
     description = "The name of the file located in the 'auth' folder that contains your DCDB provider auth string"
     type = string
 }
+
+variable "terraform_state_bucket" {
+    description = "The name given to the s3 bucket that holds the terraform state document"
+    type = string
+}
+
+variable "terraform_state_key" {
+    description = "The path to the state file inside of the s3 bucket"
+    type = string
+}
