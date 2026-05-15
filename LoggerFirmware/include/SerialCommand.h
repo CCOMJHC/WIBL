@@ -166,6 +166,8 @@ private:
     void ReportScalesElement(CommandSource src);
     /// \brief Report the number of log files available on the SD card
     void ReportFileCount(CommandSource src);
+    /// \brief Report the properties of all log files on the SD card
+    void ReportCatalog(CommandSource src);
     /// \brief Report the configuration of the web-server
     void ReportWebserverConfig(CommandSource src);
     /// \brief Configure the web-server for system config/management
@@ -193,10 +195,10 @@ private:
     
     /// \brief Generate a string on the appropriate output stream
     void EmitMessage(String const& msg, CommandSource src);
-    /// \brief Convert a stringified JSON into a document, with error reporting
+    /// \brief Send stringified JSON, with error reporting
     bool EmitJSON(String const& source, CommandSource src);
-    /// @brief Generate a list of files into a JSON document
-    DynamicJsonDocument GenerateFilelist(void);
+    /// \brief Send a JSON document, with error reporting
+    void EmitJSON(DynamicJsonDocument && json, CommandSource src);
     /// @brief Display a NMEA0183 filter ID list
     void DisplayNMEAFilter(logger::N0183IDStore& filter, CommandSource src);
     /// @brief Display an Algorithm Store list

@@ -780,15 +780,7 @@ void SerialCommand::ConfigurePassthrough(String const& params, CommandSource src
 
 void SerialCommand::ReportConfigurationJSON(CommandSource src, bool secure)
 {
-    DynamicJsonDocument json(logger::ConfigJSON::ExtractConfig());
-    if (src == CommandSource::SerialPort) {
-        String s;
-        serializeJsonPretty(json, s);
-        EmitMessage(s + "\n", src);
-    } else {
-        if (m_wifi != nullptr)
-            m_wifi->SetMessage(json);
-    }
+    EmitJSON(logger::ConfigJSON::ExtractConfig(), src);
 }
 
 /// Provide summary report of all of the configuration parameters being managed by the Confgiuration
@@ -922,8 +914,7 @@ void SerialCommand::DisplayAlgorithmStore(logger::AlgoRequestStore& store, Comma
         String algorithms(store.JSONRepresentation(true));
         EmitMessage(algorithms + '\n', src);
     } else if (src == CommandSource::WirelessPort) {
-        DynamicJsonDocument doc(store.GetContents());
-        m_wifi->SetMessage(doc);
+        m_wifi->SetMessage(store.GetContents());
     } else {
         EmitMessage("ERR: request for unknown CommandSource - who are you?\n", src);
     }
@@ -1022,8 +1013,7 @@ void SerialCommand::DisplayNMEAFilter(logger::N0183IDStore& filter, CommandSourc
         String filter_ids(filter.JSONRepresentation(true));
         EmitMessage(filter_ids + '\n', src);
     } else if (src == CommandSource::WirelessPort) {
-        DynamicJsonDocument doc(filter.GetContents());
-        m_wifi->SetMessage(doc);
+        m_wifi->SetMessage(filter.GetContents());
     } else {
          EmitMessage("ERR: request for unknown CommandSource - who are you?\n", src);
     }
@@ -1099,6 +1089,11 @@ void SerialCommand::ReportFileCount(CommandSource src)
     EmitMessage(String(file_count) + "\n", src);
 }
 
+void SerialCommand::ReportCatalog(CommandSource src)
+{
+    EmitJSON(logger::status::GenerateFilelist(m_logManager), src);
+}
+
 void SerialCommand::ReportWebserverConfig(CommandSource src)
 {
     if (src == CommandSource::SerialPort) {
@@ -1166,17 +1161,7 @@ void SerialCommand::ConfigureWebserver(String const& params, CommandSource src)
 
 void SerialCommand::ReportCurrentStatus(CommandSource src)
 {
-    DynamicJsonDocument status(logger::status::CurrentStatus(m_logManager));
-
-    if (src == CommandSource::SerialPort) {
-        String json;
-        serializeJsonPretty(status, json);
-        EmitMessage(json+"\n", src);
-    } else {
-        if (m_wifi != nullptr) {
-            m_wifi->SetMessage(status);
-        }
-    }
+    EmitJSON(logger::status::CurrentStatus(m_logManager), src);
 }
 
 /// Report the current set of "lab default" configuration parameters set on the logger.  These
@@ -1384,14 +1369,12 @@ void SerialCommand::SnapshotResource(String const& resource, CommandSource src)
         EmitMessage("ERR: unknown snapshot resource requested.\n", src);
     }
 
-    StaticJsonDocument<256> responseJson;
+    DynamicJsonDocument responseJson(256);
     if (rc)
         responseJson["url"] = url;
     else
         responseJson["url"] = "";
-    String response;
-    serializeJson(responseJson, response);
-    EmitJSON(response, src);
+    EmitJSON(std::move(responseJson), src);
 }
 
 void SerialCommand::ReportUploadConfig(CommandSource src)
@@ -1560,6 +1543,8 @@ void SerialCommand::Execute(String const& cmd, CommandSource src)
         } else {
             SetAuthorisation(cmd.substring(5), src);
         }
+    } else if (cmd == "catalog") {
+        ReportCatalog(src);
     } else if (cmd.startsWith("configure")) {
         if (cmd.length() == 9) {
             ReportConfiguration(src);
@@ -1782,19 +1767,26 @@ bool SerialCommand::EmitJSON(String const& source, CommandSource chan)
         EmitMessage("No data in JSON.\n", chan);
         return false;
     }
-    DynamicJsonDocument json(logger::status::GenerateJSON(source));
-    switch (chan) {
-        case CommandSource::SerialPort:
-            serializeJsonPretty(json, Serial);
-            break;
-        case CommandSource::WirelessPort:
-            if (m_wifi != nullptr) {
-                m_wifi->SetMessage(json);
-            }
-            break;
-        default:
-            Serial.println("ERR: command source not recognised.");
-            break;
-    }
+    EmitJSON(logger::status::GenerateJSON(source), chan);
     return true;
+}
+
+/// Generate a message on the output stream associated with the given source, with
+/// the message in JSON format.
+///
+/// @param json   JSON document
+/// @param src    Input channel on which the command arrived
+
+void SerialCommand::EmitJSON(DynamicJsonDocument && json, CommandSource src)
+{
+    if (src == CommandSource::SerialPort) {
+        serializeJsonPretty(json, Serial);
+        Serial.println();
+    } else if (src == CommandSource::WirelessPort) {
+        if (m_wifi != nullptr) {
+            m_wifi->SetMessage(std::move(json));
+        }
+    } else {
+        Serial.println("ERR: command source not recognised.");
+    }
 }

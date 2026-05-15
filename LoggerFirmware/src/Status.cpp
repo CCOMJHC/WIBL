@@ -25,6 +25,7 @@
  */
 
 #include "ArduinoJson.h"
+#include "JSONUtilities.h"
 #include "LogManager.h"
 #include "Configuration.h"
 #include "N0183Logger.h"
@@ -44,64 +45,59 @@ namespace status {
 
 DynamicJsonDocument GenerateFilelist(logger::Manager *m)
 {
-    uint32_t *filenumbers = new uint32_t[logger::MaxLogFiles];
-    uint32_t n_files = m->CountLogFiles(filenumbers);
-    DynamicJsonDocument doc(100*n_files + 256); // Approximate guess, but can expand
+    auto fileNumbers = m->GetLogFileNumbers();
 
-    doc["files"]["count"] = n_files;
-    for (int n = 0; n < n_files; ++n) {
+    // Start small. We really don't want this first allocation to fail.
+    DynamicJsonDocument doc(512);
+
+    // Assume the list will be truncated, because we might not have enough memory
+    // to set it to true later when allocation fails.
+    doc["files"]["isTruncated"] = true;
+    for (int n = 0; n < fileNumbers.size(); ++n) {
+        auto fileNumber = fileNumbers[n];
+
         String filename;
         uint32_t filesize;
         logger::Manager::MD5Hash filehash;
         uint16_t uploadCount;
-        m->EnumerateLogFile(filenumbers[n], filename, filesize, filehash, uploadCount);
+        m->EnumerateLogFile(fileNumber, filename, filesize, filehash, uploadCount);
         StaticJsonDocument<256> entry;
-        entry["id"] = filenumbers[n];
+        entry["id"] = fileNumber;
         entry["len"] = filesize;
         if (!filehash.Empty())
             entry["md5"] = filehash.Value();
         entry["url"] = filename;
         entry["uploads"] = uploadCount;
 
-        int entry_size = entry.memoryUsage();
-        if (doc.memoryUsage() + entry_size > 0.95*doc.capacity()) {
-            // It's likely that adding the entry will cause the document to run out of
-            // space.  We therefore double the capacity (since it's expensive, and we
-            // don't want to have to do it more than once) before we attempt the addition.
-            int capacity = doc.capacity() * 2;
-            DynamicJsonDocument new_doc(capacity);
-            new_doc.set(doc);
-            doc = new_doc;
-        }
-        if (!doc["files"]["detail"].add(entry.as<JsonObject>())) {
-            // Out of memory, even after adding more above (most likely),
-            // so make a new allocation.  Note that the addition can partially
-            // work, so you can end up with a malformed entry in the array (and
-            // one more entry than you expect).  We therefore remove this last
+        while (!doc["files"]["detail"].add(entry.as<JsonObject>())) {
+            // Not enough free capacity to add the entry. Note that the addition
+            // can partially work, so you can end up with ain malformed entry at
+            // the end of the array.  We therefore remove this last
             // element before continuing -- luckily, it should be at the index in
             // the array of the file number.
             doc["files"]["detail"].remove(n);
-            int capacity = doc.capacity() * 2;
-            DynamicJsonDocument new_doc(capacity);
-            new_doc.set(doc);
-            doc = new_doc;
-            doc["files"]["detail"].add(entry.as<JsonObject>());
+            
+            if(!GrowJsonDocument(doc))
+            {
+                // Allocation failed. Not really anything we can do other than
+                // return what we have.
+                return doc;
+            }
         }
     }
-    delete[] filenumbers;
+    doc["files"]["isTruncated"] = false;
     return doc;
 }
 
 DynamicJsonDocument CurrentStatus(logger::Manager *m)
 {
-    DynamicJsonDocument filelist(GenerateFilelist(m));
     DynamicJsonDocument lkg(logger::Metrics.LastKnownGood());
 
     // The total capacity should be, approximately, the sum of the biggest components
     // (above), plus some limited information on versions, elapsed time, and boot
     // status.  We're assuming here that 1024B is enough for the extras ... that
     // might not always be the case.
-    int capacity = filelist.capacity() + lkg.capacity() + 1024;
+    int capacity = lkg.capacity() + 1024;
 
     DynamicJsonDocument status(capacity);
 
@@ -124,7 +120,12 @@ DynamicJsonDocument CurrentStatus(logger::Manager *m)
     status["webserver"]["boot"] = boot_status;
 
     status["data"] = lkg;
-    status["files"] = filelist["files"];
+
+    uint64_t totalFileSize = 0;
+    auto totalFileCount = m->CountLogFiles(&totalFileSize);
+    auto files = status.createNestedObject("files");
+    files["totalFileCount"] = totalFileCount;
+    files["totalFileSize"] = totalFileSize;
 
     return status;
 }

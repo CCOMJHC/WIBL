@@ -99,8 +99,7 @@ Manager::Inventory::~Inventory(void)
 bool Manager::Inventory::Reinitialise(void)
 {
     uint32_t    *filenumbers = new uint32_t[MaxLogFiles];
-    uint32_t    filecount = m_logManager->count(filenumbers);
-    String      filename;
+    auto filecount = m_logManager->scanLogFolder(filenumbers, nullptr);
     Manager::MD5Hash emptyhash;
 
     if (m_verbose)
@@ -166,12 +165,15 @@ uint32_t Manager::Inventory::CountLogFiles(uint32_t filenumbers[MaxLogFiles])
     return filecount;
 }
 
-uint32_t Manager::Inventory::CountLogFiles(void)
+uint32_t Manager::Inventory::CountLogFiles(uint64_t * totalSizePtr)
 {
+    uint64_t totalSize = 0;
     uint32_t filecount = 0;
-    for (uint32_t entry = 0; entry < MaxLogFiles; ++entry) {
-        if (m_filesize[entry] != 0) ++filecount;
+    for (auto fileSize : m_filesize) {
+        totalSize += fileSize;
+        filecount += (fileSize != 0);
     }
+    if (totalSizePtr) *totalSizePtr = totalSize;
     return filecount;
 }
 
@@ -297,15 +299,14 @@ void Manager::RemoveAllLogfiles(void)
 /// Normally, this finds all of the log files on the SD card, counts the total number, and returns
 /// the internal reference numbers that are being used so that the user can request more details
 /// about a specific file later.  In this dummy version, it simply prints a debug message, and returns
-/// zero.
+/// an empty vector.
 ///
-/// \param filenumbers  Fixed size array (of \a MaxLogFiles) written with the internal reference numbers for the files
-/// \return Total number of files available on the SD card
+/// \return An empty vector
 
-int Manager::CountLogFiles(int filenumbers[MaxLogFiles])
+std::vector<uint32_t> Manager::GetLogFileNumbers()
 {
-    Serial.println("DBG: Call to count log files; returning zero.");
-    return 0;
+    Serial.println("DBG: Call to get log files numbers; returning empty vector.");
+    return {};
 }
 
 /// \brief Determine the size and file name of the specified file
@@ -506,54 +507,46 @@ bool Manager::RemoveLogFile(uint32_t file_num)
 
 void Manager::RemoveAllLogfiles(void)
 {
-    uint32_t *filenumbers = new uint32_t[MaxLogFiles];
+    auto fileNumbers = GetLogFileNumbers();
 
     CloseLogfile(); // All means all ...
     
-    uint32_t filecount = CountLogFiles(filenumbers);
     uint32_t files_closed = 0;
-    for (uint32_t f = 0; f < filecount; ++f) {
-        String filename = MakeLogName(filenumbers[f]);
+    for (auto fileNumber : fileNumbers) {
+        String filename = MakeLogName(fileNumber);
         Serial.printf("INFO: erasing log file: \"%s\".\n", filename.c_str());
         bool rc = m_storage->Controller().remove(filename);
         if (rc) {
             m_consoleLog.printf("INFO: erased log file \"%s\" by user command.\n", filename.c_str());
             ++files_closed;
-            if (m_inventory != nullptr) m_inventory->RemoveLogFile(filenumbers[f]);
+            if (m_inventory != nullptr) m_inventory->RemoveLogFile(fileNumber);
         } else {
             m_consoleLog.printf("ERR: failed to erase log file \"%s\" by user command.\n", filename.c_str());
         }
     }
-    delete[] filenumbers;
-    m_consoleLog.printf("INFO: erased %u log files of %u.\n", files_closed, filecount);
+
+    m_consoleLog.printf("INFO: erased %u log files of %u.\n", files_closed, fileNumbers.size());
     m_consoleLog.flush();
     StartNewLog(); // We need to have something running for the logging effort!
 }
 
-/// Count the number of log files on the SD card, so that the client can enumerate them
-/// and report to the user.
-///
-/// \param filenumbers  (Out) Array of the log file numbers on card
-/// \return Number of files on the SD card
-
-uint32_t Manager::CountLogFiles(uint32_t filenumbers[MaxLogFiles])
+uint32_t Manager::CountLogFiles(uint64_t * fileSize)
 {
-    uint32_t filecount;
-    if (m_inventory != nullptr) {
-        filecount = m_inventory->CountLogFiles(filenumbers);
-    } else
-        filecount = count(filenumbers);
-    return filecount;
+    return m_inventory ? m_inventory->CountLogFiles(fileSize)
+                       : scanLogFolder(nullptr, fileSize);
 }
 
-uint32_t Manager::CountLogFiles(void)
+std::vector<uint32_t> Manager::GetLogFileNumbers()
 {
-    uint32_t filecount;
-    if (m_inventory != nullptr) {
-        filecount = m_inventory->CountLogFiles();
-    } else
-        filecount = count(nullptr);
-    return filecount;
+    // Temporarily allocate an array of max size...
+    auto * temp = new uint32_t[logger::MaxLogFiles];
+
+    auto fileCount = m_inventory ? m_inventory->CountLogFiles(temp)
+                                 : scanLogFolder(temp, nullptr);
+    auto fileNumbers = std::vector<uint32_t>(temp, temp + fileCount);
+
+    delete [] temp;
+    return fileNumbers;
 }
 
 /// Make a list of all of the files that exist on the SD card in the log directory, along with their
@@ -818,23 +811,22 @@ void Manager::TransferLogFile(uint32_t file_num, MD5Hash const& filehash, Stream
     Serial.printf("Sent %u B in %lu s.\n", bytes_transferred, duration);
 }
 
-uint32_t Manager::count(uint32_t *filenumbers)
+uint32_t Manager::scanLogFolder(uint32_t fileNumbers[MaxLogFiles], uint64_t * totalSize)
 {
     uint32_t file_count = 0;
     File logdir = m_storage->Controller().open("/logs");
-    File entry = logdir.openNextFile();
-
-    while (entry) {
+    while (File entry = logdir.openNextFile()) {
         // Because we can store snapshots of configuration information in the /logs directory
         // (so that they can be seen through the webserver's static website for download), we
         // need to count only the valid log files in the directory.
         int32_t lognumber = ExtractLogNumber(String(entry.name()));
-        if (lognumber >= 0) {
-            if (filenumbers != nullptr) filenumbers[file_count] = lognumber;
+        auto size = entry.size();
+        if (lognumber >= 0 && size > 0) {
+            if (fileNumbers != nullptr) fileNumbers[file_count] = lognumber;
+            if (totalSize) *totalSize += size;
             ++file_count;
         }
         entry.close();
-        entry = logdir.openNextFile();
     }
     logdir.close();
     return file_count;
