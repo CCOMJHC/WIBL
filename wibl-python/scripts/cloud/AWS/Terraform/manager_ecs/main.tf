@@ -892,7 +892,6 @@ resource "aws_cloudfront_distribution" "frontend" {
 # Instantiate wibl-manager task definition from template and register task with ECS
 
 # Manager Task Definition
-
 resource "aws_ecs_task_definition" "wibl_manager" {
   family                   = "wibl-manager"
   requires_compatibilities = ["FARGATE"]
@@ -956,6 +955,7 @@ resource "aws_iam_role_policy" "frontend_s3_static_access" {
 }
 
 # Allow frontend task to invoke the visualization lambda
+# The visualization lambda is not currently configured, so this interaction never happens in the current build
 data "aws_iam_policy_document" "frontend_invoke_vizlambda" {
   statement {
     sid    = "FrontendAllowVizLambdaInvoke"
