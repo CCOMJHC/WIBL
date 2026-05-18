@@ -16,9 +16,9 @@ its region and type. Thus, the default names provided will most likely already b
 - auth_file_name: Like it describes in the configuration file, it must be set to a valid file name that exists in the 
 `auth` folder. The easiest solution is to copy and paste your string into the `default_auth.txt` file.
 - frontend_secret_key: Following the directions is the configuration file to generate a Django secret is highly 
-recommended. The site to do so is located [here](https://djecrety.ir/).
-- origin_secret: This password phrase adds an optional extra level of security between the CloudFront module and the 
-frontend's load balancer. 
+recommended. The script is located [here](./generate_secret.sh)
+- origin_secret: This password phrase adds an extra level of security between the CloudFront module and the 
+frontend's load balancer. Run the generate_secret script again to create a new value.
 - DCDB_provider_id: Replace with your given DCDB provider id.
 - DCDB_mode: By default the test mode is active. To switch to using the production URL, set this variable to 1.
 

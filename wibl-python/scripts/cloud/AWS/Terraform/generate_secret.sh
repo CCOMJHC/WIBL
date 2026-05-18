@@ -1,0 +1,1 @@
+dd if=/dev/random bs=4096 count=1 status=none | sha512sum --quiet
