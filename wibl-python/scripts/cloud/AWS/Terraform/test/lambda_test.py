@@ -6,8 +6,8 @@ from botocore.exceptions import ClientError
 import requests
 # Configuration
 REGION = "us-east-2"
-BUCKET_NAME = "incoming-bucket-gt-test-1"
-LAMBDA_NAME = "gt-conversion-start-lambda"
+BUCKET_NAME = "default-incoming-bucket"
+LAMBDA_NAME = "default-wibl-conversion-start-lambda"
 TEST_FILE_PATH = "test_file.wibl"
 TEST_KEY = "test_file.wibl"
 

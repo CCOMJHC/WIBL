@@ -49,7 +49,7 @@ async def getStats(db=Depends(get_async_db)):
     ConvertedTotalStmt = (
         select(func.count())
         .select_from(WIBLDataModel)
-        .where(WIBLDataModel.status == WIBLStatus.PROCESSING_SUCCESSFUL)
+        .where(WIBLDataModel.status == WIBLStatus.PROCESSING_SUCCESSFUL.value)
     )
 
     ObservationTotalStmt = (

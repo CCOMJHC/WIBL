@@ -40,15 +40,6 @@ from wibl.validation.cloud.aws import get_config_file
 
 def validate_metadata(local_file: str, source_info: Dict[str,Any], config: Dict[str,Any]) -> bool:
     verbose = config['verbose']
-
-    # Although we need to check the GeoJSON file for metadata, we need to update the status of the
-    # WIBL file, since failed metadata is really a processing failure.  Hence, we need to generate
-    # the WIBL file name from the GeoJSON file name (by subtracting the extension)
-    # source_file_path = local_file.replace('.json', '.wibl')
-    # source_file_name = os.path.split(source_file_path)[-1]
-    # if source_file_name == '':
-    #     raise ValueError(f"Unable to determine filename from source file path: '{source_file_path}'")
-
     filesize = os.path.getsize(local_file) / (1024.0 * 1024.0)
     filename = os.path.split(local_file)[-1]
     if filename == '':

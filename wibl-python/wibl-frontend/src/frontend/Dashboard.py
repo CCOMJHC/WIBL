@@ -1,6 +1,7 @@
 import time
 from dash import Dash, dcc, html
 from django_plotly_dash import DjangoDash
+from django.templatetags.static import static
 import dash
 import os
 import plotly.express as px
@@ -157,7 +158,7 @@ observerSndCountGraph.update_layout(autosize=False, xaxis_title='Observer Name',
 
 config = {'displayModeBar': False}
 
-app = DjangoDash("Dashboard", external_scripts=["https://cdn.plot.ly/plotly-2.27.0.min.js"])
+app = DjangoDash("Dashboard", external_scripts=[static("js/plotly-2.27.0.min.js")])
 
 # Create the html layout of the dashboard
 app.layout = html.Div([
@@ -307,17 +308,17 @@ def loadData():
 
     uploadNumber.data[0].value = wibl_file_count
 
-    convertedGauge.data[0].value = (converted_total / wibl_file_count) * 100
+    convertedGauge.data[0].value = (converted_total / wibl_file_count * 100) if wibl_file_count else 0
 
-    validatedGauge.data[0].value = (validated_total / geojson_file_count) * 100
+    validatedGauge.data[0].value = (validated_total / geojson_file_count * 100) if geojson_file_count else 0
 
-    submittedGauge.data[0].value = (submitted_total / geojson_file_count) * 100
+    submittedGauge.data[0].value = (submitted_total / geojson_file_count * 100) if geojson_file_count else 0
 
     totalSizeNumber.data[0].value = size_total
 
     totalObsNumber.data[0].value = (observations_total / 100000)
 
-    obsUsedGauge.data[0].value = (soundings_total / observations_total) * 100
+    obsUsedGauge.data[0].value = (soundings_total / observations_total * 100) if observations_total else 0
 
     totalObserversNumber.data[0].value = observer_total
 
