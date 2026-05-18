@@ -31,6 +31,7 @@ from bs4 import BeautifulSoup
 import re
 from typing import List
 import os
+import shutil
 
 def convert_file(input: str, output: str) -> None:
     inbase = os.path.split(input)[0]
@@ -89,4 +90,15 @@ def convert_directory(indir: str, outdir: str) -> None:
         convert_file(target, outname)
 
 if __name__ == "__main__":
-    convert_directory(".", "../data/website")
+    
+    data_folder = "../data/website"
+    
+    # Flatten
+    convert_directory(".", data_folder)
+
+    # Copy images to the data folder
+    src_images = "images"
+    dest_images = os.path.join(data_folder, src_images)
+    if os.path.exists(dest_images):
+        shutil.rmtree(dest_images)
+    shutil.copytree(src_images, dest_images)
