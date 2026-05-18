@@ -45,10 +45,11 @@ superuser_password = "bar"
 
 // 1 = debug mode is on, 0 = debug mode is off
 debug_mode = 0
-// Use this site to generate your own Django secret key, https://djecrety.ir/
+// Run the generate_secret.sh script to create a unique secret key value
 frontend_secret_key = "default__test_dev_key__"
 
 // Origin Secret, replace with a unique value to secure traffic between cloudfront and the frontend alb
+// Run the generate_secret.sh again to create a new value
 origin_secret = "default"
 
 // 1 = Use the production DCDB URL, 0 = Use the test DCDB URL
