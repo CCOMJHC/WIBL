@@ -31,6 +31,7 @@
 #include <WiFiAP.h>
 #include <ESPmDNS.h>
 #include <WebServer.h>
+#include <esp_wifi.h>
 #include <WifiClient.h>
 #include <LittleFS.h>
 #include <ESP32-targz.h>
@@ -322,6 +323,29 @@ private:
             Serial.print("ERR: attempting to join a WiFi network as a station without a specified SSID\n");
             return false;
         }
+
+        // Configure WPA3/PMF fallback & parameters for modern hotspots
+        WiFi.mode(WIFI_STA);
+        wifi_config_t conf;
+        esp_wifi_get_config(WIFI_IF_STA, &conf);
+        
+        bool require_pmf = false;
+        String require_pmf_str;
+        if (logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_REQUIRE_PMF_S, require_pmf_str)) {
+            require_pmf = require_pmf_str.equalsIgnoreCase("true") || require_pmf_str == "1";
+        }
+        
+        if (m_verbose) {
+            Serial.printf("DBG: WPA3 PMF configured as %s\n", require_pmf ? "REQUIRED" : "CAPABLE-ONLY");
+        }
+
+        conf.sta.pmf_cfg.capable = true;
+        conf.sta.pmf_cfg.required = require_pmf;
+#ifdef WPA3_SAE_PWE_BOTH
+        conf.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
+#endif
+        esp_wifi_set_config(WIFI_IF_STA, &conf);
+
         wl_status_t status = WiFi.begin(ssid.c_str(), password.c_str());
         WiFi.setSleep(false);
         m_lastConnectAttempt = millis();
