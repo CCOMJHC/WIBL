@@ -1,4 +1,8 @@
-region           = "us-east-2"
+region ="us-east-2"
+
+terraform_state_bucket ="unhjhc-wibl-tf-state"
+terraform_state_key ="terraform/state/wibl-processing-server-deploy.tfstate"
+
 incoming_bucket_name  = "default-incoming-bucket"
 staging_bucket_name   = "default-staging-bucket"
 viz_bucket_name       = "default-viz-bucket"
