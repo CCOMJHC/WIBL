@@ -1,3 +1,8 @@
+
+# IMPORTANT: This file and all other scripts other than "build-lambda.sh" are apart of the deprecated scripting
+# build approach. The intended build method is to use Terraform. Follow the instructions in the README.md located in the
+# Terraform folder.
+
 # This provides information on the configuration of the lambdas
 # being generated, the specification for the buckets being used,
 # roles, and so on.  This is a separate file so that it can be

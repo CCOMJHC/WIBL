@@ -1,5 +1,9 @@
 #!/bin/bash
-#
+
+# IMPORTANT: This file and all other scripts other than "build-lambda.sh" are apart of the deprecated scripting
+# build approach. The intended build method is to use Terraform. Follow the instructions in the README.md located in the
+# Terraform folder.
+
 # This sets up the permissions, triggers, and lambdas required for the WIBL code to run in
 # AWS.  If, of course, you have part of this set up already, then you're likely to encounter
 # difficulties.  Probably best to clean up in the console first, then try again.
@@ -424,7 +428,7 @@ aws --region ${AWS_REGION} iam put-role-policy \
 	--policy-name lambda-conversion-sns-access-validation \
 	--policy-document file://"${WIBL_BUILD_LOCATION}/lambda-sns-access-conversion.json" || exit $?
 
-echo $'\e[31mAdd policy to conversion start lambda granting permissions to allow public access from function URL\e[0m'
+echo $'\e[31mAdd policies to conversion start lambda granting permissions to allow public access from function URL\e[0m'
 aws --region ${AWS_REGION} lambda add-permission \
     --function-name ${CONVERSION_START_LAMBDA} \
     --action lambda:InvokeFunctionUrl \
@@ -432,6 +436,14 @@ aws --region ${AWS_REGION} lambda add-permission \
     --function-url-auth-type "NONE" \
     --statement-id url \
     | tee "${WIBL_BUILD_LOCATION}/url_invoke_lambda_conversion_start.json"
+
+aws --region ${AWS_REGION} lambda add-permission \
+    --function-name ${CONVERSION_START_LAMBDA} \
+    --action lambda:InvokeFunction \
+    --principal "*" \
+    --invoked-via-function-url \
+    --statement-id url-invoke-fn \
+    | tee "${WIBL_BUILD_LOCATION}/url_invoke_fn_lambda_conversion_start.json"
 
 echo $'\e[31mCreate a URL endpoint for conversion start lambda...\e[0m'
 aws lambda create-function-url-config \
