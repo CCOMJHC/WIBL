@@ -31,6 +31,7 @@
 #include <WiFiAP.h>
 #include <ESPmDNS.h>
 #include <WebServer.h>
+#include <esp_wifi.h>
 #include <WifiClient.h>
 #include <LittleFS.h>
 #include <ESP32-targz.h>
@@ -134,6 +135,8 @@ public:
             Serial.printf("DBG: starting ConnectionStateMachine; boot status is %s\n", boot_status.c_str());
         }
         m_lastConnectAttempt = m_lastStatusCheck = millis();
+        m_lastScanTime = 0;
+        m_scanStarted = false;
         
         m_connectionRetries = maximumReties();
         m_retryDelay = retryDelay();
@@ -177,7 +180,50 @@ public:
             case STOPPED:
                 break;
             case AP_MODE:
-                // Once in AP mode and established, we stay in the state.
+                if (WiFiAdapter::GetWirelessMode() == WiFiAdapter::WirelessMode::ADAPTER_STATION) {
+                    if (!m_scanStarted) {
+                        String scan_interval_s;
+                        long scan_interval_ms = 30000;
+                        if (logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_STATION_SCAN_INTERVAL_S, scan_interval_s)) {
+                            if (scan_interval_s.toInt() > 0) scan_interval_ms = scan_interval_s.toInt() * 1000;
+                        }
+                        if (m_lastScanTime == 0 || (now - m_lastScanTime) > scan_interval_ms) {
+                            if (m_verbose) Serial.printf("DBG: triggering background scan (interval %ld ms)...\n", scan_interval_ms);
+                            WiFi.scanNetworks(true); // true = async non-blocking
+                            m_scanStarted = true;
+                            m_lastScanTime = now;
+                        }
+                    } else {
+                        // Scan is running asynchronously, poll for completion
+                        int16_t n = WiFi.scanComplete();
+                        if (n >= 0) {
+                            String targetSsid;
+                            logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_STATION_SSID_S, targetSsid);
+                            if (m_verbose) {
+                                Serial.printf("DBG: background scan returned %d results. targetSsid='%s'\n", n, targetSsid.c_str());
+                            }
+                            bool found = false;
+                            for (int i = 0; i < n; ++i) {
+                                if (m_verbose) {
+                                    Serial.printf("DBG:   - Scan %d: '%s' (RSSI: %d)\n", i, WiFi.SSID(i).c_str(), WiFi.RSSI(i));
+                                }
+                                if (WiFi.SSID(i) == targetSsid) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            WiFi.scanDelete(); // Memory cleanup
+                            m_scanStarted = false;
+                            if (found) {
+                                if (m_verbose) Serial.printf("DBG: found target hotspot %s over the air, dropping AP to reconnect...\n", targetSsid.c_str());
+                                if (attemptStationJoin()) m_currentState = STATION_CONNECTED;
+                                else m_currentState = STATION_CONNECTING;
+                            }
+                        } else if (n == WIFI_SCAN_FAILED) {
+                            m_scanStarted = false; // reset and try again later
+                        }
+                    }
+                }
                 break;
             case STATION_CONNECTING:
                 // We're waiting for the connection to complete, so check status
@@ -229,15 +275,17 @@ public:
                 // We're out of retries for a station connection, so we have to assume
                 // that the network isn't there, or there's a problem with the password
                 // etc. -- so we revert to AP mode.
-                WiFiAdapter::SetWirelessMode(WiFiAdapter::WirelessMode::ADAPTER_SOFTAP);
-                logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "AP-Enabled,Station-Join-Failed");
-                if (m_verbose)
-                    Serial.print("DBG: set status to Station-Join-Failed, rebooting to AP safe mode.\n");
-                ESP.restart();
+                logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "AP-Fallback,Station-Join-Failed");
+                WiFi.disconnect(); // Stop background AutoReconnect spam so scans can run
+                WiFi.mode(WIFI_AP_STA); // Ensure both AP and Station interfaces are up for scanning
+                apSetup();
+                m_currentState = AP_MODE;
+                m_lastScanTime = now; // Delay first scan by interval after dropping to AP
                 break;
             case STATION_CONNECTED:
                 // The system (finally?) connected, so we update status, and then go into
                 // connection checking mode.
+                m_connectionRetries = maximumReties(); // Reset retry count for future dropouts
                 logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "Station-Enabled,Connected");
                 m_currentState = CONNECTION_CHECK;
                 if (m_verbose) {
@@ -277,6 +325,8 @@ private:
     bool    m_verbose;              // Flag for debug information to happen
     int     m_lastConnectAttempt;   // Time (ms) for last connection attempt
     int     m_lastStatusCheck;      // Time (ms) for last connection status attempt
+    int     m_lastScanTime;         // Time (ms) for background scan triggers
+    bool    m_scanStarted;          // Whether an async scan is running
     int     m_connectionRetries;    // Count of remaining connection attempts
     int     m_retryDelay;           // Delay (ms) before attempt to retry to connect
     int     m_statusDelay;          // Delay (ms) before checking connection status again
@@ -291,6 +341,13 @@ private:
         // logger first boots, the WIFi comes up with known SSID and password.
         if (ssid.length() == 0) ssid = "wibl-config";
         if (ssid.length() == 0) password = "wibl-config-password";
+
+        String logger_name;
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_MDNS_NAME_S, logger_name);
+        if (logger_name.length() > 0) {
+            WiFi.softAPsetHostname(logger_name.c_str());
+        }
+
         WiFi.softAP(ssid.c_str(), password.c_str());
         WiFi.setSleep(false);
         IPAddress server_address = WiFi.softAPIP();
@@ -322,8 +379,48 @@ private:
             Serial.print("ERR: attempting to join a WiFi network as a station without a specified SSID\n");
             return false;
         }
-        wl_status_t status = WiFi.begin(ssid.c_str(), password.c_str());
+
+        // Configure WPA3/PMF fallback & parameters for modern hotspots
+        WiFi.mode(WIFI_STA);
+
+        String logger_name;
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_MDNS_NAME_S, logger_name);
+        if (logger_name.length() > 0) {
+            WiFi.setHostname(logger_name.c_str());
+        }
+
+        wifi_config_t conf;
+        esp_wifi_get_config(WIFI_IF_STA, &conf);
+        
+        bool require_pmf = false;
+        String require_pmf_str;
+        if (logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_REQUIRE_PMF_S, require_pmf_str)) {
+            require_pmf = require_pmf_str.equalsIgnoreCase("true") || require_pmf_str == "1";
+        }
+        
+        if (m_verbose) {
+            Serial.printf("DBG: WPA3 PMF configured as %s\n", require_pmf ? "REQUIRED" : "CAPABLE-ONLY");
+        }
+
+        WiFi.disconnect(true); 
+        delay(100); 
         WiFi.setSleep(false);
+
+        // Blank and build the sta configuration struct manually so we can set WPA3 options
+        memset(&conf, 0, sizeof(conf));
+        memcpy(conf.sta.ssid, ssid.c_str(), ssid.length());
+        memcpy(conf.sta.password, password.c_str(), password.length());
+
+        conf.sta.pmf_cfg.capable = true;
+        conf.sta.pmf_cfg.required = require_pmf;
+#ifdef WPA3_SAE_PWE_BOTH
+        conf.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
+#endif
+        esp_wifi_set_config(WIFI_IF_STA, &conf);
+        esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
+
+        wl_status_t status = WiFi.begin(); // DO NOT pass ssid/password here, it overwrites the PMF config we just set!
+        
         m_lastConnectAttempt = millis();
         if (m_verbose) {
             Serial.printf("DBG: started network join on %s:%s at %d with immediate status %d\n", ssid.c_str(), password.c_str(), m_lastConnectAttempt, (int)status);
@@ -469,7 +566,7 @@ private:
             m_server->serveStatic("/logs", m_storage->Controller(), "/logs/");
             m_server->serveStatic("/", LittleFS, "/website/"); // Note trailing '/' since this is a directory being served.
         }
-        //m_state.Verbose(true);
+        m_state.Verbose(m_verbose);
         m_state.Start();
         m_server->begin();
         return true;
