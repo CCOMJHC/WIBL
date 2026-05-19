@@ -76,6 +76,7 @@ const String lookup[] = {
     "StationDelay",     ///< Set the timeout between attempts of the webserver joining a client network
     "StationRetries",   ///< Set number of join attempts before the webserver reverts to safe mode
     "StationTimeout",   ///< Set the timeout for any connect attempt
+    "StationScanInterval", ///< Set the background scan interval (seconds) in AP fallback mode
     "WSStatus",         ///< The current status of the configuration webserver
     "WSBootStatus",     ///< The status of the webserver on boot
     "LabDefaults",      ///< A JSON string for lab-default configuration
@@ -228,13 +229,14 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     params["enable"]["upload"] = upload_online;
 
     // String configurations for the various parameters in configuration
-    String wifi_station_delay, wifi_station_retries, wifi_station_timeout, wifi_ip_address, wifi_mode;
+    String wifi_station_delay, wifi_station_retries, wifi_station_timeout, wifi_station_scan_interval, wifi_ip_address, wifi_mode;
     String wifi_ap_ssid, wifi_ap_password, wifi_station_ssid, wifi_station_password, wifi_station_mdns_name;
     String moduleid, shipname, baudrate_port1, baudrate_port2, udp_bridge_port;
 
     LoggerConfig.GetConfigString(Config::CONFIG_STATION_DELAY_S, wifi_station_delay);
     LoggerConfig.GetConfigString(Config::CONFIG_STATION_RETRIES_S, wifi_station_retries);
     LoggerConfig.GetConfigString(Config::CONFIG_STATION_TIMEOUT_S, wifi_station_timeout);
+    LoggerConfig.GetConfigString(Config::CONFIG_STATION_SCAN_INTERVAL_S, wifi_station_scan_interval);
     LoggerConfig.GetConfigString(Config::CONFIG_MODULEID_S, moduleid);
     LoggerConfig.GetConfigString(Config::CONFIG_SHIPNAME_S, shipname);
     LoggerConfig.GetConfigString(Config::CONFIG_AP_SSID_S, wifi_ap_ssid);
@@ -252,6 +254,7 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     params["wifi"]["station"]["delay"] = wifi_station_delay.toInt();
     params["wifi"]["station"]["retries"] = wifi_station_retries.toInt();
     params["wifi"]["station"]["timeout"] = wifi_station_timeout.toInt();
+    params["wifi"]["station"]["scaninterval"] = wifi_station_scan_interval.toInt();
     params["wifi"]["station"]["mdns"] = wifi_station_mdns_name;
     params["wifi"]["ssids"]["ap"] = wifi_ap_ssid;
     params["wifi"]["ssids"]["station"] = wifi_station_ssid;
@@ -330,6 +333,8 @@ bool ConfigJSON::SetConfig(String const& json_string)
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_RETRIES_S, params["wifi"]["station"]["retries"]);
                 if (params["wifi"]["station"].containsKey("timeout"))
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_TIMEOUT_S, params["wifi"]["station"]["timeout"]);
+                if (params["wifi"]["station"].containsKey("scaninterval"))
+                    LoggerConfig.SetConfigString(Config::CONFIG_STATION_SCAN_INTERVAL_S, params["wifi"]["station"]["scaninterval"]);
                 if (params["wifi"]["station"].containsKey("mdns"))
                     LoggerConfig.SetConfigString(Config::CONFIG_MDNS_NAME_S, params["wifi"]["station"]["mdns"]);
             }
