@@ -335,6 +335,10 @@ private:
             require_pmf = require_pmf_str.equalsIgnoreCase("true") || require_pmf_str == "1";
         }
         
+        if (m_verbose) {
+            Serial.printf("DBG: WPA3 PMF configured as %s\n", require_pmf ? "REQUIRED" : "CAPABLE-ONLY");
+        }
+
         conf.sta.pmf_cfg.capable = true;
         conf.sta.pmf_cfg.required = require_pmf;
 #ifdef WPA3_SAE_PWE_BOTH
