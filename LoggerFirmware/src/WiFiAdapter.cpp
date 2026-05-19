@@ -276,6 +276,8 @@ public:
                 // that the network isn't there, or there's a problem with the password
                 // etc. -- so we revert to AP mode.
                 logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "AP-Fallback,Station-Join-Failed");
+                WiFi.disconnect(); // Stop background AutoReconnect spam so scans can run
+                WiFi.mode(WIFI_AP_STA); // Ensure both AP and Station interfaces are up for scanning
                 apSetup();
                 m_currentState = AP_MODE;
                 m_lastScanTime = now; // Delay first scan by interval after dropping to AP
@@ -283,6 +285,7 @@ public:
             case STATION_CONNECTED:
                 // The system (finally?) connected, so we update status, and then go into
                 // connection checking mode.
+                m_connectionRetries = maximumReties(); // Reset retry count for future dropouts
                 logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, "Station-Enabled,Connected");
                 m_currentState = CONNECTION_CHECK;
                 if (m_verbose) {
@@ -399,15 +402,25 @@ private:
             Serial.printf("DBG: WPA3 PMF configured as %s\n", require_pmf ? "REQUIRED" : "CAPABLE-ONLY");
         }
 
+        WiFi.disconnect(true); 
+        delay(100); 
+        WiFi.setSleep(false);
+
+        // Blank and build the sta configuration struct manually so we can set WPA3 options
+        memset(&conf, 0, sizeof(conf));
+        memcpy(conf.sta.ssid, ssid.c_str(), ssid.length());
+        memcpy(conf.sta.password, password.c_str(), password.length());
+
         conf.sta.pmf_cfg.capable = true;
         conf.sta.pmf_cfg.required = require_pmf;
 #ifdef WPA3_SAE_PWE_BOTH
         conf.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
 #endif
         esp_wifi_set_config(WIFI_IF_STA, &conf);
+        esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
 
-        wl_status_t status = WiFi.begin(ssid.c_str(), password.c_str());
-        WiFi.setSleep(false);
+        wl_status_t status = WiFi.begin(); // DO NOT pass ssid/password here, it overwrites the PMF config we just set!
+        
         m_lastConnectAttempt = millis();
         if (m_verbose) {
             Serial.printf("DBG: started network join on %s:%s at %d with immediate status %d\n", ssid.c_str(), password.c_str(), m_lastConnectAttempt, (int)status);
@@ -553,7 +566,7 @@ private:
             m_server->serveStatic("/logs", m_storage->Controller(), "/logs/");
             m_server->serveStatic("/", LittleFS, "/website/"); // Note trailing '/' since this is a directory being served.
         }
-        //m_state.Verbose(true);
+        m_state.Verbose(m_verbose);
         m_state.Start();
         m_server->begin();
         return true;
