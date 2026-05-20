@@ -22,11 +22,17 @@ frontend's load balancer. Run the generate_secret script again to create a new v
 - DCDB_provider_id: Replace with your given DCDB provider id.
 - DCDB_mode: By default the test mode is active. To switch to using the production URL, set this variable to 1.
 
-#### Warning
+#### Mandatory Replacement Areas
 In [main.tf](./main.tf) in the section near the top labeled `backend "s3"`, the variables inside must be **manually updated**. 
 They will not follow what is located inside the tfvars file. The variables that need to be updated are 
 `terraform-state-bucket`, `region`, and `terraform-state-key`. 
 
+In [configuration-paramters.sh](../configuration-parameters.sh) the variable `AUTHKEY` must be replaced with the relative
+path to your document containing your DCDB authentication key. If the file is located inside the `Terraform/auth` folder,
+than the path will look something like this 
+```
+AUTHKEY=`cat ./Terraform/auth/default_auth.txt`
+```
 ### 2. Building The Lambda Package
 This step only works if `docker` is currently running on your system. Inside the outer `AWS` folder is a script called 
 `build-lambda.sh`, run this script. Even if the script is successful, there may still be a lingering `build` or `package`
