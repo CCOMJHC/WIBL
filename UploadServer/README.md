@@ -672,7 +672,7 @@ TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153|JDJhJDEwJDc1Q0FrVG9WdEo2YUwwWWwxLjN0
 
 Next, you can do a basic test of the upload-server by using the `/checkin` endpoint using `curl`:
 ```shell
-$ curl -v --http1.1 \
+$ curl -v --http1.1 --insecure \
         -u TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
         --cacert ./certs/ca.crt --fail-with-body "https://localhost:8000/checkin" \
   -H 'Content-Type: application/json' \
@@ -750,7 +750,9 @@ EOF
 ```
 
 You can see from the above output that the request was successful because
-the HTTP status code was 200, i.e., `HTTP/2 200`.
+the HTTP status code was 200, i.e., `HTTP/2 200`.  Note that the 'insecure'
+option tells `curl` not to attempt to chase the CA chain, which won't work
+anyway with a self-signed certificate.
 
 In the console in which you are running `docker compose up`, you should
 also see the following output:
