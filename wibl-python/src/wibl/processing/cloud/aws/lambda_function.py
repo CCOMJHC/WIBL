@@ -102,32 +102,37 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         meta.starttime = datetime.fromtimestamp(source_data['depth']['t'][0]).isoformat()
         meta.endtime = datetime.fromtimestamp(source_data['depth']['t'][-1]).isoformat()
 
+        lats = source_data['depth']['lat']
+        lons = source_data['depth']['lon']
+
+        meta.min_lat, meta.max_lat = min(lats), max(lats)
+        meta.min_lon, meta.max_lon = min(lons), max(lons)
         # Get the max and min coordinates to create a bounding box
-        max_lat = -9999.0
-        min_lat = 9999.0
-
-        max_lon = -9999.0
-        min_lon = 9999.0
-
-        size = len(source_data['depth']['z'])
-        for i in range(size):
-            temp_lat = source_data['depth']['lat'][i]
-            temp_lon = source_data['depth']['lon'][i]
-
-            if temp_lat < min_lat:
-                min_lat = temp_lat
-            if temp_lat > max_lat:
-                max_lat = temp_lat
-
-            if temp_lon < min_lon:
-                min_lon = temp_lon
-            if temp_lon > max_lon:
-                max_lon = temp_lon
-
-        meta.max_lat = max_lat
-        meta.min_lat = min_lat
-        meta.max_lon = max_lon
-        meta.low_lon = min_lon
+        # max_lat = float('-inf')
+        # min_lat = float('inf')
+        #
+        # max_lon = float('-inf')
+        # min_lon = float('inf')
+        #
+        # size = len(source_data['depth']['z'])
+        # for i in range(size):
+        #     temp_lat = source_data['depth']['lat'][i]
+        #     temp_lon = source_data['depth']['lon'][i]
+        #
+        #     if temp_lat < min_lat:
+        #         min_lat = temp_lat
+        #     if temp_lat > max_lat:
+        #         max_lat = temp_lat
+        #
+        #     if temp_lon < min_lon:
+        #         min_lon = temp_lon
+        #     if temp_lon > max_lon:
+        #         max_lon = temp_lon
+        #
+        # meta.max_lat = max_lat
+        # meta.min_lat = min_lat
+        # meta.max_lon = max_lon
+        # meta.min_lon = min_lon
     except lf.PacketTranscriptionError as e:
         print(f"Error reading packet from WIBL file: {str(e)}")
     except ts.NoTimeSource:
