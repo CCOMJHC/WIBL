@@ -5,7 +5,7 @@
 
 #include <ArduinoJson.h>
 
-inline bool GrowJsonDocumentBy(DynamicJsonDocument & json, size_t capacityIncrease)
+inline bool GrowJsonDocumentBy(DynamicJsonDocument& json, size_t capacityIncrease)
 {
     auto newCapacity = json.capacity() + capacityIncrease;
     DynamicJsonDocument temp(newCapacity);
@@ -18,7 +18,7 @@ inline bool GrowJsonDocumentBy(DynamicJsonDocument & json, size_t capacityIncrea
     return true;
 }
 
-inline bool GrowJsonDocument(DynamicJsonDocument & json)
+inline bool GrowJsonDocument(DynamicJsonDocument& json)
 {
     // Grow capacity by 50%. A growth rate less than the golden ratio allows
     // the document to potentially reuse allocations it previously occupied.

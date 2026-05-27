@@ -99,7 +99,7 @@ Manager::Inventory::~Inventory(void)
 bool Manager::Inventory::Reinitialise(void)
 {
     uint32_t    *filenumbers = new uint32_t[MaxLogFiles];
-    auto filecount = m_logManager->scanLogFolder(filenumbers, nullptr);
+    auto filecount = m_logManager->ScanLogFolder(filenumbers, nullptr);
     Manager::MD5Hash emptyhash;
 
     if (m_verbose)
@@ -165,7 +165,7 @@ uint32_t Manager::Inventory::CountLogFiles(uint32_t filenumbers[MaxLogFiles])
     return filecount;
 }
 
-uint32_t Manager::Inventory::CountLogFiles(uint64_t * totalSizePtr)
+uint32_t Manager::Inventory::CountLogFiles(uint64_t *totalFileSizes)
 {
     uint64_t totalSize = 0;
     uint32_t filecount = 0;
@@ -173,7 +173,7 @@ uint32_t Manager::Inventory::CountLogFiles(uint64_t * totalSizePtr)
         totalSize += fileSize;
         filecount += (fileSize != 0);
     }
-    if (totalSizePtr) *totalSizePtr = totalSize;
+    if (totalFileSizes) *totalFileSizes = totalSize;
     return filecount;
 }
 
@@ -530,19 +530,19 @@ void Manager::RemoveAllLogfiles(void)
     StartNewLog(); // We need to have something running for the logging effort!
 }
 
-uint32_t Manager::CountLogFiles(uint64_t * fileSize)
+uint32_t Manager::CountLogFiles(uint64_t *fileSize)
 {
     return m_inventory ? m_inventory->CountLogFiles(fileSize)
-                       : scanLogFolder(nullptr, fileSize);
+                       : ScanLogFolder(nullptr, fileSize);
 }
 
 std::vector<uint32_t> Manager::GetLogFileNumbers()
 {
     // Temporarily allocate an array of max size...
-    auto * temp = new uint32_t[logger::MaxLogFiles];
+    uint32_t *temp = new uint32_t[logger::MaxLogFiles];
 
-    auto fileCount = m_inventory ? m_inventory->CountLogFiles(temp)
-                                 : scanLogFolder(temp, nullptr);
+    uint32_t fileCount = m_inventory ? m_inventory->CountLogFiles(temp)
+                                 : ScanLogFolder(temp, nullptr);
     auto fileNumbers = std::vector<uint32_t>(temp, temp + fileCount);
 
     delete [] temp;
@@ -811,7 +811,7 @@ void Manager::TransferLogFile(uint32_t file_num, MD5Hash const& filehash, Stream
     Serial.printf("Sent %u B in %lu s.\n", bytes_transferred, duration);
 }
 
-uint32_t Manager::scanLogFolder(uint32_t fileNumbers[MaxLogFiles], uint64_t * totalSize)
+uint32_t Manager::ScanLogFolder(uint32_t fileNumbers[MaxLogFiles], uint64_t * totalSize)
 {
     uint32_t file_count = 0;
     File logdir = m_storage->Controller().open("/logs");
