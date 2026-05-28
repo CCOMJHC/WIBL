@@ -217,6 +217,7 @@ variable "map_name" {
 variable "auth_file_name" {
     description = "The name of the file located in the 'auth' folder that contains your DCDB provider auth string"
     type = string
+    default = "default_auth.txt"
 }
 
 variable "terraform_state_bucket" {

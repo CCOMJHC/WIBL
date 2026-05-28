@@ -29,7 +29,7 @@ mkdir -p ${WIBL_BUILD_LOCATION} || exit $?
 # DCDB should provide you with a token to authorise you to upload; change this code
 # so that it can find where you've stashed it, and read it in to allow for setup of
 # the submission Lambda.
-AUTHKEY=`cat ./Terraform/auth/default_auth.txt`
+AUTHKEY=`cat ./Terraform/default_auth.txt`
 
 # These parameters configure the AWS region and technical details of the Lambda runtime
 # that will be used.  If you change the region, you will also want to change the NumPy

@@ -1,21 +1,28 @@
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+# TODO: Why is it saying that "bucket_namespace" is not expected here?
 resource "aws_s3_bucket" "incoming_bucket" {
-    bucket = var.incoming_bucket
+    bucket = format("%s-%s-%s-an", var.incoming_bucket, data.aws_caller_identity.current.account_id, data.aws_region.current.name)
     force_destroy = true
+    bucket_namespace = "account-regional"
 }
 
 resource "aws_s3_bucket" "staging_bucket" {
-    bucket = var.staging_bucket
+    bucket = format("%s-%s-%s-an", var.staging_bucket, data.aws_caller_identity.current.account_id, data.aws_region.current.name)
     force_destroy = true
+    bucket_namespace = "account-regional"
 }
 
 resource "aws_s3_bucket" "viz_bucket" {
-    bucket = var.viz_bucket
+    bucket = format("%s-%s-%s-an", var.viz_bucket, data.aws_caller_identity.current.account_id, data.aws_region.current.name)
     force_destroy = true
+    bucket_namespace = "account-regional"
 }
 
 resource "aws_s3_bucket" "static_bucket" {
-    bucket = var.static_bucket
+    bucket = format("%s-%s-%s-an", var.static_bucket, data.aws_caller_identity.current.account_id, data.aws_region.current.name)
     force_destroy = true
+    bucket_namespace = "account-regional"
 }
 
 data "aws_iam_policy_document" "static_bucket_policy" {
