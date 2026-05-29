@@ -69,8 +69,8 @@ DCDB_prod_url = "https://www.ngdc.noaa.gov/ingest-external/upload/csb/geojson/"
 
 map_name = "${PROVIDER_PREFIX}-open-layers-map"
 
-manager_db_name = "${PROVIDER_PREFIX}-wibl-manager-DB"
-frontend_db_name = "${PROVIDER_PREFIX}-wibl-frontend-DB"
+manager_db_name = "${PROVIDER_PREFIX}managerDB"
+frontend_db_name = "${PROVIDER_PREFIX}frontendDB"
 
 # 1 = debug mode is on, 0 = debug mode is off
 debug_mode = 0

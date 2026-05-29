@@ -75,7 +75,7 @@ data "aws_iam_policy_document" "lambda-sns-access-submission-doc" {
 resource "aws_ssm_parameter" "secret" {
   name = "/wibl/auth_secret"
   type = "SecureString"
-  value = file("${path.root}/auth/${var.auth_file_name}")
+  value = file("${path.root}/${var.auth_file_name}")
 }
 
 data "aws_iam_policy_document" "lambda-ssm-access-submission-doc" {

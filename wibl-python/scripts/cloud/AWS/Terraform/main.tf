@@ -2,11 +2,11 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = ">= 6.47"
     }
     docker = {
       source  = "kreuzwerker/docker"
-      version = "~> 3.0"
+      version = ">= 3.9"
     }
   }
 
@@ -56,11 +56,11 @@ module "configure-manager-ecs" {
 
     region = var.region
     account_number = var.account_number
-    incoming_bucket_name = var.incoming_bucket_name
-    staging_bucket_name = var.staging_bucket_name
-    viz_bucket_name = var.viz_bucket_name
+    incoming_bucket_name = module.configure-buckets.incoming_bucket_full_name
+    staging_bucket_name = module.configure-buckets.staging_bucket_full_name
+    viz_bucket_name = module.configure-buckets.viz_bucket_full_name
     viz_lambda_name = var.viz_lambda_name
-    static_bucket_name = var.static_bucket_name
+    static_bucket_name = module.configure-buckets.static_bucket_full_name
     static_bucket_regional_dns_name = module.configure-buckets.static_bucket_regional_dns_name
 
     architecture = var.architecture
@@ -108,9 +108,9 @@ module "configure-lambda" {
     viz_lambda_role_name = var.viz_lambda_role_name
 
     staging_bucket_arn = module.configure-buckets.staging_bucket_arn
-    staging_bucket_name = var.staging_bucket_name
+    staging_bucket_name = module.configure-buckets.staging_bucket_full_name
     incoming_bucket_arn = module.configure-buckets.incoming_bucket_arn
-    incoming_bucket_name = var.incoming_bucket_name
+    incoming_bucket_name = module.configure-buckets.incoming_bucket_full_name
     incoming_bucket_id = module.configure-buckets.incoming_bucket_id
     viz_bucket_arn = module.configure-buckets.viz_bucket_arn
 
