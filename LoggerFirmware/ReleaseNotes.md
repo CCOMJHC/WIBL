@@ -1,5 +1,13 @@
 # Release Notes: Logger Firmware
 
+## Firmware 1.6.2
+
+Firmware 1.6.2 addresses [issue 107](https://github.com/CCOMJHC/WIBL/issues/107) in the repository, where the size of the JSON documents being constructed in the firmware were getting to the size where they took up enough memory that they caused problems when generating SSL connections during upload.  This also seemed to have significantly slowed down the webserver, so this version of the firmware should show much snappier connections on the server as a (very welcome) side effect.
+
+In addition to managing the memory better in the firmware, the modifications here change the status message so that it no longer provides all of the file information (names, sizes, checksums, etc.)  The code adds a "catalog" command that now provides this information; the "snapshot catalog" command can also be used to generate this information as a file that can be downloaded using the standard browser mechanism.
+
+The [original PR](https://github.com/CCOMJHC/WIBL/pull/108) for this (which is used here with slight adjustments for the upload server end of the connection) was contributed by the awesome team at [Spatialnetics](https://spatialnetics.com).
+
 ## Firmware 1.6.1
 
 Firmware 1.6.1 addresses [issue 85](https://github.com/CCOMJHC/WIBL/issues/85) in the repository, which is a bug in the generation of "last known good" data in the JSON response to the "status" command, which shows up as failure to parse the JSON in the JavaScript.  A consequence of this is that the hardware data simulator required updates to (a) add a Depth datagram in the NMEA2000 output (fixed depth rather than fully simulated like the NMEA0183 output), and (b) flushing of buffers to ensure that NMEA0183 messages are sent correctly on the GGA/ZDA channel without problems.
