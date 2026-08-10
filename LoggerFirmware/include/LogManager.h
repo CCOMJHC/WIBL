@@ -74,7 +74,7 @@ public:
     void RemoveAllLogfiles(void);
 
     /// \brief Count the number of log files on the system
-    uint32_t CountLogFiles(uint64_t * fileSize = nullptr);
+    uint32_t CountLogFiles(uint64_t *fileSize = nullptr);
 
     /// \brief Collect the file numbers of all log files on the system
     std::vector<uint32_t> GetLogFileNumbers();
