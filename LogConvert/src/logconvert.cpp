@@ -42,6 +42,8 @@ namespace po = boost::program_options;
 #include "serialisation.h"
 #include "SerialisableFactory.h"
 
+const char *version = "1.2.0";
+
 /// Dummy code to allow the system to pretend that there's a millisecond counter
 ///
 /// \return Nominally the millisecond counter since boot; there, uniformly zero
@@ -157,7 +159,9 @@ std::string NameOutputPacket(uint32_t packet_id)
 
 void Syntax(po::options_description const& cmdopt)
 {
-    std::cout << "logconvert [" << __DATE__ << ", " << __TIME__ << "] - Convert VGI log output to WIBL for upload." << std::endl;
+    std::cout << "logconvert [" << __DATE__ << ", " << __TIME__ << "] v." << version
+              << " - Convert VGI log output to WIBL for upload." << std::endl;
+    std::cout << "  Serialiser Version: " << SerialiserVersionMajor << "." << SerialiserVersionMinor << std::endl;
     std::cout << "Syntax: logconvert [opt] <input><output>" << std::endl;
     std::cout << cmdopt << std::endl;
 }

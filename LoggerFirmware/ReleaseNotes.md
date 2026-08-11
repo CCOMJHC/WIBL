@@ -3,7 +3,10 @@
 ## Firmware 1.7.0
 
 Firmware 1.7.0 addresses multiple issues in the repository, including:
+
 * [Issue 110](https://github.com/CCOMJHC/WIBL/issues/110), which changes the filename structure for raw files to include a fixed extension (e.g., "raw00000.wbl") rather than encoding the filename in the extension.  In addition to allowing for more files, this avoids problems in processing later.
+
+* [Issue 81](https://github.com/CCOMJHC/WIBL/issues/81), which adds source (speaker) information to NMEA2000 output packets in the raw file, stepping the serialiser version to 1.4.  This also updates the Python code for reading files to be compatible, and updates logconvert to write version 1.4 data.
 
 ## Firmware 1.6.2
 
