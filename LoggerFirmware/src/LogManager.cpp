@@ -738,16 +738,18 @@ String Manager::MakeLogName(uint32_t log_num)
 
 int32_t Manager::ExtractLogNumber(String const& filename)
 {
-    if (filename.endsWith("wbl") < 0) {
+    if (!filename.endsWith("wbl")) {
         // This is not a log file, so converting the extension would not be useful
         return -1;
     }
     // Since we know that it's a log file (test above) then we know that it must have a
     // component that can be converted into an integer (since they are only made by
     // MakeLogName() here, and therefore always have the same format)
-    int start = filename.indexOf("raw") + 1,
-        end = filename.indexOf('.') - 1;
-    return filename.substring(start, end).toInt();
+    int start = filename.indexOf("raw") + 3,
+        end = filename.indexOf('.');
+    String filenum_str = filename.substring(start, end);
+    int filenum = filenum_str.toInt();
+    return filenum;
 }
 
 /// Output the contents of the system console log to something that implements the Stream
