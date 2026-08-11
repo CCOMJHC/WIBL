@@ -1,5 +1,10 @@
 # Release Notes: Logger Firmware
 
+## Firmware 1.7.0
+
+Firmware 1.7.0 addresses multiple issues in the repository, including:
+* [Issue 110](https://github.com/CCOMJHC/WIBL/issues/110), which changes the filename structure for raw files to include a fixed extension (e.g., "raw00000.wbl") rather than encoding the filename in the extension.  In addition to allowing for more files, this avoids problems in processing later.
+
 ## Firmware 1.6.2
 
 Firmware 1.6.2 addresses [issue 107](https://github.com/CCOMJHC/WIBL/issues/107) in the repository, where the size of the JSON documents being constructed in the firmware were getting to the size where they took up enough memory that they caused problems when generating SSL connections during upload.  This also seemed to have significantly slowed down the webserver, so this version of the firmware should show much snappier connections on the server as a (very welcome) side effect.
