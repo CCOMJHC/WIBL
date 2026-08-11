@@ -716,8 +716,19 @@ uint32_t Manager::GetNextLogNumber(void)
 
 String Manager::MakeLogName(uint32_t log_num)
 {
-    String filename("/logs/wibl-raw.");
-    filename += log_num;
+    String filename("/logs/raw");
+    if (log_num >= 100000) {
+        // Ensure no more than eight characters in the filename
+        uint32_t remapped_lognum = log_num % 100000;
+        String logmsg = String("error: log number ") +
+            log_num + "passed to MakeLogName (must be < 100000) - resetting to " +
+            remapped_lognum + "; this may cause problems.\n";
+        Syslog(logmsg);
+        log_num = remapped_lognum;
+    }
+    char log_num_str[10];
+    snprintf(log_num_str, 10, "%05d.wbl", log_num);
+    filename.concat(log_num_str);
     return filename;
 }
 
@@ -727,14 +738,16 @@ String Manager::MakeLogName(uint32_t log_num)
 
 int32_t Manager::ExtractLogNumber(String const& filename)
 {
-    if (filename.indexOf(String("wibl-raw")) < 0) {
+    if (filename.endsWith("wbl") < 0) {
         // This is not a log file, so converting the extension would not be useful
         return -1;
     }
-    // Since we know that it's a log file (test above) then we know that it must have an
-    // extension that can be converted into an integer (since they are only made by
+    // Since we know that it's a log file (test above) then we know that it must have a
+    // component that can be converted into an integer (since they are only made by
     // MakeLogName() here, and therefore always have the same format)
-    return filename.substring(filename.indexOf('.')+1).toInt();
+    int start = filename.indexOf("raw") + 1,
+        end = filename.indexOf('.') - 1;
+    return filename.substring(start, end).toInt();
 }
 
 /// Output the contents of the system console log to something that implements the Stream
