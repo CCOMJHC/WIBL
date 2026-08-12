@@ -92,7 +92,7 @@ def get_config_file(resource_name, env_key: str = DEFAULT_CONFIG_FILE_ENV_KEY) -
     return get_config_path(get_config_resource_filename(resource_name), env_key)
 
 
-def read_config(config_file: Union[Path, str] = None) -> Dict[str, Any]:
+def read_config(config_file: Union[Path, str]) -> Dict[str, Any]:
     """There are a number of configuration parameters for the algorithm, such as the provider ID name
        to write into the metadata, and use for filenames; where to stage the intermediate GeoJSON files
        before they're uploaded to the database; and where to send the files.  There are also parameters
