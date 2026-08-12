@@ -3,7 +3,7 @@ import sys
 from importlib import resources
 from typing import Optional, TextIO
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, UTC
 from random import randrange
 import argparse
 import logging
@@ -17,7 +17,7 @@ _logger: logging.Logger = logging.getLogger(LOGGER_NAME)
 
 
 def get_logfile_name(prefix: str = 'wibl-python-', suffix: str = 'log') -> str:
-    date_portion = datetime.utcnow().strftime("%Y-%m-%dT%H_%M_%S.%fZ")
+    date_portion = datetime.now(UTC).strftime("%Y-%m-%dT%H_%M_%S.%fZ")
     rand_portion = f"{randrange(1, 10000):05}"
     return f"{prefix}{date_portion}-{rand_portion}.{suffix}"
 
@@ -80,7 +80,7 @@ def config_logger(*,
 
 
 def config_logger_cmdline(args: argparse.Namespace, *,
-                          log_prefix: str = None) -> logging.Logger:
+                          log_prefix: str|None = None) -> logging.Logger:
     """
     Configure global logger instance and return it. For use by
     command line tools.

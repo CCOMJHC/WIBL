@@ -120,7 +120,8 @@ def determine_time_source(stats: PktStats) -> TimeSource:
 # \return Tuple of PktStats, TimeSource, a list of DataPacket, and a list of AlgorithmDescriptor entries from the file
 def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *,
               process_algorithms: bool = True,
-              strict_mode: bool = False) -> \
+              strict_mode: bool = False,
+              bad_talkers: list[int]|None = None) -> \
         Tuple[PktStats, TimeSource, List[LoggerFile.DataPacket], List[AlgorithmDescriptor]]:
     """Load the entirety of a WIBL binary file into memory, in the process determining the type of time
        source that can be used to add timestamps to the data, and fixing up any messages that don't have
@@ -134,6 +135,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
             verbose         Flag: set True to extra information on the process
             maxreports      Maximum number of errors per packet to report before summarising
             process_algorithms Flag: set to True to enable execution of algorithms for phase `AlgorithmPhaseON_LOAD`
+            bad_talkers     List of talker IDs to drop from the input stream, or None
 
         Outputs:
             stats           (PktStats) Statistics on which packets have been seen, and any problems
@@ -153,7 +155,18 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
         while source.has_more():
             pkt = source.next_packet()
             if pkt is not None:
-                packets_raw.append(pkt)
+                if bad_talkers is not None:
+                    talker_id = getattr(pkt, 'talker_id', -1)
+                    if talker_id >= 0:
+                        # A talker is specified, so we need to attempt to filter
+                        if talker_id in bad_talkers:
+                            stats.Fault(pkt.name(), PktFaults.FilteredFault)
+                        else:
+                            packets_raw.append(pkt)
+                    else:
+                        packets_raw.append(pkt)
+                else:
+                    packets_raw.append(pkt)
                 # Check for algorithm packet
                 if isinstance(pkt, LoggerFile.AlgorithmRequest):
                     stats.Observed(pkt.name())
