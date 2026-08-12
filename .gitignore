@@ -38,6 +38,7 @@ xcshareddata
 
 # Build products
 build/
+build-deps/
 *.o
 *.LinkFileList
 *.hmap
