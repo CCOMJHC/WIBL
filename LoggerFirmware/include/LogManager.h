@@ -156,9 +156,13 @@ private:
         Inventory(Manager *manager, bool verbose = false);
         ~Inventory(void);
 
-        bool Reinitialise(void);
         bool Lookup(uint32_t filenum, uint32_t& filesize, MD5Hash& hash, uint16_t& uploads);
-        bool Update(uint32_t filenum, MD5Hash *hash = nullptr);
+        bool Update(uint32_t filenum, MD5Hash *hash = nullptr)
+        {
+            rehash(filenum, hash);
+            serialise();
+            return true;
+        }
         void RemoveLogFile(uint32_t filenum);
         uint32_t CountLogFiles(uint32_t filenumbers[MaxLogFiles]);
         uint32_t CountLogFiles(uint64_t *totalFileSizes);
@@ -167,7 +171,7 @@ private:
         uint16_t UploadCount(uint32_t filenum);
         uint16_t IncrementUploadCount(uint32_t filenum);
 
-        void SerialiseCache(Stream& stream);
+        void DumpCache(Stream& stream);
 
     private:
         Manager                 *m_logManager;
@@ -175,6 +179,11 @@ private:
         std::vector<uint32_t>   m_filesize;
         std::vector<MD5Hash>    m_hashes;
         std::vector<uint16_t>   m_uploadCount;
+        bool reinitialise(void);
+        bool rehash(uint32_t filenum, MD5Hash *filehash);
+        void serialise(void);
+        void deserialise(void);
+        void backingfile(String& name);
     };
     mem::MemController  *m_storage; ///< Controller for the storage to use
     File        m_consoleLog;       ///< File on which to write console information
