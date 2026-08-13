@@ -89,29 +89,69 @@ Manager::Inventory::Inventory(Manager *manager, bool verbose)
     m_filesize.resize(MaxLogFiles);
     m_hashes.resize(MaxLogFiles);
     m_uploadCount.resize(MaxLogFiles);
-    Reinitialise();
+    reinitialise();
 }
 
 Manager::Inventory::~Inventory(void)
 {
 }
 
-bool Manager::Inventory::Reinitialise(void)
+bool Manager::Inventory::reinitialise(void)
 {
-    uint32_t    *filenumbers = new uint32_t[MaxLogFiles];
-    auto filecount = m_logManager->ScanLogFolder(filenumbers, nullptr);
     Manager::MD5Hash emptyhash;
-
-    if (m_verbose)
-        Serial.printf("DBG: Reinitialising Inventory for %u objects.\n", filecount);
+    std::vector<bool> validated(MaxLogFiles);
     for (uint32_t entry = 0; entry < MaxLogFiles; ++entry) {
         m_filesize[entry] = 0;
         m_hashes[entry] = emptyhash;
         m_uploadCount[entry] = 0;
+        validated[entry] = false;
     }
 
+    // Pull the serialised data from its cache file, if the file exists and is readable
+    deserialise();
+
+    uint32_t    *filenumbers = new uint32_t[MaxLogFiles];
+    auto filecount = m_logManager->ScanLogFolder(filenumbers, nullptr);
+    if (m_verbose) {
+        Serial.printf("DBG: Reinitialising Inventory for %u objects.\n", filecount);
+    }
+
+    bool modified = false;
+
+    // Loop first over the files on the card, and make sure that they're up to date in the cache.
+    String filename;
+    uint32_t filesize;
     for (uint32_t f = 0; f < filecount; ++f) {
-        Update(filenumbers[f]);
+        m_logManager->enumerate(filenumbers[f], filename, filesize);
+        if (filesize != m_filesize[filenumbers[f]]) {
+            rehash(filenumbers[f], nullptr);
+            modified = true;
+        }
+        validated[filenumbers[f]] = true;
+    }
+    // Loop next over all entries in the cache and make sure they're either already valid, or they're
+    // of zero length (i.e., inactive); if not, we reset the entry since the file can't be there (it
+    // would have been marked valid in the first pass).
+    for (uint32_t entry = 0; entry < MaxLogFiles; ++entry) {
+        if (validated[entry]) {
+            continue;
+        }
+        if (m_filesize[entry] == 0) {
+            validated[entry] = true;
+            continue;
+        }
+        // At this stage, we must have a stale entry in the cache, since the file wasn't seen on first pass,
+        // so we reset.
+        m_filesize[entry] = 0;
+        m_hashes[entry] = emptyhash;
+        m_uploadCount[entry] = 0;
+        validated[entry] = true;
+        modified = true;
+    }
+
+    // Serialise the current state of the cache, iff we changed something in the consolidation stage.
+    if (modified) {
+        serialise();
     }
 
     delete[] filenumbers;
@@ -129,7 +169,7 @@ bool Manager::Inventory::Lookup(uint32_t filenum, uint32_t& filesize, Manager::M
     return true;
 }
 
-bool Manager::Inventory::Update(uint32_t filenum, MD5Hash *filehash)
+bool Manager::Inventory::rehash(uint32_t filenum, MD5Hash *filehash)
 {
     Manager::MD5Hash hash;
     String filename;
@@ -151,6 +191,7 @@ void Manager::Inventory::RemoveLogFile(uint32_t filenum)
     m_filesize[filenum] = 0;
     m_hashes[filenum] = Manager::MD5Hash();
     m_uploadCount[filenum] = 0;
+    serialise();
 }
 
 uint32_t Manager::Inventory::CountLogFiles(uint32_t filenumbers[MaxLogFiles])
@@ -180,7 +221,7 @@ uint32_t Manager::Inventory::CountLogFiles(uint64_t *totalFileSizes)
 uint32_t Manager::Inventory::GetNextLogNumber(void)
 {
     if (m_verbose)
-        SerialiseCache(Serial);
+        DumpCache(Serial);
     for (uint32_t entry = 0; entry < MaxLogFiles; ++entry) {
         if (m_filesize[entry] == 0) {
             return entry;
@@ -189,7 +230,7 @@ uint32_t Manager::Inventory::GetNextLogNumber(void)
     return 0;
 }
 
-void Manager::Inventory::SerialiseCache(Stream& stream)
+void Manager::Inventory::DumpCache(Stream& stream)
 {
     stream.println("DBG: File Inventory Cache contents:");
     for (uint32_t entry = 0; entry < MaxLogFiles; ++entry) {
@@ -218,7 +259,56 @@ uint16_t Manager::Inventory::IncrementUploadCount(uint32_t filenum)
     if (filenum >= MaxLogFiles || m_filesize[filenum] == 0)
         return 0;
     uint16_t rc = m_uploadCount[filenum]++;
+    serialise();
     return rc;
+}
+
+void Manager::Inventory::backingfile(String& name)
+{
+    name = "/sdcard/fcache.bin";
+}
+
+void Manager::Inventory::serialise(void)
+{
+    String cachefile;
+    FILE *f;
+
+    backingfile(cachefile);
+    if ((f = fopen(cachefile.c_str(), "wb")) == nullptr) {
+        return;
+    }
+    uint32_t arraysize = MaxLogFiles;
+    fwrite(&arraysize, sizeof(uint32_t), 1, f);
+    fwrite(m_filesize.data(), sizeof(uint32_t), MaxLogFiles, f);
+    for (uint32_t entry = 0; entry < MaxLogFiles; ++entry) {
+        fwrite(m_hashes[entry].Hash(), sizeof(uint8_t), 16, f);
+    }
+    fwrite(m_uploadCount.data(), sizeof(uint16_t), MaxLogFiles, f);
+    fclose(f);
+}
+
+void Manager::Inventory::deserialise(void)
+{
+    String cachefile;
+    FILE *f;
+
+    backingfile(cachefile);
+    if ((f = fopen(cachefile.c_str(), "rb")) == nullptr) {
+        return;
+    }
+    uint32_t arraysize;
+    fread(&arraysize, sizeof(uint32_t), 1, f);
+    if (arraysize != MaxLogFiles) {
+        return;
+    }
+    fread(m_filesize.data(), sizeof(uint32_t), arraysize, f);
+    uint8_t hash[16];
+    for (uint32_t entry = 0; entry < arraysize; ++entry) {
+        fread(hash, sizeof(uint8_t), 16, f);
+        m_hashes[entry].Set(hash);
+    }
+    fread(m_uploadCount.data(), sizeof(uint16_t), 1, f);
+    fclose(f);
 }
 
 #ifdef DEBUG_LOG_MANAGER
