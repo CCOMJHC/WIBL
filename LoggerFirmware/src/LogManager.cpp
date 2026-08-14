@@ -96,10 +96,32 @@ Manager::Inventory::~Inventory(void)
 {
 }
 
+/* This rebuilds the cache on boot, first attempting to read the persisted version from the SD
+ * card if it exists, and then checking for consistency between the cache state and what is seen
+ * on the card.
+ * 
+ * Note that the order of operations is critical here: you have to zero out the cache first, then
+ * attempt to deserialise, then iterate over the files and make sure they're reflected in the cache
+ * correctly, and only then check the cache for missing files.  This order ensures that any files
+ * on the card but not in cache get added first, and that any files in the cache that are no longer
+ * on the card can be recognised without having to read the card again because if they were on the
+ * card they would have been updated in the first pass.
+ * 
+ * The best case is that the logger was shut down under control, so that the last log file was closed
+ * correctly, added to the inventory, and the inventory persisted, before the logger shuts down.  If
+ * the system shuts down uncleanly (no power monitoring, or complete power failure), then the last
+ * logfile will not be in the cache, and will be hashed and added on reboot, making the boot complexity
+ * O(1), unless some shenanigans have been had with the card between shutdown and reboot!
+ */
 bool Manager::Inventory::reinitialise(void)
 {
     Manager::MD5Hash emptyhash;
-    std::vector<bool> validated(MaxLogFiles);
+    std::vector<bool> validated(MaxLogFiles); // Tracks which files in the cache have been examined
+    bool modified = false; // Track whether we've made changes that need serialisation at the end
+
+    // Initialising the cache to "empty" and unvalidated for each entry means that if we can't
+    // deserialise the persisted version for any reason, the code checking consistency against
+    // the current file set will force ab initio reconstruction of the cache.
     for (uint32_t entry = 0; entry < MaxLogFiles; ++entry) {
         m_filesize[entry] = 0;
         m_hashes[entry] = emptyhash;
@@ -110,28 +132,40 @@ bool Manager::Inventory::reinitialise(void)
     // Pull the serialised data from its cache file, if the file exists and is readable
     deserialise();
 
-    uint32_t    *filenumbers = new uint32_t[MaxLogFiles];
+    // Inventory the current set of files on the card so we can check they're up to date in the
+    // cache.  The only check that we can really do efficiently is to check the filesizes are the
+    // same; if that isn't the case, we rebuild the cache entry by rehashing the file.
+    uint32_t *filenumbers = new uint32_t[MaxLogFiles];
+    String filename;
+    uint32_t filesize;
     auto filecount = m_logManager->ScanLogFolder(filenumbers, nullptr);
     if (m_verbose) {
         Serial.printf("DBG: Reinitialising Inventory for %u objects.\n", filecount);
     }
-
-    bool modified = false;
-
-    // Loop first over the files on the card, and make sure that they're up to date in the cache.
-    String filename;
-    uint32_t filesize;
     for (uint32_t f = 0; f < filecount; ++f) {
         m_logManager->enumerate(filenumbers[f], filename, filesize);
         if (filesize != m_filesize[filenumbers[f]]) {
+            if (m_verbose) {
+                Serial.printf("DBG: INCONSISTENCY file |%s|, %u B on card does not match cache size %u B; rehashing.\n",
+                    filename.c_str(), filesize, m_filesize[filenumbers[f]]);
+            }
             rehash(filenumbers[f], nullptr);
             modified = true;
+        } else {
+            if (m_verbose) {
+                Serial.printf("DBG: file |%s|, %u B on card matches cache.\n",
+                    filename.c_str(), filesize);
+            }
         }
         validated[filenumbers[f]] = true;
     }
+
     // Loop next over all entries in the cache and make sure they're either already valid, or they're
     // of zero length (i.e., inactive); if not, we reset the entry since the file can't be there (it
     // would have been marked valid in the first pass).
+    if (m_verbose) {
+        Serial.printf("DBG: scanning file cache for consistency with card.\n");
+    }
     for (uint32_t entry = 0; entry < MaxLogFiles; ++entry) {
         if (validated[entry]) {
             continue;
@@ -142,6 +176,10 @@ bool Manager::Inventory::reinitialise(void)
         }
         // At this stage, we must have a stale entry in the cache, since the file wasn't seen on first pass,
         // so we reset.
+        if (m_verbose) {
+            Serial.printf("DBG: INCONSISTENT filenumber %u not on card, and non-zero filesize (%u)l;resetting.\n",
+                entry, m_filesize[entry]);
+        }
         m_filesize[entry] = 0;
         m_hashes[entry] = emptyhash;
         m_uploadCount[entry] = 0;
@@ -151,6 +189,9 @@ bool Manager::Inventory::reinitialise(void)
 
     // Serialise the current state of the cache, iff we changed something in the consolidation stage.
     if (modified) {
+        if (m_verbose) {
+            Serial.printf("DBG: cache modified for consistency, serialising to SD card.\n");
+        }
         serialise();
     }
 
@@ -174,13 +215,16 @@ bool Manager::Inventory::rehash(uint32_t filenum, MD5Hash *filehash)
     Manager::MD5Hash hash;
     String filename;
 
-    if (m_verbose)
+    if (m_verbose) {
         Serial.printf("DBG: Inventory update for file %u.\n", filenum);
+    }
     if (filenum >= MaxLogFiles) return false;
     m_logManager->enumerate(filenum, filename, m_filesize[filenum]);
     m_logManager->hash(filename, m_hashes[filenum]);
-    if (m_verbose)
-        Serial.printf("DBG: File |%s|, %u B, hash |%s|.\n", filename.c_str(), m_filesize[filenum], m_hashes[filenum].Value().c_str());
+    if (m_verbose) {
+        Serial.printf("DBG: File |%s|, %u B, hash |%s|.\n",
+            filename.c_str(), m_filesize[filenum], m_hashes[filenum].Value().c_str());
+    }
     if (filehash != nullptr) *filehash = m_hashes[filenum];
     return true;
 }
@@ -263,18 +307,43 @@ uint16_t Manager::Inventory::IncrementUploadCount(uint32_t filenum)
     return rc;
 }
 
+// This provides the name on which to read/write the inventory cache for persistence.  Note that
+// for efficiency in write/read we use the raw C-style FILE* interface, rather than the Arduino
+// virtualised interface, and therefore need to provide the /sdcard prefix for the filename in order
+// to find the VFS space correctly.
 void Manager::Inventory::backingfile(String& name)
 {
     name = "/sdcard/fcache.bin";
 }
-
+/* This serialises the contents of the inventory cache to SD card, and should be called after any
+ * change is made to the inventory to make sure that the cache stays consistent if the logger should
+ * be rebooted without warning.  The code will recover consistency with the contents of the log
+ * directory on the next reboot, but it's costly so we want to make sure that the cache stays consistent
+ * as often as possible.
+ * 
+ * Format of the serialised file is:
+ *  U32         Size of the file array elements = N
+ *  U32 x N     File size (bytes) for each of N potential files (can be zero if file not extant).
+ *  U8 x 16 x N File MD5 hashes (16 bytes per file) for N potential files (can be zero if file not extant)
+ *  U32 x N     Upload count for each of N potential files (can be zero if no upload, or no file).
+ * 
+ * The total size of the output file (for 1000 log files maximum) is about 22kB.
+ */
 void Manager::Inventory::serialise(void)
 {
     String cachefile;
     FILE *f;
 
     backingfile(cachefile);
+    if (m_verbose) {
+        Serial.printf("DBG: serialising inventory cache to |%s|.\n", cachefile.c_str());
+    }
     if ((f = fopen(cachefile.c_str(), "wb")) == nullptr) {
+        if (m_verbose) {
+            Serial.printf("DBG: failed to open inventory cache output to |%s|\n", cachefile.c_str());
+        }
+        String msg = "ERR: failed to open inventory cache output on |" + cachefile + "|.";
+        m_logManager->Syslog(msg);
         return;
     }
     uint32_t arraysize = MaxLogFiles;
@@ -287,18 +356,44 @@ void Manager::Inventory::serialise(void)
     fclose(f);
 }
 
+/* This deserialises the contents of the inventory cache from SD card, and should only really be
+ * called on boot to recover the persisted version of the cache.  For robustness (and first boot),
+ * the code quitely returns if the cache file can't be found or read (although a syslog report is
+ * written to record the fact); this will leave the inventory blank internally, and therefore will
+ * force the reinitialise() code to rebuild the cache from scratch --- it'll take a while longer,
+ * but will work.
+ * 
+ * The format of the file being read is:
+ *  U32         Size of the file array elements = N
+ *  U32 x N     File size (bytes) for each of N potential files (can be zero if file not extant).
+ *  U8 x 16 x N File MD5 hashes (16 bytes per file) for N potential files (can be zero if file not extant)
+ *  U32 x N     Upload count for each of N potential files (can be zero if no upload, or no file).
+ */
 void Manager::Inventory::deserialise(void)
 {
     String cachefile;
     FILE *f;
 
     backingfile(cachefile);
+    if (m_verbose) {
+        Serial.printf("DBG: deserialising inventory cache from |%s|\n", cachefile.c_str());
+    }
     if ((f = fopen(cachefile.c_str(), "rb")) == nullptr) {
+        String msg = "ERR: failed to open |" + cachefile +"| for inventory cache read.";
+        m_logManager->Syslog(msg);
+        if (m_verbose) {
+            Serial.print(msg);
+        }
         return;
     }
     uint32_t arraysize;
     fread(&arraysize, sizeof(uint32_t), 1, f);
     if (arraysize != MaxLogFiles) {
+        String msg = String("ERR: inventory cache reported ") + arraysize + " entries, not MaxLogFiles=" + MaxLogFiles;
+        m_logManager->Syslog(msg);
+        if (m_verbose) {
+            Serial.print(msg);
+        }
         return;
     }
     fread(m_filesize.data(), sizeof(uint32_t), arraysize, f);
@@ -330,7 +425,7 @@ void Manager::Inventory::deserialise(void)
 Manager::Manager(StatusLED *led)
 : m_led(led)
 {
-    Serial.println("INF: Starting dummy log manager - NO LOGGING WILL BE DONE.");
+    Serial.println("INFO: Starting dummy log manager - NO LOGGING WILL BE DONE.");
 }
 
 /// \brief Default destructor
@@ -497,8 +592,9 @@ Manager::Manager(StatusLED *led, mem::MemController *storage)
 #else
     m_consoleLog = m_storage->Controller().open("/console.log", FILE_WRITE);
 #endif
-    Syslog("info: booted logger, appending to console log.");
-    Serial.println("info: started console log.");
+    Syslog("\n\n************************ REBOOT ************************");
+    Syslog("INFO: booted logger, appending to console log.");
+    Serial.println("INFO: started console log.");
 }
 
 /// \brief Default destructor.
@@ -542,10 +638,10 @@ void Manager::StartNewLog(void)
         filterstore.SerialiseIDs(m_serialiser);
         logger::ScalesStore scalesstore;
         scalesstore.SerialiseScales(m_serialiser);
-        m_consoleLog.println(String("INFO: started logging to ") + filename);
+        Syslog(String("INFO: started logging to ") + filename);
     } else {
         m_serialiser = nullptr;
-        m_consoleLog.println(String("ERR: Failed to open output log file as ") + filename);
+        Syslog(String("ERR: Failed to open output log file as ") + filename);
     }
     
     m_consoleLog.flush();
@@ -686,7 +782,8 @@ void Manager::Record(PacketIDs pktID, Serialisable const& data)
 
 void Manager::Syslog(String const& message)
 {
-    m_consoleLog.println(message);
+    unsigned long now = millis();
+    m_consoleLog.println(String(now) + ": " + message);
     m_consoleLog.flush();
     RotateConsoleLogs(); // This is maybe a little much, but does ensure we don't exceed the max size.
 }
@@ -867,6 +964,7 @@ void Manager::DumpConsoleLog(Stream& output)
 void Manager::RotateConsoleLogs(void)
 {
     if (m_consoleLog.size() > MAX_CONSOLE_FILE_SIZE) {
+        Serial.println("INFO: rotating console logs.");
         m_consoleLog.close();
         for (int target = MAX_CONSOLE_LOGS-1; target >= 2; --target) {
             String target_file = "/console." + String(target);

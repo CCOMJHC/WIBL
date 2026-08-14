@@ -284,7 +284,6 @@ void Logger::HandleSystemTime(Timestamp::TimeDatum const& t, const tN2kMsg& msg)
             s += (uint8_t)msg.Source;
             s += (uint8_t)source;
             m_logManager->Record(logger::Manager::PacketIDs::Pkt_SystemTime, s);
-            m_logManager->Syslog(String("INF: Time update to: ") + m_timeReference.printable());
         }
     }
 }
@@ -444,7 +443,6 @@ void Logger::HandleGNSS(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
             // probably OK since it's usually 1Hz.  Therefore we can update if
             // we don't have anything else
             m_timeReference.Update(datestamp, timestamp, t.RawElapsed());
-            m_logManager->Syslog(String("INFO: Time update to: ") + m_timeReference.printable() + String(" from GNSS record."));
         }
     } else {
         m_logManager->Syslog(t.printable() + ": ERR: Failed to parse primary GNSS report packet.");

@@ -382,7 +382,7 @@ bool ConfigJSON::SetStableConfig(void)
     if (LoggerConfig.IsValid()) {
         return true;
     } else {
-        Serial.println("INF: Configuration not valid; setting default configuration for first boot/bad config.");
+        Serial.println("INFO: Configuration not valid; setting default configuration for first boot/bad config.");
         return SetConfig(String(stable_config));
     }
 }
