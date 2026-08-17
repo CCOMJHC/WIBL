@@ -52,50 +52,74 @@ export class DetailTable extends HTMLElement {
         let input_count = inputHeaders.length;
         let active = this._active;
 
+        const statusEnum = {
+            STARTED: 0,
+            SUCCESSFUL: 1,
+            FAILED: 2
+        }
+
+        const validationEnum = {
+            STARTED: 0x1,
+            SUCCESSFUL: 0x2,
+            FAILED: 0x4
+        }
+
+        const uploadEnum = {
+            STARTED: 0x8,
+            SUCCESSFUL: 0x10,
+            FAILED: 0x20
+        }
+
+        const stateEnum = {
+            ONLINE: 0,
+            DELETED: 1,
+            ARCHIVED: 2
+        }
+
         function listFileDetails(message) {
             function formatStatus(header, content) {
                 if (header === "Status") {
                     switch(content) {
-                        case 0:
+                        case statusEnum.STARTED:
                             return "Processing Started";
-                        case 1:
+                        case statusEnum.SUCCESSFUL:
                             return "Processing Successful";
-                        case 2:
+                        case statusEnum.FAILED:
                             return "Processing Failed";
                         default:
                             return "Unknown";
                     }
                 } else if (header === "Validation Status") {
-                    const x = content & 0x7;
-                    switch(x) {
-                        case 0x1:
+                    const slicedContent = content & 0x7;
+                    switch(slicedContent) {
+                        case validationEnum.STARTED:
                             return  "Validation Started";
-                        case 0x2:
+                        case validationEnum.SUCCESSFUL:
                             return "Validation Successful";
-                        case 0x4:
+                        case validationEnum.FAILED:
                             return "Validation Failed";
                         default:
                             return "Validation Status Unknown";
                     }
                 } else if (header === "Upload Status") {
-                    const x = content & 0x38
-                    switch(x) {
-                        case 0x8:
+                    const slicedContent = content & 0x38
+                    switch(slicedContent) {
+                        case uploadEnum.STARTED:
                             return "Upload Started";
-                        case 0x10:
+                        case uploadEnum.SUCCESSFUL:
                             return "Upload Successful";
-                        case 0x20:
+                        case uploadEnum.FAILED:
                             return "Upload Failed";
                         default:
                             return "Upload Status Unknown";
                     }
                 } else if (header === "State") {
                     switch(content) {
-                        case 0:
+                        case stateEnum.ONLINE:
                             return "Online";
-                        case 1:
+                        case stateEnum.DELETED:
                             return "Deleted";
-                        case 2:
+                        case stateEnum.ARCHIVED:
                             return "Archived";
                         default:
                             return "Unknown";
