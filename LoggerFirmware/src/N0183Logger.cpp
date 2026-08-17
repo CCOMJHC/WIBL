@@ -37,8 +37,8 @@ namespace nmea {
 namespace N0183 {
   
 const int SoftwareVersionMajor = 1; ///< Software major version for the logger
-const int SoftwareVersionMinor = 0; ///< Software minor version for the logger
-const int SoftwareVersionPatch = 1; ///< Software patch version for the logger
+const int SoftwareVersionMinor = 1; ///< Software minor version for the logger
+const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
 /// Validate the sentence, making sure that it meets the requirements to be a NMEA0183 message.  For
 /// this, it has to contain only printable characters, it has to start with a "$", and end with a valid checksum
@@ -92,6 +92,47 @@ String Sentence::MessageID(void) const
     return s;
 }
 
+MessageAssembler::ErrorCount::ErrorCount(void)
+{
+    for (auto n = 0; n < ErrorCount::MAX_ERRORS; ++n) {
+        m_counts[n] = 0;
+    }
+    m_nextReport = millis() + report_interval;
+}
+
+bool MessageAssembler::ErrorCount::Note(ErrorType event)
+{
+    ++m_counts[event];
+    if (millis() >= m_nextReport) {
+        return true;
+    }
+    return false;
+}
+
+void MessageAssembler::ErrorCount::ReportCounts(logger::Manager *manager, int channel)
+{
+    unsigned int total = 0;
+    for (auto n = 0; n < ErrorCount::MAX_ERRORS; ++n) {
+        total += m_counts[n];
+    }
+    m_nextReport = millis() + report_interval;
+    if (total == 0) {
+        return;
+    }
+    String msg = String("ERR: NMEA0183 ");
+    msg += String("(on channel ") + channel + ")";
+    msg += m_counts[0] + " Non-start characters while looking for start; ";
+    msg += m_counts[1] + " Setting RX inversion; ";
+    msg += m_counts[2] + " Restart ($) during sentence capture; and ";
+    msg += m_counts[3] + String(" Overlong messages since last report");
+    msg += String("(") + report_interval + "ms/report nominal).";
+    manager->Syslog(msg);
+
+    for (auto n = 0; n < ErrorCount::MAX_ERRORS; ++n) {
+        m_counts[n] = 0;
+    }
+}
+
 /// Start the message assembler in the "searching" state, with a blank sentence and empty FIFO.
 
 MessageAssembler::MessageAssembler(void)
@@ -130,7 +171,7 @@ void MessageAssembler::AddCharacter(const char in)
                                    "; changing to CAPTURING.");
                 }
             } else {
-                if (m_debugAssembly || m_logManager != nullptr) {
+                if (m_debugAssembly) {
                     message = "ERR: non-start character ";
                     if (std::isprint(in)) {
                         message += String("'") + in + "'";
@@ -138,12 +179,10 @@ void MessageAssembler::AddCharacter(const char in)
                         message += "0x" + String(in, HEX);
                     }
                     message += " while searching for NMEA string (channel " + String(m_channel) + ").";
-                    if (m_debugAssembly) {
-                        Serial.println(message);
-                    }
-                    if (m_logManager != nullptr) {
-                        m_logManager->Syslog(message);
-                    }
+                    Serial.println(message);
+                }
+                if (m_errors.Note(ErrorCount::NON_START) && m_logManager != nullptr) {
+                    m_errors.ReportCounts(m_logManager, m_channel);
                 }
 
                 if ((in & 0x80) != 0) {
@@ -166,8 +205,8 @@ void MessageAssembler::AddCharacter(const char in)
                     message = "INFO: setting rx input inversion on channel "
                                 + String(m_channel) + " due to bad start characters.";
                     Serial.println(message);
-                    if (m_logManager != nullptr) {
-                        m_logManager->Syslog(message);
+                    if (m_errors.Note(ErrorCount::RX_INVERSION) && m_logManager != nullptr) {
+                        m_errors.ReportCounts(m_logManager, m_channel);
                     }
                 }
             }
@@ -203,13 +242,13 @@ void MessageAssembler::AddCharacter(const char in)
                     m_current.AddCharacter(in);
                     message = "WARN: sentence restarted before end of previous one?! (channel " + String(m_channel) + ").";
                     Serial.println(message);
-                    if (m_logManager != nullptr) {
-                        m_logManager->Syslog(message);
-                    }
                     if (m_debugAssembly) {
                         Serial.println(String("debug: new sentence started with timestamp ") +
                                        m_current.Timestamp() + " as reset on channel " +
                                        m_channel + ".");
+                    }
+                    if (m_errors.Note(ErrorCount::RESTART) && m_logManager != nullptr) {
+                        m_errors.ReportCounts(m_logManager, m_channel);
                     }
                     break;
                 default:
@@ -220,12 +259,12 @@ void MessageAssembler::AddCharacter(const char in)
                         m_state = STATE_SEARCHING;
                         message = "WARN: over-long sentence detected, and ignored (channel " + String(m_channel) + ").";
                         Serial.println(message);
-                        if (m_logManager != nullptr) {
-                            m_logManager->Syslog(message);
-                        }
                         if (m_debugAssembly) {
                             Serial.println(String("debug: reset state to SEARCHING on channel ") +
                                            m_channel + " after over-long sentence.");
+                        }
+                        if (m_errors.Note(ErrorCount::OVERLONG) && m_logManager != nullptr) {
+                            m_errors.ReportCounts(m_logManager, m_channel);
                         }
                     }
                     break;
