@@ -198,19 +198,5 @@ export class GeojsonMap {
         this.olMap = await olms.apply('map', '/mapStyle/');
 
         this.olMap.addOverlay(this.overlay);
-//        this.olMap = new ol.Map({
-//            target: 'map',
-//            overlays: [this.overlay],
-//            layers: [
-//                new ol.layer.VectorTile({
-//                    source: this.buildTileSource()
-//                }),
-//            ],
-//            view: new ol.View({
-//                projection: 'EPSG:3857',
-//                center: ol.proj.fromLonLat([0, 0]),
-//                zoom: 2,
-//            }),
-//        });
     }
 }
