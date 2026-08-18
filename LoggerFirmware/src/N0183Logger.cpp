@@ -119,14 +119,17 @@ void MessageAssembler::ErrorCount::ReportCounts(logger::Manager *manager, int ch
     if (total == 0) {
         return;
     }
-    String msg = String("ERR: NMEA0183 ");
-    msg += String("(on channel ") + channel + ")";
-    msg += m_counts[0] + " Non-start characters while looking for start; ";
-    msg += m_counts[1] + " Setting RX inversion; ";
-    msg += m_counts[2] + " Restart ($) during sentence capture; and ";
-    msg += m_counts[3] + String(" Overlong messages since last report");
-    msg += String("(") + report_interval + "ms/report nominal).";
-    manager->Syslog(msg);
+    char *buf = new char[512];
+    snprintf(buf, 512, "ERR: NMEA0183 ch %d (%d ms/report):", channel, report_interval);
+    manager->Syslog(buf);
+    snprintf(buf, 512, "  %d non-start characters while looking for start.", m_counts[0]);
+    manager->Syslog(buf);
+    snprintf(buf, 512, "  %d RX inversion calls.", m_counts[1]);
+    manager->Syslog(buf);
+    snprintf(buf, 512, "  %d sentence restarts during capture.", m_counts[2]);
+    manager->Syslog(buf);
+    snprintf(buf, 512, "  %d overlong sentences.", m_counts[3]);
+    manager->Syslog(buf);
 
     for (auto n = 0; n < ErrorCount::MAX_ERRORS; ++n) {
         m_counts[n] = 0;
