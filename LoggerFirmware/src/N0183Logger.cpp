@@ -100,26 +100,45 @@ MessageAssembler::ErrorCount::ErrorCount(void)
     m_nextReport = millis() + report_interval;
 }
 
-bool MessageAssembler::ErrorCount::Note(ErrorType event)
-{
-    ++m_counts[event];
-    if (millis() >= m_nextReport) {
-        return true;
-    }
-    return false;
-}
-
-void MessageAssembler::ErrorCount::ReportCounts(logger::Manager *manager, int channel)
+bool MessageAssembler::ErrorCount::reportable(void)
 {
     unsigned int total = 0;
     for (auto n = 0; n < ErrorCount::MAX_ERRORS; ++n) {
         total += m_counts[n];
     }
-    m_nextReport = millis() + report_interval;
-    if (total == 0) {
+    return total > 0;
+}
+
+bool MessageAssembler::ErrorCount::timeout(void)
+{
+    unsigned long now = millis();
+    if (now < m_nextReport) {
+        return false;
+    }
+    m_nextReport = now + report_interval;
+    return true;
+}
+
+void MessageAssembler::ErrorCount::reset(void)
+{
+    for (auto n = 0; n < ErrorCount::MAX_ERRORS; ++n) {
+        m_counts[n] = 0;
+    }
+}
+
+void MessageAssembler::ErrorCount::Note(ErrorType event)
+{
+    ++m_counts[event];
+}
+
+void MessageAssembler::ErrorCount::ReportCounts(logger::Manager *manager, int channel)
+{
+    if (!timeout() || !reportable()) {
         return;
     }
+
     char *buf = new char[512];
+
     snprintf(buf, 512, "ERR: NMEA0183 ch %d (%d ms/report):", channel, report_interval);
     manager->Syslog(buf);
     snprintf(buf, 512, "  %d non-start characters while looking for start.", m_counts[0]);
@@ -131,9 +150,9 @@ void MessageAssembler::ErrorCount::ReportCounts(logger::Manager *manager, int ch
     snprintf(buf, 512, "  %d overlong sentences.", m_counts[3]);
     manager->Syslog(buf);
 
-    for (auto n = 0; n < ErrorCount::MAX_ERRORS; ++n) {
-        m_counts[n] = 0;
-    }
+    delete [] buf;
+
+    reset();
 }
 
 /// Start the message assembler in the "searching" state, with a blank sentence and empty FIFO.
@@ -158,6 +177,7 @@ MessageAssembler::~MessageAssembler(void)
 void MessageAssembler::AddCharacter(const char in)
 {
     String message;
+    bool report = false;
     
     switch(m_state) {
         case STATE_SEARCHING:
@@ -169,7 +189,7 @@ void MessageAssembler::AddCharacter(const char in)
                 m_current.AddCharacter(in);
                 m_state = STATE_CAPTURING;
                 if (m_debugAssembly) {
-                    Serial.println(String("debug: sentence started with timestamp ") +
+                    Serial.println(String("DEBUG: sentence started with timestamp ") +
                                    m_current.Timestamp() + " on channel " + m_channel +
                                    "; changing to CAPTURING.");
                 }
@@ -184,9 +204,7 @@ void MessageAssembler::AddCharacter(const char in)
                     message += " while searching for NMEA string (channel " + String(m_channel) + ").";
                     Serial.println(message);
                 }
-                if (m_errors.Note(ErrorCount::NON_START) && m_logManager != nullptr) {
-                    m_errors.ReportCounts(m_logManager, m_channel);
-                }
+                m_errors.Note(ErrorCount::NON_START);
 
                 if ((in & 0x80) != 0) {
                     // Top bit should never be set in serial ASCII, so that's either a noise
@@ -208,9 +226,7 @@ void MessageAssembler::AddCharacter(const char in)
                     message = "INFO: setting rx input inversion on channel "
                                 + String(m_channel) + " due to bad start characters.";
                     Serial.println(message);
-                    if (m_errors.Note(ErrorCount::RX_INVERSION) && m_logManager != nullptr) {
-                        m_errors.ReportCounts(m_logManager, m_channel);
-                    }
+                    m_errors.Note(ErrorCount::RX_INVERSION);
                 }
             }
             break;
@@ -223,12 +239,12 @@ void MessageAssembler::AddCharacter(const char in)
                     m_buffer[m_writePoint] = m_current;
                     m_writePoint = (m_writePoint + 1) % RingBufferLength;
                     if (m_debugAssembly) {
-                        Serial.println(String("debug: LF on channel ") + m_channel +
+                        Serial.println(String("DEBUG: LF on channel ") + m_channel +
                                               " to complete sentence; moved to FIFO");
                     }
                     m_state = STATE_SEARCHING;
                     if (m_debugAssembly) {
-                        Serial.println(String("debug: changing to SEARCHING on channel ") +
+                        Serial.println(String("DEBUG: changing to SEARCHING on channel ") +
                                        m_channel + ".");
                     }
                     break;
@@ -246,13 +262,11 @@ void MessageAssembler::AddCharacter(const char in)
                     message = "WARN: sentence restarted before end of previous one?! (channel " + String(m_channel) + ").";
                     Serial.println(message);
                     if (m_debugAssembly) {
-                        Serial.println(String("debug: new sentence started with timestamp ") +
+                        Serial.println(String("DEBUG: new sentence started with timestamp ") +
                                        m_current.Timestamp() + " as reset on channel " +
                                        m_channel + ".");
                     }
-                    if (m_errors.Note(ErrorCount::RESTART) && m_logManager != nullptr) {
-                        m_errors.ReportCounts(m_logManager, m_channel);
-                    }
+                    m_errors.Note(ErrorCount::RESTART);
                     break;
                 default:
                     // The next character of the current sentence
@@ -263,23 +277,25 @@ void MessageAssembler::AddCharacter(const char in)
                         message = "WARN: over-long sentence detected, and ignored (channel " + String(m_channel) + ").";
                         Serial.println(message);
                         if (m_debugAssembly) {
-                            Serial.println(String("debug: reset state to SEARCHING on channel ") +
+                            Serial.println(String("DEBUG: reset state to SEARCHING on channel ") +
                                            m_channel + " after over-long sentence.");
                         }
-                        if (m_errors.Note(ErrorCount::OVERLONG) && m_logManager != nullptr) {
-                            m_errors.ReportCounts(m_logManager, m_channel);
-                        }
+                        m_errors.Note(ErrorCount::OVERLONG);
                     }
                     break;
             }
             break;
         default:
-            Serial.println("ERR: unknown state in message assembly! Resetting to SEARCHING.");
+            const char *msg = "ERR: unknown state in message assembly! Resetting to SEARCHING.";
+            Serial.println(msg);
             if (m_logManager != nullptr) {
-                m_logManager->Syslog("ERR: unknown state in message assembly! Resetting to SEARCHING.");
+                m_logManager->Syslog(msg);
             }
             m_state = STATE_SEARCHING;
             break;
+    }
+    if (m_logManager != nullptr) {
+        m_errors.ReportCounts(m_logManager, m_channel);
     }
 }
 

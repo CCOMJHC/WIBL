@@ -124,13 +124,16 @@ private:
             OVERLONG,
             MAX_ERRORS
         };
-        bool Note(ErrorType event);
+        void Note(ErrorType event);
         void ReportCounts(logger::Manager *manager, int channel);
     
     private:
         unsigned int m_counts[ErrorCount::MAX_ERRORS];
         unsigned long m_nextReport;
         const unsigned long report_interval = 5000;
+        bool reportable(void);
+        bool timeout(void);
+        void reset(void);
     };
 
     static const int RingBufferLength = 10; ///< Maximum number of sentences we'll attempt to buffer
