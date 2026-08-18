@@ -148,6 +148,7 @@ private:
     bool      m_debugAssembly;              ///< Flag for debug message construction
     int       m_badStartCount;              ///< Count of the number of bad start characters since last inversion reset
     int       m_lastInvertResetTime;        ///< Elapsed time when we last tried inverting the input to get good data
+    bool      m_inverted;                   ///< Indicator that RX inversion has been attempted
 };
 
 /// \class Logger

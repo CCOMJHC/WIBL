@@ -159,7 +159,7 @@ void MessageAssembler::ErrorCount::ReportCounts(logger::Manager *manager, int ch
 
 MessageAssembler::MessageAssembler(void)
 : m_logManager(nullptr), m_state(STATE_SEARCHING), m_readPoint(0), m_writePoint(0), m_channel(-1),
-  m_debugAssembly(false), m_badStartCount(0), m_lastInvertResetTime(millis())
+  m_debugAssembly(false), m_badStartCount(0), m_lastInvertResetTime(millis()), m_inverted(false)
 {
 }
 
@@ -219,14 +219,17 @@ void MessageAssembler::AddCharacter(const char in)
                     // got an inversion of the inputs, so we attempt to fix that.
                     m_lastInvertResetTime = millis();
                     m_badStartCount = 0;
-                    if (m_channel == 1)
-                        Serial1.setRxInvert(true);
-                    else if (m_channel == 2)
-                        Serial2.setRxInvert(true);
-                    message = "INFO: setting rx input inversion on channel "
-                                + String(m_channel) + " due to bad start characters.";
-                    Serial.println(message);
-                    m_errors.Note(ErrorCount::RX_INVERSION);
+                    if (!m_inverted) {
+                        if (m_channel == 1)
+                            Serial1.setRxInvert(true);
+                        else if (m_channel == 2)
+                            Serial2.setRxInvert(true);
+                        message = "INFO: setting rx input inversion on channel "
+                                    + String(m_channel) + " due to bad start characters.";
+                        Serial.println(message);
+                        m_errors.Note(ErrorCount::RX_INVERSION);
+                        m_inverted = true;
+                    }
                 }
             }
             break;
