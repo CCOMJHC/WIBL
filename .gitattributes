@@ -1,3 +1,7 @@
 *.cmd eol=crlf
 *.ps1 eol=crlf
 *.bash eol=lf
+*.sh eol=lf
+*.tf eol=lf
+*.tfvars eol=lf
+*.proto eol=lf

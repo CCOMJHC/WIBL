@@ -165,3 +165,8 @@ local/
 
 # Secrets
 ingest-external*
+
+# Terraform Secrets and configuration
+terraform.tfvars
+default_auth.txt
+backend.hcl

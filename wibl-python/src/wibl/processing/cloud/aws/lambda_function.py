@@ -61,7 +61,8 @@ def read_local_event(event_file: str) -> Dict:
     return event
 
 
-def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt.Notifier, config: Dict[str,Any]) -> bool:
+def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt.Notifier,
+                 config: Dict[str, Any]) -> bool:
     """Implement the business logic to translate the file from WIBL binary into a GeoJSON file.  The
        file with metadata in 'item' is pulled from object store using 'controller.obtain()', run through
        the translation and time-stamping from the Timestamping module, and then converted to GeoJSON
@@ -76,12 +77,12 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
 
     meta: WIBLMetadata = WIBLMetadata()
     lineage: Lineage = Lineage()
-    meta.size = item.source_size/(1024.0*1024.0)
-    meta.status = WIBLStatus.PROCESSING_FAILED.value  # Until further notice ...
+    meta.size = item.source_size / (1024.0 * 1024.0)
+    meta.status = WIBLStatus.PROCESSING_STARTED.value  # Until further notice ...
     manager: ManagerInterface = ManagerInterface(MetadataType.WIBL_METADATA, item.source_key, config['verbose'])
     if not manager.register(meta.size):
         print('error: failed to register file with REST management interface.')
-    
+
     if verbose:
         print(f'Attempting to obtain item {item} from S3 ...')
 
@@ -101,48 +102,58 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         meta.starttime = datetime.fromtimestamp(source_data['depth']['t'][0]).isoformat()
         meta.endtime = datetime.fromtimestamp(source_data['depth']['t'][-1]).isoformat()
 
+        lats = source_data['depth']['lat']
+        lons = source_data['depth']['lon']
+
+        meta.min_lat, meta.max_lat = min(lats), max(lats)
+        meta.min_lon, meta.max_lon = min(lons), max(lons)
         # Get the max and min coordinates to create a bounding box
-        max_lat = -9999.0
-        min_lat = 9999.0
-
-        max_lon = -9999.0
-        min_lon = 9999.0
-
-        size = len(source_data['depth']['z'])
-        for i in range(size):
-            temp_lat = source_data['depth']['lat'][i]
-            temp_lon = source_data['depth']['lon'][i]
-
-            if temp_lat < min_lat:
-                min_lat = temp_lat
-            if temp_lat > max_lat:
-                max_lat = temp_lat
-
-            if temp_lon < min_lon:
-                min_lon = temp_lon
-            if temp_lon > max_lon:
-                max_lon = temp_lon
-
-        meta.max_lat = max_lat
-        meta.min_lat = min_lat
-        meta.max_lon = max_lon
-        meta.low_lon = min_lon
+        # max_lat = float('-inf')
+        # min_lat = float('inf')
+        #
+        # max_lon = float('-inf')
+        # min_lon = float('inf')
+        #
+        # size = len(source_data['depth']['z'])
+        # for i in range(size):
+        #     temp_lat = source_data['depth']['lat'][i]
+        #     temp_lon = source_data['depth']['lon'][i]
+        #
+        #     if temp_lat < min_lat:
+        #         min_lat = temp_lat
+        #     if temp_lat > max_lat:
+        #         max_lat = temp_lat
+        #
+        #     if temp_lon < min_lon:
+        #         min_lon = temp_lon
+        #     if temp_lon > max_lon:
+        #         max_lon = temp_lon
+        #
+        # meta.max_lat = max_lat
+        # meta.min_lat = min_lat
+        # meta.max_lon = max_lon
+        # meta.min_lon = min_lon
     except lf.PacketTranscriptionError as e:
         print(f"Error reading packet from WIBL file: {str(e)}")
     except ts.NoTimeSource:
         manager.logmsg(f'error: failed to convert data({local_file}): no time source known.')
+        meta.status = WIBLStatus.PROCESSING_FAILED.value
         manager.update(meta)
         return False
     except ts.NewerDataFile:
-        manager.logmsg(f'error: failed to convert data({local_file}): file data format is newer than latest version known to code.')
+        manager.logmsg(
+            f'error: failed to convert data({local_file}): file data format is newer than latest version known to code.')
+        meta.status = WIBLStatus.PROCESSING_FAILED.value
         manager.update(meta)
         return False
     except ts.NoData:
         manager.logmsg(f'error: failed to convert data({local_file}): no bathymetric data in file.')
+        meta.status = WIBLStatus.PROCESSING_FAILED.value
         manager.update(meta)
         return False
     except UnknownAlgorithm as e:
         manager.logmsg(f'error: failed to convert data({local_file}): {str(e)}')
+        meta.status = WIBLStatus.PROCESSING_FAILED.value
         manager.update(meta)
         return False
 
@@ -152,6 +163,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         submit_data = gj.translate(source_data, lineage, local_file, config)
     except UnknownAlgorithm as e:
         manager.logmsg(str(e))
+        meta.status = WIBLStatus.PROCESSING_FAILED.value
         manager.update(meta)
         print(f"Aborting processing due to error: {str(e)}")
         return False
@@ -180,8 +192,8 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         print('Attempting to notify SNS')
     notifier.notify(item)
     return True
-    
-    
+
+
 def lambda_handler(event, context):
     try:
         # The configuration file for the algorithm should be in the same directory as the lambda function file,
@@ -193,7 +205,7 @@ def lambda_handler(event, context):
             'statusCode': 400,
             'body': 'Bad configuration'
         }
-    
+
     # We instantiate the AWS versions of DataSource and CloudController explicitly, since we can't be using anything
     # else given the rest of the infrastructure here, which is AWS specific.
     # When using direct S3 triggers or custom WIBL lambda-generated SNS event payloads, use:
@@ -202,7 +214,7 @@ def lambda_handler(event, context):
     # source = ds.AWSSourceSNSTrigger(event, config)
     controller = ds.AWSController(config)
     notifier = nt.SNSNotifier(getenv('NOTIFICATION_ARN'))
-    
+
     p = source.nextSource()
     while p is not None:
         if not process_item(p, controller, notifier, config):

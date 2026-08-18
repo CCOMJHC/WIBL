@@ -33,6 +33,7 @@ from typing import Dict, Any
 
 import requests
 import boto3
+import traceback
 
 # Local modules
 from wibl.core import getenv
@@ -43,7 +44,6 @@ from wibl.submission.cloud.aws import get_config_file
 from wibl_manager import ManagerInterface, MetadataType, GeoJSONMetadata, ReturnCodes, GeoJSONStatus
 
 s3 = boto3.resource('s3')
-
 
 ## Helper function to read a local file with an AWS Lambda event in JSON format
 #
@@ -62,6 +62,7 @@ def read_local_event(event_file: str) -> Dict:
         event = json.load(f)
     return event
 
+
 ## Send a specified GeoJSON dictionary to the user's specified end-point
 # TODO: This should be moved outside of the cloud/aws package since it is used by non-AWS code (e.g., dcdb_upload)
 # Manage the process for formatting the POST request to DCDB's submission API, transmitting the file into
@@ -76,8 +77,8 @@ def read_local_event(event_file: str) -> Dict:
 # \param config         Configuration dictionary
 # \return True if the upload succeeded, otherwise False
 
-def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth: str, local_file: str,
-                     config: Dict[str,Any]) -> bool:
+def transmit_geojson(source_info: Dict[str, Any], provider_id: str, provider_auth: str, local_file: str,
+                     config: Dict[str, Any]) -> bool:
     auth_token: str = provider_auth.strip()
     headers = {
         'x-auth-token': auth_token
@@ -89,25 +90,23 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
     else:
         dest_uniqueID = source_info['sourceID']
 
-    filesize = os.path.getsize(local_file)/(1024.0*1024.0)
+    filesize = os.path.getsize(local_file) / (1024.0 * 1024.0)
     filename = os.path.split(local_file)[-1]
     if filename == '':
-        # TODO: Should the upload fail if we can't report status to the manager?
         print(f'warning: unable to determine of file to upload. local_file was: {local_file}.')
     manager: ManagerInterface = ManagerInterface(MetadataType.GEOJSON_METADATA, filename, config['verbose'])
-    if not manager.register(filesize):
-        # TODO: Should the upload fail if we can't report status to the manager?
-        print('warning: failed to register file with REST management service.')
-    meta: GeoJSONMetadata = GeoJSONMetadata()
-    meta.size = filesize
-    meta.logger = source_info["logger"]
-    meta.soundings = source_info["soundings"]
+
+    rc, meta = manager.lookup()
+    if not rc:
+        if config['verbose']:
+            print(f'error: failed to find metadata on {filename} from database manager.')
+        return rc
 
     clearedStatus = meta.status & GeoJSONStatus.EMPTY_UPLOAD.value
     meta.status = clearedStatus | GeoJSONStatus.UPLOAD_STARTED.value
-    
+
     if config['verbose']:
-        print(f'Source ID is: {source_info["sourceID"]}; ' + 
+        print(f'Source ID is: {source_info["sourceID"]}; ' +
               f'Destination object uniqueID is: {dest_uniqueID}; ' +
               f'Authorisation token is: {auth_token}')
 
@@ -123,8 +122,6 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
         meta.status = GeoJSONStatus.UPLOAD_SUCCESSFUL.value
         rc = True
     else:
-        if config['verbose']:
-            print(f'Transmitting for source ID {source_info["sourceID"]} to {upload_point} as destination ID {dest_uniqueID}.')
         response = requests.post(upload_point, headers=headers, files=files)
         if config['verbose']:
             print(f'Submission status for file {local_file} was {response.status_code}')
@@ -141,69 +138,46 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
                 rc = False
                 meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
                 manager.logmsg(f'error: DCDB responded {json_response}')
-
-        except json.decoder.JSONDecodeError:
+        except (json.decoder.JSONDecodeError, KeyError) as e:
             rc = False
             meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
             manager.logmsg(f'error: DCDB responded {json_response}')
-    if config['verbose']:
-        print(f'Transmitting for source ID {source_info["sourceID"]} to {upload_point} as destination ID {dest_uniqueID}.')
-
-    response = requests.post(upload_point, headers=headers, files=files)
-
-    if config['verbose']:
-        print(f'Submission status for file {local_file} was {response.status_code}')
-        print(f'\tResponse text was: {response.text}')
-
-    json_response = response.json()
-
-    if config['verbose']:
-        print(f'POST response is {json_response}')
-    try:
-        json_code = json_response['success']
-        if json_code:
-            rc = True
-            meta.status = UploadStatus.UPLOAD_SUCCESSFUL.value
-        else:
-            rc = False
-            meta.status = UploadStatus.UPLOAD_FAILED.value
-            manager.logmsg(f'error: DCDB responded {json_response}')
-
-    except json.decoder.JSONDecodeError:
-        rc = False
-        meta.status = UploadStatus.UPLOAD_FAILED.value
-        manager.logmsg(f'error: DCDB responded {json_response}')
+            manager.logmsg(f'error: {type(e).__name__}: {e}')
+            manager.logmsg(f'error: failure trace:\n{traceback.format_exc()}')
 
     manager.update(meta)
     return rc
-
 
 def lambda_handler(event, context):
     try:
         config = conf.read_config(get_config_file())
     except conf.BadConfiguration:
         return {
-            'statusCode':   ReturnCodes.FAILED.value,
-            'body':         'Bad configuration file.'
-            }
-    
+            'statusCode': ReturnCodes.FAILED.value,
+            'body': 'Bad configuration file.'
+        }
+
     # Construct a data source to handle the input items, and a controller to manage the transmission of
-    # data from buckets to local files.  We instanatiate the DataSource and CloudController sub-classes
+    # data from buckets to local files. We instantiate the DataSource and CloudController sub-classes
     # explicitly, since this code is also specific to AWS.
     # When using direct S3 triggers or custom WIBL lambda-generated SNS event payloads, use:
     source = ds.AWSSource(event, config)
     # When using S3->SNS triggers, use:
-    #source = ds.AWSSourceSNSTrigger(event, config)
+    # source = ds.AWSSourceSNSTrigger(event, config)
     controller = ds.AWSController(config)
     notifier = nt.SNSNotifier(getenv('NOTIFICATION_ARN'))
 
-    # We obtain the DCDB provider uniqueID (i.e., the six-letter identifier for the Trusted Node) and
-    # authorisation string (the shared secret for authentication) from the environment; they should be
-    # stored there when the Lambda is created.
+    # We obtain the DCDB provider uniqueID (i.e., the six-letter identifier for the Trusted Node) from the environment
+    # and authorisation string (the shared secret for authentication) from AWS SSM
     provider_id = getenv('PROVIDER_ID')
-    provider_auth = getenv('PROVIDER_AUTH')
-    
-    # Loop through all of the source files in the incoming bucket, attempting to upload each in turn, and
+
+    ssm = boto3.client('ssm')
+    provider_auth = ssm.get_parameter(
+        Name=getenv('PROVIDER_PATH'),
+        WithDecryption=True
+    )['Parameter']['Value']
+
+    # Loop through all the source files in the incoming bucket, attempting to upload each in turn, and
     # keeping track of those that succeed and fail.
     item = source.nextSource()
     succeeded = []
@@ -228,7 +202,7 @@ def lambda_handler(event, context):
                     print(f'Failed to transfer item {item}')
                 failed.append(item)
         item = source.nextSource()
-    
+
     # Status report for the user
     if failed:
         status_code = ReturnCodes.FAILED.value
@@ -238,8 +212,8 @@ def lambda_handler(event, context):
     n_fail = len(failed)
     n_total = n_succeed + n_fail
     rtn = {
-        'statusCode':   status_code,
-        'body':         f'Success on {n_succeed}, failed on {n_fail}; total {n_total}.'
+        'statusCode': status_code,
+        'body': f'Success on {n_succeed}, failed on {n_fail}; total {n_total}.'
     }
 
     return rtn

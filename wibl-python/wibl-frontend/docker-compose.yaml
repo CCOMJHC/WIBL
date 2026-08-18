@@ -7,7 +7,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: frontend
     command: >
       bash -c "set -e && 
@@ -21,8 +21,6 @@ services:
     env_file:
       - frontend.env
     environment:
-      - DEBUG=1
-      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
       - MANAGEMENT_URL=http://manager:5000
       - MANAGEMENT_HEARTBEAT_PATH=/heartbeat
       - CELERY_BROKER=redis://redis:6379/0
@@ -43,13 +41,11 @@ services:
   worker:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     command: celery --app=wiblfe worker --pool threads --loglevel=info
     volumes:
       - ./src:/var/local/wibl/frontend
     environment:
-      - DEBUG=1
-      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
       - MANAGEMENT_URL=http://manager:5000
       - MANAGEMENT_HEARTBEAT_PATH=/heartbeat
       - CELERY_BROKER=redis://redis:6379/0

@@ -13,12 +13,8 @@ SessionLocal = async_sessionmaker(expire_on_commit=False, class_=AsyncSession, b
 
 # This function is called by Alembic's env.py when running online migrations
 def get_db_url():
-    return f"postgresql+psycopg://{os.environ['DATABASE_USER']}:{os.environ['DATABASE_PASSWORD']}@" \
-               f"{os.environ['DATABASE_HOST']}:{os.environ['DATABASE_PORT']}/" \
-               f"{os.environ['DATABASE_NAME']}"
-
+    return MANAGER_DATABASE_URI
 
 async def get_async_db() -> AsyncSession:
     async with SessionLocal() as session:
         yield session
-

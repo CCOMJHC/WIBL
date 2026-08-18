@@ -1,5 +1,9 @@
 #!/bin/bash
 #
+# IMPORTANT: This file and all other scripts other than "build-lambda.sh" are apart of the deprecated scripting
+# build approach. The intended build method is to use Terraform. Follow the instructions in the README.md located in the
+# Terraform folder.
+
 # This sets up AWS S3 buckets for the incoming WIBL data, and for the staging location
 # for intermediate files before they get sent to DCDB.
 

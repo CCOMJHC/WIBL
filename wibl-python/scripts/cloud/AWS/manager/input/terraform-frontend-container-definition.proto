@@ -1,0 +1,113 @@
+[
+    {
+      "name": "wibl-frontend",
+      "image": "${REPLACEME_ACCOUNT_NUMBER}.dkr.ecr.${REPLACEME_AWS_REGION}.amazonaws.com/wibl/frontend:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name" : "AWS_REGION",
+          "value" : "${REPLACEME_AWS_REGION}"
+        },
+        {
+          "name": "FRONTEND_DATABASE_NAME",
+          "value": "${REPLACEME_DATABASE_NAME}"
+        },
+        {
+          "name": "FRONTEND_DATABASE_USER",
+          "value": "${REPLACEME_DATABASE_USER}"
+        },
+        {
+          "name": "FRONTEND_DATABASE_PASSWORD",
+          "value": "${REPLACEME_DATABASE_PASSWORD}"
+        },
+        {
+          "name": "FRONTEND_DATABASE_HOST",
+          "value": "${REPLACEME_DATABASE_HOST}"
+        },
+        {
+          "name": "SUPERUSER_USERNAME",
+          "value": "${REPLACEME_SUPERUSER_USERNAME}"
+        },
+        {
+          "name": "SUPERUSER_PASSWORD",
+          "value": "${REPLACEME_SUPERUSER_PASSWORD}"
+        },
+        {
+          "name": "FRONTEND_SECRET_KEY",
+          "value": "${REPLACEME_SECRET_KEY}"
+        },
+        {
+          "name" : "DEBUG_MODE",
+          "value" : "${REPLACEME_DEBUG_MODE}"
+        },
+        {
+          "name" : "FRONTEND_SECRET_KEY",
+          "value" : "${REPLACEME_SECRET_KEY}"
+        },
+        {
+          "name" : "ALB_DNS_NAME",
+          "value" : "${REPLACEME_ALB_DNS}"
+        },
+        {
+          "name": "MANAGEMENT_URL",
+          "value": "${REPLACEME_MANAGEMENT_URL}"
+        },
+        {
+          "name": "MANAGEMENT_HEARTBEAT_PATH",
+          "value": "/heartbeat"
+        },
+        {
+          "name": "INCOMING_BUCKET",
+          "value": "${REPLACEME_INCOMING_BUCKET}"
+        },
+        {
+          "name": "STAGING_BUCKET",
+          "value": "${REPLACEME_STAGING_BUCKET}"
+        },
+        {
+          "name": "VIZ_BUCKET",
+          "value": "${REPLACEME_VIZ_BUCKET}"
+        },
+        {
+          "name": "VIZ_LAMBDA",
+          "value": "${REPLACEME_VIZ_LAMBDA}"
+        },
+        {
+          "name" : "STATIC_BUCKET_NAME",
+          "value" : "${REPLACEME_STATIC_BUCKET}"
+        }, {
+           "name" : "REDIS_URL",
+           "value" : "${REPLACEME_REDIS_URL}"
+        }, {
+           "name" : "MAP_NAME",
+           "value" : "${REPLACEME_MAP_NAME}"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-create-group": "true",
+          "awslogs-group": "wibl-frontend-ecs-task-log",
+          "awslogs-region": "${REPLACEME_AWS_REGION}",
+          "awslogs-stream-prefix": "wibl-frontend"
+        }
+      },
+      "command": ["daphne",
+        "wiblfe.asgi:application",
+        "-b", "0.0.0.0",
+        "-p", "8000"
+      ],
+      "healthCheck": {
+        "command": ["CMD", "curl", "-f", "http://localhost:8000/heartbeat"],
+        "interval": 10,
+        "timeout": 2,
+        "retries": 5,
+        "startPeriod": 5
+      }
+    }
+]

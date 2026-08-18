@@ -49,6 +49,8 @@ class WIBLDataModel(Base):
     :type status:           :enum: `WIBLStatus`
     :param messages:        Messages returned during processing (usually error/warnings)
     :type messages:         str, optional
+    :param state:           State indicator showing whether the file is currently online, deleted, or archived.
+    :type state:            :enum `FileStatus`
     """
 
     __tablename__ = 'WIBLDataTable'
@@ -67,6 +69,7 @@ class WIBLDataModel(Base):
     endtime = Column(String(40))
     status = Column(Integer)
     messages = Column(String(1024))
+    state = Column(Integer)
 
     def __repr__(self):
         """
@@ -99,6 +102,8 @@ class GeoJSONDataModel(Base):
     :type status:       :IntFlag: `GeoJSONStatus`
     :param messages:    Messages returned during processing (usually error/warnings)
     :type messages:     str, optional
+    :param state:       State indicator showing whether the file is currently online, deleted, or archived.
+    :type state:        :enum `FileStatus`
     """
 
     __tablename__ = 'GeoJSONDataTable'
@@ -112,6 +117,7 @@ class GeoJSONDataModel(Base):
     soundings = Column(Integer)
     status = Column(Integer)
     messages = Column(String(1024))
+    state = Column(Integer)
 
     def __repr__(self):
         """
