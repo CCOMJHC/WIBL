@@ -104,9 +104,9 @@ Done.
 ```
 
 ### 3. Building The Lambda Package
-This step only works if `docker` is currently running on your system. Inside the outer [AWS](../../AWS) folder is a 
-script called [build-lambda.sh](../build-lambda.sh), run this script. Even if the script is successful, there may still 
-be a lingering `build` or `package` folder, pay these no mind and continue to the next step.
+This step only works if `docker` is currently running on your system. This step also require the "zip" command line tool.
+Inside the outer [AWS](../../AWS) folder is a script called [build-lambda.sh](../build-lambda.sh), run this script. Even if the script 
+is successful, there may still be a lingering `build` or `package` folder, pay these no mind and continue to the next step.
 
 ### 4. Building The System With Terraform
 This step also requires `docker` to work, so ensure it is running. First, run the `plan.sh` script inside the Terraform 
