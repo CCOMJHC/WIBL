@@ -1,6 +1,5 @@
-# Important 
-The instructions inside this file describe a deprecated build approach. The intended build method is to use Terraform. 
-Follow the README.md inside the Terraform folder for more information.
+# _Important!_
+### The instructions inside this file describe a deprecated build approach. The intended build method is to use Terraform. Follow the README.md inside the Terraform folder for more information.
 
 # WIBL AWS processing setup instructions and usage
 The following instructions describe how to setup WIBL processing lambdas and WIBL manager
