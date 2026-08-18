@@ -38,10 +38,14 @@ manager database.
 contents inside each separate AWS RDS instance. These values can be set for added security.
 
 #### Other Mandatory Replacement Area:
+- The step 1 script will generate an empty text file name `default_auth.txt`. Inside of this file you must put your DCDB
+provider secret. If the secret is not copied into this file, the final steps of the data pipeline will fail. 
+
 - In [main.tf](./main.tf) in the section near the top labeled `backend "s3"`, the variables inside must be 
 **manually updated**. They will not follow what is located inside the tfvars file. The variables that need to be updated 
 are `terraform-state-bucket`, `region`, and `terraform-state-key`. They must match their tfvars counter-parts, so copy 
-and pasting their values over is the easier course of action. 
+and pasting their values over is the easier course of action. If this change is done in an IDE, often this new block will
+show errors, but those can be ignored.
 
 Example 
 ```
@@ -66,9 +70,6 @@ terraform {
   required_version = ">= 1.5.0"
 }
 ```
-
-- The step 1 script will generate an empty text file name `default_auth.txt`. Inside of this file you must put your DCDB
-provider secret. If the secret is not copied into this file, the final steps of the data pipeline will fail. 
 
 ### 2. Bootstrapping Terraform
 Terraform is able to modify and delete computing resources that were created using Terraform. To do this, Terraform must 
