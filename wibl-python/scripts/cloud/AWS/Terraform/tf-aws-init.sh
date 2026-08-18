@@ -28,19 +28,19 @@ if [ $SILENT -ne 1 ]; then
   echo "Using TF_VARS: ${TF_VARS}"
 fi
 
-AWS_REGION=$(grep '^region =' ${TF_VARS} | cut -d '=' -f 2 | tr -d '"')
+AWS_REGION=$(grep '^region =' ${TF_VARS} | cut -d '=' -f 2 | tr -d '" ')
 export AWS_REGION
 if [ $SILENT -ne 1 ]; then
   echo "Using AWS_REGION: ${AWS_REGION}"
 fi
 
-TF_STATE_BUCKET=$(grep '^terraform_state_bucket =' ${TF_VARS} | cut -d '=' -f 2 | tr -d '"')
+TF_STATE_BUCKET=$(grep '^terraform_state_bucket =' ${TF_VARS} | cut -d '=' -f 2 | tr -d '" ')
 export TF_STATE_BUCKET
 if [ $SILENT -ne 1 ]; then
   echo "Using TF_STATE_BUCKET: ${TF_STATE_BUCKET}"
 fi
 
-TF_STATE_KEY=$(grep '^terraform_state_key =' ${TF_VARS} | cut -d '=' -f 2 | tr -d '"')
+TF_STATE_KEY=$(grep '^terraform_state_key =' ${TF_VARS} | cut -d '=' -f 2 | tr -d '" ')
 export TF_STATE_KEY
 if [ $SILENT -ne 1 ]; then
   echo "Using TF_STATE_KEY: ${TF_STATE_KEY}"
