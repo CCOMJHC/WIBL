@@ -68,13 +68,13 @@ public:
     /// the something valid was read from the file representation.
     ///
     /// @return True if the object has a valid configuration, otherwise false
-    bool Valid(void) { return !m_contents.isEmpty(); }
+    bool Valid(void) const { return !m_contents.isEmpty(); }
 
     /// @brief Generate a string representation of the underlying object, optionally indented
-    String JSONRepresentation(bool indented = false);
+    String JSONRepresentation(bool indented = false) const;
 
     /// @brief Generate a JsonDocument representation of the underlying object
-    DynamicJsonDocument GetContents(void);
+    DynamicJsonDocument GetContents(void) const;
 
 protected:
     /// @brief Start a transaction to update the contents of the object
@@ -210,6 +210,39 @@ public:
 
     /// \brief Read all of the message IDs and build the structure required for checking incoming messages
     void BuildSet(std::set<String>& s);
+};
+
+/// \class N2000PGNStore
+/// \brief Specialisation of NVMFile for NMEA2000 extra-effort PGN storage
+///
+/// The NMEA2000 logger automatically converts a sub-set of all messages to internal formats and writes
+/// them to the output stream, but there are potentially many messages other than the core information
+/// that we store that could be useful in other applications.  This object allows the user to specify a
+/// list of PGNs in the NMEA2000 stream that should be packaged (in their received binary form) for later
+/// interpretation, in addition to the core set that are automatically processed.
+///     The algorithm here does not check the PGNs provided for validity, and accepts only decimal versions
+/// of the PGNs.  The user is responsible to making sure that they really do want the PGNs specified, since
+/// inappropriate specification could result in very large file output sizes.
+
+class N2000PGNStore : public NVMFile {
+public:
+    /// \brief Default constructor
+    N2000PGNStore(void);
+
+    /// \brief Add a set of PGNs (space separated) to the storage list
+    bool AddPGNs(String const& pgns);
+
+    /// \brief Reset the list of PGNs to empty
+    void ClearPGNList(void);
+
+    /// \brief Write the list of PGNs that are being stored into the associated \a Serialiser
+    void SerialisePGNs(Serialiser *s);
+
+    /// \brief Read all of the PGNs and build the structure required for checking incoming messages
+    void BuildSet(std::set<int>& s);
+
+private:
+    int convert_pgn(String const& s, int start_point, int end_point);
 };
 
 }

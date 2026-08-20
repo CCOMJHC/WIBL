@@ -636,6 +636,8 @@ void Manager::StartNewLog(void)
         metastore.SerialiseMetadata(m_serialiser);
         logger::N0183IDStore filterstore;
         filterstore.SerialiseIDs(m_serialiser);
+        logger::N2000PGNStore pgnstore;
+        pgnstore.SerialisePGNs(m_serialiser);
         logger::ScalesStore scalesstore;
         scalesstore.SerialiseScales(m_serialiser);
         Syslog(String("INFO: started logging to ") + filename);
