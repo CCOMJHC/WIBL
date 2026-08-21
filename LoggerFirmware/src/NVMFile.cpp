@@ -519,6 +519,7 @@ N2000PGNStore::N2000PGNStore(void)
         // This is the first time we've been booted, so there's no store; initialise
         StaticJsonDocument<128> doc;
         doc["count"] = 0;
+        doc["all"] = false;
         Set(doc);
     }
 }
@@ -544,7 +545,8 @@ int N2000PGNStore::convert_pgn(String const& s, int start_point, int end_point)
 bool N2000PGNStore::AddPGNs(String const& pgns)
 {
     std::set<int> known_pgns;
-    BuildSet(known_pgns);
+    bool write_all;
+    BuildSet(known_pgns, write_all);
     int start_point = 0, split_point, pgn, parse_errors = 0;
 
     while ((split_point = pgns.indexOf(' ', start_point)) >= 0) {
@@ -570,15 +572,24 @@ bool N2000PGNStore::AddPGNs(String const& pgns)
         doc["ids"][count] = *s;
     }
     doc["count"] = count;
+    doc["all"] = write_all; // Preserve what was there originally
     EndTransaction(doc);
 
     return parse_errors == 0;
+}
+
+void N2000PGNStore::WriteAll(bool write_all)
+{
+    DynamicJsonDocument doc(BeginTransaction());
+    doc["all"] = write_all;
+    EndTransaction(doc);
 }
 
 void N2000PGNStore::ClearPGNList(void)
 {
     StaticJsonDocument<128> doc;
     doc["count"] = 0;
+    doc["all"] = false;
     Set(doc);
 }
 
@@ -587,12 +598,13 @@ void N2000PGNStore::SerialisePGNs(Serialiser *s)
     if (Empty()) return;
 
     String rep(JSONRepresentation());
-    Serialisable ser;
+    Serialisable ser(rep.length() + sizeof(unsigned int));
+    ser += rep.length();
     ser += rep.c_str();
     s->Process(logger::Manager::PacketIDs::Pkt_NMEA2000PGNS, ser);
 }
 
-void N2000PGNStore::BuildSet(std::set<int>& s)
+void N2000PGNStore::BuildSet(std::set<int>& s, bool& write_all)
 {
     s.clear();
     if (Empty()) return;
@@ -601,6 +613,11 @@ void N2000PGNStore::BuildSet(std::set<int>& s)
     int count = doc["count"];
     for (int n = 0; n < count; ++n) {
         s.insert(doc["ids"][n].as<int>());
+    }
+    if (doc["all"]) {
+        write_all = true;
+    } else {
+        write_all = false;
     }
 }
 

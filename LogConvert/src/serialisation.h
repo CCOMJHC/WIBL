@@ -133,7 +133,9 @@ enum PayloadID {
     Pkt_NMEA0183Filter = 15,    ///< List of packets to record from NMEA0183 inputs (by default all)
     Pkt_SensorScales = 16,      ///< Scale factors to apply to RawIMU values (and other sensors)
     Pkt_RawIMU = 17,            ///< Raw measurements from local IMU (needs scaling factors applied)
-    Pkt_Setup = 18              ///< JSON-format string with the active configuration when the file was started
+    Pkt_Setup = 18,             ///< JSON-format string with the active configuration when the file was started
+    Pkt_NMEA2000PGNS = 19,      ///< JSON string for list of integer PGNs to record (as binary) from NMEA2000
+    Pkt_N2kBinary = 20          ///< The binary representation of a NMEA2000 packet
 };
 
 /// \class Serialiser

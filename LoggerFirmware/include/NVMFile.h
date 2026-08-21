@@ -232,6 +232,9 @@ public:
     /// \brief Add a set of PGNs (space separated) to the storage list
     bool AddPGNs(String const& pgns);
 
+    /// \brief Indicate whether all PGNs should be written to binary
+    void WriteAll(bool write_all);
+
     /// \brief Reset the list of PGNs to empty
     void ClearPGNList(void);
 
@@ -239,7 +242,7 @@ public:
     void SerialisePGNs(Serialiser *s);
 
     /// \brief Read all of the PGNs and build the structure required for checking incoming messages
-    void BuildSet(std::set<int>& s);
+    void BuildSet(std::set<int>& s, bool& write_all);
 
 private:
     int convert_pgn(String const& s, int start_point, int end_point);

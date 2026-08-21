@@ -1097,6 +1097,8 @@ void SerialCommand::AddNMEABinary(String const& pgns, CommandSource src)
     logger::N2000PGNStore store;
     if (pgns == "clear") {
         store.ClearPGNList();
+    } else if (pgns == "all") {
+        store.WriteAll(true);
     } else {
         store.AddPGNs(pgns);
     }
@@ -1541,7 +1543,7 @@ void SerialCommand::Syntax(CommandSource src)
     EmitMessage("  metadata [platform-specific]        Store or report a platform-specific metadata JSON element.\n", src);
     EmitMessage("  ota                                 Start Over-the-Air update sequence for the logger.\n", src);
     EmitMessage("  password ap|station [wifi-password] Set the WiFi password.\n", src);
-    EmitMessage("  pgn [NMEA2000 PGN | clear]          Configure which additional NMEA2000 messages to record.\n", src);
+    EmitMessage("  pgn [NMEA2000 PGN | clear | all]    Configure which additional NMEA2000 messages to record.\n", src);
     EmitMessage("  restart                             Restart the logger module hardware.\n", src);
     EmitMessage("  scales                              Report any registered sensor-specific scale factors.\n", src);
     EmitMessage("  setup [json-specification]          Report the configuration of the logger, or set it, using JSON specifications.\n", src);

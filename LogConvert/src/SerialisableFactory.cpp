@@ -23,6 +23,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <set>
+
 #include "SerialisableFactory.h"
 #include "N2kMessages.h"
 #include "N2kMsg.h"
@@ -419,6 +421,20 @@ std::shared_ptr<Serialisable> HandleExtTemperature(tN2kMsg& msg, bool& no_data_d
     return rtn;
 }
 
+std::shared_ptr<Serialisable> HandleBinary(tN2kMsg& msg)
+{
+    std::shared_ptr<Serialisable> rtn;
+    DummyTimestamp t(msg.MsgTime);
+    rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 5 + msg.DataLen));
+    t.Serialise(rtn);
+    *rtn += static_cast<uint32_t>(msg.PGN);
+    *rtn += static_cast<uint32_t>(msg.DataLen);
+    for (int n = 0; n < msg.DataLen; ++n) {
+        *rtn += static_cast<uint8_t>(msg.Data[n]);
+    }
+    return rtn;
+}
+
 /// \brief Handle conversion of a NMEA2000 packet into a \a Serialisable
 ///
 /// This dispatches the packet provided into a specific format converter that translates into a
@@ -428,7 +444,9 @@ std::shared_ptr<Serialisable> HandleExtTemperature(tN2kMsg& msg, bool& no_data_d
 /// \param payload_id   Reference (output) for the payload-id number for the packet
 /// \return Shared pointer for the \a Serialisable object containing the binary data
 
-std::shared_ptr<Serialisable> SerialisableFactory::Convert(tN2kMsg& msg, PayloadID& payload_id, bool& no_data_detected)
+std::shared_ptr<Serialisable> SerialisableFactory::Convert(tN2kMsg& msg,
+    std::set<uint32_t> const& pgns, bool const& all_pgn,
+    PayloadID& payload_id, bool& no_data_detected)
 {
     std::shared_ptr<Serialisable> rtn;
     payload_id = Pkt_Version;   // Invalid for normal users (can only be added by serialisation code)
@@ -445,6 +463,11 @@ std::shared_ptr<Serialisable> SerialisableFactory::Convert(tN2kMsg& msg, Payload
         case 130314UL:  rtn = HandlePressure(msg, no_data_detected);          payload_id = Pkt_Pressure;      break;
         case 130316UL:  rtn = HandleExtTemperature(msg, no_data_detected);    payload_id = Pkt_Temperature;   break;
         default:
+            if (all_pgn || pgns.find(msg.PGN) != pgns.end()) {
+                no_data_detected = false; // Since we don't parse the packet, we can't detect this
+                rtn = HandleBinary(msg);
+                payload_id = Pkt_N2kBinary;
+            }
             break;
     }
     return rtn;
