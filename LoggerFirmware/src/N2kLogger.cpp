@@ -176,13 +176,14 @@ Logger::Logger(tNMEA2000 *source, logger::Manager *output)
 void Logger::retrievePGNlist(void)
 {
     logger::N2000PGNStore pgns;
-    pgns.BuildSet(m_pgnList);
+    pgns.BuildSet(m_pgnList, m_writeAll);
 }
 
 bool Logger::writing_pgn_bin(unsigned long pgn)
 {
-    if (m_pgnList.empty()) return false;
-    if (m_pgnList.find(pgn) == m_pgnList.end()) {
+    if (m_writeAll) {
+        return true;
+    } else if (m_pgnList.empty() || m_pgnList.find(pgn) == m_pgnList.end()) {
         return false;
     }
     return true;
@@ -657,7 +658,7 @@ void Logger::HandleBinary(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
     if (m_verbose) {
         Serial.println("DBG: Handling binary NMEA2000 packet serialisation.");
     }
-    Serialisable s(t.SerialisationSize() + msg.DataLen + 5);
+    Serialisable s(t.SerialisationSize() + msg.DataLen + 8);
     t.Serialise(s);
     s += static_cast<uint32_t>(msg.PGN);
     s.add(msg.DataLen, msg.Data);

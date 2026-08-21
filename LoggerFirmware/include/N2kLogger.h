@@ -136,8 +136,9 @@ public:
 private:
     bool            m_verbose;          ///< Flag for verbose debug output
     Timestamp       m_timeReference;    ///< Time reference information for timestamping records
-    logger::Manager *m_logManager;  ///< Handler for output log files
-    std::set<int>   m_pgnList; ///< List of PGNs to write to output (binary)
+    logger::Manager *m_logManager;      ///< Handler for output log files
+    std::set<int>   m_pgnList;          ///< List of PGNs to write to output (binary)
+    bool            m_writeAll;         ///< Flag: write all unknown PGNs to binary output if set
     
     /// \brief Translate and serialise the real-time information from GNSS (or atomic clock)
     void HandleSystemTime(Timestamp::TimeDatum const& t, tN2kMsg const& msg);
