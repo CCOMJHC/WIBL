@@ -38,7 +38,7 @@
 #undef minor
 
 const int SerialiserVersionMajor = 1; ///< Major version number for the serialiser
-const int SerialiserVersionMinor = 3; ///< Minor version number for the serialiser
+const int SerialiserVersionMinor = 4; ///< Minor version number for the serialiser
 
 /// \class Serialisable
 /// \brief Provide encapsulation for data to be written to store

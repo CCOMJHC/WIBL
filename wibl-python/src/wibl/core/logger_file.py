@@ -45,7 +45,7 @@ class PacketTranscriptionError(Exception):
 ## Definition of major version of the file format represented by this description
 wibl_file_version_major = 1
 ## Definition of minor version of the file format represented by this description
-wibl_file_version_minor = 3
+wibl_file_version_minor = 4
 
 def wibl_file_version() -> str:
     return f'{wibl_file_version_major}.{wibl_file_version_minor}'
@@ -170,7 +170,7 @@ class DataPacket(ABC):
     # \param self   Pointer to the object
     # \return String with the human-readable name of the packet
     @abstractmethod
-    def name(self):
+    def name(self) -> str:
         pass
 
     ## Serialise the data in the current packet into the given file
@@ -224,9 +224,10 @@ class SystemTime(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, data_source) = struct.unpack('<HdIB', buffer)
+        (date, timestamp, elapsed_time, talker_id, data_source) = struct.unpack('<HdIBB', buffer)
         ## Source of the timestamp (see documentation for decoding, but at least GNSS)
         self.data_source = data_source
+        self.talker_id = talker_id
         DataPacket.__init__(self, date, timestamp, elapsed_time)
 
     ## Generate a synthetic packet based on keywords
@@ -235,16 +236,18 @@ class SystemTime(DataPacket):
     #   'elapsed_time':     Elapsed time (ms) since logger boot
     #   'date':             Estimated real-world date string for packet (yyyy-mm-dd)
     #   'timestamp':        Estimated real-world timestasmp for packet (seconds since midnight)
+    #   'talker_id':        Talker ID number for the message (as if on a NMEA2000 bus)
     #   'data_source':      Source for time information (see Wiki for details)
     def data_constructor(self, **kwargs) -> None:
         try:
             self.data_source = kwargs['data_source']
+            self.talker_id = kwargs['talker_id']
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
     
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIB', self.date, self.timestamp, self.elapsed, self.data_source)
+        buffer = struct.pack('<HdIBB', self.date, self.timestamp, self.elapsed, self.talker_id, self.data_source)
         return buffer
     
     def id(self) -> int:
@@ -256,7 +259,7 @@ class SystemTime(DataPacket):
     #
     # \param self   Pointer to the object
     # \return String with the human-readable name of the packet
-    def name(self):
+    def name(self) -> str:
         return 'SystemTime'
 
     ## Implement the printable interface for this class, allowing it to be streamed
@@ -266,7 +269,7 @@ class SystemTime(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = super().__str__() + f' {self.name()}:  source = {self.data_source}'
+        rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}:  source = {self.data_source}'
         return rtn
 
 ## Implementation of the Attitude NMEA2000 packet
@@ -296,7 +299,8 @@ class Attitude(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes byffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, yaw, pitch, roll) = struct.unpack("<HdIddd", buffer)
+        (date, timestamp, elapsed_time, talker_id, yaw, pitch, roll) = struct.unpack("<HdIBddd", buffer)
+        self.talker_id = talker_id
         ## Yaw angle of the ship, radians (+ve clockwise from north)
         self.yaw = yaw
         ## Pitch angle of the ship, radians (+ve bow up)
@@ -306,7 +310,8 @@ class Attitude(DataPacket):
         DataPacket.__init__(self, date, timestamp, elapsed_time)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIddd', self.date, self.timestamp, self.elapsed, self.yaw, self.pitch, self.roll)
+        buffer = struct.pack('<HdIBddd', self.date, self.timestamp, self.elapsed, self.talker_id,
+                             self.yaw, self.pitch, self.roll)
         return buffer
     
     ## Generate a synthetic packet based on keywords
@@ -315,11 +320,13 @@ class Attitude(DataPacket):
     #   'elapsed_time':     Elapsed time (ms) since logger boot
     #   'date':             Estimated real-world date string for packet (yyyy-mm-dd)
     #   'timestamp':        Estimated real-world timestasmp for packet (seconds since midnight)
+    #   'talker_id':        Talker ID number for the message (as if on a NMEA2000 bus)
     #   'yaw':              Yaw angle (radians, +ve clockwise from north)
     #   'pitch':            Pitch angle (radians, +ve bow up)
     #   'roll':             Roll angle (radians, +ve port up)
     def data_constructor(self, **kwargs) -> None:
         try:
+            self.talker_id = kwargs['talker_id']
             self.yaw = kwargs['yaw']
             self.pitch = kwargs['pitch']
             self.roll = kwargs['roll']
@@ -336,8 +343,8 @@ class Attitude(DataPacket):
     #
     # \param self   Pointer to the object
     # \return String with the human-readable name of the packet
-    def name(self):
-        return "Attitude"
+    def name(self) -> str:
+        return 'Attitude'
 
     ## Implement the printable interface for this class, allowing it to be streamed
     #
@@ -346,7 +353,7 @@ class Attitude(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = super().__str__() + f' {self.name()}: yaw = {angle_to_degs(self.yaw)} deg, pitch = {angle_to_degs(self.pitch)} deg, roll = {angle_to_degs(self.roll)} deg'
+        rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: yaw = {angle_to_degs(self.yaw)} deg, pitch = {angle_to_degs(self.pitch)} deg, roll = {angle_to_degs(self.roll)} deg'
         return rtn
 
 ## Implement the Observed Depth NMEA2000 message
@@ -376,7 +383,8 @@ class Depth(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, depth, offset, range) = struct.unpack('<HdIddd', buffer)
+        (date, timestamp, elapsed_time, talker_id, depth, offset, range) = struct.unpack('<HdIBddd', buffer)
+        self.talker_id = talker_id
         ## Observed depth below transducer, metres
         self.depth = depth
         ## Offset for depth, metres.
@@ -388,7 +396,8 @@ class Depth(DataPacket):
         super().__init__(date, timestamp, elapsed_time)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIddd', self.date, self.timestamp, self.elapsed, self.depth, self.offset, self.range)
+        buffer = struct.pack('<HdIBddd', self.date, self.timestamp, self.elapsed, self.talker_id,
+                             self.depth, self.offset, self.range)
         return buffer
     
     def id(self) -> int:
@@ -400,11 +409,13 @@ class Depth(DataPacket):
     #   'elapsed_time':     Elapsed time (ms) since logger boot
     #   'date':             Estimated real-world date string for packet (yyyy-mm-dd)
     #   'timestamp':        Estimated real-world timestasmp for packet (seconds since midnight)
+    #   'talker_id':        Talker ID number for the message (as if on a NMEA2000 bus)
     #   'depth':            Depth indicated (m)
     #   'offset':           Offset applied to the depth before reporting (m)
     #   'range':            Maximum range of the echosounder (m)
     def data_constructor(self, **kwargs) -> None:
         try:
+            self.talker_id = kwargs['talker_id']
             self.depth = kwargs['depth']
             self.offset = kwargs['offset']
             self.range = kwargs['range']
@@ -418,8 +429,8 @@ class Depth(DataPacket):
     #
     # \param self   Pointer to the object
     # \return String with the human-readable name of the packet
-    def name(self):
-        return "Depth"
+    def name(self) -> str:
+        return 'Depth'
 
     ## Implement the printable interface for this class, allowing it to be streamed
     #
@@ -428,7 +439,7 @@ class Depth(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = super().__str__() + f' {self.name()}: depth = {self.depth}m, offset = {self.offset}m, range = {self.range}m'
+        rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: depth = {self.depth}m, offset = {self.offset}m, range = {self.range}m'
         return rtn
 
 ## Implement the Course-over-Ground Rapid NMEA2000 message
@@ -458,7 +469,8 @@ class COG(DataPacket):
     # \param self   Pointer to the objet
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, courseOverGround, speedOverGround) = struct.unpack('<HdIdd', buffer)
+        (date, timestamp, elapsed_time, talker_id, courseOverGround, speedOverGround) = struct.unpack('<HdIBdd', buffer)
+        self.talker_id = talker_id
         ## Course over ground (radians)
         self.courseOverGround = courseOverGround
         ## Speed over ground (m/s)
@@ -466,7 +478,7 @@ class COG(DataPacket):
         super().__init__(date, timestamp, elapsed_time)
     
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIdd', self.date, self.timestamp, self.elapsed, self.courseOverGround, self.speedOverGround)
+        buffer = struct.pack('<HdIBdd', self.date, self.timestamp, self.elapsed, self.talker_id, self.courseOverGround, self.speedOverGround)
         return buffer
 
     def id(self) -> int:
@@ -478,10 +490,12 @@ class COG(DataPacket):
     #   'elapsed_time':     Elapsed time (ms) since logger boot
     #   'date':             Estimated real-world date string for packet (yyyy-mm-dd)
     #   'timestamp':        Estimated real-world timestasmp for packet (seconds since midnight)
+    #   'talker_id':        Talker ID number for the message (as if on a NMEA2000 bus)
     #   'cog':              Course over ground (CW from north), radians
     #   'sog':              Speed over ground (m/s)
     def data_constructor(self, **kwargs) -> None:
         try:
+            self.talker_id = kwargs['talker_id']
             self.courseOverGround = kwargs['cog']
             self.speedOverGround = kwargs['sog']
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
@@ -494,7 +508,7 @@ class COG(DataPacket):
     #
     # \param self   Pointer to the object
     # \return String with the human-readable name of the packet
-    def name(self):
+    def name(self) -> str:
         return 'Course Over Ground'
 
     ## Implement the printable interface for this class, allowing it to be streamed
@@ -504,7 +518,7 @@ class COG(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = super().__str__() + f' {self.name()}: course over ground = {angle_to_degs(self.courseOverGround)} deg, speed over ground = {self.speedOverGround} m/s'
+        rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: course over ground = {angle_to_degs(self.courseOverGround)} deg, speed over ground = {self.speedOverGround} m/s'
         return rtn
 
 ## Implement the GNSS observation NMEA2000 message
@@ -539,9 +553,10 @@ class GNSS(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (sys_date, sys_timestamp, sys_elapsed, date, timestamp, latitude, longitude, altitude,
+        (sys_date, sys_timestamp, sys_elapsed, talker_id, date, timestamp, latitude, longitude, altitude,
          receiverType, receiverMethod, numSVs, horizontalDOP, positionDOP, separation, numRefStations, refStationType,
-         refStationID, correctionAge) = struct.unpack('<HdIHddddBBBdddBBHd', buffer)
+         refStationID, correctionAge) = struct.unpack('<HdIBHddddBBBdddBBHd', buffer)
+        self.talker_id = talker_id
         ## In-message date (days since epoch)
         self.msg_date = date
         ## In-message timestamp (seconds since midnight)
@@ -575,7 +590,8 @@ class GNSS(DataPacket):
         super().__init__(sys_date, sys_timestamp, sys_elapsed)
     
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIHddddBBBdddBBHd', self.date, self.timestamp, self.elapsed, self.msg_date, self.msg_timestamp,
+        buffer = struct.pack('<HdIBHddddBBBdddBBHd', self.date, self.timestamp, self.elapsed, self.talker_id,
+                                                    self.msg_date, self.msg_timestamp,
                                                     self.latitude, self.longitude, self.altitude, self.receiverType, self.receiverMethod,
                                                     self.numSVs, self.horizontalDOP, self.positionDOP, self.separation,
                                                     self.numRefStations, self.refStationType, self.refStationID, self.correctionAge)
@@ -590,6 +606,7 @@ class GNSS(DataPacket):
     #   'elapsed_time':     Elapsed time (ms) since logger boot
     #   'date':             Estimated real-world date string for packet (days since epoch))
     #   'timestamp':        Estimated real-world timestasmp for packet (seconds since midnight)
+    #   'talker_id':        Talker ID number for the message (as if on a NMEA2000 bus)
     #   'msg_date':         Message's claimed date string for data (days since epoch)
     #   'msg_timestamp':    Message's claimed timestasmp for data (seconds since midnight)
     #   'latitude':         Latitude of antenna phase centre (degrees)
@@ -611,6 +628,7 @@ class GNSS(DataPacket):
     # which one you reported, or how you'd report more than one.
     def data_constructor(self, **kwargs) -> None:
         try:
+            self.talker_id = kwargs['talker_id']
             self.msg_date = kwargs['msg_date']
             self.msg_timestamp = kwargs['msg_timestamp']
             self.latitude = kwargs['latitude']
@@ -636,8 +654,8 @@ class GNSS(DataPacket):
     #
     # \param self   Pointer to the object
     # \return String with the human-readable name of the packet
-    def name(self):
-        return "GNSS"
+    def name(self) -> str:
+        return 'GNSS'
 
     ## Implement the printable interface for this class, allowing it to be streamed
     #
@@ -648,7 +666,7 @@ class GNSS(DataPacket):
     def __str__(self):
         summary = io.StringIO()
         summary.write(super().__str__())
-        summary.write(f' {self.name()}: in-message date = {self.msg_date} days, in-message time = {self.msg_timestamp} s., ')
+        summary.write(f' talker: {self.talker_id}, {self.name()}: in-message date = {self.msg_date} days, in-message time = {self.msg_timestamp} s., ')
         summary.write(f'latitude = {self.latitude} deg, longitude = {self.longitude} deg, altitude = {self.altitude} m, ')
         summary.write(f'GNSS type = {self.receiverType}, GNSS method = {self.receiverMethod}, ')
         summary.write(f'num. SVs = {self.numSVs}, ')
@@ -689,8 +707,9 @@ class Environment(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, tempSource, temperature, humiditySource, humidity, pressure) = \
-            struct.unpack('<HdIBdBdd', buffer)
+        (date, timestamp, elapsed_time, talker_id, tempSource, temperature, humiditySource, humidity, pressure) = \
+            struct.unpack('<HdIBBdBdd', buffer)
+        self.talker_id = talker_id
         ## Source of temperature information (e.g., inside, outside)
         self.tempSource = tempSource
         ## Current temperature, Kelvin
@@ -706,7 +725,8 @@ class Environment(DataPacket):
         super().__init__(date, timestamp, elapsed_time)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBdBdd', self.date, self.timestamp, self.elapsed, self.tempSource, self.temperature, self.humiditySource, self.humidity, self.pressure)
+        buffer = struct.pack('<HdIBBdBdd', self.date, self.timestamp, self.elapsed, self.talker_id,
+                             self.tempSource, self.temperature, self.humiditySource, self.humidity, self.pressure)
         return buffer
 
     def id(self) -> int:
@@ -718,6 +738,7 @@ class Environment(DataPacket):
     #   'elapsed_time': Elapsed time (ms) since logger boot
     #   'date':         Real-world date associated with the data (days since epoch)
     #   'timestamp':    Real-world time associated with the data (seconds since midnight)
+    #   'talker_id':    Talker ID number for the message (as if on a NMEA2000 bus)
     #   'temp':         Temperature (C)
     #   'temp_source':  Source of temperature (see Wiki for details)
     #   'humidity':     Relative humidity (%)
@@ -725,6 +746,7 @@ class Environment(DataPacket):
     #   'pressure':     Pressure (Pa)
     def data_constructor(self, **kwargs) -> None:
         try:
+            self.talker_id = kwargs['talker_id']
             self.tempSource = kwargs['temp_source']
             self.temperature = kwargs['temp']
             self.humiditySource = kwargs['humid_source']
@@ -740,7 +762,7 @@ class Environment(DataPacket):
     #
     # \param self   Pointer to the object
     # \return String with the human-readable name of the packet
-    def name(self):
+    def name(self) -> str:
         return 'Environment'
 
     ## Implement the printable interface for this class, allowing it to be streamed
@@ -750,7 +772,7 @@ class Environment(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = super().__str__() + f' {self.name()}: temperature = {temp_to_celsius(self.temperature)} ºC (source {self.tempSource}),  humidity = {self.humidity}% (source {self.humiditySource}), pressure = {pressure_to_mbar(self.pressure)} mBar'
+        rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: temperature = {temp_to_celsius(self.temperature)} ºC (source {self.tempSource}),  humidity = {self.humidity}% (source {self.humiditySource}), pressure = {pressure_to_mbar(self.pressure)} mBar'
         return rtn
 
 ## Implement the Temperature NMEA2000 message
@@ -783,7 +805,8 @@ class Temperature(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes object from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, tempSource, temperature) = struct.unpack('<HdIBd', buffer)
+        (date, timestamp, elapsed_time, talker_id, tempSource, temperature) = struct.unpack('<HdIBBd', buffer)
+        self.talker_id = talker_id
         ## Source of temperature information (e.g., water, air, cabin)
         self.tempSource = tempSource
         ## Temperature of source, Kelvin
@@ -791,7 +814,8 @@ class Temperature(DataPacket):
         super().__init__(date, timestamp, elapsed_time)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBd', self.date, self.timestamp, self.elapsed, self.tempSource, self.tempSource)
+        buffer = struct.pack('<HdIBBd', self.date, self.timestamp, self.elapsed, self.talker_id,
+                             self.tempSource, self.tempSource)
         return buffer
 
     def id(self) -> int:
@@ -803,10 +827,12 @@ class Temperature(DataPacket):
     #   'elapsed_time': Elapsed time (ms) since logger boot
     #   'date':         Real-world date associated with the data
     #   'timestamp':    Real-world time associated with the data
+    #   'talker_id':    Talker ID number for the message (as if on a NMEA2000 bus)
     #   'temp':         Temperature (C)
     #   'temp_source':  Source of temperature (see Wiki for details)
     def data_constructor(self, **kwargs) -> None:
         try:
+            self.talker_id = kwargs['talker_id']
             self.tempSource = kwargs['temp_source']
             self.temperature = kwargs['temp']
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
@@ -819,7 +845,7 @@ class Temperature(DataPacket):
     #
     # \param self   Pointer to the object
     # \return String with the human-readable name of the packet
-    def name(self):
+    def name(self) -> str:
         return 'Temperature'
 
     ## Implement the printable interface for this class, allowing it to be streamed
@@ -829,7 +855,7 @@ class Temperature(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = super().__str__() + f' {self.name()}: temperature = {temp_to_celsius(self.temperature)} ºC (source {self.tempSource})'
+        rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: temperature = {temp_to_celsius(self.temperature)} ºC (source {self.tempSource})'
         return rtn
 
 ## Implement the Humidity NMEA2000 message
@@ -862,7 +888,8 @@ class Humidity(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes object from which to unpack the binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, humiditySource, humidity) = struct.unpack('<HdIBd', buffer)
+        (date, timestamp, elapsed_time, talker_id, humiditySource, humidity) = struct.unpack('<HdIBBd', buffer)
+        self.talker_id = talker_id
         ## Source of humidity (e.g., inside, outside)
         self.humiditySource = humiditySource
         ## Humidity observation, percent
@@ -870,7 +897,8 @@ class Humidity(DataPacket):
         super().__init__(date, timestamp, elapsed_time)
     
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBd', self.date, self.timestamp, self.elapsed, self.humiditySource, self.humidity)
+        buffer = struct.pack('<HdIBBd', self.date, self.timestamp, self.elapsed, self.talker_id,
+                             self.humiditySource, self.humidity)
         return buffer
     
     def id(self) -> int:
@@ -882,10 +910,12 @@ class Humidity(DataPacket):
     #   'elapsed_time': Elapsed time (ms) since logger boot
     #   'date':         Real-world date associated with the data
     #   'timestamp':    Real-world time associated with the data
+    #   'talker_id':    Talker ID number for the message (as if on a NMEA2000 bus)
     #   'humidity':     Relative humidity (%)
     #   'humid_source': Source of humidity (see Wiki for details)
     def data_constructor(self, **kwargs):
         try:
+            self.talker_id = kwargs['talker_id']
             self.humiditySource = kwargs['humid_source']
             self.humidity = kwargs['humidity']
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
@@ -898,7 +928,7 @@ class Humidity(DataPacket):
     #
     # \param self   Pointer to the object
     # \return String with the human-readable name of the packet
-    def name(self):
+    def name(self) -> str:
         return 'Humidity'
 
     ## Implement the printable interface for this class, allowing it to be streamed
@@ -908,7 +938,7 @@ class Humidity(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = super().__str__() + f' {self.name()}: humidity = {self.humidity} % (source {self.humiditySource})'
+        rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: humidity = {self.humidity} % (source {self.humiditySource})'
         return rtn
 
 ## Implement the Pressure NMEA2000 message
@@ -941,7 +971,8 @@ class Pressure(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes object from which to unpack the information
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, pressureSource, pressure) = struct.unpack('<HdIBd', buffer)
+        (date, timestamp, elapsed_time, talker_id, pressureSource, pressure) = struct.unpack('<HdIBBd', buffer)
+        self.talker_id = talker_id
         ## Source of pressure measurement (e.g., atmospheric, compressed air)
         self.pressureSource = pressureSource
         ## Pressure, Pascals
@@ -949,7 +980,8 @@ class Pressure(DataPacket):
         super().__init__(date, timestamp, elapsed_time)
     
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBd', self.date, self.timestamp, self.elapsed, self.pressureSource, self.pressure)
+        buffer = struct.pack('<HdIBBd', self.date, self.timestamp, self.elapsed, self.talker_id,
+                             self.pressureSource, self.pressure)
         return buffer
     
     def id(self) -> int:
@@ -961,10 +993,12 @@ class Pressure(DataPacket):
     #   'elapsed_time': Elapsed time (ms) since logger boot
     #   'date':         Real-world date associated with the data
     #   'timestamp':    Real-world time associated with the data
+    #   'talker_id':    Talker ID number for the message (as if on a NMEA2000 bus)
     #   'pressure':     Pressure in Pascals
     #   'press_source': Source of pressure (see Wiki for details)
     def data_constructor(self, **kwargs):
         try:
+            self.talker_id = kwargs['talker_id']
             self.pressureSource = kwargs['press_source']
             self.pressure = kwargs['pressure']
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
@@ -977,8 +1011,8 @@ class Pressure(DataPacket):
     #
     # \param self   Pointer to the object
     # \return String with the human-readable name of the packet
-    def name(self):
-        return "Pressure"
+    def name(self) -> str:
+        return 'Pressure'
 
     ## Implement the printable interface for this class, allowing it to be streamed
     #
@@ -987,7 +1021,7 @@ class Pressure(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = super().__str__() + f' {self.name()}: pressure = {pressure_to_mbar(self.pressure)} mBar (source {self.pressureSource})'
+        rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: pressure = {pressure_to_mbar(self.pressure)} mBar (source {self.pressureSource})'
         return rtn
 
 ## Implement the NMEA0183 serial data message
@@ -1361,7 +1395,7 @@ class AlgorithmRequest(DataPacket):
             self.parameters = kwargs['params'].encode('UTF-8')
             super().__init__(0, 0.0, 0)
         except KeyError as e:
-            raise SerialiserVersion('Bad packet parameters') from e
+            raise SpecificationError('Bad packet parameters') from e
     
     ## Provide the fixed-text string name for this data packet
     #
