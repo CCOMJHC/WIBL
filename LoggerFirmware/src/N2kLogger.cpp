@@ -277,7 +277,7 @@ void Logger::HandleSystemTime(Timestamp::TimeDatum const& t, const tN2kMsg& msg)
             logger::DataObs obs(t.RawElapsed(), date, timestamp);
             logger::Metrics.RegisterObs(obs);
 
-            Serialisable s(sizeof(uint16_t) + sizeof(double) + sizeof(unsigned long) + 2);
+            Serialisable s(sizeof(uint16_t) + sizeof(double) + sizeof(unsigned long) + 2*sizeof(uint8_t));
             s += date;
             s += timestamp;
             s += t.RawElapsed();
@@ -307,7 +307,7 @@ void Logger::HandleAttitude(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
         if (IsNA(t) || N2kIsNA(yaw) || N2kIsNA(pitch) || N2kIsNA(roll))
             m_logManager->EmitNoDataReject();
 
-        Serialisable s(t.SerialisationSize() + 1 + 3*sizeof(double));
+        Serialisable s(t.SerialisationSize() + sizeof(uint8_t) + 3*sizeof(double));
         t.Serialise(s);
         s += (uint8_t)msg.Source;
         s += yaw;
@@ -340,7 +340,7 @@ void Logger::HandleDepth(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
         if (IsNA(t) || N2kIsNA(depth) || N2kIsNA(offset) || N2kIsNA(range))
             m_logManager->EmitNoDataReject();
         
-        Serialisable s(t.SerialisationSize() + 1 + 3*sizeof(double));
+        Serialisable s(t.SerialisationSize() + sizeof(uint8_t) + 3*sizeof(double));
         t.Serialise(s);
         s += (uint8_t)msg.Source;
         s += depth;
@@ -373,7 +373,7 @@ void Logger::HandleCOG(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
             if (IsNA(t) || N2kIsNA(cog) || N2kIsNA(sog))
                 m_logManager->EmitNoDataReject();
             
-            Serialisable s(t.SerialisationSize() + 1 + 2*sizeof(double));
+            Serialisable s(t.SerialisationSize() + sizeof(uint8_t) + 2*sizeof(double));
             t.Serialise(s);
             s += (uint8_t)msg.Source;
             s += cog;
@@ -424,7 +424,8 @@ void Logger::HandleGNSS(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
             N2kIsNA(refStationID) || N2kIsNA(correctionAge))
             m_logManager->EmitNoDataReject();
         
-        Serialisable s(t.SerialisationSize() + 1 + 2*sizeof(uint16_t) + 8*sizeof(double) + 5);
+        Serialisable s(t.SerialisationSize() + sizeof(uint8_t) + 2*sizeof(uint16_t) +
+                        8*sizeof(double) + 5*sizeof(uint8_t));
         t.Serialise(s); // Put in the standard timestamp, as well as the in-message one.
         s += (uint8_t)msg.Source;
         s += datestamp; s += timestamp;
@@ -475,7 +476,7 @@ void Logger::HandleEnvironment(Timestamp::TimeDatum const& t, tN2kMsg const& msg
             N2kIsNA((uint8_t)h_source) || N2kIsNA(humidity) || N2kIsNA(pressure))
             m_logManager->EmitNoDataReject();
         
-        Serialisable s(t.SerialisationSize() + 1 + 3*sizeof(double) + 2);
+        Serialisable s(t.SerialisationSize() + sizeof(uint8_t) + 3*sizeof(double) + 2*sizeof(uint8_t));
         t.Serialise(s);
         s += (uint8_t)msg.Source;
         s += (uint8_t)t_source;
@@ -512,7 +513,7 @@ void Logger::HandleTemperature(Timestamp::TimeDatum const& t, tN2kMsg const& msg
             if (IsNA(t) || N2kIsNA((uint8_t)t_source) || N2kIsNA(temp))
                 m_logManager->EmitNoDataReject();
             
-            Serialisable s(t.SerialisationSize() + 2 + sizeof(double));
+            Serialisable s(t.SerialisationSize() + 2*sizeof(uint8_t) + sizeof(double));
             t.Serialise(s);
             s += (uint8_t)msg.Source;
             s += (uint8_t)t_source;
@@ -546,7 +547,7 @@ void Logger::HandleHumidity(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
             if (IsNA(t) || N2kIsNA((uint8_t)h_source) || N2kIsNA(humidity))
                 m_logManager->EmitNoDataReject();
             
-            Serialisable s(t.SerialisationSize() + 2 + sizeof(double));
+            Serialisable s(t.SerialisationSize() + 2*sizeof(uint8_t) + sizeof(double));
             t.Serialise(s);
             s += (uint8_t)msg.Source;
             s += (uint8_t)h_source;
@@ -580,7 +581,7 @@ void Logger::HandlePressure(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
             if (IsNA(t) || N2kIsNA((uint8_t)p_source) || N2kIsNA(pressure))
                 m_logManager->EmitNoDataReject();
             
-            Serialisable s(t.SerialisationSize() + 2 + sizeof(double));
+            Serialisable s(t.SerialisationSize() + 2*sizeof(uint8_t) + sizeof(double));
             t.Serialise(s);
             s += (uint8_t)msg.Source;
             s += (uint8_t)p_source;
@@ -614,7 +615,7 @@ void Logger::HandleExtTemperature(Timestamp::TimeDatum const& t, tN2kMsg const& 
             if (IsNA(t) || N2kIsNA((uint8_t)t_source) || N2kIsNA(temp))
                 m_logManager->EmitNoDataReject();
             
-            Serialisable s(t.SerialisationSize() + 2 + sizeof(double));
+            Serialisable s(t.SerialisationSize() + 2*sizeof(uint8_t) + sizeof(double));
             t.Serialise(s);
             s += (uint8_t)msg.Source;
             s += (uint8_t)t_source;
