@@ -1,7 +1,7 @@
 import os
 import sys
 from importlib import resources
-from typing import Optional, TextIO
+from typing import Optional, TextIO, Union
 from pathlib import Path
 from datetime import datetime, UTC
 from random import randrange
@@ -80,7 +80,7 @@ def config_logger(*,
 
 
 def config_logger_cmdline(args: argparse.Namespace, *,
-                          log_prefix: str|None = None) -> logging.Logger:
+                          log_prefix: Union[str,None] = None) -> logging.Logger:
     """
     Configure global logger instance and return it. For use by
     command line tools.

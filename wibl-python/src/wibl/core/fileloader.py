@@ -33,7 +33,7 @@
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Tuple, Union
 import datetime as dt
 
 import pynmea2 as nmea
@@ -121,7 +121,7 @@ def determine_time_source(stats: PktStats) -> TimeSource:
 def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *,
               process_algorithms: bool = True,
               strict_mode: bool = False,
-              bad_talkers: list[int]|None = None) -> \
+              bad_talkers: Union[list[int],None] = None) -> \
         Tuple[PktStats, TimeSource, List[LoggerFile.DataPacket], List[AlgorithmDescriptor]]:
     """Load the entirety of a WIBL binary file into memory, in the process determining the type of time
        source that can be used to add timestamps to the data, and fixing up any messages that don't have
