@@ -220,10 +220,11 @@ void MessageAssembler::AddCharacter(const char in)
                     m_lastInvertResetTime = millis();
                     m_badStartCount = 0;
                     if (!m_inverted) {
-                        if (m_channel == 1)
+                        if (m_channel == 1) {
                             Serial1.setRxInvert(true);
-                        else if (m_channel == 2)
+                        } else if (m_channel == 2) {
                             Serial2.setRxInvert(true);
+                        }
                         message = "INFO: setting rx input inversion on channel "
                                     + String(m_channel) + " due to bad start characters.";
                         Serial.println(message);
