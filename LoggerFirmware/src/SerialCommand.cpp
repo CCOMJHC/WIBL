@@ -246,7 +246,7 @@ void SerialCommand::SetIdentificationString(String const& identifier, CommandSou
 {
     if (logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_MODULEID_S, identifier)) {
         if (src == CommandSource::SerialPort) {
-            EmitMessage("INF: UUID accepted.\n", src);
+            EmitMessage("INFO: UUID accepted.\n", src);
         } else {
             ReportConfigurationJSON(src);
         }
@@ -288,7 +288,7 @@ void SerialCommand::SetShipname(String const& name, CommandSource src)
 {
     if (logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_SHIPNAME_S, name)) {
         if (src == CommandSource::SerialPort) {
-            EmitMessage("INF: Shipname accepted.\n", src);
+            EmitMessage("INFO: Shipname accepted.\n", src);
         } else {
             ReportConfigurationJSON(src);
         }
@@ -327,8 +327,8 @@ void SerialCommand::SetVerboseMode(String const& mode)
 void SerialCommand::Shutdown(void)
 {
     m_logManager->CloseLogfile();
-    Serial.println("info: Stopping under control for powerdown");
-    m_logManager->Syslog("INF: Stopping under control for powerdown.");
+    Serial.println("INFO: Stopping under control for powerdown");
+    m_logManager->Syslog("INFO: Stopping under control for powerdown.");
     m_logManager->CloseConsole();
     m_led->SetStatus(StatusLED::Status::sSTOPPED);
     while (true) {
@@ -765,7 +765,7 @@ void SerialCommand::ConfigurePassthrough(String const& params, CommandSource src
     } else {
         m_passThrough = false;
     }
-    EmitMessage("INF: passthrough mode set to: " + params + "\n", src);
+    EmitMessage("INFO: passthrough mode set to: " + params + "\n", src);
 }
 
 /// Report the current configuration of the logger using JSON formatting.  This can
@@ -877,7 +877,7 @@ void SerialCommand::SetupLogger(String const& spec, CommandSource src)
         if (src == CommandSource::WirelessPort)
             ReportConfigurationJSON(src);
         else
-            EmitMessage("INF: Accepted configuration from JSON input string.\n", src);
+            EmitMessage("INFO: Accepted configuration from JSON input string.\n", src);
     } else {
         EmitMessage("ERR: Error accepting configuration from JSON input string.\n", src);
         if (src == CommandSource::WirelessPort && m_wifi != nullptr)
@@ -980,7 +980,7 @@ void SerialCommand::StoreMetadataElement(String const& params, CommandSource src
     logger::MetadataStore metastore;
     metastore.SetMetadata(params);
     if (src == CommandSource::SerialPort) {
-        EmitMessage("INF: added metadata element to local configuration.\n", src);
+        EmitMessage("INFO: added metadata element to local configuration.\n", src);
     } else {
         EmitJSON(params, src);
     } 
@@ -1194,7 +1194,7 @@ void SerialCommand::SetLabDefaults(String const& spec, CommandSource src)
 {
     logger::LoggerConfig.SetConfigString(logger::Config::CONFIG_DEFAULTS_S, spec);
     if (src == CommandSource::SerialPort) {
-        EmitMessage("INF: set lab defaults.\n", src);
+        EmitMessage("INFO: set lab defaults.\n", src);
     } else if (m_wifi != nullptr) {
         if (!EmitJSON(spec, src)) {
             m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
@@ -1218,7 +1218,7 @@ void SerialCommand::ResetLabDefaults(CommandSource src)
     if (spec.length() > 0) {
         logger::ConfigJSON::SetConfig(spec);
         if (src == CommandSource::SerialPort) {
-            EmitMessage("INF: lab default configuration reset; you may need to reboot for some changes to take effect.\n", src);
+            EmitMessage("INFO: lab default configuration reset; you may need to reboot for some changes to take effect.\n", src);
         } else if (m_wifi != nullptr) {
             if (!EmitJSON(spec, src)) {
                 EmitMessage("Invalid lab defaults JSON", src);
