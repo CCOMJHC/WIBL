@@ -3,7 +3,20 @@
 ## Firmware 1.7.0
 
 Firmware 1.7.0 addresses multiple issues in the repository, including:
+
 * [Issue 110](https://github.com/CCOMJHC/WIBL/issues/110), which changes the filename structure for raw files to include a fixed extension (e.g., "raw00000.wbl") rather than encoding the filename in the extension.  In addition to allowing for more files, this avoids problems in processing later.
+
+* [Isssue 81](https://github.com/CCOMJHC/WIBL/issues/81), which adds the talker ID from any NMEA2000 message for which it's defined into the output file, allowing for post-processing filtering of talkers (if one is generating bad or inconsistent data).  This steps the firmware serialiser to v. 1.4, which then ripples through the Python core code for reading the binary file format.
+
+* [Issue 56](https://github.com/CCOMJHC/WIBL/issues/56), which notes that the logger takes longer to boot when there are more log files on the SD card.  This was due to the logger not serialising the contents of the inventory cache to the SD card, which meant that the cache had to be reconstructed on each boot.  The code now persists the cache to the SD card (so that it travels with the log files), reloads the cache on boot and then checks to ensure that it is consistent with the contents of the SD card (e.g., if files have been added or removed since the last serialisation).
+
+* [Issue 90](https://github.com/CCOMJHC/WIBL/issues/90) notes that the status LED(s) on the logger are not entirely consistent.  The current code has reset the colours used for "card full", shows all LEDs on (or white if an RGB LED is used) for booting, and provides rate limiting for the "data writing" indicator so that a fast data source (e.g., the IMU) don't keep the LED on permanently.
+
+* [Issue 100](https://github.com/CCOMJHC/WIBL/issues/100) was contributed by Andrew Schofield of SeaID, and notes that if there are bad input characters on the NMEA0183 channel, reporting that they're bad can result in the code spending a lot of time writing the system log file on the SD card, which in turn starves the run-loop for other things (including making sure that the web server stays responsive).  The code now counts the number of faults that are happening on the input channels, and reports an aggregate every 5000ms.  The code also rationalises what gets written to the syslog file.  This steps the NMEA0183 logger version to 1.1.0.
+
+* [Issue 94](https://github.com/CCOMJHC/WIBL/issues/94) reported a bug in the generation of the JSON formatted catalogue output file on the SD card (when exporting an archive of all logger files) which generated bad data.  This was caused by the underlying JSON library, which concatenated content into the output buffer on serialisation, rather than overwriting.
+
+* [Issue 98](https://github.com/CCOMJHC/WIBL/issues/98) requested new functionality to allow the logger to record (in binary format for post-processing parsing) an arbitrary list of NMEA2000 packets.  The code now allows the user to specify a list of PGNs to record, and augments the output file format to provide a message to record the PGNs being recorded (at the start of the file) and another to record the binary packets (along with the interpreted PGN for reference) for each input packet being recorded.  This steps the NMEA2000 logger version to 1.2.0.
 
 ## Firmware 1.6.2
 
