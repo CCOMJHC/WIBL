@@ -33,6 +33,7 @@ function createJSONConfig() {
     const nmea0183_en = document.getElementById("nmea0183").checked ? true : false;
     const nmea2000_en = document.getElementById("nmea2000").checked ? true : false;
     const imu_en = document.getElementById("imu").checked ? true : false;
+    const gnss_en = document.getElementById("gnss").checked ? true : false;
     const powermon_en = document.getElementById("epower").checked ? true : false;
     const sdmmc_en = document.getElementById("memcontroller").checked ? true : false;
     const udpbr_en = document.getElementById("nmeabridge").checked ? true : false;
@@ -65,6 +66,7 @@ function createJSONConfig() {
             "nmea0183": ${nmea0183_en},
             "nmea2000": ${nmea2000_en},
             "imu": ${imu_en},
+            "gnss": ${gnss_en},
             "powermonitor": ${powermon_en},
             "sdmmc": ${sdmmc_en},
             "udpbridge": ${udpbr_en},
@@ -112,6 +114,7 @@ function parseConfigJSON(config) {
     document.getElementById("nmea0183").checked = config.enable.nmea0183;
     document.getElementById("nmea2000").checked = config.enable.nmea2000;
     document.getElementById("imu").checked = config.enable.imu;
+    document.getElementById("gnss").checked = config.enable.gnss;
     document.getElementById("epower").checked = config.enable.powermonitor;
     document.getElementById("memcontroller").checked = config.enable.sdmmc;
     document.getElementById("nmeabridge").checked = config.enable.udpbridge;

@@ -87,7 +87,7 @@ const String lookup[] = {
     "UploadInterval",   ///< Interval (seconds) between upload attempts
     "UploadDuration",   ///< Time (seconds) for upload activity before diverting back to other efforts
     "UploadCert",       ///< Certificate to pass to the upload server for TLS
-    "mDNSName"
+    "mDNSName"          ///< Name to recognise logger by on WiFi
 };
 
 /// Default constructor.  This sets up for a dummy parameter store, which is configured
@@ -208,11 +208,12 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     params["version"]["serialiser"] = Serialiser::SoftwareVersion();
 
     // Enable/disable for the various loggers and features
-    bool nmea0183_enable, nmea2000_enable, imu_enable, powmon_enable, sdmmc_enable,
+    bool nmea0183_enable, nmea2000_enable, imu_enable, gnss_enable, powmon_enable, sdmmc_enable,
          udp_bridge_enable, webserver_on_boot, upload_online;
     LoggerConfig.GetConfigBinary(Config::CONFIG_NMEA0183_B, nmea0183_enable);
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_NMEA2000_B, nmea2000_enable);
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_MOTION_B, imu_enable);
+    LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_GNSS_B, gnss_enable);
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_POWMON_B, powmon_enable);
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_SDMMC_B, sdmmc_enable);
     LoggerConfig.GetConfigBinary(Config::ConfigParam::CONFIG_BRIDGE_B, udp_bridge_enable);
@@ -221,6 +222,7 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     params["enable"]["nmea0183"] = nmea0183_enable;
     params["enable"]["nmea2000"] = nmea2000_enable;
     params["enable"]["imu"] = imu_enable;
+    params["enable"]["gnss"] = gnss_enable;
     params["enable"]["powermonitor"] = powmon_enable;
     params["enable"]["sdmmc"] = sdmmc_enable;
     params["enable"]["udpbridge"] = udp_bridge_enable;
@@ -309,6 +311,8 @@ bool ConfigJSON::SetConfig(String const& json_string)
                 LoggerConfig.SetConfigBinary(Config::CONFIG_NMEA2000_B, params["enable"]["nmea2000"]);
             if (params["enable"].containsKey("imu"))
                 LoggerConfig.SetConfigBinary(Config::CONFIG_MOTION_B, params["enable"]["imu"]);
+            if (params["enable"].containsKey("gnss"))
+                LoggerConfig.SetConfigBinary(Config::CONFIG_GNSS_B, params["enable"]["gnss"]);
             if (params["enable"].containsKey("powermonitor"))
                 LoggerConfig.SetConfigBinary(Config::CONFIG_POWMON_B, params["enable"]["powermonitor"]);
             if (params["enable"].containsKey("sdmmc"))
@@ -376,7 +380,7 @@ bool ConfigJSON::SetConfig(String const& json_string)
     return true;
 }
 
-static const char *stable_config = "{\"version\": {\"commandproc\": \"1.4.1\"}, \"enable\": {\"nmea0183\": true, \"nmea2000\": true, \"imu\": false, \"powermonitor\": false, \"sdmmc\": false, \"udpbridge\": false, \"webserver\": true, \"upload\": false}, \"wifi\": {\"mode\": \"AP\", \"address\": \"192.168.4.1\", \"station\": {\"delay\": 20, \"retries\": 5, \"timeout\": 5, \"mdns\": \"wibl\"}, \"ssids\": {\"ap\": \"wibl-config\", \"station\": \"wibl-logger\"}, \"passwords\": {\"ap\": \"wibl-config-password\", \"station\": \"wibl-logger-password\"}}, \"uniqueID\": \"TNODEID\", \"shipname\": \"Anonymous\", \"baudrate\": {\"port1\": 4800, \"port2\": 4800}, \"udpbridge\": 12345, \"upload\": {\"server\": \"192.168.4.2\", \"port\": 80, \"timeout\": 5.0, \"interval\": 1800.0, \"duration\": 10.0}}";
+static const char *stable_config = "{\"version\": {\"commandproc\": \"1.4.2\"}, \"enable\": {\"nmea0183\": true, \"nmea2000\": true, \"imu\": false, \"gnss\": false, \"powermonitor\": false, \"sdmmc\": false, \"udpbridge\": false, \"webserver\": true, \"upload\": false}, \"wifi\": {\"mode\": \"AP\", \"address\": \"192.168.4.1\", \"station\": {\"delay\": 20, \"retries\": 5, \"timeout\": 5, \"mdns\": \"wibl\"}, \"ssids\": {\"ap\": \"wibl-config\", \"station\": \"wibl-logger\"}, \"passwords\": {\"ap\": \"wibl-config-password\", \"station\": \"wibl-logger-password\"}}, \"uniqueID\": \"TNODEID\", \"shipname\": \"Anonymous\", \"baudrate\": {\"port1\": 4800, \"port2\": 4800}, \"udpbridge\": 12345, \"upload\": {\"server\": \"192.168.4.2\", \"port\": 8000, \"timeout\": 5.0, \"interval\": 1800.0, \"duration\": 10.0}}";
 
 bool ConfigJSON::SetStableConfig(void)
 {

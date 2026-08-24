@@ -1,11 +1,12 @@
 {
     "version": {
-        "commandproc":  "1.4.1"
+        "commandproc":  "1.4.2"
     },
     "enable": {
         "nmea0183":     true,
         "nmea2000":     true,
         "imu":          false,
+        "gnss":         false,
         "powermonitor": false,
         "sdmmc":        false,
         "udpbridge":    false,

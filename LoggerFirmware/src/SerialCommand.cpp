@@ -672,6 +672,7 @@ void SerialCommand::ConfigureSerialPortSpeed(String const& params, CommandSource
 ///     nmea2000    on | off                NMEA2000 CAN-bus data
 ///     nmea0183    on | off                NMEA0183 RS-422 data
 ///     imu         on | off                MPU-6050 motion sensor data
+///     gnss        on | off                uBloc F9P GNSS receiver RAWX data
 ///     power       on | off                Power monitoring and emergency shutdown
 ///     sdio        on | off                SD/MMC interface for SD card (otherwise SPI)
 ///     bridge      on <port-number> | off  UDP->RS-422 bridge (port number for the UDP broadcast packet)
@@ -703,6 +704,8 @@ void SerialCommand::ConfigureLoggers(String const& params, CommandSource src)
         logger::LoggerConfig.SetConfigBinary(logger::Config::ConfigParam::CONFIG_NMEA0183_B, state);
     } else if (logger.startsWith("imu")) {
         logger::LoggerConfig.SetConfigBinary(logger::Config::ConfigParam::CONFIG_MOTION_B, state);
+    } else if (logger.startsWith("gnss")) {
+        logger::LoggerConfig.SetConfigBinary(logger::Config::ConfigParam::CONFIG_GNSS_B, state);
     } else if (logger.startsWith("power")) {
         logger::LoggerConfig.SetConfigBinary(logger::Config::ConfigParam::CONFIG_POWMON_B, state);
     } else if (logger.startsWith("sdio")) {

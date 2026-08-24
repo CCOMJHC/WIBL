@@ -64,20 +64,20 @@ Logger::Logger(logger::Manager *output)
 {
     m_sensor = new SFE_UBLOX_GNSS();
     if (!Wire.begin()) {
-        Serial.println("Error: Failed to initialise Wire interface for GNSS module; logging disabled.");
-        delete m_sensor;  m_sensor = nullptr; m_output = nullptr;
+        Serial.println("ERROR: Failed to initialise Wire interface for GNSS module; logging disabled.");
+        delete m_sensor; m_sensor = nullptr; m_output = nullptr;
         return;
     }
     if (!m_sensor->setPacketCfgPayloadSize(3000)) {
-        Serial.println("Error: failed to set receive packet size for GNSS module; logging disabled.");
-        delete m_sensor;  m_sensor = nullptr; m_output = nullptr;
+        Serial.println("ERROR: failed to set receive packet size for GNSS module; logging disabled.");
+        delete m_sensor; m_sensor = nullptr; m_output = nullptr;
         return;
     }
     m_sensor->setFileBufferSize(ReceiverDataBufferSize);
     callback_log_output = output; // !ick!
     if (!m_sensor->begin()) {
-        Serial.println("Error: failed to start GNSS module; logging disabled.");
-        delete m_sensor;  m_sensor = nullptr; m_output = nullptr;
+        Serial.println("ERROR: failed to start GNSS module; logging disabled.");
+        delete m_sensor; m_sensor = nullptr; m_output = nullptr;
         return;
     }
 
@@ -98,6 +98,7 @@ Logger::Logger(logger::Manager *output)
 Logger::~Logger(void)
 {
     delete m_sensor;
+    delete m_pktBuffer;
 }
 
 bool Logger::isAvailable(void)
