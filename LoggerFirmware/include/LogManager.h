@@ -116,7 +116,9 @@ public:
         Pkt_NMEA0183ID = 15,    ///< Acceptable NMEA0183 sentence ID for filtering
         Pkt_SensorScales = 16,  ///< Scale factors for any sensors that will be recorded raw
         Pkt_RawIMU = 17,        ///< Raw store for logger's on-board IMU
-        Pkt_Setup = 18          ///< Setup JSON string for entire configuration
+        Pkt_Setup = 18,         ///< Setup JSON string for entire configuration
+        Pkt_NMEA2000PGNS = 19,  ///< JSON string for list of integer PGNs to record (as binary) from NMEA2000
+        Pkt_N2kBinary = 20      ///< The binary representation of a NMEA2000 packet
     };
     
     /// \brief Write a packet into the current log file

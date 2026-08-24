@@ -39,7 +39,7 @@
 
 const uint32_t CommandMajorVersion = 1;
 const uint32_t CommandMinorVersion = 4;
-const uint32_t CommandPatchVersion = 1;
+const uint32_t CommandPatchVersion = 2;
 
 /// Default constructor for the SerialCommand object.  This stores the pointers for the logger and
 /// status LED controllers for reference, and then generates a BLE service object.  This turns on
@@ -1006,7 +1006,7 @@ void SerialCommand::ReportMetadataElement(CommandSource src)
     }
 }
 
-void SerialCommand::DisplayNMEAFilter(logger::N0183IDStore& filter, CommandSource src)
+void SerialCommand::DisplayNMEAFilter(logger::N0183IDStore const& filter, CommandSource src)
 {
     if (src == CommandSource::SerialPort) {
         EmitMessage("NMEA0183 message IDs accepted for logging:\n", src);
@@ -1035,7 +1035,7 @@ void SerialCommand::ReportNMEAFilter(CommandSource src)
 /// reception.  Any sentence with a message ID on the list will be logged; all others will be
 /// rejected.  Note that the code does not check the syntax of the message IDs, or that they are
 /// exactly three characters, etc. --- that's up to the user.  The string is therefore case
-/// sensitive.  The special ID "any" will reset the filter back to the default state where
+/// sensitive.  The special ID "all" will reset the filter back to the default state where
 /// everything is logged.  Note that the code does not consider the talker ID, so INGGA and
 /// GPGGA will both be logged if GGA is on the list.
 ///
@@ -1051,6 +1051,58 @@ void SerialCommand::AddNMEAFilter(String const& params, CommandSource src)
         filter.AddIDs(params);
     }
     DisplayNMEAFilter(filter, src);
+}
+
+/// Display the contents of the PGN list for the NMEA2000 messages that are being sent to the output
+/// file as binary data.  The native structure of this is JSON, so we just write it for serial, and
+/// send entire for WiFi.
+///
+/// @param pgns NVM store object for the PGNs
+/// @param src  Where to write the output (and therefore how to write the output)
+
+void SerialCommand::DisplayNMEABinaries(logger::N2000PGNStore const& pgns, CommandSource src)
+{
+    if (src == CommandSource::SerialPort) {
+        EmitMessage("NMEA2000 PGN list for binary output:\n", src);
+        String pgn_store(pgns.JSONRepresentation(true));
+        EmitMessage(pgn_store + '\n', src);
+    } else if (src == CommandSource::WirelessPort) {
+        m_wifi->SetMessage(pgns.GetContents());
+    } else {
+        EmitMessage("ERR: request for unknown CommandSource - who are you?\n", src);
+    }
+}
+
+/// Report the currently configured set of PGNs being written to the output file as binary packets
+/// (i.e., as auxiliary data for future use).
+///
+/// @param src Channel on which to report the IDs configured for logging
+
+void SerialCommand::ReportNMEABinaries(CommandSource src)
+{
+    logger::N2000PGNStore pgns;
+    DisplayNMEABinaries(pgns, src);
+}
+
+/// Add (or reset) the list of PGNs being used for reporting to the output file as binary packets
+/// (i.e., as auxiliary data for later decoding and debugging).  The command should be a space separated
+/// list of decimal PGN numbers, all of which will be recorded in addition to the default set of hard-
+/// coded packets, or "clear" which removes all PGNs from the list.
+///
+/// @param pgns Space-separated list of decimal PGNS, or "clear"
+/// @param src  Source to report results of command
+
+void SerialCommand::AddNMEABinary(String const& pgns, CommandSource src)
+{
+    logger::N2000PGNStore store;
+    if (pgns == "clear") {
+        store.ClearPGNList();
+    } else if (pgns == "all") {
+        store.WriteAll(true);
+    } else {
+        store.AddPGNs(pgns);
+    }
+    DisplayNMEABinaries(store, src);
 }
 
 /// Report the set of scales set for any on-board sensors that record binary data that needs to be
@@ -1491,6 +1543,7 @@ void SerialCommand::Syntax(CommandSource src)
     EmitMessage("  metadata [platform-specific]        Store or report a platform-specific metadata JSON element.\n", src);
     EmitMessage("  ota                                 Start Over-the-Air update sequence for the logger.\n", src);
     EmitMessage("  password ap|station [wifi-password] Set the WiFi password.\n", src);
+    EmitMessage("  pgn [NMEA2000 PGN | clear | all]    Configure which additional NMEA2000 messages to record.\n", src);
     EmitMessage("  restart                             Restart the logger module hardware.\n", src);
     EmitMessage("  scales                              Report any registered sensor-specific scale factors.\n", src);
     EmitMessage("  setup [json-specification]          Report the configuration of the logger, or set it, using JSON specifications.\n", src);
@@ -1600,6 +1653,12 @@ void SerialCommand::Execute(String const& cmd, CommandSource src)
             GetWiFiPassword(src);
         else
             SetWiFiPassword(cmd.substring(9), src);
+    } else if (cmd.startsWith("pgn")) {
+        if (cmd.length() == 3) {
+            ReportNMEABinaries(src);
+        } else {
+            AddNMEABinary(cmd.substring(4), src);
+        }
     } else if (cmd == "restart") {
         ESP.restart();
     } else if (cmd == "scales") {

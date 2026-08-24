@@ -67,6 +67,8 @@ public:
     void operator+=(double d);
     /// \brief Add an array of characters (C-style string) to the output buffer
     void operator+=(const char *p);
+    /// \brief Add an array of raw bytes to the output buffer
+    void add(uint32_t len, uint8_t const *p);
     
 private:
     friend class Serialiser;

@@ -37,12 +37,13 @@
 #include "N2kMessages.h"
 #include "DataMetrics.h"
 #include "N2kMsg.h"
+#include "NVMFile.h"
 
 namespace nmea {
 namespace N2000 {
 
 const int SoftwareVersionMajor = 1; ///< Software major version for the logger
-const int SoftwareVersionMinor = 1; ///< Software minor version for the logger
+const int SoftwareVersionMinor = 2; ///< Software minor version for the logger
 const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
 /// Constructor for a timestamp holder.  This initialises with the last datum time set to a
@@ -169,6 +170,23 @@ String Timestamp::TimeDatum::printable(void) const
 Logger::Logger(tNMEA2000 *source, logger::Manager *output)
 : tNMEA2000::tMsgHandler(0, source), m_verbose(false), m_logManager(output)
 {
+    retrievePGNlist();
+}
+
+void Logger::retrievePGNlist(void)
+{
+    logger::N2000PGNStore pgns;
+    pgns.BuildSet(m_pgnList, m_writeAll);
+}
+
+bool Logger::writing_pgn_bin(unsigned long pgn)
+{
+    if (m_writeAll) {
+        return true;
+    } else if (m_pgnList.empty() || m_pgnList.find(pgn) == m_pgnList.end()) {
+        return false;
+    }
+    return true;
 }
 
 /// Default destructor for the object.  This attempts to take down the output log file cleanly,
@@ -236,9 +254,13 @@ void Logger::HandleMsg(const tN2kMsg& message)
         case 130314UL:  HandlePressure(now, message); break;
         case 130316UL:  HandleExtTemperature(now, message); break;
         default:
-            // We ignore all packets, unless we're in verbose mode
-            if (m_verbose) {
-                Serial.printf("DBG: Found, and ignoring, packet ID %lu\n", message.PGN);
+            if (writing_pgn_bin(message.PGN)) {
+                HandleBinary(now, message);
+            } else {
+                // We ignore all packets, unless we're in verbose mode
+                if (m_verbose) {
+                    Serial.printf("DBG: Found, and ignoring, packet ID %lu\n", message.PGN);
+                }
             }
             break;
     }
@@ -623,6 +645,25 @@ void Logger::HandleExtTemperature(Timestamp::TimeDatum const& t, tN2kMsg const& 
     } else {
         m_logManager->Syslog(t.printable() + ": ERR: Failed to parse temperature packet.");
     }
+}
+
+/// Write the raw binary representation of the NMEA2000 packet to output, so that it can be
+/// parsed in post.  This is intended for auxiliary data packets that the user of a particular
+/// logger installation might be interested in, but which otherwise we'd exclude to save space.
+///
+/// @param t    Estimate of real time associated with the current message
+/// @param msg  NMEA2000 message to be serialised
+
+void Logger::HandleBinary(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
+{
+    if (m_verbose) {
+        Serial.println("DBG: Handling binary NMEA2000 packet serialisation.");
+    }
+    Serialisable s(t.SerialisationSize() + msg.DataLen + 8);
+    t.Serialise(s);
+    s += static_cast<uint32_t>(msg.PGN);
+    s.add(msg.DataLen, msg.Data);
+    m_logManager->Record(logger::Manager::PacketIDs::Pkt_N2kBinary, s);
 }
 
 }
