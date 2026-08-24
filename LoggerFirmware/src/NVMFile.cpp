@@ -435,8 +435,6 @@ bool N0183IDStore::AddIDs(String const& msg_set)
     int count = doc["count"];
     int start_point = 0, split_point;
 
-    //Serial.printf("DBG: NMEA0183 ID count currently %d\n", count);
-
     while ((split_point = msg_set.indexOf(' ', start_point)) >= 0) {
         String msgid = msg_set.substring(start_point, split_point);
         if (msgid.length() != 3) {
@@ -458,9 +456,6 @@ bool N0183IDStore::AddIDs(String const& msg_set)
     }
     doc["count"] = count;
     EndTransaction(doc);
-
-    //String temp(JSONRepresentation());
-    //Serial.printf("DBG: Filter store now |%s|\n", temp.c_str());
 
     return true;
 }
