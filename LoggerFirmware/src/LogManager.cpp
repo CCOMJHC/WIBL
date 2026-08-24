@@ -783,7 +783,7 @@ void Manager::Record(PacketIDs pktID, Serialisable const& data)
 void Manager::Syslog(String const& message)
 {
     unsigned long now = millis();
-    m_consoleLog.println(String(now) + ": " + message);
+    m_consoleLog.printf("%10d: %s\n", now, message.c_str());
     m_consoleLog.flush();
     RotateConsoleLogs(); // This is maybe a little much, but does ensure we don't exceed the max size.
 }
