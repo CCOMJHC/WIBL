@@ -1361,6 +1361,7 @@ void SerialCommand::SnapshotResource(String const& resource, CommandSource src)
             contents = String("{}");
         m_logManager->WriteSnapshot("defaults.jsn", contents, url);
         json = DynamicJsonDocument(logger::status::GenerateFilelist(m_logManager));
+        contents.clear(); // Because the JSON serialisation appends ...
         serializeJson(json, contents);
         m_logManager->WriteSnapshot("catalog.jsn", contents, url);
         url = "/archive";
