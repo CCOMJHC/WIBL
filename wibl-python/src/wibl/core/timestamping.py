@@ -90,7 +90,7 @@ def protocol_version(major: int, minor: int) -> int:
 ## Latest major protocol version understood by the code
 protocol_version_major = 1
 ## Latest minor protocol version understood by the code
-protocol_version_minor = 3
+protocol_version_minor = 4
  
 ## Maximum protocol version understood by the code
 maximum_version = protocol_version(protocol_version_major, protocol_version_minor)
@@ -126,12 +126,17 @@ def time_interpolation(filename: str, lineage: Lineage, elapsed_time_quantum: in
         strict_mode = kwargs['strict_mode']
     else:
         strict_mode = False
+    if 'bad_talkers' in kwargs:
+        bad_talkers = kwargs['bad_talkers']
+    else:
+        bad_talkers = []
     
     # Pull all of the packets out of the file, and fix up any preliminary problems
     try:
         stats, time_source, packets, algorithms = load_file(filename, lineage, verbose, fault_limit,
                                                             process_algorithms=process_algorithms,
-                                                            strict_mode=strict_mode)
+                                                            strict_mode=strict_mode,
+                                                            bad_talkers=bad_talkers)
     except flNoTimeSource as e:
         if verbose:
             print(f'Failed to determine a valid time source from file: {e}')

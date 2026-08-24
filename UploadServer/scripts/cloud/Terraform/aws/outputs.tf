@@ -41,6 +41,11 @@ output "instance_public_ip" {
   value       = aws_eip.wibl_upload_ip.public_ip
 }
 
+output "instance_public_ip_dns" {
+  description = "Public IP DNS name of the EC2 instance"
+  value       = aws_eip.wibl_upload_ip.public_dns
+}
+
 output "instance_private_ip" {
   description = "Private IP address of the EC2 instance"
   value       = aws_instance.ec2_instance.private_ip

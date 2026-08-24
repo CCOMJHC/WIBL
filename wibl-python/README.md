@@ -67,8 +67,8 @@ Commands:
 
 #### Linux or macOS
 To install `wibl-python` in a local Python environment, first install Python 3 for your operating system; version 
-3.11 or greater is recommended, but 3.8 or later will work (though Python 3.8 will reach 
-[end-of-life](https://devguide.python.org/versions/) status in October 2024).
+3.12 or greater is recommended, but 3.10 or later will work (though Python 3.10 will reach 
+[end-of-life](https://devguide.python.org/versions/) status in October 2026).
 
 Next, we'll need to install non-Python dependencies required by `wibl-python`. Currently, the only such dependency
 is [GDAL](https://gdal.org/download.html). If you are using Linux, your distribution likely has a recent-enough
@@ -318,11 +318,23 @@ inability to read data packets from WIBL files will be treated as an error, caus
 behavior of all commands that read WIBL files is to disable strict mode, so that processing will continue if one or
 more data packets cannot be read.
 
+The `bad_talkers` list can be used to ignore individual NMEA2000 devices by
+their talker ID during processing (`procwibl`) into GeoJSON files.  This should
+be a comma-separated list of the integer talker IDs reported by `parsewibl`;
+since these IDs can be reconfigured when you add new devices to the network,
+they can't be reliably filtered at capture; at processing, you can review the
+talker IDs and add them to the custom list if required.
+
 > Note on configuration files: It is no longer necessary to set `local` to `true` when running
 > `procwibl`. This setting is only used by the `validate` command. See below.
 
 ### Upload WIBL files into AWS S3 Buckets for processing
-Instead of using the mobile app (and for testing), WIBL binary files can be uploaded into a given S3 bucket to trigger processing.  If the file is being uploaded into the staging bucket (i.e., to test transfer to DCDB), a '.json' extension must be added (``-j|--json``), and the SourceID tag must be set (``-s|--source``) so that the submission Lambda can find this information.
+
+Instead of using the mobile app (and for testing), WIBL binary files can be
+uploaded into a given S3 bucket to trigger processing.  If the file is being
+uploaded into the staging bucket (i.e., to test transfer to DCDB), a '.json'
+extension must be added (``-j|--json``), and the SourceID tag must be set
+(``-s|--source``) so that the submission Lambda can find this information.
 ```
 $ wibl uploadwibl --help
 Usage: wibl uploadwibl [OPTIONS] INPUT

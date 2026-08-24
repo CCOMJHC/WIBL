@@ -74,9 +74,10 @@ public:
     void RemoveAllLogfiles(void);
 
     /// \brief Count the number of log files on the system
-    uint32_t CountLogFiles(uint32_t filenumbers[MaxLogFiles]);
-    /// \brief Count the number of log files on the system
-    uint32_t CountLogFiles(void);
+    uint32_t CountLogFiles(uint64_t *fileSize = nullptr);
+
+    /// \brief Collect the file numbers of all log files on the system
+    std::vector<uint32_t> GetLogFileNumbers();
     
     class MD5Hash {
     public:
@@ -116,7 +117,9 @@ public:
         Pkt_SensorScales = 16,  ///< Scale factors for any sensors that will be recorded raw
         Pkt_RawIMU = 17,        ///< Raw store for logger's on-board IMU
         Pkt_Setup = 18,         ///< Setup JSON string for entire configuration
-        Pkt_RawGNSS = 19        ///< Raw store for logger's on-board GNSS
+        Pkt_NMEA2000PGNS = 19,  ///< JSON string for list of integer PGNs to record (as binary) from NMEA2000
+        Pkt_N2kBinary = 20,     ///< The binary representation of a NMEA2000 packet
+        Pkt_RawGNSS = 21        ///< Raw store for logger's on-board GNSS
     };
     
     /// \brief Write a packet into the current log file
@@ -156,18 +159,22 @@ private:
         Inventory(Manager *manager, bool verbose = false);
         ~Inventory(void);
 
-        bool Reinitialise(void);
         bool Lookup(uint32_t filenum, uint32_t& filesize, MD5Hash& hash, uint16_t& uploads);
-        bool Update(uint32_t filenum, MD5Hash *hash = nullptr);
+        bool Update(uint32_t filenum, MD5Hash *hash = nullptr)
+        {
+            rehash(filenum, hash);
+            serialise();
+            return true;
+        }
         void RemoveLogFile(uint32_t filenum);
         uint32_t CountLogFiles(uint32_t filenumbers[MaxLogFiles]);
-        uint32_t CountLogFiles(void);
+        uint32_t CountLogFiles(uint64_t *totalFileSizes);
         uint32_t GetNextLogNumber(void);
         uint32_t Filesize(uint32_t filenum);
         uint16_t UploadCount(uint32_t filenum);
         uint16_t IncrementUploadCount(uint32_t filenum);
 
-        void SerialiseCache(Stream& stream);
+        void DumpCache(Stream& stream);
 
     private:
         Manager                 *m_logManager;
@@ -175,6 +182,11 @@ private:
         std::vector<uint32_t>   m_filesize;
         std::vector<MD5Hash>    m_hashes;
         std::vector<uint16_t>   m_uploadCount;
+        bool reinitialise(void);
+        bool rehash(uint32_t filenum, MD5Hash *filehash);
+        void serialise(void);
+        void deserialise(void);
+        void backingfile(String& name);
     };
     mem::MemController  *m_storage; ///< Controller for the storage to use
     File        m_consoleLog;       ///< File on which to write console information
@@ -193,7 +205,7 @@ private:
     /// \brief Extract a log number from a filename (if valid)
     int32_t ExtractLogNumber(String const& filename);
     /// \brief Count the number of log files on the system
-    uint32_t count(uint32_t *filenumbers);
+    uint32_t ScanLogFolder(uint32_t fileNumbers[MaxLogFiles], uint64_t *totalSize);
     /// \brief Extract information on a single log file
     void enumerate(uint32_t lognumber, String& filename, uint32_t& filesize);
     /// \brief Generate a hash for a given file 

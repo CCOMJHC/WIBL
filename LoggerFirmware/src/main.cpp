@@ -111,7 +111,7 @@ void setup()
             delay(100);
         }
     } else {
-        Serial.println("INF: Configuration is now:");
+        Serial.println("INFO: Configuration is now:");
         DynamicJsonDocument config(logger::ConfigJSON::ExtractConfig(true));
         String config_str;
         serializeJsonPretty(config, config_str);

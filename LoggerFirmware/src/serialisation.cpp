@@ -182,16 +182,20 @@ void Serialisable::operator+=(const char *p)
     }
 }
 
-/// Serialise a buffer of bytes to the output buffer, with given length.
+/// Serialise a known length array of raw bytes into the output buffer.  Unlike the incremental
+/// builders, this code adds the length of the array into the output automatically, and therefore
+/// is a complete call for serialisation of the object.
 ///
-/// \param buffer   Pointer to the buffer to copy
-/// \param n        Length of the buffer in bytes
+/// @param len  Length in bytes of the array to serialise
+/// @param p    Pointer to the source array to serialise
 
-void Serialisable::deposit(uint8_t *buffer, uint32_t n)
+void Serialisable::add(uint32_t len, uint8_t const *p)
 {
-    EnsureSpace(n);
-    memcpy(m_buffer + m_nData, buffer, n);
-    m_nData += n;
+    EnsureSpace(len + 4);
+    this->operator+=(len);
+    for (int n = 0; n < len; ++n) {
+        m_buffer[m_nData++] = *p++;
+    }
 }
 
 /// Constructor for the serialiser, which writes \a Serialisable objects to file.  The file has

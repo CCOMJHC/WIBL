@@ -42,6 +42,8 @@ add certain IAM roles to the AWS account you want to use. To do so, first make s
 following AWS-managed policies using the [AWS IAM console](https://console.aws.amazon.com/iam/):
 
 - AmazonEC2FullAccess
+- AmazonSNSFullAccess
+- IAMFullAccess
 
 For more information on how to add IAM identity permissions, see 
 [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_manage-attach-detach.html).
@@ -110,6 +112,15 @@ commercial region, this means there is effectively a single namespace for S3 buc
 bucket name must be unique. A good practice is to include your organization name as well as a random string of
 characters in your bucket name, for example "unhjhc-1wdvhu89-wibl-upload". For more information about bucket
 naming rules, see [here](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html).
+
+> Very important!!! Once you've updated the `terraform_state_bucket`, `terraform_state_key`, `aws_region` variables
+> in [terraform.tfvars](./scripts/cloud/Terraform/aws/terraform.tfvars), you MUST ALSO update the corresponding
+> values in the `backend "s3"` configuration in the `terraform` configuration defined at the top of 
+> [main.tf](./scripts/cloud/Terraform/aws/main.tf). That is, YOU MUST set `bucket` to the same value as 
+> `terraform_state_bucket`, `region` to the same value as `aws_region`, and `key` to the same value as 
+> `terraform_state_key`. The reason for this is that Terraform loads the `terraform` configuration block in `main.tf`
+> before it has read in any externally defined variables, so the backend configuration values must be set in both
+> `terraform.tfvars` and in `main.tf`.
 
 You will probably also want to change the 
 [AWS region](https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-regions.html) to deploy to by 
@@ -345,6 +356,10 @@ EOF
 * Connection #0 to host 42.23.32.24 left intact
 ```
 
+> Note: When configuring your WIBL loggers to use your upload server, make sure to use the DNS name for your instance,
+> for example `ec2-42-23-32-24.us-east-2.compute.amazonaws.com`, rather than the IP address. Otherwise, the logger
+> firmware will be unable to verify the security certificate.
+
 This will result in the log `tail` in the SSH terminal to be updated with the new entry in the access log:
 ```shell
 ...
@@ -364,7 +379,11 @@ MD5_DIGEST=$(md5sum --quiet $WIBL_FILE)
 
 curl -v --http1.1 \
 	-u TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A:CC0E1FE1-46CA-4768-93A7-2252BF748118 \
-	--cacert ./aws-build/certs/ca.crt --fail-with-body "https://42.23.32.24/update" \                            
+	--cacert ./aws-build/certs/ca.crt --fail-with-body "https://42.23.32.24/update" \
+	-H 'accept: application/json' \
+    -H 'Content-Type: application/octet-stream' \
+    -H "Digest: md5=$MD5_DIGEST" \
+    --data-binary "@${WIBL_FILE}"                         
 
 32+0 records in
 32+0 records out
@@ -583,11 +602,22 @@ go 1.24
 ```
 
 ### Building and running with `docker compose`
-Before running, you'll need to first create a self-signed TLS
-certificate using the provided script [cert-gen.sh](scripts/cert-gen.sh).
+Before running, you'll need to first create a self-signed TLS certificate using the provided script
+[cert-gen.sh](scripts/cert-gen.sh), which by default will generate the certificates in `./certs` (i.e., in the
+repository source directory), a requirement for  `docker compose` to function correctly.
 
-This should store the certs in the local directory called `certs`
-(which will be created if it does not exist).
+You will also have to build the code to add a logger to the database  using the [script
+available](./build-add-logger.bash), which will compile the code [from the Go
+source](./src/tools/add-logger/insert-logger.go).  Then, create a dummy logger with:
+```shell
+mkdir ./db
+add-logger -config ./config-local.json \
+           -logger TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A \
+           -password CC0E1FE1-46CA-4768-93A7-2252BF748118
+```
+where `TNAME` is your DCDB identifier (e.g., `UNHJHC`).  If you do not specify a password, one will be automatically
+created; the database file will also be created if it does not already exist (which also needs to be in the root of the
+upload server source directory, i.e., `./db/loggers.db`, for the `docker compose` to work).
 
 Now, build and start the server in a container using:
 ```shell
@@ -630,19 +660,6 @@ wibl-upload  | 2025/10/02 18:10:52.451089 INFO [::1] - - [02/Oct/2025:18:10:52 +
 wibl-upload  | 2025/10/02 18:11:02.497117 INFO [::1] - - [02/Oct/2025:18:11:02 +0000] "GET / HTTP/2.0" 200 0
 wibl-upload  | 2025/10/02 18:11:12.556534 INFO [::1] - - [02/Oct/2025:18:11:12 +0000] "GET / HTTP/2.0" 200 0
 ```
-
-Before trying to interact with the service, you'll need to create a `loggers.db`
-file in the `db` local directory. Before you can do that, you'll need to build
-the `add-logger` command using the provided [script](build-add-logger.bash).
-
-
-```shell
-mkdir -p db
-./add-logger -config config-local.json -logger TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A -password CC0E1FE1-46CA-4768-93A7-2252BF748118
-./add-logger -config config-local.json -logger TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153 -password CAF1CA92-CB9E-437D-B391-7709A39D32B1
-```
-
-> Where "TNNAME" is your trusted node identifier.
 
 You can then verify that the loggers have been added by running:
 ```shell
