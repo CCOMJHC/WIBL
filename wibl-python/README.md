@@ -319,7 +319,7 @@ behavior of all commands that read WIBL files is to disable strict mode, so that
 more data packets cannot be read.
 
 The `bad_talkers` list can be used to ignore individual NMEA2000 devices by
-their talker ID during processing (`procwibl`) into GeoJSON filtes.  This should
+their talker ID during processing (`procwibl`) into GeoJSON files.  This should
 be a comma-separated list of the integer talker IDs reported by `parsewibl`;
 since these IDs can be reconfigured when you add new devices to the network,
 they can't be reliably filtered at capture; at processing, you can review the
