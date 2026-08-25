@@ -14,7 +14,7 @@ from wibl.simulator.data.writer import Writer, MemoryWriter
 logger = config_logger_service()
 
 
-class TestDataGenerator(unittest.TestCase):
+class TestDataGeneratorVersion_1_3(unittest.TestCase):
     """
     TODO: Add tests for the following packet types in `wibl.core.logger_file.py`:
         - COG
@@ -110,9 +110,10 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.3')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.3')
         gen.generate_gga(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -276,13 +277,15 @@ class TestDataGenerator(unittest.TestCase):
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.3')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_data_const.generate_gga(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False, logger_file_version='1.3')
+        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_buff_const.generate_gga(state, writer_buff_const)
         buff_buff_const: bytes = writer_buff_const.getvalue()
 
@@ -293,9 +296,11 @@ class TestDataGenerator(unittest.TestCase):
         # Simulate first time after initial time step
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True,
+                                           logger_file_version='1.3')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.3')
         gen.generate_system_time(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -328,13 +333,17 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True,
+                                                      logger_file_version='1.3')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_data_const.generate_system_time(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buffer_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buffer_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buffer_const: DataGenerator = DataGenerator(use_data_constructor=False,
+                                                        logger_file_version='1.3')
+        writer_buffer_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                   logger_file_version='1.3')
         gen_buffer_const.generate_system_time(state, writer_buffer_const)
         buff_buffer_const: bytes = writer_buffer_const.getvalue()
 
@@ -345,9 +354,10 @@ class TestDataGenerator(unittest.TestCase):
         # Simulate first time after initial time step
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.3')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.3')
         gen.generate_attitude(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -390,13 +400,15 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.3')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_data_const.generate_attitude(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buffer_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buffer_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buffer_const: DataGenerator = DataGenerator(use_data_constructor=False, logger_file_version='1.3')
+        writer_buffer_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                   logger_file_version='1.3')
         gen_buffer_const.generate_attitude(state, writer_buffer_const)
         buff_buffer_const: bytes = writer_buffer_const.getvalue()
 
@@ -411,9 +423,10 @@ class TestDataGenerator(unittest.TestCase):
         # Simulate first position after initial position step
         state.current_longitude = -74.999996729200006
         state.current_latitude = 43.000003270800001
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.3')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.3')
         gen.generate_gnss(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -479,13 +492,17 @@ class TestDataGenerator(unittest.TestCase):
         state.current_longitude = -74.999996729200006
         state.current_latitude = 43.000003270800001
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True,
+                                                      logger_file_version='1.3')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_data_const.generate_gnss(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False,
+                                                      logger_file_version='1.3')
+        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_buff_const.generate_gnss(state, writer_buff_const)
         buff_buff_const: bytes = writer_buff_const.getvalue()
 
@@ -496,9 +513,10 @@ class TestDataGenerator(unittest.TestCase):
         # Simulate first time after initial time step
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.3')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.3')
         gen.generate_depth(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -536,13 +554,15 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.3')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_data_const.generate_depth(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False, logger_file_version='1.3')
+        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_buff_const.generate_depth(state, writer_buff_const)
         buff_buff_const: bytes = writer_data_const.getvalue()
 
@@ -557,9 +577,10 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.3')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.3')
         gen.generate_zda(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -644,13 +665,15 @@ class TestDataGenerator(unittest.TestCase):
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.3')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_data_const.generate_zda(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False, logger_file_version='1.3')
+        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_buff_const.generate_zda(state, writer_buff_const)
         buff_buff_const: bytes = writer_buff_const.getvalue()
 
@@ -665,9 +688,10 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.3')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.3')
         gen.generate_dbt(state, writer, override_depth=10.0)
 
         buff: bytes = writer.getvalue()
@@ -751,13 +775,15 @@ class TestDataGenerator(unittest.TestCase):
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.3')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_data_const.generate_dbt(state, writer_data_const, override_depth=10.0)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False, logger_file_version='1.3')
+        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.3')
         gen_buff_const.generate_dbt(state, writer_buff_const, override_depth=10.0)
         buff_buff_const: bytes = writer_buff_const.getvalue()
 

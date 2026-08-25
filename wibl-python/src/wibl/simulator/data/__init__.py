@@ -263,7 +263,7 @@ class State(TickCountMillisecondsMixin):
         # Global state for Gaussian variate generator (from Numerical Recipies)
         self._gset: float = None
 
-    def update_ticks(self, ticks: int) -> NoReturn:
+    def update_ticks(self, ticks: int):
         self.curr_ticks = ticks
         self.tick_count = self.curr_ticks - self.init_ticks
 
@@ -303,7 +303,8 @@ class DataGenerator:
     def __init__(self, emit_nmea0183: bool = True, emit_nmea2000: bool = True, *,
                  use_data_constructor: bool = True,
                  duplicate_depth_prob: float = 0.0,
-                 no_data_prob: float = 0.0):
+                 no_data_prob: float = 0.0,
+                 logger_file_version: lf.LOGGER_FILE_VERSIONS = '1.4'):
         """
         Default constructor, given the NMEA2000 object that's doing the data capture
         :param emit_nmea0183:
@@ -324,6 +325,8 @@ class DataGenerator:
         self._use_data_constructor = use_data_constructor
         self._duplicate_depth_prob = duplicate_depth_prob
         self._no_data_prob = no_data_prob
+        self._lf = lf.get_logger_file(logger_file_version)
+        self._pf = self._lf.packet_factory
 
         if not emit_nmea0183 and not emit_nmea2000:
             logger.warning('User asked for neither NMEA0183 or NMEA2000; defaulting to generating NMEA2000')
@@ -401,7 +404,7 @@ class DataGenerator:
                 'elapsed_time': ref_time.tick_count_to_milliseconds(),
                 'data_source': 0
             }
-            pkt: lf.DataPacket = lf.SystemTime(**data)
+            pkt: lf.DataPacket = self._pf.SystemTime(**data)
         else:
             # Use buffer constructor
             buffer = struct.pack('<HdLB',
@@ -409,7 +412,7 @@ class DataGenerator:
                                  ref_time.seconds_in_day(),
                                  ref_time.tick_count_to_milliseconds(),
                                  0)
-            pkt: lf.DataPacket = lf.SystemTime(buffer=buffer)
+            pkt: lf.DataPacket = self._pf.SystemTime(buffer=buffer)
 
         output.record(pkt)
 
@@ -429,7 +432,7 @@ class DataGenerator:
                 'pitch': DUMMY_PITCH,
                 'roll': DUMMY_ROLL
             }
-            pkt: lf.DataPacket = lf.Attitude(**data)
+            pkt: lf.DataPacket = self._pf.Attitude(**data)
         else:
             # Use buffer constructor
             buffer = struct.pack('<HdIddd',
@@ -439,7 +442,7 @@ class DataGenerator:
                                  DUMMY_YAW,
                                  DUMMY_PITCH,
                                  DUMMY_ROLL)
-            pkt: lf.DataPacket = lf.Attitude(buffer=buffer)
+            pkt: lf.DataPacket = self._pf.Attitude(buffer=buffer)
 
         output.record(pkt)
 
@@ -475,7 +478,7 @@ class DataGenerator:
                 'correction_age': 2.32
             }
 
-            pkt: lf.DataPacket = lf.GNSS(**data)
+            pkt: lf.DataPacket = self._pf.GNSS(**data)
         else:
             # Use buffer constructor
             # H = sim_time.days since epoch
@@ -516,7 +519,7 @@ class DataGenerator:
                                  12312,
                                  2.32
                                  )
-            pkt: lf.DataPacket = lf.GNSS(buffer=buffer)
+            pkt: lf.DataPacket = self._pf.GNSS(buffer=buffer)
 
         output.record(pkt)
 
@@ -540,7 +543,7 @@ class DataGenerator:
                 'range': 200.0
             }
 
-            pkt: lf.DataPacket = lf.Depth(**data)
+            pkt: lf.DataPacket = self._pf.Depth(**data)
         else:
             # Use buffer constructor
             # H = sim_time.days since epoch
@@ -557,7 +560,7 @@ class DataGenerator:
                                  0.0, # offset hard-coded to 0
                                  200.0 # range hard-coded to 200
                                  )
-            pkt: lf.DataPacket = lf.Depth(buffer=buffer)
+            pkt: lf.DataPacket = self._pf.Depth(buffer=buffer)
 
         output.record(pkt)
         if self._duplicate_depth_prob > 0.0 and \
@@ -588,12 +591,12 @@ class DataGenerator:
                     'elapsed_time': state.sim_time.tick_count_to_milliseconds()
                     }
 
-            pkt: lf.DataPacket = lf.SerialString(**data)
+            pkt: lf.DataPacket = self._pf.SerialString(**data)
         else:
             # Use buffer constructor
             elapsed_bytes = struct.pack('<I', state.sim_time.tick_count_to_milliseconds())
             buffer = elapsed_bytes + bytes(msg, 'ascii')
-            pkt: lf.DataPacket = lf.SerialString(buffer=buffer)
+            pkt: lf.DataPacket = self._pf.SerialString(buffer=buffer)
 
         output.record(pkt)
 
@@ -637,12 +640,12 @@ class DataGenerator:
                     'elapsed_time': state.sim_time.tick_count_to_milliseconds()
                     }
 
-            pkt: lf.DataPacket = lf.SerialString(**data)
+            pkt: lf.DataPacket = self._pf.SerialString(**data)
         else:
             # Use buffer constructor
             elapsed_bytes = struct.pack('<I', state.sim_time.tick_count_to_milliseconds())
             buffer = elapsed_bytes + bytes(msg, 'ascii')
-            pkt: lf.DataPacket = lf.SerialString(buffer=buffer)
+            pkt: lf.DataPacket = self._pf.SerialString(buffer=buffer)
 
         output.record(pkt)
 
@@ -675,12 +678,12 @@ class DataGenerator:
                     'elapsed_time': state.sim_time.tick_count_to_milliseconds()
                     }
 
-            pkt: lf.DataPacket = lf.SerialString(**data)
+            pkt: lf.DataPacket = self._pf.SerialString(**data)
         else:
             # Use buffer constructor
             elapsed_bytes = struct.pack('<I', state.sim_time.tick_count_to_milliseconds())
             buffer = elapsed_bytes + bytes(msg, 'ascii')
-            pkt: lf.DataPacket = lf.SerialString(buffer=buffer)
+            pkt: lf.DataPacket = self._pf.SerialString(buffer=buffer)
 
         output.record(pkt)
         if self._duplicate_depth_prob > 0.0 and \

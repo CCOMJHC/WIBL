@@ -34,13 +34,12 @@ import json
 from .base import (
     SpecificationError,
     PacketTranscriptionError,
-    numeric_file_version,
     temp_to_celsius,
     pressure_to_mbar,
     angle_to_degs,
     PacketTypes,
     DataPacket,
-    PacketFactoryBase, LoggerFileBase, PacketFactoryT
+    PacketFactoryBase, LoggerFileBase
 )
 
 ## Definition of major version of the file format represented by this description
@@ -947,18 +946,9 @@ class SerialiserVersion(DataPacket):
         base = 0
         (major, minor) = struct.unpack_from('<HH', buffer, base)
         base += 4
-        if numeric_file_version(major, minor) < numeric_file_version(wibl_file_version_major, wibl_file_version_minor):
-            # Dealing with an older version of the file format, which means that we have slight
-            # differences in the rest of the buffer, and have to fake some of the data.
-            (n2000_major, n2000_minor, n2000_patch, n0183_major, n0183_minor, n0183_patch) = \
-                struct.unpack_from('<HHHHHH', buffer, base)
-            imu_major = 0
-            imu_minor = 0
-            imu_patch = 0
-        else:
-            (n2000_major, n2000_minor, n2000_patch, n0183_major, n0183_minor, n0183_patch, imu_major, imu_minor,
-             imu_patch) = \
-                struct.unpack_from('<HHHHHHHHH', buffer, base)
+        (n2000_major, n2000_minor, n2000_patch, n0183_major, n0183_minor, n0183_patch, imu_major, imu_minor,
+         imu_patch) = \
+            struct.unpack_from('<HHHHHHHHH', buffer, base)
         ## Major software version for the serialiser code
         self.major = major
         ## Minor software version for the serialiser code
@@ -1731,6 +1721,26 @@ class Setup(DataPacket):
 # method pulls the next packet header, checks for type and size, and then reads the following byte sequence to the
 # required length before translating to an instantiation of the appropriate class.  Unknown packets generate a warning.
 class PacketFactory(PacketFactoryBase):
+    SerialiserVersion = SerialiserVersion
+    SystemTime = SystemTime
+    Attitude = Attitude
+    Depth = Depth
+    COG = COG
+    GNSS = GNSS
+    Environment = Environment
+    Temperature = Temperature
+    Humidity = Humidity
+    Pressure = Pressure
+    SerialString = SerialString
+    Motion = Motion
+    Metadata = Metadata
+    AlgorithmRequest = AlgorithmRequest
+    JSONMetadata = JSONMetadata
+    NMEA0183Filter = NMEA0183Filter
+    SensorScales = SensorScales
+    RawIMU = RawIMU
+    Setup = Setup
+
     def _generate_packet(self, pkt_id: int, buffer: bytes, last_pos: int) -> DataPacket | None:
         rtn = None
         try:
@@ -1787,9 +1797,8 @@ class PacketFactory(PacketFactoryBase):
 
 
 class LoggerFile(LoggerFileBase):
+    packet_factory = PacketFactory
+
     def __init__(self):
         super().__init__(WIBL_FILE_VERSION_MAJOR, WIBL_FILE_VERSION_MINOR)
 
-    def packet_factory(self, file, *,
-                       strict_mode: bool = False):
-        return PacketFactory(file, strict_mode=strict_mode)
