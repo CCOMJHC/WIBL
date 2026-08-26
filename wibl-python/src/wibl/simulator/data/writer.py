@@ -30,14 +30,6 @@ import io
 import wibl.core.logger_file as lf
 
 
-# NMEA2000 version
-SERIALISER_VERSION_NMEA2000 = (1, 0, 0)
-# NMEA0183 version
-SERIALISER_VERSION_NMEA0183 = (1, 0, 0)
-# IMU version
-SERIALISER_VERSION_IMU = (1, 0, 0)
-
-
 class Writer(ABC):
     def __init__(self, logger_name: str, shipname: str, *,
                  logger_file_version: lf.LOGGER_FILE_VERSIONS = '1.4'):
@@ -47,9 +39,7 @@ class Writer(ABC):
         # Write serialiser version to underlying data stream
         version: lf.DataPacket = self._pf.SerialiserVersion(major=major,
                                                             minor=minor,
-                                                            n2000=SERIALISER_VERSION_NMEA2000,
-                                                            n0183=SERIALISER_VERSION_NMEA0183,
-                                                            imu=SERIALISER_VERSION_IMU)
+                                                            **lf.LOGGER_VERSIONS[logger_file_version])
         self.record(version)
         # Write metadata to underlying data stream
         meta: lf.DataPacket = self._pf.Metadata(logger=logger_name,

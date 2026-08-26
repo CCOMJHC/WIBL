@@ -71,7 +71,7 @@ class TestDataGeneratorVersion_1_3(unittest.TestCase):
         # NMEA2000 major version in bytes 11-12, equals 1
         self.assertEqual(1, struct.unpack('<H', buff[12:14])[0])
         # NMEA2000 minor version in bytes 13-14, equals 0
-        self.assertEqual(0, struct.unpack('<H', buff[14:16])[0])
+        self.assertEqual(1, struct.unpack('<H', buff[14:16])[0])
         # NMEA2000 patch version in bytes 15-16, equals 0
         self.assertEqual(0, struct.unpack('<H', buff[16:18])[0])
         # NMEA0183 major version in bytes 17-18, equals 1
@@ -79,7 +79,7 @@ class TestDataGeneratorVersion_1_3(unittest.TestCase):
         # NMEA0183 minor version in bytes 19-20, equals 0
         self.assertEqual(0, struct.unpack('<H', buff[20:22])[0])
         # NMEA0183 patch version in bytes 21-22, equals 0
-        self.assertEqual(0, struct.unpack('<H', buff[22:24])[0])
+        self.assertEqual(1, struct.unpack('<H', buff[22:24])[0])
         # IMU major version in bytes 23-24, equals 1
         self.assertEqual(1, struct.unpack('<H', buff[24:26])[0])
         # IMU minor version in bytes 25-26, equals 0
