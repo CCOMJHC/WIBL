@@ -310,18 +310,21 @@ class TestDataGeneratorVersion_1_4(unittest.TestCase):
         # Message type in bytes 72-75
         self.assertEqual(PacketTypes.SystemTime.value, struct.unpack('<I', buff[73:77])[0])
         # Message length in bytes 76-79
-        self.assertEqual(15, struct.unpack('<I', buff[77:81])[0])
+        self.assertEqual(16, struct.unpack('<I', buff[77:81])[0])
         # Days since epoch from bytes 80-81
         self.assertEqual(18262, struct.unpack('<H', buff[81:83])[0])
         # Read timestamp from bytes 82-89
         self.assertEqual(0.300536, struct.unpack('<d', buff[83:91])[0])
         # Elapsed time should equal state.tick_count_to_milliseconds()
         self.assertEqual(state.tick_count_to_milliseconds(), struct.unpack('<I', buff[91:95])[0])
+        # Read talker ID from bytes 94-95
+        talker_id = struct.unpack('<B', buff[95:96])[0]
+        self.assertEqual(talker_id, DUMMY_TALKER)
         # Data source is the final byte (23) and should be 0 for now
-        self.assertEqual(0, buff[95])
+        self.assertEqual(0, buff[96])
 
         with self.assertRaises(IndexError):
-            buff[96]
+            buff[97]
 
     def test_generate_system_time_compare(self):
         """
@@ -439,47 +442,49 @@ class TestDataGeneratorVersion_1_4(unittest.TestCase):
         # Message type in bytes 72-75
         self.assertEqual(PacketTypes.GNSS.value, struct.unpack('<I', buff[73:77])[0])
         # Message length in bytes 76-79
-        self.assertEqual(87, struct.unpack('<I', buff[77:81])[0])
+        self.assertEqual(88, struct.unpack('<I', buff[77:81])[0])
         # Days since epoch from bytes 80-81
         self.assertEqual(18262, struct.unpack('<H', buff[81:83])[0])
         # Read timestamp from bytes 82-89
         self.assertEqual(0.150268, struct.unpack('<d', buff[83:91])[0])
         # Elapsed time should equal state.tick_count_to_milliseconds()
         self.assertEqual(state.sim_time.tick_count_to_milliseconds(), struct.unpack('<I', buff[91:95])[0])
-
+        # Read talker ID from bytes 94-95
+        talker_id = struct.unpack('<B', buff[95:96])[0]
+        self.assertEqual(talker_id, DUMMY_TALKER)
         # Message date should equal state.sim_time.days_since_epoch()
-        self.assertEqual(state.sim_time.days_since_epoch(), struct.unpack('<H', buff[95:97])[0])
+        self.assertEqual(state.sim_time.days_since_epoch(), struct.unpack('<H', buff[96:98])[0])
         # Message timestamp = state.sim_time.seconds_in_day()
-        self.assertEqual(state.sim_time.seconds_in_day(), struct.unpack('<d', buff[97:105])[0])
+        self.assertEqual(state.sim_time.seconds_in_day(), struct.unpack('<d', buff[98:106])[0])
         # Latitude
-        self.assertEqual(state.current_latitude, struct.unpack('<d', buff[105:113])[0])
+        self.assertEqual(state.current_latitude, struct.unpack('<d', buff[106:114])[0])
         # Longitude
-        self.assertEqual(state.current_longitude, struct.unpack('<d', buff[113:121])[0])
+        self.assertEqual(state.current_longitude, struct.unpack('<d', buff[114:122])[0])
         # Hard-coded altitude
-        self.assertEqual(-19.323, struct.unpack('<d', buff[121:129])[0])
+        self.assertEqual(-19.323, struct.unpack('<d', buff[122:130])[0])
         # Hard-coded rx_type
-        self.assertEqual(0, buff[129])
+        self.assertEqual(0, buff[130])
         # Hard-coded rx_method
-        self.assertEqual(2, buff[130])
+        self.assertEqual(2, buff[131])
         # Hard-coded num SVs
-        self.assertEqual(12, buff[131])
+        self.assertEqual(12, buff[132])
         # Hard-coded horizontal DOP
-        self.assertEqual(1.5, struct.unpack('<d', buff[132:140])[0])
+        self.assertEqual(1.5, struct.unpack('<d', buff[133:141])[0])
         # Hard-coded position DOP
-        self.assertEqual(2.2, struct.unpack('<d', buff[140:148])[0])
+        self.assertEqual(2.2, struct.unpack('<d', buff[141:149])[0])
         # Hard-coded sep
-        self.assertEqual(22.3453, struct.unpack('<d', buff[148:156])[0])
+        self.assertEqual(22.3453, struct.unpack('<d', buff[149:157])[0])
         # Hard-coded n_refs
-        self.assertEqual(1, buff[156])
+        self.assertEqual(1, buff[157])
         # Hard-coded refs_type
-        self.assertEqual(4, buff[157])
+        self.assertEqual(4, buff[158])
         # Hard-coded refs_id
-        self.assertEqual(12312, struct.unpack('<H', buff[158:160])[0])
+        self.assertEqual(12312, struct.unpack('<H', buff[159:161])[0])
         # Hard-coded correction_age
-        self.assertEqual(2.32, struct.unpack('<d', buff[160:168])[0])
+        self.assertEqual(2.32, struct.unpack('<d', buff[161:169])[0])
 
         with self.assertRaises(IndexError):
-            buff[168]
+            buff[169]
 
     def test_generate_gnss_compare(self):
         """
@@ -529,23 +534,25 @@ class TestDataGeneratorVersion_1_4(unittest.TestCase):
         # Message type in bytes 72-75
         self.assertEqual(PacketTypes.Depth.value, struct.unpack('<I', buff[73:77])[0])
         # Message length in bytes 76-79
-        self.assertEqual(38, struct.unpack('<I', buff[77:81])[0])
+        self.assertEqual(39, struct.unpack('<I', buff[77:81])[0])
         # Days since epoch from bytes 80-81
         self.assertEqual(18262, struct.unpack('<H', buff[81:83])[0])
         # Read timestamp from bytes 82-89
         self.assertEqual(0.0, struct.unpack('<d', buff[83:91])[0])
         # Elapsed time should equal state.tick_count_to_milliseconds()
         self.assertEqual(state.sim_time.tick_count_to_milliseconds(), struct.unpack('<I', buff[91:95])[0])
-
+        # Read talker ID from bytes 94-95
+        talker_id = struct.unpack('<B', buff[95:96])[0]
+        self.assertEqual(talker_id, DUMMY_TALKER)
         # Depth should equal state.current_depth
-        self.assertEqual(state.current_depth, struct.unpack('<d', buff[95:103])[0])
+        self.assertEqual(state.current_depth, struct.unpack('<d', buff[96:104])[0])
         # Hard-coded offset
-        self.assertEqual(0.0, struct.unpack('<d', buff[103:111])[0])
+        self.assertEqual(0.0, struct.unpack('<d', buff[104:112])[0])
         # Hard-coded range
-        self.assertEqual(200.0, struct.unpack('<d', buff[111:119])[0])
+        self.assertEqual(200.0, struct.unpack('<d', buff[112:120])[0])
 
         with self.assertRaises(IndexError):
-            buff[119]
+            buff[120]
 
     def test_generate_depth_compare(self):
         """

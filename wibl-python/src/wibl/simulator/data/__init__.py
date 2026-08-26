@@ -398,22 +398,20 @@ class DataGenerator:
                                                                     datetime_timestamp=NA_DATA_UINT32),),
                                                  (state.ref_time,))
 
-        if self._use_data_constructor:
-            data = {
-                'date': ref_time.days_since_epoch(),
-                'timestamp': ref_time.seconds_in_day(),
-                'elapsed_time': ref_time.tick_count_to_milliseconds(),
-                'data_source': 0
-            }
-            pkt: lf.DataPacket = self._pf.SystemTime(**data)
-        else:
-            # Use buffer constructor
-            buffer = struct.pack('<HdLB',
-                                 ref_time.days_since_epoch(),
-                                 ref_time.seconds_in_day(),
-                                 ref_time.tick_count_to_milliseconds(),
-                                 0)
-            pkt: lf.DataPacket = self._pf.SystemTime(buffer=buffer)
+        data = {
+            'date': ref_time.days_since_epoch(),
+            'timestamp': ref_time.seconds_in_day(),
+            'elapsed_time': ref_time.tick_count_to_milliseconds(),
+            'data_source': 0,
+            # talker ID should be ignored for serialiser versions prior to 1.4
+            'talker_id': DUMMY_TALKER
+        }
+        pkt: lf.DataPacket = self._pf.SystemTime(**data)
+        if not self._use_data_constructor:
+            # Use buffer constructor, but because the format of binary packets can vary with serialiser
+            # versions, we have to use the packet constructed via the data constructor to generate the
+            # buffer to use with the buffer constructor.
+            pkt: lf.DataPacket = self._pf.SystemTime(buffer=pkt.payload())
 
         output.record(pkt)
 
@@ -424,29 +422,22 @@ class DataGenerator:
         :param output: Output writer to use for serialisation of the simulated system time report
         :return:
         """
-        if self._use_data_constructor:
-            data = {
-                'date': state.ref_time.days_since_epoch(),
-                'timestamp': state.ref_time.seconds_in_day(),
-                'elapsed_time': state.ref_time.tick_count_to_milliseconds(),
-                'yaw': DUMMY_YAW,
-                'pitch': DUMMY_PITCH,
-                'roll': DUMMY_ROLL,
-                # talker ID should be ignored for serialiser versions prior to 1.4
-                'talker_id': DUMMY_TALKER
-            }
-            pkt: lf.DataPacket = self._pf.Attitude(**data)
-        else:
-            # Use buffer constructor
-            # TODO: Construct this using packet factory since the struct format can now differ by serialiser version...
-            buffer = struct.pack('<HdIddd',
-                                 state.ref_time.days_since_epoch(),
-                                 state.ref_time.seconds_in_day(),
-                                 state.ref_time.tick_count_to_milliseconds(),
-                                 DUMMY_YAW,
-                                 DUMMY_PITCH,
-                                 DUMMY_ROLL)
-            pkt: lf.DataPacket = self._pf.Attitude(buffer=buffer)
+        data = {
+            'date': state.ref_time.days_since_epoch(),
+            'timestamp': state.ref_time.seconds_in_day(),
+            'elapsed_time': state.ref_time.tick_count_to_milliseconds(),
+            'yaw': DUMMY_YAW,
+            'pitch': DUMMY_PITCH,
+            'roll': DUMMY_ROLL,
+            # talker ID should be ignored for serialiser versions prior to 1.4
+            'talker_id': DUMMY_TALKER
+        }
+        pkt: lf.DataPacket = self._pf.Attitude(**data)
+        if not self._use_data_constructor:
+            # Use buffer constructor, but because the format of binary packets can vary with serialiser
+            # versions, we have to use the packet constructed via the data constructor to generate the
+            # buffer to use with the buffer constructor.
+            pkt: lf.DataPacket = self._pf.Attitude(buffer=pkt.payload())
 
         output.record(pkt)
 
@@ -460,70 +451,34 @@ class DataGenerator:
         # Simulate random generation of no-data values
         lat, lon = self._get_possible_na_values((NA_DATA_DOUBLE, NA_DATA_DOUBLE),
                                                 (state.current_latitude, state.current_longitude,))
-        if self._use_data_constructor:
-            data = {
-                'date': state.sim_time.days_since_epoch(),
-                'timestamp': state.sim_time.seconds_in_day(),
-                'elapsed_time': state.sim_time.tick_count_to_milliseconds(),
-                'msg_date': state.sim_time.days_since_epoch(),
-                'msg_timestamp': state.sim_time.seconds_in_day(),
-                'latitude': lat,
-                'longitude': lon,
-                'altitude': -19.323,
-                'rx_type': 0,   # GPS
-                'rx_method': 2, # DGNSS
-                'num_svs': 12,
-                'horizontal_dop': 1.5,
-                'position_dop': 2.2,
-                'sep': 22.3453,
-                'n_refs': 1,
-                'refs_type': 4, # All constellations
-                'refs_id': 12312,
-                'correction_age': 2.32
-            }
-
-            pkt: lf.DataPacket = self._pf.GNSS(**data)
-        else:
-            # Use buffer constructor
-            # H = sim_time.days since epoch
-            # d = sim_time.seconds in day
-            # I = sim_time.tick_count milliseconds
-            # H = sim_time.days since epoch
-            # d = sim_time.seconds in day
-            # d = curr lat
-            # d = curr lon
-            # d = altitude
-            # B = rx_type
-            # B = rx_method
-            # B = num_SVs
-            # d = hdop
-            # d = pdop
-            # d = sep
-            # B = n ref stations
-            # B = ref station type
-            # H = ref station ID
-            # d = correction age
-            buffer = struct.pack('<HdIHddddBBBdddBBHd',
-                                 state.sim_time.days_since_epoch(),
-                                 state.sim_time.seconds_in_day(),
-                                 state.sim_time.tick_count_to_milliseconds(),
-                                 state.sim_time.days_since_epoch(),
-                                 state.sim_time.seconds_in_day(),
-                                 lat,
-                                 lon,
-                                 -19.323,
-                                 0,  # GPS
-                                 2,  # DGNSS
-                                 12,
-                                 1.5,
-                                 2.2,
-                                 22.3453,
-                                 1,
-                                 4,  # All constellations
-                                 12312,
-                                 2.32
-                                 )
-            pkt: lf.DataPacket = self._pf.GNSS(buffer=buffer)
+        data = {
+            'date': state.sim_time.days_since_epoch(),
+            'timestamp': state.sim_time.seconds_in_day(),
+            'elapsed_time': state.sim_time.tick_count_to_milliseconds(),
+            'msg_date': state.sim_time.days_since_epoch(),
+            'msg_timestamp': state.sim_time.seconds_in_day(),
+            'latitude': lat,
+            'longitude': lon,
+            'altitude': -19.323,
+            'rx_type': 0,  # GPS
+            'rx_method': 2,  # DGNSS
+            'num_svs': 12,
+            'horizontal_dop': 1.5,
+            'position_dop': 2.2,
+            'sep': 22.3453,
+            'n_refs': 1,
+            'refs_type': 4,  # All constellations
+            'refs_id': 12312,
+            'correction_age': 2.32,
+            # talker ID should be ignored for serialiser versions prior to 1.4
+            'talker_id': DUMMY_TALKER
+        }
+        pkt: lf.DataPacket = self._pf.GNSS(**data)
+        if not self._use_data_constructor:
+            # Use buffer constructor, but because the format of binary packets can vary with serialiser
+            # versions, we have to use the packet constructed via the data constructor to generate the
+            # buffer to use with the buffer constructor.
+            pkt: lf.DataPacket = self._pf.GNSS(buffer=pkt.payload())
 
         output.record(pkt)
 
@@ -537,34 +492,22 @@ class DataGenerator:
         # Simulate random generation of no-data values
         depth, = self._get_possible_na_values((NA_DATA_DOUBLE,), (state.current_depth,))
 
-        if self._use_data_constructor:
-            data = {
-                'date': state.sim_time.days_since_epoch(),
-                'timestamp': state.sim_time.seconds_in_day(),
-                'elapsed_time': state.sim_time.tick_count_to_milliseconds(),
-                'depth': depth,
-                'offset': 0.0,
-                'range': 200.0
-            }
-
-            pkt: lf.DataPacket = self._pf.Depth(**data)
-        else:
-            # Use buffer constructor
-            # H = sim_time.days since epoch
-            # d = sim_time.seconds in day
-            # I = sim_time.tick_count milliseconds
-            # d = state.curr depth
-            # d = offset
-            # d = range
-            buffer = struct.pack('<HdIddd',
-                                 state.sim_time.days_since_epoch(),
-                                 state.sim_time.seconds_in_day(),
-                                 state.sim_time.tick_count_to_milliseconds(),
-                                 depth,
-                                 0.0, # offset hard-coded to 0
-                                 200.0 # range hard-coded to 200
-                                 )
-            pkt: lf.DataPacket = self._pf.Depth(buffer=buffer)
+        data = {
+            'date': state.sim_time.days_since_epoch(),
+            'timestamp': state.sim_time.seconds_in_day(),
+            'elapsed_time': state.sim_time.tick_count_to_milliseconds(),
+            'depth': depth,
+            'offset': 0.0,
+            'range': 200.0,
+            # talker ID should be ignored for serialiser versions prior to 1.4
+            'talker_id': DUMMY_TALKER
+        }
+        pkt: lf.DataPacket = self._pf.Depth(**data)
+        if not self._use_data_constructor:
+            # Use buffer constructor, but because the format of binary packets can vary with serialiser
+            # versions, we have to use the packet constructed via the data constructor to generate the
+            # buffer to use with the buffer constructor.
+            pkt: lf.DataPacket = self._pf.Depth(buffer=pkt.payload())
 
         output.record(pkt)
         if self._duplicate_depth_prob > 0.0 and \
