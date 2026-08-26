@@ -46,6 +46,7 @@ MAX_RAD = math.pi * 2
 DUMMY_YAW = random.random() * MAX_RAD
 DUMMY_PITCH = random.random() * MAX_RAD
 DUMMY_ROLL = random.random() * MAX_RAD
+DUMMY_TALKER = 87
 NA_DATA_DOUBLE: float = -1e9
 NA_DATA_UINT32: int = 0xFFFFFFFF
 
@@ -430,11 +431,14 @@ class DataGenerator:
                 'elapsed_time': state.ref_time.tick_count_to_milliseconds(),
                 'yaw': DUMMY_YAW,
                 'pitch': DUMMY_PITCH,
-                'roll': DUMMY_ROLL
+                'roll': DUMMY_ROLL,
+                # talker ID should be ignored for serialiser versions prior to 1.4
+                'talker_id': DUMMY_TALKER
             }
             pkt: lf.DataPacket = self._pf.Attitude(**data)
         else:
             # Use buffer constructor
+            # TODO: Construct this using packet factory since the struct format can now differ by serialiser version...
             buffer = struct.pack('<HdIddd',
                                  state.ref_time.days_since_epoch(),
                                  state.ref_time.seconds_in_day(),
