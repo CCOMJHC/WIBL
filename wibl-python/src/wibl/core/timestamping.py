@@ -133,10 +133,10 @@ def time_interpolation(filename: str, lineage: Lineage, elapsed_time_quantum: in
     
     # Pull all of the packets out of the file, and fix up any preliminary problems
     try:
-        stats, time_source, packets, algorithms = load_file(filename, lineage, verbose, fault_limit,
-                                                            process_algorithms=process_algorithms,
-                                                            strict_mode=strict_mode,
-                                                            bad_talkers=bad_talkers)
+        stats, packet_factory, time_source, packets, algorithms = load_file(filename, lineage, verbose, fault_limit,
+                                                                            process_algorithms=process_algorithms,
+                                                                            strict_mode=strict_mode,
+                                                                            bad_talkers=bad_talkers)
     except flNoTimeSource as e:
         if verbose:
             print(f'Failed to determine a valid time source from file: {e}')
@@ -171,16 +171,16 @@ def time_interpolation(filename: str, lineage: Lineage, elapsed_time_quantum: in
         # There are some informational packets in the file that we can handle even if they
         # don't have assigned elapsed times; we deal with these first so that we can then
         # safely ignore any packets that are not time-enabled.
-        if isinstance(pkt, LoggerFile.SerialiserVersion):
+        if isinstance(pkt, packet_factory.SerialiserVersion):
             stats.Observed(pkt.name())
             if protocol_version(pkt.major, pkt.minor) > maximum_version:
                 raise NewerDataFile()
             logger_version = f'{pkt.major}.{pkt.minor}/{pkt.nmea2000_version}/{pkt.nmea0183_version}'
-        if isinstance(pkt, LoggerFile.Metadata):
+        if isinstance(pkt, packet_factory.Metadata):
             stats.Observed(pkt.name())
             logger_name = pkt.logger_name
             platform_name = pkt.ship_name
-        if isinstance(pkt, LoggerFile.JSONMetadata):
+        if isinstance(pkt, packet_factory.JSONMetadata):
             stats.Observed(pkt.name())
             metadata = pkt.metadata_element.decode('UTF-8')
         
@@ -196,19 +196,19 @@ def time_interpolation(filename: str, lineage: Lineage, elapsed_time_quantum: in
             elapsed_offset = elapsed_offset + elapsed_time_quantum
         last_elapsed = pkt.elapsed
 
-        if isinstance(pkt, LoggerFile.SystemTime):
+        if isinstance(pkt, packet_factory.SystemTime):
             stats.Observed(pkt.name())
             if time_source == TimeSource.Time_SysTime:
                 time_table.add_point(pkt.elapsed + elapsed_offset, 'ref', pkt.date * seconds_per_day + pkt.timestamp)
-        if isinstance(pkt, LoggerFile.Depth):
+        if isinstance(pkt, packet_factory.Depth):
             stats.Observed(pkt.name())
             depth_table.add_point(pkt.elapsed + elapsed_offset, 'z', pkt.depth)
-        if isinstance(pkt, LoggerFile.GNSS):
+        if isinstance(pkt, packet_factory.GNSS):
             stats.Observed(pkt.name())
             if time_source == TimeSource.Time_GNSS:
                 time_table.add_point(pkt.elapsed + elapsed_offset, 'ref', pkt.msg_date * seconds_per_day + pkt.msg_timestamp)
             position_table.add_points(pkt.elapsed + elapsed_offset, ('lat', 'lon'), (pkt.latitude, pkt.longitude))
-        if isinstance(pkt, LoggerFile.SerialString):
+        if isinstance(pkt, packet_factory.SerialString):
             try:
                 pkt_name = pkt.data[3:6].decode('UTF-8')
                 stats.Observed(pkt_name)

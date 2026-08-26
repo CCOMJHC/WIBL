@@ -39,6 +39,7 @@ import datetime as dt
 import pynmea2 as nmea
 
 from wibl.core import Lineage
+from wibl.core.logger_file import PacketFactoryBase
 from wibl.core.statistics import PktStats, PktFaults
 import wibl.core.logger_file as LoggerFile
 from wibl.core.algorithm import AlgorithmPhase, AlgorithmDescriptor
@@ -122,7 +123,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
               process_algorithms: bool = True,
               strict_mode: bool = False,
               bad_talkers: Union[list[int],None] = None) -> \
-        Tuple[PktStats, TimeSource, List[LoggerFile.DataPacket], List[AlgorithmDescriptor]]:
+        Tuple[PktStats, PacketFactoryBase, TimeSource, List[LoggerFile.DataPacket], List[AlgorithmDescriptor]]:
     """Load the entirety of a WIBL binary file into memory, in the process determining the type of time
        source that can be used to add timestamps to the data, and fixing up any messages that don't have
        any elapsed time (i.e., time of reception) stamps.  This provides a set of data where it should
@@ -168,7 +169,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
                 else:
                     packets_raw.append(pkt)
                 # Check for algorithm packet
-                if isinstance(pkt, LoggerFile.AlgorithmRequest):
+                if isinstance(pkt, source.AlgorithmRequest):
                     stats.Observed(pkt.name())
                     algorithms_raw.append(AlgorithmDescriptor(name=pkt.algorithm.decode('UTF-8'),
                                                               params=pkt.parameters.decode('UTF-8'))
@@ -190,7 +191,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
     needs_elapsed_time_fixup = False
     packet_count = 0
     for pkt in packets_raw:
-        if isinstance(pkt, LoggerFile.SerialString):
+        if isinstance(pkt, source.SerialString):
             # We need to pull out the NMEA0183 recognition string
             try:
                 name = pkt.data[3:6].decode('UTF-8')
@@ -230,7 +231,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
             # generating intermediate elapsed time estimates subsequently.
             realtime_elapsed_zero = None
             for n in range(len(packets)):
-                if isinstance(packets[n], LoggerFile.SerialString) and packets[n].elapsed == 0:
+                if isinstance(packets[n], source.SerialString) and packets[n].elapsed == 0:
                     # Decode the packet string to identify ZDA/RMC
                     msg_id = packets[n].data[3:6].decode('UTF-8')
                     if (msg_id == 'ZDA' and timesource == TimeSource.Time_ZDA) or (msg_id == 'RMC' and timesource == TimeSource.Time_RMC):
@@ -291,4 +292,4 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
             if packets[n].elapsed == 0:
                packets[n].elapsed = None
 
-    return stats, timesource, packets, alg_desc
+    return stats, source, timesource, packets, alg_desc

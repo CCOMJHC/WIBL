@@ -1,3 +1,5 @@
+import io
+import struct
 from typing import Literal, Type
 
 import wibl.core.logger_file.logger_file_ver_1_3 as _logger_file_ver_1_3
@@ -7,9 +9,12 @@ from wibl.core.logger_file.base import (
     PacketTranscriptionError,
     PacketTypes,
     DataPacket,
-    LoggerFileBase
+    LoggerFileBase, PacketFactoryBase
 )
 
+
+class LoggerFileIOError(Exception):
+    ...
 
 class UnknownLoggerFileVersion(Exception):
     ...
@@ -56,3 +61,27 @@ def get_logger_file(version: LOGGER_FILE_VERSIONS = '1.4') -> LoggerFileBase:
             return _logger_file_ver_1_3.LoggerFile()
         case _:
             raise UnknownLoggerFileVersion(f"Unknown logger file version '{version}'")
+
+
+def PacketFactory(file: io.FileIO | io.BufferedReader, *, # noqa: N802
+                  strict_mode: bool = False) -> PacketFactoryBase:
+    # Attempt to read WIBL serialiser version from ``file`` and return a PacketFactory
+    # appropriate to that version. Raises ``LoggerFileIOError`` if unable to read
+    # serialiser version or ``UnknownLoggerFileVersion`` if an unknown version was encountered.
+    file.seek(0)
+    buffer = file.read(12)
+    if len(buffer) < 12:
+        raise LoggerFileIOError(f"Unable to read serialiser version from file {file.name}: not enough bytes")
+    try:
+        (major, minor) = struct.unpack_from('<HH', buffer, 8)
+    except Exception as e:
+        raise LoggerFileIOError(f"Unable to read serialiser version from file {file.name}: error was: {str(e)}")
+    file.seek(0)
+    match (major, minor):
+        case (1, 4):
+            return _logger_file_ver_1_4.PacketFactory(file, strict_mode=strict_mode)
+        case (1, 3):
+            return _logger_file_ver_1_3.PacketFactory(file, strict_mode=strict_mode)
+        case _:
+            raise UnknownLoggerFileVersion(f"Discovered unknown serialiser version {major}.{minor} "
+                                           f"from file {file.name}")

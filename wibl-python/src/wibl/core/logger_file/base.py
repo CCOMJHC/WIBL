@@ -256,5 +256,9 @@ class LoggerFileBase(ABC):
         self.version_major = version_major
         self.version_minor = version_minor
 
+    # def get_packet_factory(self, file, *,
+    #                        strict_mode: bool = False) -> PacketFactoryBase:
+    #     ...
+
     def wibl_file_version(self) -> str:
         return f"{self.version_major}.{self.version_minor}"
