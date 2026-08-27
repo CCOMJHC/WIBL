@@ -123,7 +123,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
               process_algorithms: bool = True,
               strict_mode: bool = False,
               bad_talkers: Union[list[int],None] = None) -> \
-        Tuple[PktStats, PacketFactoryBase, TimeSource, List[LoggerFile.DataPacket], List[AlgorithmDescriptor]]:
+        Tuple[PktStats, TimeSource, List[LoggerFile.DataPacket], List[AlgorithmDescriptor]]:
     """Load the entirety of a WIBL binary file into memory, in the process determining the type of time
        source that can be used to add timestamps to the data, and fixing up any messages that don't have
        any elapsed time (i.e., time of reception) stamps.  This provides a set of data where it should
@@ -292,4 +292,4 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
             if packets[n].elapsed == 0:
                packets[n].elapsed = None
 
-    return stats, source, timesource, packets, alg_desc
+    return stats, timesource, packets, alg_desc

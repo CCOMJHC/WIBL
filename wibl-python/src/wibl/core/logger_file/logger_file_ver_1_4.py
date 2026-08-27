@@ -1933,7 +1933,3 @@ class LoggerFile(LoggerFileBase):
 
     def __init__(self):
         super().__init__(WIBL_FILE_VERSION_MAJOR, WIBL_FILE_VERSION_MINOR)
-
-    # def get_packet_factory(self, file, *,
-    #                        strict_mode: bool = False) -> PacketFactory:
-    #     return LoggerFile.packet_factory(file, strict_mode=strict_mode)
