@@ -169,8 +169,8 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
                 else:
                     packets_raw.append(pkt)
                 # Check for algorithm packet
-                if isinstance(pkt, source.AlgorithmRequest):
-                    stats.Observed(pkt.name())
+                if pkt_name := pkt.name() == 'AlgorithmRequest':
+                    stats.Observed(pkt_name)
                     algorithms_raw.append(AlgorithmDescriptor(name=pkt.algorithm.decode('UTF-8'),
                                                               params=pkt.parameters.decode('UTF-8'))
                     )
@@ -191,7 +191,8 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
     needs_elapsed_time_fixup = False
     packet_count = 0
     for pkt in packets_raw:
-        if isinstance(pkt, source.SerialString):
+        pkt_name = pkt.name()
+        if pkt_name == 'SerialString':
             # We need to pull out the NMEA0183 recognition string
             try:
                 name = pkt.data[3:6].decode('UTF-8')
@@ -200,7 +201,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
                 stats.Fault(str(pkt), PktFaults.DecodeFault)
                 continue
         else:
-            stats.Observed(pkt.name())
+            stats.Observed(pkt_name)
         packet_count += 1
         if pkt.elapsed == 0:
             needs_elapsed_time_fixup = True
@@ -231,7 +232,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
             # generating intermediate elapsed time estimates subsequently.
             realtime_elapsed_zero = None
             for n in range(len(packets)):
-                if isinstance(packets[n], source.SerialString) and packets[n].elapsed == 0:
+                if packets[n].name() == 'SerialString' and packets[n].elapsed == 0:
                     # Decode the packet string to identify ZDA/RMC
                     msg_id = packets[n].data[3:6].decode('UTF-8')
                     if (msg_id == 'ZDA' and timesource == TimeSource.Time_ZDA) or (msg_id == 'RMC' and timesource == TimeSource.Time_RMC):
