@@ -100,6 +100,8 @@ class PacketTypes(Enum):
     NMEA2000PGNs = 19
     ## NMEA2000 binary data packets (for auxiliary data)
     NMEA2000Binary = 20
+    ## Raw GNSS data packets for post processing
+    GNSSBinary = 21
 
 ## Convert from Kelvin to degrees Celsius
 #
@@ -1127,9 +1129,12 @@ class SerialiserVersion(DataPacket):
             imu_major = 0
             imu_minor = 0
             imu_patch = 0
+            gnss_major = 0
+            gnss_minor = 0
+            gnss_patch = 0
         else:
-            (n2000_major, n2000_minor, n2000_patch, n0183_major, n0183_minor, n0183_patch, imu_major, imu_minor, imu_patch) = \
-                struct.unpack_from('<HHHHHHHHH', buffer, base)
+            (n2000_major, n2000_minor, n2000_patch, n0183_major, n0183_minor, n0183_patch, imu_major, imu_minor, imu_patch, gnss_major, gnss_minor, gnss_patch) = \
+                struct.unpack_from('<HHHHHHHHHHHH', buffer, base)
         ## Major software version for the serialiser code
         self.major = major
         ## Minor software version for the serialiser code
@@ -1138,21 +1143,27 @@ class SerialiserVersion(DataPacket):
         self.nmea2000 = (n2000_major, n2000_minor, n2000_patch)
         ## A tuple of the NMEA0183 software version
         self.nmea0183 = (n0183_major, n0183_minor, n0183_patch)
-        ## A tuple of the MIMU software version
+        ## A tuple of the IMU software version
         self.imu = (imu_major, imu_minor, imu_patch)
+        ### A tuple of the GNSS software version
+        self.gnss = (gnss_major, gnss_minor, gnss_patch)
         ## NMEA2000 software version information
         self.nmea2000_version = f'{n2000_major}.{n2000_minor}.{n2000_patch}'
         ## NMEA0183 software version information
         self.nmea0183_version = f'{n0183_major}.{n0183_minor}.{n0183_patch}'
         ## IMU software version information
         self.imu_version = f'{imu_major}.{imu_minor}.{imu_patch}'
+        ## GNSS software version information
+        self.gnss_version = f'{gnss_major}.{gnss_minor}.{gnss_patch}'
 
         super().__init__(0, 0.0, 0)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<HHHHHHHHHHH', self.major, self.minor, self.nmea2000[0], self.nmea2000[1], self.nmea2000[2],
-                            self.nmea0183[0], self.nmea0183[1], self.nmea0183[2],
-                            self.imu[0], self.imu[1], self.imu[2])
+        buffer = struct.pack('<HHHHHHHHHHHHHH', self.major, self.minor,
+                             self.nmea2000[0], self.nmea2000[1], self.nmea2000[2],
+                             self.nmea0183[0], self.nmea0183[1], self.nmea0183[2],
+                             self.imu[0], self.imu[1], self.imu[2],
+                             self.gnss[0], self.gnss[1], self.gnss[2])
         return buffer
     
     def id(self) -> int:
@@ -1173,9 +1184,11 @@ class SerialiserVersion(DataPacket):
             self.nmea2000 = kwargs['n2000']
             self.nmea0183 = kwargs['n0183']
             self.imu = kwargs['imu']
+            self.gnss = kwargs['gnss']
             self.nmea2000_version = f'{self.nmea2000[0]}.{self.nmea2000[1]}.{self.nmea2000[2]}'
             self.nmea0183_version = f'{self.nmea0183[0]}.{self.nmea0183[1]}.{self.nmea0183[2]}'
             self.imu_version = f'{self.imu[0]}.{self.imu[1]}.{self.imu[2]}'
+            self.gnss_version = f'{self.gnss[0]}.{self.gnss[1]}.{self.gnss[2]}'
             super().__init__(0, 0.0, 0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
@@ -1196,7 +1209,7 @@ class SerialiserVersion(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = super().__str__() + f' {self.name()}: version = {self.major}.{self.minor}, with NMEA2000 version {self.nmea2000},  NMEA0183 version {self.nmea0183}, and IMU version {self.imu}'
+        rtn = super().__str__() + f' {self.name()}: version = {self.major}.{self.minor}, with NMEA2000 version {self.nmea2000},  NMEA0183 version {self.nmea0183}, IMU version {self.imu}, and GNSS version {self.gnss}'
         return rtn
 
 ## Implement the motion sensor data packet
@@ -1974,6 +1987,44 @@ class NMEA2000Binary(DataPacket):
         rtn = super().__str__() + f' {self.name()}: PGN {self.pgn} = {self.raw}'
         return rtn
 
+class GNSSBinary(DataPacket):
+    def __init__(self, **kwargs):
+        if 'buffer' in kwargs:
+            self.buffer_constructor(kwargs['buffer'])
+        else:
+            self.data_constructor(**kwargs)
+
+    def buffer_constructor(self, buffer: bytes) -> None:
+        base: int = 0
+        buf_len, = struct.unpack_from('<I', buffer, base)
+        base += 4
+        convert_string = f'<{buf_len}s'
+        buf, = struct.unpack_from(convert_string, buffer, base)
+        self.raw = buf
+        super().__init__(0, 0.0, 0)
+
+    def data_constructor(self, **kwargs) -> None:
+        try:
+            self.raw = kwargs['raw']
+            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapse_time'])
+        except KeyError as e:
+            raise SpecificationError('Bad packet parameters') from e
+
+    def payload(self) -> bytes:
+        raw_len: int = len(self.raw)
+        buffer = struct.pack(f'<I{raw_len}s', raw_len, self.raw)
+        return buffer
+
+    def id(self) -> int:
+        return PacketTypes.GNSSBinary.value
+
+    def name(self) -> str:
+        return 'GNSSBinary'
+
+    def __str__(self) -> str:
+        rtn = super().__str__() + f' {self.name()}: {self.raw}'
+        return rtn
+
 ## Translate packets out of the binary file, reconstituing as an appropriate class
 #
 # This provides the primary interface for the user to the binary data generated by the logger.  Calling the next_packet
@@ -2061,6 +2112,8 @@ class PacketFactory:
                 rtn = NMEA2000PGNs(buffer=buffer)
             elif pkt_id == PacketTypes.NMEA2000Binary.value:
                 rtn = NMEA2000Binary(buffer=buffer)
+            elif pkt_id == PacketTypes.GNSSBinary.value:
+                rtn = GNSSBinary(buffer=buffer)
             else:
                 print(f"Unknown packet number {self.packets_read} with ID {pkt_id} and name "
                       f"'{PacketTypes(pkt_id).name}' in input stream; ignored.")

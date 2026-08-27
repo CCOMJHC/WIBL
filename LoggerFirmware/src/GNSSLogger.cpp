@@ -44,19 +44,33 @@ const int ReceiverDataBufferSize = 16384; ///< Size of internal logging buffer f
 
 logger::Manager *callback_log_output = nullptr;
 
-void sfrbx_rcv(UBX_RXM_SFRBX_data_t *ubxDataStruct)
+void sfrbx_rcv(UBX_RXM_SFRBX_data_t *data)
 {
 
 }
 
-void rawx_rcv(UBX_RXM_RAWX_data_t *ubxDataStruct)
+void rawx_rcv(UBX_RXM_RAWX_data_t *data)
 {
 
 }
 
-void pvt_rcv(UBX_NAV_PVT_data_t * ubxDataStruct)
+// Call-back for the GNSS library to report the real-time position, velocity, and time information
+// from the module.  This is unlikely to be of a level of accuracy that's of interest for TCB use,
+// but is a valuable auxiliary source of data, given the quality of the antenna and receiver, and therefore
+// can be written to the output (if valid).
+//
+// \param data  Structure with broken-out information on the current position solution.
+void pvt_rcv(UBX_NAV_PVT_data_t * data)
 {
-
+    Serial.printf("GNSS at %d-%d-%d/%d:%d:%d.%09d (valid date: %d time: %d) acc: %d ns\n",
+        data->year, (int)data->month, (int)data->day, (int)data->hour, (int)data->min, (int)data->sec,
+        data->nano, (int)data->valid.bits.validDate, (int)data->valid.bits.validTime,
+        data->tAcc);
+    Serial.printf("GNSS at %.6f E, %.6f N, %.3f U pDOP %.2f nSV: %d type: %d valid: %d\n",
+        data->lon/1.0e7, data->lat/1.0e7, data->height/1000.0, data->pDOP/100.0,
+        (int)data->numSV, (int)data->fixType, (int)data->flags.bits.gnssFixOK);
+    Serial.printf("GNSS at vel. %.3f N, %.3f E, %.3f D acc: %.3f m/s\n",
+        data->velN/1000.0, data->velE/1000.0, data->velD/1000.0, data->sAcc/1000.0);
 }
 
 Logger::Logger(logger::Manager *output)

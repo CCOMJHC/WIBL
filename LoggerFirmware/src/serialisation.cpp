@@ -30,6 +30,7 @@
 #include "N2kLogger.h"
 #include "N0183Logger.h"
 #include "IMULogger.h"
+#include "GNSSLogger.h"
 #include "Configuration.h"
 
 /// Constructor for a serialisable buffer of data.  The buffer is allocated to the \a size_hint but
@@ -208,7 +209,7 @@ Serialiser::Serialiser(File& file)
 {
     uint16_t major, minor, patch;
     
-    Serialisable version(22);
+    Serialisable version(28);
     
     version += (uint16_t)SerialiserVersionMajor;
     version += (uint16_t)SerialiserVersionMinor;
@@ -224,6 +225,11 @@ Serialiser::Serialiser(File& file)
     version += patch;
 
     imu::Logger::SoftwareVersion(major, minor, patch);
+    version += major;
+    version += minor;
+    version += patch;
+
+    gnss::Logger::SoftwareVersion(major, minor, patch);
     version += major;
     version += minor;
     version += patch;

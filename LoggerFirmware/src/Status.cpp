@@ -31,6 +31,7 @@
 #include "N0183Logger.h"
 #include "N2kLogger.h"
 #include "IMULogger.h"
+#include "GNSSLogger.h"
 #include "SerialCommand.h"
 #include "DataMetrics.h"
 
@@ -106,6 +107,7 @@ DynamicJsonDocument CurrentStatus(logger::Manager *m)
     status["version"]["nmea0183"] = nmea::N0183::Logger::SoftwareVersion();
     status["version"]["nmea2000"] = nmea::N2000::Logger::SoftwareVersion();
     status["version"]["imu"] = imu::Logger::SoftwareVersion();
+    status["version"]["gnss"] = gnss::Logger::SoftwareVersion();
     status["version"]["serialiser"] = Serialiser::SoftwareVersion();
 
     int now = millis();
