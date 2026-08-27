@@ -37,9 +37,7 @@ wibl procwibl -c tests/data/configure.local.json /tmp/test-wibl-inject.bin /tmp/
 wibl validate -c tests/data/configure.local.json /tmp/test-wibl-inject.geojson
 
 # Test uploadwibl locally using localstack to emulate S3
-# Note: This is disabled for now until docker-compose environment can be migrated from localstack to garage, since
-#       local now requires a license.
-## Start localstack
+## Start garage
 docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" up -d --wait
 
 ## Initialize garage cluster for local S3
