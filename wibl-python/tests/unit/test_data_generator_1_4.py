@@ -111,6 +111,10 @@ class TestDataGeneratorVersion_1_4(unittest.TestCase):
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
         gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
+        self.assertEqual(gen._lf.version_major, 1)
+        self.assertEqual(gen._lf.version_minor, 4)
+        self.assertEqual(gen._pf.version_major, 1)
+        self.assertEqual(gen._pf.version_minor, 4)
 
         writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
                                       logger_file_version='1.4')

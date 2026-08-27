@@ -72,4 +72,5 @@ if [[ $num_objects -ne $expect ]]; then
     exit 1
 fi
 
+echo "Integration tests successful."
 exit 0

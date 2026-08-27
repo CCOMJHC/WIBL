@@ -1847,6 +1847,9 @@ class NMEA2000Binary(DataPacket):
 # method pulls the next packet header, checks for type and size, and then reads the following byte sequence to the
 # required length before translating to an instantiation of the appropriate class.  Unknown packets generate a warning.
 class PacketFactory(PacketFactoryBase):
+    version_major = WIBL_FILE_VERSION_MAJOR
+    version_minor = WIBL_FILE_VERSION_MINOR
+
     SerialiserVersion = SerialiserVersion
     SystemTime = SystemTime
     Attitude = Attitude
@@ -1929,7 +1932,6 @@ class PacketFactory(PacketFactoryBase):
 
 
 class LoggerFile(LoggerFileBase):
+    version_major = WIBL_FILE_VERSION_MAJOR
+    version_minor = WIBL_FILE_VERSION_MINOR
     packet_factory = PacketFactory
-
-    def __init__(self):
-        super().__init__(WIBL_FILE_VERSION_MAJOR, WIBL_FILE_VERSION_MINOR)

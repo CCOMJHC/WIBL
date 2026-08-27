@@ -101,8 +101,8 @@ def PacketFactory(file: io.FileIO | io.BufferedReader, *, # noqa: N802
         if pkt_id != PacketTypes.SerialiserVersion.value:
             raise LoggerFileIOError(f"Expected first packet in file {file.name} to be of type SerialiserVersion, "
                                     f"but it apparently was not; packet ID was {pkt_id}.")
-        if pkt_len <= 0:
-            raise LoggerFileIOError(f"Expected length of first packet in file {file.name} to be greater than zero, "
+        if pkt_len < 4:
+            raise LoggerFileIOError(f"Expected length of first packet in file {file.name} to be greater than four, "
                                     f"but it was {pkt_len}.")
     except Exception as e:
         raise LoggerFileIOError(f"Unable to read serialiser version from file {file.name}: error was: {str(e)}")

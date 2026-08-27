@@ -197,6 +197,9 @@ class DataPacket(ABC):
 
 
 class PacketFactoryBase(ABC):
+    version_major: int
+    version_minor: int
+
     ## Initialise the packet factory
     #
     # This simply copies the file reference information for the binary data, and resets EOF indicator.
@@ -250,11 +253,6 @@ class PacketFactoryBase(ABC):
 
 
 class LoggerFileBase(ABC):
+    version_major: int
+    version_minor: int
     packet_factory: Type[PacketFactoryBase]
-
-    def __init__(self, version_major: int, version_minor: int):
-        self.version_major = version_major
-        self.version_minor = version_minor
-
-    def wibl_file_version(self) -> str:
-        return f"{self.version_major}.{self.version_minor}"
