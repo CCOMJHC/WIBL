@@ -991,16 +991,12 @@ class SerialiserVersion(DataPacket):
         self.nmea0183 = (n0183_major, n0183_minor, n0183_patch)
         ## A tuple of the IMU software version
         self.imu = (imu_major, imu_minor, imu_patch)
-        ### A tuple of the GNSS software version
-        self.gnss = (gnss_major, gnss_minor, gnss_patch)
         ## NMEA2000 software version information
         self.nmea2000_version = f'{n2000_major}.{n2000_minor}.{n2000_patch}'
         ## NMEA0183 software version information
         self.nmea0183_version = f'{n0183_major}.{n0183_minor}.{n0183_patch}'
         ## IMU software version information
         self.imu_version = f'{imu_major}.{imu_minor}.{imu_patch}'
-        ## GNSS software version information
-        self.gnss_version = f'{gnss_major}.{gnss_minor}.{gnss_patch}'
 
         super().__init__(0, 0.0, 0)
 
@@ -1923,8 +1919,6 @@ class PacketFactory(PacketFactoryBase):
                 rtn = NMEA2000PGNs(buffer=buffer)
             elif pkt_id == PacketTypes.NMEA2000Binary.value:
                 rtn = NMEA2000Binary(buffer=buffer)
-            elif pkt_id == PacketTypes.GNSSBinary.value:
-                rtn = GNSSBinary(buffer=buffer)
             else:
                 print(f"Unknown packet number {self.packets_read} with ID {pkt_id} and name "
                       f"'{PacketTypes(pkt_id).name}' in input stream; ignored.")
