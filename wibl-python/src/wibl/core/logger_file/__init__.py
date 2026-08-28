@@ -1,14 +1,17 @@
 import io
 import struct
-from typing import Literal, Type
+from typing import Literal
 
 import wibl.core.logger_file.logger_file_ver_1_3 as _logger_file_ver_1_3
 import wibl.core.logger_file.logger_file_ver_1_4 as _logger_file_ver_1_4
+import wibl.core.logger_file.logger_file_ver_1_5 as _logger_file_ver_1_5
 
+# Note that DataPacket and PacketTranscriptionError are used transitively when
+# importing this (wibl.core.logger_file) from other code, rather than directly here.
 from wibl.core.logger_file.base import (
+    DataPacket,
     PacketTranscriptionError,
     PacketTypes,
-    DataPacket,
     LoggerFileBase, PacketFactoryBase
 )
 
@@ -20,11 +23,17 @@ class UnknownLoggerFileVersion(Exception):
     ...
 
 
-LOGGER_FILE_VERSIONS = Literal['1.3', '1.4']
+LOGGER_FILE_VERSIONS = Literal['1.3', '1.4', '1.5']
 DEFAULT_LOGGER_FILE_VERSION_MAJOR = 1
-DEFAULT_LOGGER_FILE_VERSION_MINOR = 4
+DEFAULT_LOGGER_FILE_VERSION_MINOR = 5
 
 LOGGER_VERSIONS = {
+    '1.5': {
+        'n2000': (1, 2, 0),
+        'n0183': (1, 1, 0),
+        'imu': (1, 0, 0),
+        'gnss': (1, 0, 0)
+    },
     '1.4': {
         'n2000': (1, 2, 0),
         'n0183': (1, 1, 0),
@@ -63,8 +72,10 @@ def get_major_minor_version(version: LOGGER_FILE_VERSIONS) -> tuple[int, int]:
 # PacketFactory instance for the serialiser version of that file.
 #
 # \param version    A string literal representing the serialiser version.
-def get_logger_file(version: LOGGER_FILE_VERSIONS = '1.4') -> LoggerFileBase:
+def get_logger_file(version: LOGGER_FILE_VERSIONS = '1.5') -> LoggerFileBase:
     match version:
+        case '1.5':
+            return _logger_file_ver_1_5.LoggerFile()
         case '1.4':
             return _logger_file_ver_1_4.LoggerFile()
         case '1.3':
@@ -109,6 +120,8 @@ def PacketFactory(file: io.FileIO | io.BufferedReader, *, # noqa: N802
     # Reset file descriptor position so that reads by the packet factory can proceed as normal.
     file.seek(0)
     match (major, minor):
+        case (1, 5):
+            return _logger_file_ver_1_5.PacketFactory(file, strict_mode=strict_mode)
         case (1, 4):
             return _logger_file_ver_1_4.PacketFactory(file, strict_mode=strict_mode)
         case (1, 3):

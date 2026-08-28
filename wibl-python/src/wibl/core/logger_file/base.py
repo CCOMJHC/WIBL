@@ -90,7 +90,8 @@ class PacketTypes(Enum):
     NMEA2000PGNs = 19
     ## NMEA2000 binary data packets (for auxiliary data)
     NMEA2000Binary = 20
-
+    ## Raw GNSS data packets for post processing
+    GNSSBinary = 21
 
 ## Convert from Kelvin to degrees Celsius
 #
