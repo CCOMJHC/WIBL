@@ -158,6 +158,13 @@ function emptyCurrentData() {
     return row;
 }
 
+/* The updateStatus() function parameter sets how much of the code gets used, which allows
+ * it to be used for both the main page of the website (prefix = "index") and the full status
+ * page (prefix = "status").  The code works by attempting to look up each potential table
+ * (the const names in the first command below), and quietly moving on if the table doesn't
+ * exist.  You therefore set up how much of the status command gets rendered by setting
+ * the "id" attribute of the <table> element in the associated HTML.
+*/
 function updateStatus(tablePrefix) {
     sendCommand('status').then((data) => {
         const versionsTable = tablePrefix + '-versions';
@@ -173,6 +180,7 @@ function updateStatus(tablePrefix) {
         versions.appendChild(assembleSummaryRow("NMEA0183", data.version.nmea0183));
         versions.appendChild(assembleSummaryRow("NMEA2000", data.version.nmea2000));
         versions.appendChild(assembleSummaryRow("IMU", data.version.imu));
+        versions.appendChild(assembleSummaryRow("GNSS", data.version.gnss));
         versions.appendChild(assembleSummaryRow("Serialiser", data.version.serialiser));
 
         let stats = document.getElementById(statsTable);
