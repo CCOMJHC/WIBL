@@ -118,7 +118,7 @@ To run integration tests exercising much of the functionality of the `wibl` comm
  - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
  - [jq](https://jqlang.org)
 
-Then run:
+Then activate a virtual environment with `wibl` installed, then run:
 ```
 ./tests/integration/test_wibl.bash
 ```

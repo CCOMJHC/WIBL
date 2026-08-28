@@ -1,11 +1,11 @@
-##\file LoggerFile.py
+##\file logger_file_ver_1_4.py
 # \brief Library objects for reading Seabed 2030 data logger files
 #
 # The Seabed 2030 low-cost logger generates files from NMEA2000 onto the SD card in
 # fairly efficient binary format, with a timestamp from the local machine.  The code
 # here unpacks this format and makes the data available.
 #
-# Copyright 2020 Center for Coastal and Ocean Mapping & NOAA-UNH Joint
+# Copyright 2026 Center for Coastal and Ocean Mapping & NOAA-UNH Joint
 # Hydrographic Center, University of New Hampshire.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -28,178 +28,24 @@
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
 import struct
-from abc import ABC, abstractmethod
 import io
-from enum import Enum
 import json
 
-
-## Exception used to report bad keyword parameters when setting up a packet from scratch in code
-class SpecificationError(Exception):
-    pass
-
-## Exception used to report a bad translation of a packet (rather than passing up a raw struct exception)
-class PacketTranscriptionError(Exception):
-    pass
+from .base import (
+    SpecificationError,
+    PacketTranscriptionError,
+    temp_to_celsius,
+    pressure_to_mbar,
+    angle_to_degs,
+    PacketTypes,
+    DataPacket,
+    PacketFactoryBase, LoggerFileBase
+)
 
 ## Definition of major version of the file format represented by this description
-wibl_file_version_major = 1
+WIBL_FILE_VERSION_MAJOR = 1
 ## Definition of minor version of the file format represented by this description
-wibl_file_version_minor = 4
-
-def wibl_file_version() -> str:
-    return f'{wibl_file_version_major}.{wibl_file_version_minor}'
-
-def numeric_file_version(major: int, minor: int) -> int:
-    return major*1000 + minor
-
-# HEY YOU! YEAH, YOU THERE AT THE KEYBOARD!  Did you remember to update LogConvert/src/serialisation.h/cpp
-# with the specification for that cool packet you just addded?
-
-## Enumeration of the identification numbers associated with the various packets in a WIBL file
-class PacketTypes(Enum):
-    ## Version information for the logger's file construction code, and the NMEA2000 and NMEA0183 loggers
-    SerialiserVersion = 0
-    ## NMEA2000 SystemTime information
-    SystemTime = 1
-    ## NMEA2000 Attitude (roll, pitch, yaw) information
-    Attitude = 2
-    ## NMEA2000 Depth information
-    Depth = 3
-    ## NMEA2000 Course-over-ground information
-    COG = 4
-    ## NMEA2000 GNSS report information
-    GNSS = 5
-    ## NMEA2000 Environmental (temperature, pressure, and humidity) information
-    Environment = 6
-    ## NMEA2000 Temperature information
-    Temperature = 7
-    ## NMEA2000 Humidity information
-    Humidity = 8
-    ## NMEA2000 Pressure information
-    Pressure = 9
-    ## Encapsulated NMEA0183 serial sentence
-    SerialString = 10
-    ## Local motion sensor (three-axis acceleration, three-axis gyro) information
-    Motion = 11
-    ## Logger and ship identification information used for construction GeoJSON metadata on output
-    Metadata = 12
-    ## Requests for algorithms to be run on the data in post-processing
-    AlgorithmRequest = 13
-    ## Arbitrary JSON metadata string used to fill in platform-specific items in the GeoJSON metadata on output
-    JSONMetadata = 14
-    ## Specification for a NMEA0183 packet to be recorded at the logger
-    NMEA0183Filter = 15
-    ## JSON-formatted list of sensor scale factors to convert packed binary data to float
-    SensorScales = 16
-    ## Raw local IMU data (i.e., integer values) to be converted into floats
-    RawIMU = 17
-    ## Setup information JSON string for the current logger configuration
-    Setup = 18
-    ## PGNs being written to file in binary format (JSON list)
-    NMEA2000PGNs = 19
-    ## NMEA2000 binary data packets (for auxiliary data)
-    NMEA2000Binary = 20
-
-## Convert from Kelvin to degrees Celsius
-#
-# Temperature is stored in the NMEA2000 packets as Kelvin, but that isn't terribly useful for end users.  This converts
-# into degrees Celsius so that output is more useable.
-#
-# \param temp   Temperature in Kelvin
-# \return Temperature in degrees Celsius
-def temp_to_celsius(temp):
-    return temp - 273.15
-
-## Convert from Pascals to millibars
-#
-# Pressure is stored in the NMEA2000 packets as Pascals, but that isn't terribly useful for end users.  This converts
-# into millibars so that output is more useable.
-#
-# \param pressure   Pressure in Pascals
-# \return Pressure in millibars
-def pressure_to_mbar(pressure):
-    return pressure / 100.0
-
-## Convert from radians to degrees
-#
-# Angles are stored in the NMEA2000 packets as radians, but that isn't terribly useful for end users (at least for
-# display).  This converts into degrees so that output is more useable.
-#
-# \param rads   Angle in radians
-# \return Angle in degrees
-def angle_to_degs(rads):
-    return rads*180.0/3.1415926535897932384626433832795
-
-## Base class for all data packets that can be read from the binary file
-#
-# This provides a common base class for all of the data packets, and stores the information on the date and time at
-# which the packet was received.
-class DataPacket(ABC):
-    ## Initialise the base packet with date and timestamp for the packet reception time
-    #
-    # This simply stores the date and time for the packet reception
-    #
-    # \param self       Pointer to the object
-    # \param date       Days elapsed since 1970-01-01
-    # \param timestamp  Seconds since midnight on the day
-    def __init__(self, date, timestamp, elapsed):
-        ## Date in days since 1970-01-01
-        self.date = date
-        ## Time in seconds since midnight on the day in question
-        self.timestamp = timestamp
-        ## Time in milliseconds since boot (reference time)
-        self.elapsed = elapsed
-
-    ## Abstract method for constructing the payload of the packet for serialisation
-    #
-    # This builds a buffer of the data required for the data packet so that the code can then serialise
-    # it in new files.
-    @abstractmethod
-    def payload(self) -> bytes:
-        pass
-
-    ## Abstact method for a class to report its ID number
-    #
-    # Each packet written into the file has to have an ID number; the sub-class should know what this is.
-    #
-    @abstractmethod
-    def id(self) -> int:
-        pass
-
-    ## Provide the fixed-text string name for this data packet
-    #
-    # This simply reports the human-readable name for the class so that reporting is possible
-    #
-    # \param self   Pointer to the object
-    # \return String with the human-readable name of the packet
-    @abstractmethod
-    def name(self) -> str:
-        pass
-
-    ## Serialise the data in the current packet into the given file
-    #
-    # This wraps up the requirements to write a packet into a streamable binary output file.
-    #
-    # \param f  Binary output file
-    def serialise(self, f: io.BufferedWriter) -> None:
-        buffer = self.payload()
-        id = self.id()
-        #print(f'Writing packet with ID {id} and buffer length {len(buffer)}.')
-        f.write(id.to_bytes(4, 'little'))
-        f.write(len(buffer).to_bytes(4, 'little'))
-        f.write(buffer)
-
-    ## Implement the printable interface for this class, allowing it to be streamed
-    #
-    # This converts to human-readable version of the data packet for the standard streaming output interface.
-    #
-    # \param self   Pointer to the object
-    # \return String representation of the object
-    def __str__(self):
-        rtn = f'[{self.date} days, {self.timestamp} s., {self.elapsed} ms elapsed]'
-        return rtn
-
+WIBL_FILE_VERSION_MINOR = 4
 
 ## Implementation of the SystemTime NMEA2000 packet
 #
@@ -219,7 +65,7 @@ class SystemTime(DataPacket):
             self.buffer_constructor(kwargs['buffer'])
         else:
             self.data_constructor(**kwargs)
-    
+
     ## Initialise the SystemTime packet with date/time of reception, and logger elapsed time
     #
     # This picks out the date and timestamp for the packet (which is the indicated real time in the packet itself), and
@@ -249,11 +95,11 @@ class SystemTime(DataPacket):
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
-    
+
     def payload(self) -> bytes:
         buffer = struct.pack('<HdIBB', self.date, self.timestamp, self.elapsed, self.talker_id, self.data_source)
         return buffer
-    
+
     def id(self) -> int:
         return PacketTypes.SystemTime.value
 
@@ -275,6 +121,7 @@ class SystemTime(DataPacket):
     def __str__(self):
         rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}:  source = {self.data_source}'
         return rtn
+
 
 ## Implementation of the Attitude NMEA2000 packet
 #
@@ -317,7 +164,7 @@ class Attitude(DataPacket):
         buffer = struct.pack('<HdIBddd', self.date, self.timestamp, self.elapsed, self.talker_id,
                              self.yaw, self.pitch, self.roll)
         return buffer
-    
+
     ## Generate a synthetic packet based on keywords
     #
     # This generates a synthetic packet based on keywords.  The expected keywords are:
@@ -359,6 +206,7 @@ class Attitude(DataPacket):
     def __str__(self):
         rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: yaw = {angle_to_degs(self.yaw)} deg, pitch = {angle_to_degs(self.pitch)} deg, roll = {angle_to_degs(self.roll)} deg'
         return rtn
+
 
 ## Implement the Observed Depth NMEA2000 message
 #
@@ -403,10 +251,10 @@ class Depth(DataPacket):
         buffer = struct.pack('<HdIBddd', self.date, self.timestamp, self.elapsed, self.talker_id,
                              self.depth, self.offset, self.range)
         return buffer
-    
+
     def id(self) -> int:
         return PacketTypes.Depth.value
-    
+
     ## Generate a synthetic packet based on keywords
     #
     # This generates a synthetic packet based on keywords.  The expected keywords are:
@@ -446,6 +294,7 @@ class Depth(DataPacket):
         rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: depth = {self.depth}m, offset = {self.offset}m, range = {self.range}m'
         return rtn
 
+
 ## Implement the Course-over-Ground Rapid NMEA2000 message
 #
 # The Course-over-ground/Speed-over-ground message is sent more frequently that most, and contains estimates of the
@@ -480,14 +329,15 @@ class COG(DataPacket):
         ## Speed over ground (m/s)
         self.speedOverGround = speedOverGround
         super().__init__(date, timestamp, elapsed_time)
-    
+
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBdd', self.date, self.timestamp, self.elapsed, self.talker_id, self.courseOverGround, self.speedOverGround)
+        buffer = struct.pack('<HdIBdd', self.date, self.timestamp, self.elapsed, self.talker_id, self.courseOverGround,
+                             self.speedOverGround)
         return buffer
 
     def id(self) -> int:
         return PacketTypes.COG.value
-    
+
     ## Generate a synthetic packet based on keywords
     #
     # This generates a synthetic packet based on keywords.  The expected keywords are:
@@ -524,6 +374,7 @@ class COG(DataPacket):
     def __str__(self):
         rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: course over ground = {angle_to_degs(self.courseOverGround)} deg, speed over ground = {self.speedOverGround} m/s'
         return rtn
+
 
 ## Implement the GNSS observation NMEA2000 message
 #
@@ -592,15 +443,15 @@ class GNSS(DataPacket):
         ## Age of corrections, seconds
         self.correctionAge = correctionAge
         super().__init__(sys_date, sys_timestamp, sys_elapsed)
-    
+
     def payload(self) -> bytes:
         buffer = struct.pack('<HdIBHddddBBBdddBBHd', self.date, self.timestamp, self.elapsed, self.talker_id,
-                                                    self.msg_date, self.msg_timestamp,
-                                                    self.latitude, self.longitude, self.altitude, self.receiverType, self.receiverMethod,
-                                                    self.numSVs, self.horizontalDOP, self.positionDOP, self.separation,
-                                                    self.numRefStations, self.refStationType, self.refStationID, self.correctionAge)
+                             self.msg_date, self.msg_timestamp,
+                             self.latitude, self.longitude, self.altitude, self.receiverType, self.receiverMethod,
+                             self.numSVs, self.horizontalDOP, self.positionDOP, self.separation,
+                             self.numRefStations, self.refStationType, self.refStationID, self.correctionAge)
         return buffer
-    
+
     def id(self) -> int:
         return PacketTypes.GNSS.value
 
@@ -670,15 +521,19 @@ class GNSS(DataPacket):
     def __str__(self):
         summary = io.StringIO()
         summary.write(super().__str__())
-        summary.write(f' talker: {self.talker_id}, {self.name()}: in-message date = {self.msg_date} days, in-message time = {self.msg_timestamp} s., ')
-        summary.write(f'latitude = {self.latitude} deg, longitude = {self.longitude} deg, altitude = {self.altitude} m, ')
+        summary.write(
+            f' talker: {self.talker_id}, {self.name()}: in-message date = {self.msg_date} days, in-message time = {self.msg_timestamp} s., ')
+        summary.write(
+            f'latitude = {self.latitude} deg, longitude = {self.longitude} deg, altitude = {self.altitude} m, ')
         summary.write(f'GNSS type = {self.receiverType}, GNSS method = {self.receiverMethod}, ')
         summary.write(f'num. SVs = {self.numSVs}, ')
         summary.write(f'horizontal DOP = {self.horizontalDOP}, position DOP = {self.positionDOP}, ')
         summary.write(f'Geoid separation = {self.separation}m, number of ref. stations = {self.numRefStations}, ')
-        summary.write(f'ref. station type = {self.refStationType}, ref. station ID = {self.refStationID}, correction age = {self.correctionAge}')
+        summary.write(
+            f'ref. station type = {self.refStationType}, ref. station ID = {self.refStationID}, correction age = {self.correctionAge}')
         summary.seek(0)
         return summary.read()
+
 
 ## Implement the Environment NMEA2000 message
 #
@@ -699,7 +554,7 @@ class Environment(DataPacket):
             self.buffer_constructor(kwargs['buffer'])
         else:
             self.data_constructor(**kwargs)
-        
+
     ## Initialise the Environment packet
     #
     # This picks out the date and time of message reception (based on the last known good real time estimate), and the
@@ -779,6 +634,7 @@ class Environment(DataPacket):
         rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: temperature = {temp_to_celsius(self.temperature)} ºC (source {self.tempSource}),  humidity = {self.humidity}% (source {self.humiditySource}), pressure = {pressure_to_mbar(self.pressure)} mBar'
         return rtn
 
+
 ## Implement the Temperature NMEA2000 message
 #
 # The Temperature message can serve a number of purposes, carrying temperature information for a variety of different
@@ -799,7 +655,7 @@ class Temperature(DataPacket):
             self.buffer_constructor(kwargs['buffer'])
         else:
             self.data_constructor(**kwargs)
-    
+
     ## Initialise the Temperature message
     #
     # This picks out the date and time of message reception (based on the last known good real time estimate), and the
@@ -824,7 +680,7 @@ class Temperature(DataPacket):
 
     def id(self) -> int:
         return PacketTypes.Temperature.value
-    
+
     ## Generate a synthetic packet from keyword descriptions
     #
     # This generates a synetic packet from keywords.  Expected keywords are:
@@ -862,6 +718,7 @@ class Temperature(DataPacket):
         rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: temperature = {temp_to_celsius(self.temperature)} ºC (source {self.tempSource})'
         return rtn
 
+
 ## Implement the Humidity NMEA2000 message
 #
 # The Humidity message can serve a number of purposes, carrying humidity information for a variety of different sensors
@@ -882,7 +739,7 @@ class Humidity(DataPacket):
             self.buffer_constructor(kwargs['buffer'])
         else:
             self.data_constructor(**kwargs)
-    
+
     ## Initialise the Humidty message
     #
     # This picks out the date and time of message reception (based on the last known good real time estimate), and the
@@ -899,15 +756,15 @@ class Humidity(DataPacket):
         ## Humidity observation, percent
         self.humidity = humidity
         super().__init__(date, timestamp, elapsed_time)
-    
+
     def payload(self) -> bytes:
         buffer = struct.pack('<HdIBBd', self.date, self.timestamp, self.elapsed, self.talker_id,
                              self.humiditySource, self.humidity)
         return buffer
-    
+
     def id(self) -> int:
         return PacketTypes.Humidity.value
-    
+
     ## Generate a synthetic packet from keyword descriptions
     #
     # This generates a synetic packet from keywords.  Expected keywords are:
@@ -944,6 +801,7 @@ class Humidity(DataPacket):
     def __str__(self):
         rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: humidity = {self.humidity} % (source {self.humiditySource})'
         return rtn
+
 
 ## Implement the Pressure NMEA2000 message
 #
@@ -982,12 +840,12 @@ class Pressure(DataPacket):
         ## Pressure, Pascals
         self.pressure = pressure
         super().__init__(date, timestamp, elapsed_time)
-    
+
     def payload(self) -> bytes:
         buffer = struct.pack('<HdIBBd', self.date, self.timestamp, self.elapsed, self.talker_id,
                              self.pressureSource, self.pressure)
         return buffer
-    
+
     def id(self) -> int:
         return PacketTypes.Pressure.value
 
@@ -1008,7 +866,7 @@ class Pressure(DataPacket):
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
-    
+
     ## Provide the fixed-text string name for this data packet
     #
     # This simply reports the human-readable name for the class so that reporting is possible
@@ -1027,6 +885,7 @@ class Pressure(DataPacket):
     def __str__(self):
         rtn = super().__str__() + f' talker: {self.talker_id}, {self.name()}: pressure = {pressure_to_mbar(self.pressure)} mBar (source {self.pressureSource})'
         return rtn
+
 
 ## Implement the NMEA0183 serial data message
 #
@@ -1119,17 +978,9 @@ class SerialiserVersion(DataPacket):
         base = 0
         (major, minor) = struct.unpack_from('<HH', buffer, base)
         base += 4
-        if numeric_file_version(major, minor) < numeric_file_version(wibl_file_version_major, wibl_file_version_minor):
-            # Dealing with an older version of the file format, which means that we have slight
-            # differences in the rest of the buffer, and have to fake some of the data.
-            (n2000_major, n2000_minor, n2000_patch, n0183_major, n0183_minor, n0183_patch) = \
-                struct.unpack_from('<HHHHHH', buffer, base)
-            imu_major = 0
-            imu_minor = 0
-            imu_patch = 0
-        else:
-            (n2000_major, n2000_minor, n2000_patch, n0183_major, n0183_minor, n0183_patch, imu_major, imu_minor, imu_patch) = \
-                struct.unpack_from('<HHHHHHHHH', buffer, base)
+        (n2000_major, n2000_minor, n2000_patch, n0183_major, n0183_minor, n0183_patch, imu_major, imu_minor,
+         imu_patch) = \
+            struct.unpack_from('<HHHHHHHHH', buffer, base)
         ## Major software version for the serialiser code
         self.major = major
         ## Minor software version for the serialiser code
@@ -1150,14 +1001,15 @@ class SerialiserVersion(DataPacket):
         super().__init__(0, 0.0, 0)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<HHHHHHHHHHH', self.major, self.minor, self.nmea2000[0], self.nmea2000[1], self.nmea2000[2],
-                            self.nmea0183[0], self.nmea0183[1], self.nmea0183[2],
-                            self.imu[0], self.imu[1], self.imu[2])
+        buffer = struct.pack('<HHHHHHHHHHH', self.major, self.minor, self.nmea2000[0], self.nmea2000[1],
+                             self.nmea2000[2],
+                             self.nmea0183[0], self.nmea0183[1], self.nmea0183[2],
+                             self.imu[0], self.imu[1], self.imu[2])
         return buffer
-    
+
     def id(self) -> int:
         return PacketTypes.SerialiserVersion.value
-    
+
     ## Generate a synthetic packet from a keyword specification
     #
     # This generates the packet based on keywords from the call.  Expected keywords are:
@@ -1199,6 +1051,7 @@ class SerialiserVersion(DataPacket):
         rtn = super().__str__() + f' {self.name()}: version = {self.major}.{self.minor}, with NMEA2000 version {self.nmea2000},  NMEA0183 version {self.nmea0183}, and IMU version {self.imu}'
         return rtn
 
+
 ## Implement the motion sensor data packet
 #
 # This picks out the information from the on-board motion sensor (if available).  This data is not processed
@@ -1235,9 +1088,10 @@ class Motion(DataPacket):
         super().__init__(0, 0.0, elapsed)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<Ifffffff', self.elapsed, self.accel[0], self.accel[1], self.accel[2], self.gyro[0], self.gyro[1], self.gyro[2], self.temp)
+        buffer = struct.pack('<Ifffffff', self.elapsed, self.accel[0], self.accel[1], self.accel[2], self.gyro[0],
+                             self.gyro[1], self.gyro[2], self.temp)
         return buffer
-    
+
     def id(self) -> int:
         return PacketTypes.Motion.value
 
@@ -1265,7 +1119,7 @@ class Motion(DataPacket):
     # \return String with the human-readable name of the packet
     def name(self):
         return 'Motion'
-    
+
     ## Implement the printable interface for this class, allowing it to be streamed
     #
     # This converts to human-readable version of the data packet for the standard streaming output interface.
@@ -1275,6 +1129,7 @@ class Motion(DataPacket):
     def __str__(self):
         rtn = super().__str__() + f' {self.name()}: acc = {self.accel}, gyro = {self.gyro}, temp = {self.temp}'
         return rtn
+
 
 ## Implement the basic metadata packet
 #
@@ -1313,9 +1168,10 @@ class Metadata(DataPacket):
     def payload(self) -> bytes:
         logger_name_len = len(self.logger_name)
         ship_name_len = len(self.ship_name)
-        buffer = struct.pack(f'<I{logger_name_len}sI{ship_name_len}s', logger_name_len, self.logger_name.encode('UTF-8'), ship_name_len, self.ship_name.encode('UTF-8'))
+        buffer = struct.pack(f'<I{logger_name_len}sI{ship_name_len}s', logger_name_len,
+                             self.logger_name.encode('UTF-8'), ship_name_len, self.ship_name.encode('UTF-8'))
         return buffer
-    
+
     def id(self) -> int:
         return PacketTypes.Metadata.value
 
@@ -1332,7 +1188,6 @@ class Metadata(DataPacket):
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
-    
     ## Provide the fixed-text string name for this data packet
     #
     # This simply reports the human-readable name for the class so that reporting is possible
@@ -1341,7 +1196,7 @@ class Metadata(DataPacket):
     # \return String with the human-readable name of the packet
     def name(self):
         return 'Metadata'
-    
+
     ## Implement the printable interface for this class, allowing it to be streamed
     #
     # This converts to human-readable version of the data packet for the standard streaming output interface
@@ -1349,8 +1204,10 @@ class Metadata(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = DataPacket.__str__(self) + f' {self.name()}: logger name (unique ID) = {self.logger_name}, shipname = {self.ship_name}'
+        rtn = DataPacket.__str__(
+            self) + f' {self.name()}: logger name (unique ID) = {self.logger_name}, shipname = {self.ship_name}'
         return rtn
+
 
 ## Implement the algorithm packet
 #
@@ -1383,13 +1240,13 @@ class AlgorithmRequest(DataPacket):
         self.algorithm = algname
         self.parameters = algparams
         super().__init__(0, 0.0, 0)
-    
+
     def payload(self) -> bytes:
         name_len = len(self.algorithm)
         param_len = len(self.parameters)
         buffer = struct.pack(f'<I{name_len}sI{param_len}s', name_len, self.algorithm, param_len, self.parameters)
         return buffer
-    
+
     def id(self) -> int:
         return PacketTypes.AlgorithmRequest.value
 
@@ -1400,7 +1257,7 @@ class AlgorithmRequest(DataPacket):
             super().__init__(0, 0.0, 0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
-    
+
     ## Provide the fixed-text string name for this data packet
     #
     # This simply report the human-readable name for the class so that reporting is possible
@@ -1409,7 +1266,7 @@ class AlgorithmRequest(DataPacket):
     # \return String with the human-readable name of the packet
     def name(self):
         return 'AlgorithmRequest'
-        
+
     ## Implement the printable interface for this class, allowing it to be streamed
     #
     # This converts to human-readable version of the data pacet for the standard streaming output interface
@@ -1419,6 +1276,7 @@ class AlgorithmRequest(DataPacket):
     def __str__(self):
         rtn = DataPacket.__str__(self) + f' {self.name()}: algorithm = {self.algorithm}, parameters = {self.parameters}'
         return rtn
+
 
 ## Implement the JSON metadata packet
 #
@@ -1452,7 +1310,7 @@ class JSONMetadata(DataPacket):
         meta_len = len(self.metadata_element)
         buffer = struct.pack(f'<I{meta_len}s', meta_len, self.metadata_element)
         return buffer
-    
+
     def id(self) -> int:
         return PacketTypes.JSONMetadata.value
 
@@ -1472,13 +1330,13 @@ class JSONMetadata(DataPacket):
             super().__init__(0, 0.0, 0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
-        
+
     ## Provide the fixed-text string name for this data packet
     #
     # This simply reports the human-readable name for the class so that reporting is possible
     def name(self):
         return 'JSONMetadata'
-    
+
     ## Implement the printable interface for this class, allowing it to be streamed
     #
     # This converts to human-readable version of the data packet for the standard streaming output interface
@@ -1489,11 +1347,12 @@ class JSONMetadata(DataPacket):
         rtn = DataPacket.__str__(self) + f' {self.name()}: metadata element = |{self.metadata_element.decode("UTF-8")}|'
         return rtn
 
+
 ## Implement a packet to hold information on NMEA0183 packets being recorded
 #
 # The logger has the ability to filter the NMEA0183 sentences that are received so that it only  records to
 # SD card those that are of interest.  Getting the filtering right can be important to let the capture run
-# for as long as possible. 
+# for as long as possible.
 class NMEA0183Filter(DataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
@@ -1508,7 +1367,7 @@ class NMEA0183Filter(DataPacket):
             self.buffer_constructor(kwargs['buffer'])
         else:
             self.data_constructor(**kwargs)
-    
+
     ## Initialise the packet from a binary buffer
     #
     # This takes the binary buffer presented and unpacks into an instance of the packet.
@@ -1522,7 +1381,7 @@ class NMEA0183Filter(DataPacket):
         recog_string, = struct.unpack_from(f'<{id_len}s', buffer, base)
         self.recog_string = recog_string
         super().__init__(0, 0.0, 0)
-    
+
     ## Initialise the packet from keyword arguments
     #
     # This takes the keywords provided and attempts to initialise the packet.  For this packet, valid
@@ -1539,7 +1398,7 @@ class NMEA0183Filter(DataPacket):
             super().__init__(0, 0.0, 0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
-    
+
     ## Encode the current packet for serialisation
     #
     # From the parameters set in the packet, convert to a stream of bytes that can be used to serialise
@@ -1552,14 +1411,14 @@ class NMEA0183Filter(DataPacket):
         recog_len = len(self.recog_string)
         buffer = struct.pack(f'<I{recog_len}s', recog_len, self.recog_string)
         return buffer
-    
+
     ## Provide the recognition ID for the packet, as used in the binary file
     #
     # Each packet has a reference number that's used as an ID; this routine provides that number
     #
     # \param self   Reference for the object
     # \returns Integer identification number for the packet
-    def id(self) ->int:
+    def id(self) -> int:
         return PacketTypes.NMEA0183Filter.value
 
     ## Provide the fixed-text string name for this data packet
@@ -1578,8 +1437,10 @@ class NMEA0183Filter(DataPacket):
     # \param self   Reference for the object
     # \return String representation of the object
     def __str__(self) -> str:
-        rtn = DataPacket.__str__(self) + f' {self.name()}: sentence recognition string = |{self.recog_string.decode("UTF-8")}|'
+        rtn = DataPacket.__str__(
+            self) + f' {self.name()}: sentence recognition string = |{self.recog_string.decode("UTF-8")}|'
         return rtn
+
 
 ## Implement a packet to store a JSON description of the sensor scales used by on-board sensors
 #
@@ -1596,13 +1457,13 @@ class SensorScales(DataPacket):
     # information required to initialise the packet, and attempts to pull them from the dictionary.
     #
     # \param self   Reference for the object
-    # \param kwargs Named arguments to initialise parameters, or "buffer" to unpack from binary data 
+    # \param kwargs Named arguments to initialise parameters, or "buffer" to unpack from binary data
     def __init__(self, **kwargs):
         if 'buffer' in kwargs:
             self.buffer_constructor(kwargs['buffer'])
         else:
             self.data_constructor(**kwargs)
-    
+
     ## Construct for a serialised buffer of bytes
     #
     # This attempts to construct the packet from a previously serialised version, typically from a WIBL
@@ -1663,7 +1524,7 @@ class SensorScales(DataPacket):
     # \returns Integer identification number for the packet
     def id(self) -> int:
         return PacketTypes.SensorScales.value
-    
+
     ## Provide the fixed-text string name for this data packet
     #
     # This simply reports the human-readable name for the class so that reporting is possible
@@ -1672,7 +1533,7 @@ class SensorScales(DataPacket):
     # \return String with th ename of the object
     def name(self) -> str:
         return 'SensorScales'
-    
+
     ## Implement the printable interface for this class, allowing it to be streamed
     #
     # This converts to human-readable version of the data packet for standard streaming output interface
@@ -1682,6 +1543,7 @@ class SensorScales(DataPacket):
     def __str__(self) -> str:
         rtn = DataPacket.__str__(self) + f' {self.name()}: sensor scales =|{self.config}|'
         return rtn
+
 
 ## Implement a packet to hold IMU information from a WIBL logger
 #
@@ -1696,13 +1558,13 @@ class RawIMU(DataPacket):
     # information required to initialise the packet, and attempts to pull them from the dictionary.
     #
     # \param self   Reference for the object
-    # \param kwargs Named arguments to initialise parameters, or "buffer" to unpack from binary data 
+    # \param kwargs Named arguments to initialise parameters, or "buffer" to unpack from binary data
     def __init__(self, **kwargs):
         if 'buffer' in kwargs:
             self.buffer_constructor(kwargs['buffer'])
         else:
             self.data_constructor(**kwargs)
-    
+
     ## Construct for a serialised buffer of bytes
     #
     # This attempts to construct the packet from a previously serialised version, typically from a WIBL
@@ -1747,7 +1609,8 @@ class RawIMU(DataPacket):
     # \param self   Reference for the object
     # \return Bytes array with the binary representation of the packet-specific parameters
     def payload(self) -> bytes:
-        buffer = struct.pack('<Ihhhhhhh', self.elapsed, self.temp, self.gyro[0], self.gyro[1], self.gyro[2], self.accel[0], self.accel[1], self.accel[2])
+        buffer = struct.pack('<Ihhhhhhh', self.elapsed, self.temp, self.gyro[0], self.gyro[1], self.gyro[2],
+                             self.accel[0], self.accel[1], self.accel[2])
         return buffer
 
     ## Provide the recognition ID for the packet, as used in the binary file
@@ -1758,7 +1621,7 @@ class RawIMU(DataPacket):
     # \returns Integer identification number for the packet
     def id(self) -> int:
         return PacketTypes.RawIMU.value
-    
+
     ## Provide the fixed-text string name for this data packet
     #
     # This simply reports the human-readable name for the class so that reporting is possible
@@ -1767,7 +1630,7 @@ class RawIMU(DataPacket):
     # \return String with th ename of the object
     def name(self) -> str:
         return 'RawIMU'
-    
+
     ## Implement the printable interface for this class, allowing it to be streamed
     #
     # This converts to human-readable version of the data packet for standard streaming output interface
@@ -1777,6 +1640,7 @@ class RawIMU(DataPacket):
     def __str__(self) -> str:
         rtn = super().__str__() + f' {self.name()}: acc = {self.accel}, gyro = {self.gyro}, temp = {self.temp}'
         return rtn
+
 
 ## Implement a packet to store the configuration specification for a logger
 #
@@ -1791,13 +1655,13 @@ class Setup(DataPacket):
     # information required to initialise the packet, and attempts to pull them from the dictionary.
     #
     # \param self   Reference for the object
-    # \param kwargs Named arguments to initialise parameters, or "buffer" to unpack from binary data 
+    # \param kwargs Named arguments to initialise parameters, or "buffer" to unpack from binary data
     def __init__(self, **kwargs):
         if 'buffer' in kwargs:
             self.buffer_constructor(kwargs['buffer'])
         else:
             self.data_constructor(**kwargs)
-    
+
     ## Construct for a serialised buffer of bytes
     #
     # This attempts to construct the packet from a previously serialised version, typically from a WIBL
@@ -1862,7 +1726,7 @@ class Setup(DataPacket):
     # \returns Integer identification number for the packet
     def id(self) -> int:
         return PacketTypes.Setup.value
-    
+
     ## Provide the fixed-text string name for this data packet
     #
     # This simply reports the human-readable name for the class so that reporting is possible
@@ -1871,7 +1735,7 @@ class Setup(DataPacket):
     # \return String with the name of the object
     def name(self) -> str:
         return 'Setup'
-    
+
     ## Implement the printable interface for this class, allowing it to be streamed
     #
     # This converts to human-readable version of the data packet for standard streaming output interface
@@ -1881,6 +1745,7 @@ class Setup(DataPacket):
     def __str__(self) -> str:
         rtn = super().__str__() + f' {self.name()}: json = |{self.setup}|'
         return rtn
+
 
 ## Implement a packet to store the configuration of which PGNs to record as binary data
 #
@@ -1934,6 +1799,7 @@ class NMEA2000PGNs(DataPacket):
         rtn = super().__str__() + f' {self.name()}: json = |{self.config}|'
         return rtn
 
+
 class NMEA2000Binary(DataPacket):
     def __init__(self, **kwargs):
         if 'buffer' in kwargs:
@@ -1974,49 +1840,39 @@ class NMEA2000Binary(DataPacket):
         rtn = super().__str__() + f' {self.name()}: PGN {self.pgn} = {self.raw}'
         return rtn
 
+
 ## Translate packets out of the binary file, reconstituing as an appropriate class
 #
 # This provides the primary interface for the user to the binary data generated by the logger.  Calling the next_packet
 # method pulls the next packet header, checks for type and size, and then reads the following byte sequence to the
 # required length before translating to an instantiation of the appropriate class.  Unknown packets generate a warning.
-class PacketFactory:
-    ## Initialise the packet factory
-    #
-    # This simple copies the file reference information for the binary data, and resets EOF indicator.
-    #
-    # \param self   Pointer to the object
-    # \param file   Open file object, which must be opened for binary reads
-    # \param strict_mode If True, raise exception if an error is encountered loading a packet. If False, print a warning message about the packet loading error.
-    def __init__(self, file, *,
-                 strict_mode: bool = False):
-        ## File reference from which to read packets
-        self.file = file
-        ## Flag for end-of-file detection
-        self.end_of_file = False
-        self.strict_mode = strict_mode
-        self.packets_read: int = 0
+class PacketFactory(PacketFactoryBase):
+    version_major = WIBL_FILE_VERSION_MAJOR
+    version_minor = WIBL_FILE_VERSION_MINOR
 
-    ## Extract the next packet from the binary data file
-    #
-    # This pulls the next packet header from the binary file, interprets the type and size, reads the bytes
-    # corresponding to the packet payload, and the converts to an instantiation of the appropriate class object.
-    #
-    # \param self   Pointer to the object
-    # \return DataPacket-derived object corresponding to the packet, or None if end-of-file or error
-    def next_packet(self):
-        if self.end_of_file:
-            return None
+    SerialiserVersion = SerialiserVersion
+    SystemTime = SystemTime
+    Attitude = Attitude
+    Depth = Depth
+    COG = COG
+    GNSS = GNSS
+    Environment = Environment
+    Temperature = Temperature
+    Humidity = Humidity
+    Pressure = Pressure
+    SerialString = SerialString
+    Motion = Motion
+    Metadata = Metadata
+    AlgorithmRequest = AlgorithmRequest
+    JSONMetadata = JSONMetadata
+    NMEA0183Filter = NMEA0183Filter
+    SensorScales = SensorScales
+    RawIMU = RawIMU
+    Setup = Setup
+    NMEA2000PGNs = NMEA2000PGNs
+    NMEA2000Binary = NMEA2000Binary
 
-        buffer = self.file.read(8)   # Header for each packet is U32 (ID) U32 (length in bytes)
-
-        if len(buffer) < 8:
-            self.end_of_file = True
-            return None
-
-        (pkt_id, pkt_len) = struct.unpack('<II', buffer)
-        last_pos: int = self.file.tell()
-        buffer = self.file.read(pkt_len)
-        self.packets_read += 1
+    def _generate_packet(self, pkt_id: int, buffer: bytes, last_pos: int) -> DataPacket | None:
         rtn = None
         try:
             if pkt_id == PacketTypes.SerialiserVersion.value:
@@ -2072,14 +1928,10 @@ class PacketFactory:
                 print(f"WARNING: Unable to read packet number {self.packets_read} with ID {pkt_id} and name "
                       f"'{PacketTypes(pkt_id).name}' at byte offset {last_pos} of file '{self.file.name}' "
                       f"due to error: '{str(e)}'. Ignoring as strict_mode is False.")
-
         return rtn
 
-    ## Check for more data being available
-    #
-    # This checks for whether there is more data available in the file.
-    #
-    # \param self   Pointer to the object
-    # \return True if there is more data to read, otherwise False
-    def has_more(self):
-        return not self.end_of_file
+
+class LoggerFile(LoggerFileBase):
+    version_major = WIBL_FILE_VERSION_MAJOR
+    version_minor = WIBL_FILE_VERSION_MINOR
+    packet_factory = PacketFactory
