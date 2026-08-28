@@ -29,8 +29,9 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <functional>
 #include <Wire.h>
+#include "N2kTypes.h"
+#include "N2kLogger.h"
 #include "GNSSLogger.h"
 
 namespace gnss {
@@ -42,7 +43,24 @@ const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 const int RawDataPacketSize = 1024; ///< Size of raw byte packets transferred from the GNSS
 const int ReceiverDataBufferSize = 16384; ///< Size of internal logging buffer for GNSS
 
-logger::Manager *callback_log_output = nullptr;
+logger::Manager *_log_output = nullptr;
+nmea::N2000::Logger *_n2k_logger = nullptr;
+bool _generate_realtime_debug = false;
+
+int32_t get_utc_days_since_epoch(int32_t year, int32_t month, int32_t day) {
+    // Shift calendar so the year begins in March (makes leap year math clean)
+    year -= (month <= 2) ? 1 : 0;
+    
+    int32_t era = (year >= 0 ? year : year - 399) / 400;
+    uint32_t yofE = static_cast<uint32_t>(year - era * 400);            // Year of Era
+    uint32_t mp = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5;       // Month Day Prefix
+    uint32_t doe = yofE * 365 + yofE / 4 - yofE / 100 + mp + (day - 1);  // Day of Era
+    
+    int32_t days_since_0000 = era * 146097 + static_cast<int32_t>(doe);
+    
+    // 719468 is the exact number of days between 0000-03-01 and 1970-01-01
+    return days_since_0000 - 719468; 
+}
 
 void sfrbx_rcv(UBX_RXM_SFRBX_data_t *data)
 {
@@ -62,20 +80,102 @@ void rawx_rcv(UBX_RXM_RAWX_data_t *data)
 // \param data  Structure with broken-out information on the current position solution.
 void pvt_rcv(UBX_NAV_PVT_data_t * data)
 {
-    Serial.printf("GNSS at %d-%d-%d/%d:%d:%d.%09d (valid date: %d time: %d) acc: %d ns\n",
-        data->year, (int)data->month, (int)data->day, (int)data->hour, (int)data->min, (int)data->sec,
-        data->nano, (int)data->valid.bits.validDate, (int)data->valid.bits.validTime,
-        data->tAcc);
-    Serial.printf("GNSS at %.6f E, %.6f N, %.3f U pDOP %.2f nSV: %d type: %d valid: %d\n",
-        data->lon/1.0e7, data->lat/1.0e7, data->height/1000.0, data->pDOP/100.0,
-        (int)data->numSV, (int)data->fixType, (int)data->flags.bits.gnssFixOK);
-    Serial.printf("GNSS at vel. %.3f N, %.3f E, %.3f D acc: %.3f m/s\n",
-        data->velN/1000.0, data->velE/1000.0, data->velD/1000.0, data->sAcc/1000.0);
+    if (_generate_realtime_debug) {
+        Serial.printf("GNSS at %d-%d-%d/%d:%d:%d.%09d (valid date: %d time: %d) acc: %d ns\n",
+            data->year, (int)data->month, (int)data->day, (int)data->hour, (int)data->min, (int)data->sec,
+            data->nano, (int)data->valid.bits.validDate, (int)data->valid.bits.validTime,
+            data->tAcc);
+        Serial.printf("GNSS at %.6f E, %.6f N, %.3f U pDOP %.2f nSV: %d type: %d valid: %d\n",
+            data->lon/1.0e7, data->lat/1.0e7, data->height/1000.0, data->pDOP/100.0,
+            (int)data->numSV, (int)data->fixType, (int)data->flags.bits.gnssFixOK);
+        Serial.printf("GNSS at vel. %.3f N, %.3f E, %.3f D acc: %.3f m/s\n",
+            data->velN/1000.0, data->velE/1000.0, data->velD/1000.0, data->sAcc/1000.0);
+    }
+
+    if (data->valid.bits.validDate == 0 || data->valid.bits.validTime == 0) {
+        // Only process the data if at least the time's marked as valid
+        if (_generate_realtime_debug) {
+            Serial.printf("WARN: GNSS time not valid; ignoring all data.\n",
+                data->year, (int)data->month, (int)data->day,
+                (int)data->hour, (int)data->min, (int)data->sec, data->nano);
+        }
+        return;
+    }
+
+    // To make sure that we have a consistent reference time elapsed count, compute the
+    // message reference, update the N2K logger, and then update here with the elapsed time
+    // count from that update (so these don't drift)
+    uint32_t epoch_days = get_utc_days_since_epoch(data->year, data->month, data->day);
+    double   seconds_in_day = data->hour * 3600.0 + data->min * 60.0 + data->sec +
+                              data->nano / 1.0e9;
+    _n2k_logger->UpdateTimeReference(epoch_days, seconds_in_day);
+
+    nmea::N2000::Timestamp ref_time;
+    ref_time.Update(epoch_days, seconds_in_day, _n2k_logger->TimeReferencedElapsed());
+    nmea::N2000::Timestamp::TimeDatum time_datum = ref_time.Now();
+
+    Serialisable systime(sizeof(uint16_t) + // days since epoch
+                        sizeof(double) + // seconds in day
+                        sizeof(unsigned long) + // elapsed time
+                        2*sizeof(uint8_t) // talker and time source
+                    );
+    systime += (uint16_t)epoch_days;
+    systime += seconds_in_day;
+    systime += time_datum.RawElapsed();
+    systime += (uint8_t)0xFF; // Means "me"
+    systime += (uint8_t)tN2kTimeSource::N2ktimes_GPS; // Assume GPS only (although it could be otherwise)
+    _log_output->Record(logger::Manager::PacketIDs::Pkt_SystemTime, systime);
+
+    if (data->flags.bits.gnssFixOK == 0) {
+        // Only generate the position packet if it's marked as valid
+        if (_generate_realtime_debug) {
+            Serial.printf("WARN: GNSS position not valid; ignored.\n",
+                data->lon/1.0e7, data->lat/1.0e7, data->height/1000.0, data->pDOP/100.0,
+                (int)data->numSV, (int)data->fixType);
+        }
+        return;
+    }
+
+    Serialisable position(time_datum.SerialisationSize() +
+                    sizeof(uint8_t) +   // talker
+                    2*sizeof(uint16_t) + // days since epoch and reference station ID
+                    8*sizeof(double) + // seconds in day, position and associated metrics
+                    6*sizeof(uint8_t) // qualifiers, station ID, correction age, etc.
+                    );
+    time_datum.Serialise(position);
+    position += (uint8_t)0xFF; // Means "me"
+    position += (uint16_t)epoch_days;
+    position += seconds_in_day;
+    position += data->lat / 1.0e7;
+    position += data->lon / 1.0e7;
+    position += data->height / 1000.0;
+    position += (uint8_t)tN2kGNSStype::N2kGNSSt_GPS; // Signal source (GPS, GLONASS, Galileo, etc.); assume GPS
+    position += (uint8_t)tN2kGNSSmethod::N2kGNSSm_GNSSfix; // We're always operating unaided, so if it's valid ...
+    position += data->numSV;
+    position += data->hAcc / 1000.0; // Don't have HDOP so substitute hor. acc in metres.
+    position += data->pDOP / 100.0; // Denormalise; integer scaling is 0.01 units
+    position += (data->height  - data->hMSL) / 1000.0; // Separation isn't reported, but this should be the difference
+    position += (uint8_t)0; // Number of reference stations: we're acting unaided
+    position += (uint8_t)0; // Reference station type: N/A
+    position += (uint16_t)0; // Reference station ID: N/A
+    position += (double)0.0; // Correction age: we're acting unaided
+
+    _log_output->Record(logger::Manager::PacketIDs::Pkt_GNSS, position);
 }
 
-Logger::Logger(logger::Manager *output)
+void Logger::SetVerbose(bool verbose)
+{
+    m_verbose = verbose;
+    _generate_realtime_debug = verbose;
+}
+
+Logger::Logger(logger::Manager *output, nmea::N2000::Logger *n2k)
 : m_output(output), m_verbose(false)
 {
+    _log_output = output; // !ick!
+    _n2k_logger = n2k;
+    _generate_realtime_debug = m_verbose;
+
     m_sensor = new SFE_UBLOX_GNSS();
     if (!Wire.begin()) {
         Serial.println("ERROR: Failed to initialise Wire interface for GNSS module; logging disabled.");
@@ -88,7 +188,6 @@ Logger::Logger(logger::Manager *output)
         return;
     }
     m_sensor->setFileBufferSize(ReceiverDataBufferSize);
-    callback_log_output = output; // !ick!
     if (!m_sensor->begin()) {
         Serial.println("ERROR: failed to start GNSS module; logging disabled.");
         delete m_sensor; m_sensor = nullptr; m_output = nullptr;

@@ -30,6 +30,7 @@
  */
 
 #include "LogManager.h"
+#include "N2kLogger.h"
 #include "SparkFun_u-blox_GNSS_v3.h"
 
 namespace gnss {
@@ -45,7 +46,7 @@ namespace gnss {
 
 class Logger {
 public:
-    Logger(logger::Manager *output);
+    Logger(logger::Manager *output, nmea::N2000::Logger *n2k);
     ~Logger(void);
 
     /// \brief Determine whether the GNSS module is configured and available
@@ -53,6 +54,9 @@ public:
 
     /// \brief Run-loop for checking call-backs, and processing data that has arrived 
     void TransferData(void);
+
+    /// \brief Set the output verbosity dynamically
+    void SetVerbose(bool verbose = false);
 
     /// \brief Generate reporting string for the software module
     static String SoftwareVersion(void);

@@ -101,6 +101,8 @@ public:
     /// \brief Generate a string-printable representation of the information
     String printable(void) const;
 
+    unsigned long DatumElapsedTime(void) const { return m_elapsedTimeAtDatum; }
+
 private:
     uint16_t      m_lastDatumDate;      ///< Days since 1970-01-01 at last known datum
     double        m_lastDatumTime;      ///< Time in seconds since midnight at last known datum
@@ -124,6 +126,14 @@ public:
     
     /// \brief Message handler for the tNMEA2000::tMsgHandler interface
     void HandleMsg(const tN2kMsg &N2kMsg);
+
+    /// \brief Update the time reference being used based on external source
+    void UpdateTimeReference(uint16_t days_since_epoch, double seconds_in_day)
+    {
+        m_timeReference.Update(days_since_epoch, seconds_in_day);
+        m_externalTime = true;
+    }
+    unsigned long TimeReferencedElapsed(void) const { return m_timeReference.DatumElapsedTime(); }
     
     /// \brief Generate a software version string, as required by NMEA2000 library
     static String SoftwareVersion(void);
@@ -135,6 +145,7 @@ public:
     
 private:
     bool            m_verbose;          ///< Flag for verbose debug output
+    bool            m_externalTime;     ///< Flag: set if time is being handled elsewhere
     Timestamp       m_timeReference;    ///< Time reference information for timestamping records
     logger::Manager *m_logManager;      ///< Handler for output log files
     std::set<int>   m_pgnList;          ///< List of PGNs to write to output (binary)

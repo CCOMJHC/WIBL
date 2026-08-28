@@ -170,7 +170,8 @@ void setup()
 
     if (logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_GNSS_B, start_gnss_sensor) && start_gnss_sensor) {
         Serial.println("Configuring GNSS logger ...");
-        GNSSLogger = new gnss::Logger(logManager);
+        GNSSLogger = new gnss::Logger(logManager, N2000Logger);
+        GNSSLogger->SetVerbose(true);
         Serial.printf("DBG: After GNSS logger start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
     }
 

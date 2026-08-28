@@ -33,6 +33,7 @@
 #include "N2kLogger.h"
 #include "SerialCommand.h"
 #include "IMULogger.h"
+#include "GNSSLogger.h"
 
 namespace logger {
 
@@ -205,6 +206,7 @@ DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
     params["version"]["nmea0183"] = nmea::N0183::Logger::SoftwareVersion();
     params["version"]["nmea2000"] = nmea::N2000::Logger::SoftwareVersion();
     params["version"]["imu"] = imu::Logger::SoftwareVersion();
+    params["version"]["gnss"] = gnss::Logger::SoftwareVersion();
     params["version"]["serialiser"] = Serialiser::SoftwareVersion();
 
     // Enable/disable for the various loggers and features

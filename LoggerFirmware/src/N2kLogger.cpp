@@ -294,7 +294,9 @@ void Logger::HandleSystemTime(Timestamp::TimeDatum const& t, const tN2kMsg& msg)
             if (IsNA(t) || N2kIsNA(date) || N2kIsNA(timestamp) || N2kIsNA((uint8_t)source))
                 m_logManager->EmitNoDataReject();
 
-            m_timeReference.Update(date, timestamp, t.RawElapsed());
+            if (!m_externalTime) {
+                m_timeReference.Update(date, timestamp, t.RawElapsed());
+            }
 
             logger::DataObs obs(t.RawElapsed(), date, timestamp);
             logger::Metrics.RegisterObs(obs);
