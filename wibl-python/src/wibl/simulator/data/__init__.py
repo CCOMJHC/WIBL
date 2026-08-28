@@ -264,7 +264,7 @@ class State(TickCountMillisecondsMixin):
         # Global state for Gaussian variate generator (from Numerical Recipies)
         self._gset: float = None
 
-    def update_ticks(self, ticks: int):
+    def update_ticks(self, ticks: int) -> None:
         self.curr_ticks = ticks
         self.tick_count = self.curr_ticks - self.init_ticks
 
