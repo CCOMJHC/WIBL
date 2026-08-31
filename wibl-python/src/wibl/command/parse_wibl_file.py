@@ -39,11 +39,13 @@ import wibl.core.logger_file as LoggerFile
 @click.argument('input', type=str)
 @click.option('-s', '--stats', is_flag=True, default=False,
               help='Provide summary statistics on packets seen')
-@click.option('-d', '--dump', type=click.Path(exists=True),
+@click.option('-d', '--dump', type=click.Path(exists=False),
               help='Dump ASCII representation of NMEA0183 data to file')
+@click.option('-g', '--gnss', type=click.Path(exists=False),
+              help='Dump GNSS RAWX packets to output file, if any are in the file')
 @click.option('--strict-mode', is_flag=True, default=False,
               help='Strict mode: fail if any packet is not successfully translated')
-def parsewibl(input: str, stats: bool, dump: str, strict_mode: bool):
+def parsewibl(input: str, stats: bool, dump: str, gnss: str, strict_mode: bool):
     """Parse binary WIBL logger file INPUT and report contents in human-readable format to the console."""
     filename = str(input)
     
@@ -51,6 +53,10 @@ def parsewibl(input: str, stats: bool, dump: str, strict_mode: bool):
         dump_file = open(dump, 'w')
     else:
         dump_file = None
+    if gnss:
+        gnss_file = open(gnss, 'wb')
+    else:
+        gnss_file = None
 
     file = open(filename, 'rb')
 
@@ -66,8 +72,9 @@ def parsewibl(input: str, stats: bool, dump: str, strict_mode: bool):
                 click.echo(pkt)
                 if dump_file:
                     if pkt.name() == 'SerialString':
-                        assert(type(pkt) == LoggerFile.SerialString)
-                        dump_file.write(f'{pkt.elapsed} {pkt.data.decode("utf-8").strip()}\n')
+                        dump_file.write(f'{pkt.elapsed} {pkt.data.decode("utf-8").strip()}\n') # type: ignore
+                if gnss_file and pkt.name() == 'GNSSBinary':
+                    gnss_file.write(pkt.raw) # type: ignore
                 if stats:
                     if pkt.name() not in packet_stats:
                         packet_stats[pkt.name()] = 0
