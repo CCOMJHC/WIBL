@@ -86,7 +86,8 @@ const String lookup[] = {
     "UploadInterval",   ///< Interval (seconds) between upload attempts
     "UploadDuration",   ///< Time (seconds) for upload activity before diverting back to other efforts
     "UploadCert",       ///< Certificate to pass to the upload server for TLS
-    "mDNSName"
+    "mDNSName",
+    "RequirePMF"        ///< Require PMF for WPA3 (string)
 };
 
 /// Default constructor.  This sets up for a dummy parameter store, which is configured
