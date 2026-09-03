@@ -72,6 +72,19 @@ void rawx_rcv(UBX_RXM_RAWX_data_t *data)
 
 }
 
+void tim_rcv(UBX_TIM_TP_data_t *data)
+{
+
+}
+
+void Logger::setup_tim_rcv(void)
+{
+    /* Configure the TP for appropriate edge direction, duration, etc. */
+}
+
+// TODO: Establish ISR for 1PPS input, which finally marries up the TP_data_t information
+// with the micros() number associated with the interrupt.
+
 // Call-back for the GNSS library to report the real-time position, velocity, and time information
 // from the module.  This is unlikely to be of a level of accuracy that's of interest for TCB use,
 // but is a valuable auxiliary source of data, given the quality of the antenna and receiver, and therefore
@@ -101,31 +114,6 @@ void pvt_rcv(UBX_NAV_PVT_data_t * data)
         }
         return;
     }
-
-    // To make sure that we have a consistent reference time elapsed count, compute the
-    // message reference, update the N2K logger, and then update here with the elapsed time
-    // count from that update (so these don't drift)
-    uint32_t epoch_days = get_utc_days_since_epoch(data->year, data->month, data->day);
-    double   seconds_in_day = data->hour * 3600.0 + data->min * 60.0 + data->sec +
-                              data->nano / 1.0e9;
-    _n2k_logger->UpdateTimeReference(epoch_days, seconds_in_day);
-
-    nmea::N2000::Timestamp ref_time;
-    ref_time.Update(epoch_days, seconds_in_day, _n2k_logger->TimeReferencedElapsed());
-    nmea::N2000::Timestamp::TimeDatum time_datum = ref_time.Now();
-
-    Serialisable systime(sizeof(uint16_t) + // days since epoch
-                        sizeof(double) + // seconds in day
-                        sizeof(unsigned long) + // elapsed time
-                        2*sizeof(uint8_t) // talker and time source
-                    );
-    systime += (uint16_t)epoch_days;
-    systime += seconds_in_day;
-    systime += time_datum.RawElapsed();
-    systime += (uint8_t)0xFF; // Means "me"
-    systime += (uint8_t)tN2kTimeSource::N2ktimes_GPS; // Assume GPS only (although it could be otherwise)
-    _log_output->Record(logger::Manager::PacketIDs::Pkt_SystemTime, systime);
-
     if (data->flags.bits.gnssFixOK == 0) {
         // Only generate the position packet if it's marked as valid
         if (_generate_realtime_debug) {
@@ -135,6 +123,16 @@ void pvt_rcv(UBX_NAV_PVT_data_t * data)
         }
         return;
     }
+
+    // Note that the time in the packet is meant to be the validity time of the observation, not
+    // when it was sent.  So we convert this for metadata on the position, but get a separate
+    // timestamp from the time source for the header.
+    uint32_t epoch_days = get_utc_days_since_epoch(data->year, data->month, data->day);
+    double   seconds_in_day = data->hour * 3600.0 + data->min * 60.0 + data->sec +
+                              data->nano / 1.0e9;
+    
+    // TODO: We need to get a TimeDatum for when we think the packet arrived
+    nmea::N2000::Timestamp::TimeDatum time_datum;
 
     Serialisable position(time_datum.SerialisationSize() +
                     sizeof(uint8_t) +   // talker
@@ -194,7 +192,8 @@ Logger::Logger(logger::Manager *output, nmea::N2000::Logger *n2k)
         return;
     }
 
-    // Configuration for real-time PVT and raw observations for post-processing
+    // Configuration for real-time TP, PVT and raw observations for post-processing
+    setup_tim_rcv();
     m_sensor->setI2COutput(COM_TYPE_UBX);
     m_sensor->saveConfigSelective(VAL_CFG_SUBSEC_IOPORT);
     m_sensor->setAutoRXMSFRBXcallbackPtr(&sfrbx_rcv);
@@ -203,6 +202,8 @@ Logger::Logger(logger::Manager *output, nmea::N2000::Logger *n2k)
     m_sensor->logRXMRAWX();
     m_sensor->setAutoPVTcallbackPtr(&pvt_rcv);
     m_sensor->logNAVPVT();
+    m_sensor->setAutoTIMTPcallbackPtr(&tim_rcv);
+    m_sensor->logTIMTP();
     m_sensor->setDynamicModel(DYN_MODEL_SEA);
     m_sensor->setNavigationFrequency(1); // RAWX is a lot of data; we don't need more than 1Hz
     m_pktBuffer = new uint8_t[RawDataPacketSize];

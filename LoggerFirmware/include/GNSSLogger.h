@@ -68,6 +68,8 @@ private:
     logger::Manager *m_output;      ///< Pointer to the (shared) output log manager for data reporting
     bool            m_verbose;      ///< Flag: True => lots more output information
     uint8_t         *m_pktBuffer;   ///< Buffer for packets transferred before writing
+
+    void setup_tim_rcv(void);
 };
 
 }
