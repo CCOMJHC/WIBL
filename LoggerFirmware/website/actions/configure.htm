@@ -68,6 +68,12 @@
                             <label for="join-timeout">Join Timeout (s)</label>
                             <input type="number" name="jointimeout" id="join-timeout"/>
                             <br>
+                            <label for="pmf-mode">WPA3 PMF</label>
+                            <select name="pmfmode" id="pmf-mode" title="Protected Management Frames: Capable allows WPA2/WPA3 auto-negotiation; Required enforces strict WPA3">
+                                <option value="capable">Capable (WPA2/WPA3)</option>
+                                <option value="required">Required (WPA3-only)</option>
+                            </select>
+                            <br>
                         </fieldset>
                         <fieldset class="internal">
                             <legend>Identification</legend>

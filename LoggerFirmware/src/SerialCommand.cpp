@@ -855,6 +855,8 @@ void SerialCommand::ReportConfiguration(CommandSource src)
     EmitMessage("  WiFi IP Address String: " + string_param + "\n", src);
     logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_WIFIMODE_S, string_param);
     EmitMessage("  WiFi Mode String: " + string_param + "\n", src);
+    logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_REQUIRE_PMF_S, string_param);
+    EmitMessage("  WiFi PMF Required: " + string_param + "\n", src);
     logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_BAUDRATE_1_S, string_param);
     EmitMessage("  Serial Channel 1 Speed: " + string_param + " baud\n", src);
     logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_BAUDRATE_2_S, string_param);
@@ -1150,15 +1152,18 @@ void SerialCommand::ReportWebserverConfig(CommandSource src)
 {
     if (src == CommandSource::SerialPort) {
         bool enable;
-        String station_delay, station_retries, station_timeout;
+        String station_delay, station_retries, station_timeout, require_pmf;
         logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_WEBSERVER_B, enable);
         logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_STATION_DELAY_S, station_delay);
         logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_STATION_RETRIES_S, station_retries);
         logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_STATION_TIMEOUT_S, station_timeout);
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_REQUIRE_PMF_S, require_pmf);
+        bool pmf_req = require_pmf.equalsIgnoreCase("true") || require_pmf == "1";
         EmitMessage(String("Webserver is ") + (enable ? "on" : "off") +
             " with connection delay " + station_delay +
             ", connection timeout " + station_timeout +
-            ", and " + station_retries + " retries.\n", src);
+            ", " + station_retries + " retries" +
+            ", and WPA3 PMF " + (pmf_req ? "required" : "capable") + ".\n", src);
     } else if (src == CommandSource::WirelessPort) {
         ReportConfigurationJSON(src);
     } else {
@@ -1200,6 +1205,57 @@ void SerialCommand::ConfigureWebserver(String const& params, CommandSource src)
     logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_STATION_TIMEOUT_S, station_timeout);
     logger::LoggerConfig.SetConfigBinary(logger::Config::ConfigParam::CONFIG_WEBSERVER_B, state);
     if (src == CommandSource::WirelessPort) {
+        ReportConfigurationJSON(src);
+    }
+}
+
+/// Report on the current WPA3 PMF (Protected Management Frames) setting.
+///
+/// \param src Channel on which this command was received
+
+void SerialCommand::ReportPMFConfig(CommandSource src)
+{
+    if (src == CommandSource::SerialPort) {
+        String require_pmf;
+        logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_REQUIRE_PMF_S, require_pmf);
+        bool pmf_req = require_pmf.equalsIgnoreCase("true") || require_pmf == "1";
+        EmitMessage(String("WPA3 PMF: ") + (pmf_req ? "required (strict WPA3)\n" : "capable (WPA2/WPA3 negotiated)\n"), src);
+    } else if (src == CommandSource::WirelessPort) {
+        ReportConfigurationJSON(src);
+    } else {
+        EmitMessage("ERR: request for unknown CommandSource - who are you?\n", src);
+    }
+}
+
+/// Set the WPA3 PMF requirement: 'required'/'on' enforces PMF, while 'capable'/'off'
+/// allows standard WPA2/WPA3 auto-negotiation.
+///
+/// \param params String containing the PMF setting
+/// \param src    Channel on which this command was received
+
+void SerialCommand::ConfigurePMF(String const& params, CommandSource src)
+{
+    String opt = params;
+    opt.trim();
+    opt.toLowerCase();
+
+    bool required = false;
+    if (opt == "required" || opt == "on" || opt == "true" || opt == "1") {
+        required = true;
+    } else if (opt == "capable" || opt == "off" || opt == "false" || opt == "0") {
+        required = false;
+    } else {
+        EmitMessage("ERR: PMF configuration must be 'capable' (or 'off') or 'required' (or 'on').\n", src);
+        if (src == CommandSource::WirelessPort && m_wifi != nullptr) {
+            m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
+        }
+        return;
+    }
+
+    logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_REQUIRE_PMF_S, required ? "true" : "false");
+    if (src == CommandSource::SerialPort) {
+        EmitMessage(String("WPA3 PMF set to ") + (required ? "required (strict WPA3)\n" : "capable (WPA2/WPA3 negotiated)\n"), src);
+    } else if (src == CommandSource::WirelessPort) {
         ReportConfigurationJSON(src);
     }
 }
@@ -1544,6 +1600,7 @@ void SerialCommand::Syntax(CommandSource src)
     EmitMessage("  ota                                 Start Over-the-Air update sequence for the logger.\n", src);
     EmitMessage("  password ap|station [wifi-password] Set the WiFi password.\n", src);
     EmitMessage("  pgn [NMEA2000 PGN | clear | all]    Configure which additional NMEA2000 messages to record.\n", src);
+    EmitMessage("  pmf [required|capable|on|off]       Configure WPA3 Protected Management Frames (PMF) mode.\n", src);
     EmitMessage("  restart                             Restart the logger module hardware.\n", src);
     EmitMessage("  scales                              Report any registered sensor-specific scale factors.\n", src);
     EmitMessage("  setup [json-specification]          Report the configuration of the logger, or set it, using JSON specifications.\n", src);
@@ -1658,6 +1715,12 @@ void SerialCommand::Execute(String const& cmd, CommandSource src)
             ReportNMEABinaries(src);
         } else {
             AddNMEABinary(cmd.substring(4), src);
+        }
+    } else if (cmd.startsWith("pmf")) {
+        if (cmd.length() == 3) {
+            ReportPMFConfig(src);
+        } else {
+            ConfigurePMF(cmd.substring(4), src);
         }
     } else if (cmd == "restart") {
         ESP.restart();

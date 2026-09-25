@@ -31,6 +31,7 @@
 #include <WiFiAP.h>
 #include <ESPmDNS.h>
 #include <WebServer.h>
+#include <esp_wifi.h>
 #include <WifiClient.h>
 #include <LittleFS.h>
 #include <ESP32-targz.h>
@@ -323,8 +324,47 @@ private:
             Serial.print("ERR: attempting to join a WiFi network as a station without a specified SSID\n");
             return false;
         }
-        wl_status_t status = WiFi.begin(ssid.c_str(), password.c_str());
+
+        // Configure WPA3/PMF fallback & parameters for modern hotspots
+        WiFi.mode(WIFI_STA);
+        
+        String logger_name;
+        logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_MDNS_NAME_S, logger_name);
+        if (logger_name.length() > 0) {
+            WiFi.setHostname(logger_name.c_str());
+        }
+
+        wifi_config_t conf;
+        esp_wifi_get_config(WIFI_IF_STA, &conf);
+        
+        bool require_pmf = false;
+        String require_pmf_str;
+        if (logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_REQUIRE_PMF_S, require_pmf_str)) {
+            require_pmf = require_pmf_str.equalsIgnoreCase("true") || require_pmf_str == "1";
+        }
+        
+        if (m_verbose) {
+            Serial.printf("DBG: WPA3 PMF configured as %s\n", require_pmf ? "REQUIRED" : "CAPABLE-ONLY");
+        }
+
+        WiFi.disconnect(true);
+        delay(100);
         WiFi.setSleep(false);
+
+        // Blank and build the sta configuration struct manually so we can set WPA3 options
+        memset(&conf, 0, sizeof(conf));
+        memcpy(conf.sta.ssid, ssid.c_str(), ssid.length());
+        memcpy(conf.sta.password, password.c_str(), password.length());
+
+        conf.sta.pmf_cfg.capable = true;
+        conf.sta.pmf_cfg.required = require_pmf;
+#ifdef WPA3_SAE_PWE_BOTH
+        conf.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
+#endif
+        esp_wifi_set_config(WIFI_IF_STA, &conf);
+        esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
+
+        wl_status_t status = WiFi.begin(); // Do not pass ssid/password here, as it overrides the PMF config just set
         m_lastConnectAttempt = millis();
         if (m_verbose) {
             Serial.printf("DBG: started network join on %s:%s at %d with immediate status %d\n", ssid.c_str(), password.c_str(), m_lastConnectAttempt, (int)status);

@@ -99,7 +99,8 @@ class Config {
             CONFIG_UPLOAD_INTERVAL_S,/* String: interval (seconds) between upload attempts */
             CONFIG_UPLOAD_DURATION_S,/* String: duration (seconds) for each upload event */
             CONFIG_UPLOAD_CERT_S,   /* String: certificate to pass to upload server for authentication */
-            CONFIG_MDNS_NAME_S      /* String: recognition name for mDNS responder (hostname: name.local) */
+            CONFIG_MDNS_NAME_S,     /* String: recognition name for mDNS responder (hostname: name.local) */
+            CONFIG_REQUIRE_PMF_S    /* String: Require PMF for WPA3 connections (true/false) */
         };
 
         /// \brief Extract a configuration string for the specified parameter
