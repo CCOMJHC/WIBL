@@ -176,6 +176,10 @@ private:
     void ReportWebserverConfig(CommandSource src);
     /// \brief Configure the web-server for system config/management
     void ConfigureWebserver(String const& command, CommandSource src);
+    /// \brief Report the WPA3 PMF (Protected Management Frames) configuration
+    void ReportPMFConfig(CommandSource src);
+    /// \brief Configure WPA3 PMF requirement
+    void ConfigurePMF(String const& command, CommandSource src);
     /// \brief Report on the current status of the logger
     void ReportCurrentStatus(CommandSource src);
     /// \brief Report the lab-default configuration JSON string
