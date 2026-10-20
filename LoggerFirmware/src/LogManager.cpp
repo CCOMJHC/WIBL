@@ -584,8 +584,8 @@ void Manager::TransferLogFile(int file_num, Stream& output)
 ///
 /// \param led  Pointer to the LED controller for the logger (external owner)
 
-Manager::Manager(StatusLED *led, mem::MemController *storage)
-: m_storage(storage), m_led(led), m_inventory(nullptr), m_noDataAlgEmitted(false)
+Manager::Manager(StatusLED *led, timing::Timestamper *timestamper, mem::MemController *storage)
+: m_storage(storage), m_led(led), m_timestamper(timestamper), m_inventory(nullptr), m_noDataAlgEmitted(false)
 {
 #if defined(ARDUINO_ARCH_ESP32) || defined(ESP32)
     m_consoleLog = m_storage->Controller().open("/console.log", FILE_APPEND);
@@ -782,9 +782,19 @@ void Manager::Record(PacketIDs pktID, Serialisable const& data)
     }
 }
 
+bool Manager::Timestamp(timing::TimePoint& now) const
+{
+    return m_timestamper->Timestamp(now);
+}
+
+uint64_t Manager::GetElapsedTime(void) const
+{
+    return m_timestamper->GetElapsed();
+}
+
 void Manager::Syslog(String const& message)
 {
-    unsigned long now = millis();
+    uint64_t now = m_timestamper->GetElapsed();
     m_consoleLog.printf("%10d: %s\n", now, message.c_str());
     m_consoleLog.flush();
     RotateConsoleLogs(); // This is maybe a little much, but does ensure we don't exceed the max size.

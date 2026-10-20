@@ -30,8 +30,10 @@
 
 #include <NMEA2000_CAN.h> /* This auto-generates the NMEA2000 global for bus control */
 #include "ArduinoJson.h"
+
 #include "N2kLogger.h"
 #include "serial_number.h"
+#include "timing.h"
 #include "SerialCommand.h"
 #include "StatusLED.h"
 #include "MemController.h"
@@ -43,7 +45,7 @@
 #include "DataMetrics.h"
 
 /// Hardware version for the logger implementation (for NMEA2000 declaration)
-#define LOGGER_HARDWARE_VERSION "2.5.1"
+#define LOGGER_HARDWARE_VERSION "2.5.2"
 
 const unsigned long TransmitMessages[] PROGMEM={0}; ///< List of messages the logger transmits (null set)
 const unsigned long ReceiveMessages[] PROGMEM =
@@ -60,6 +62,7 @@ const unsigned long ReceiveMessages[] PROGMEM =
    0
   }; ///< List if messages that the logger expects to receive
 
+timing::Timestamper     *timestamper = nullptr;     ///< Pointer to timestamping object
 nmea::N2000::Logger     *N2000Logger = nullptr;     ///< Pointer for NMEA2000 CANbus logger object
 nmea::N0183::Logger     *N0183Logger = nullptr;     ///< Pointer for serial NMEA data logger object
 imu::Logger             *IMULogger = nullptr;       ///< Pointer for local IMU data logger
@@ -136,18 +139,29 @@ void setup()
     }
     #endif
 
-    Serial.printf("DBG: After memory interface start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+    Serial.printf("DBG: After memory interface start, free heap = %d B, delta = %d B\n",
+        heap.CurrentSize(), heap.DeltaSinceLast());
+
+    Serial.print("Configuring timestamping sub-system ...");
+    timestamper = new timing::Timestamper();
+    auto n2k_timesource = new nmea::N2000::N2KTimeSource();
+    timestamper->RegisterSource(n2k_timesource, timing::TIMING_HIGH);
+    Serial.printf("DBG: After memory interface start, free heap = %d B, delta = %d B\n",
+        heap.CurrentSize(), heap.DeltaSinceLast());
+
     Serial.println("Configuring logger manager ...");
-    logManager = new logger::Manager(LEDs, memController);
-    Serial.printf("DBG: After log manager start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+    logManager = new logger::Manager(LEDs, timestamper, memController);
+    Serial.printf("DBG: After log manager start, free heap = %d B, delta = %d B\n",
+        heap.CurrentSize(), heap.DeltaSinceLast());
     logManager->AddInventory();
-    Serial.printf("DBG: After inventory object start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+    Serial.printf("DBG: After inventory object start, free heap = %d B, delta = %d B\n",
+        heap.CurrentSize(), heap.DeltaSinceLast());
     
     bool start_nmea_2000, start_nmea_0183, start_motion_sensor, start_gnss_sensor;
     if (logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_NMEA2000_B, start_nmea_2000)
             && start_nmea_2000) {
         Serial.println("Configuring NEMA2000 logger ...");
-        N2000Logger = new nmea::N2000::Logger(&NMEA2000, logManager);
+        N2000Logger = new nmea::N2000::Logger(&NMEA2000, logManager, n2k_timesource);
 
         Serial.printf("DBG: After NMEA2000 logger start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
     }

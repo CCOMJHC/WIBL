@@ -33,7 +33,7 @@
 namespace imu {
 
 const int SoftwareVersionMajor = 1; ///< Software major version for the logger
-const int SoftwareVersionMinor = 0; ///< Software minor version for the logger
+const int SoftwareVersionMinor = 1; ///< Software minor version for the logger
 const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
 const int IMUInterruptPin = 39; // Interrupt from LSM6DSL for data ready
@@ -200,14 +200,14 @@ void Logger::TransferData(void)
     if (m_sensor == nullptr) return;
 
     int16_t reading[7];
-    unsigned long now = millis();
+    uint64_t now = m_output->GetElapsedTime();
 
     if (imu_data_ready && data_available()) {
         if (m_sensor->readFullData(reading) != IMU_SUCCESS) {
             Serial.print("ERR: failed to read from IMU system ... needs investigation.\n");
         } else {
-            Serialisable buffer(7*sizeof(int16_t) + sizeof(unsigned long));
-            buffer += static_cast<uint32_t>(now);
+            Serialisable buffer(7*sizeof(int16_t) + sizeof(uint64_t));
+            buffer += now;
             for (uint32_t i = 0; i < 7; ++i)
                 buffer += reading[i];
             m_output->Record(logger::Manager::PacketIDs::Pkt_RawIMU, buffer);

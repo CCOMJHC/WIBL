@@ -53,12 +53,12 @@ const int MaximumRenderOverhead = 1024;
 class DataObs {
 public:
     DataObs(void);
-    DataObs(uint32_t elapsed, const char *message);
-    DataObs(uint32_t elapsed, double lon, double lat, double altitude);
-    DataObs(uint32_t elapsed, double depth, double offset);
-    DataObs(uint32_t elapsed, uint16_t date, double time);
+    DataObs(uint64_t elapsed, const char *message);
+    DataObs(uint64_t elapsed, double lon, double lat, double altitude);
+    DataObs(uint64_t elapsed, double depth, double offset);
+    DataObs(uint64_t elapsed, uint16_t date, double time);
 
-    DynamicJsonDocument Render(void) const;
+    DynamicJsonDocument Render(uint64_t const elapsed) const;
     DataIf Interface(void) const { return m_interface; }
     DataObsType ObsType(void) const { return m_obsType; }
     bool Valid(void) const;
@@ -69,7 +69,7 @@ private:
     DataObsType m_obsType;
     String      m_name;
     String      m_tag;
-    uint32_t    m_receivedTime;
+    uint64_t    m_receivedTime;
     String      m_display;
 
     void Blank(void);
@@ -81,7 +81,7 @@ public:
     ~DataMetrics(void);
 
     void RegisterObs(DataObs const& obs);
-    DynamicJsonDocument LastKnownGood(void) const;
+    DynamicJsonDocument LastKnownGood(uint64_t const now) const;
     void SupplyVoltage(double voltage) { m_supplyVoltage = voltage; }
     double SupplyVoltage(void) const { return m_supplyVoltage; }
 

@@ -41,7 +41,7 @@ DataObs::DataObs(void)
    Blank();
 }
 
-DataObs::DataObs(uint32_t elapsed, const char *message)
+DataObs::DataObs(uint64_t elapsed, const char *message)
 {
     m_interface = INT_NMEA0183;
     m_receivedTime = elapsed;
@@ -62,7 +62,7 @@ DataObs::DataObs(uint32_t elapsed, const char *message)
     }
 }
 
-DataObs::DataObs(uint32_t elapsed, double lon, double lat, double altitude)
+DataObs::DataObs(uint64_t elapsed, double lon, double lat, double altitude)
 {
     m_interface = INT_NMEA2000;
     m_obsType = DATA_POSITION;
@@ -81,7 +81,7 @@ DataObs::DataObs(uint32_t elapsed, double lon, double lat, double altitude)
     m_display = String(fabs(lat)) + " " + hemi_lat + ", " + String(fabs(lon)) + " " + hemi_lon + ", " + String(altitude) + "m";
 }
 
-DataObs::DataObs(uint32_t elapsed, double depth, double offset)
+DataObs::DataObs(uint64_t elapsed, double depth, double offset)
 {
     m_interface = INT_NMEA2000;
     m_obsType = DATA_DEPTH;
@@ -91,7 +91,7 @@ DataObs::DataObs(uint32_t elapsed, double depth, double offset)
     m_display = String(depth) + "m/Offset " + String(offset) + "m";
 }
 
-DataObs::DataObs(uint32_t elapsed, uint16_t date, double time)
+DataObs::DataObs(uint64_t elapsed, uint16_t date, double time)
 {
     const double seconds_per_day = 24.0 * 60.0 * 60.0;
     m_interface = INT_NMEA2000;
@@ -103,16 +103,15 @@ DataObs::DataObs(uint32_t elapsed, uint16_t date, double time)
     m_display = String(asctime(gmtime(&timestamp)));
 }
 
-DynamicJsonDocument DataObs::Render(void) const
+DynamicJsonDocument DataObs::Render(uint64_t const elapsed) const
 {
     // Note the fixed size of the document here.  This should be sufficient for one
     // observation, but you should re-assess if you add a lot more into the payload.
     DynamicJsonDocument summary(MaximumDataObsRender);
-    uint32_t now = millis();
-    uint32_t time_difference = now - m_receivedTime;
+    uint64_t time_difference = elapsed - m_receivedTime;
     summary["name"] = m_name;
     summary["tag"] = m_tag;
-    summary["time"] = time_difference/1000;
+    summary["time"] = time_difference/1000000;
     summary["time_units"] = "s";
     summary["display"] = m_display;
 
@@ -151,7 +150,7 @@ void DataMetrics::RegisterObs(DataObs const& obs)
     }
 }
 
-DynamicJsonDocument DataMetrics::LastKnownGood(void) const
+DynamicJsonDocument DataMetrics::LastKnownGood(uint64_t const now) const
 {
     // The rendering of each DataObs is maximum 256 bytes, so if we compute
     // the number of valid outputs, then add a bit for the fixed overhead,
@@ -167,14 +166,14 @@ DynamicJsonDocument DataMetrics::LastKnownGood(void) const
 
     for (int n = 0, op = 0; n < DATA_UNKNOWN; ++n) {
         if (m_nmea0183[n].Valid()) {
-            summary["nmea0183"]["detail"][op++] = m_nmea0183[n].Render();
+            summary["nmea0183"]["detail"][op++] = m_nmea0183[n].Render(now);
         }
     }
     summary["nmea0183"]["count"] = n_0183_valid;
     
     for (int n = 0, op = 0; n < DATA_UNKNOWN; ++n) {
         if (m_nmea2000[n].Valid()) {
-            summary["nmea2000"]["detail"][op++] = m_nmea2000[n].Render();
+            summary["nmea2000"]["detail"][op++] = m_nmea2000[n].Render(now);
         }
     } 
     summary["nmea2000"]["count"] = n_2000_valid;

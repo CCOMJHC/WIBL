@@ -61,13 +61,13 @@ public:
     void Reset(void)
     {
         logger::IncBuffer::Reset();
-        m_timestamp = 0UL;
+        m_timestamp = 0ULL;
     }
         
     /// \brief Get the stored timestamp for the sentence
-    unsigned long Timestamp(void) const { return m_timestamp; }
+    uint64_t Timestamp(void) const { return m_timestamp; }
     /// \brief Set the stored timestamp from a seconds count
-    void Timestamp(unsigned long const t) { m_timestamp = t; }
+    void Timestamp(uint64_t const t) { m_timestamp = t; }
     
     /// \brief Deteremine whether the sentence is a valid NMEA sentence or not
     bool Valid(void) const;
@@ -79,7 +79,7 @@ public:
     String MessageID(void) const;
     
 private:
-    unsigned long   m_timestamp;    ///< Timestamp associated with the "$" that started the sentence
+    uint64_t m_timestamp;    ///< Timestamp associated with the "$" that started the sentence
 };
 
 /// \class MessageAssembler

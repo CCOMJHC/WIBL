@@ -92,7 +92,7 @@ DynamicJsonDocument GenerateFilelist(logger::Manager *m)
 
 DynamicJsonDocument CurrentStatus(logger::Manager *m)
 {
-    DynamicJsonDocument lkg(logger::Metrics.LastKnownGood());
+    DynamicJsonDocument lkg(logger::Metrics.LastKnownGood(m->GetElapsedTime()));
 
     // The total capacity should be, approximately, the sum of the biggest components
     // (above), plus some limited information on versions, elapsed time, and boot

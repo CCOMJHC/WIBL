@@ -93,6 +93,8 @@ void Logger::setup_tim_rcv(void)
 // \param data  Structure with broken-out information on the current position solution.
 void pvt_rcv(UBX_NAV_PVT_data_t * data)
 {
+    uint64_t elapsed = _log_output->GetElapsedTime();
+    
     if (_generate_realtime_debug) {
         Serial.printf("GNSS at %d-%d-%d/%d:%d:%d.%09d (valid date: %d time: %d) acc: %d ns\n",
             data->year, (int)data->month, (int)data->day, (int)data->hour, (int)data->min, (int)data->sec,
@@ -130,17 +132,14 @@ void pvt_rcv(UBX_NAV_PVT_data_t * data)
     uint32_t epoch_days = get_utc_days_since_epoch(data->year, data->month, data->day);
     double   seconds_in_day = data->hour * 3600.0 + data->min * 60.0 + data->sec +
                               data->nano / 1.0e9;
-    
-    // TODO: We need to get a TimeDatum for when we think the packet arrived
-    nmea::N2000::Timestamp::TimeDatum time_datum;
 
-    Serialisable position(time_datum.SerialisationSize() +
+    Serialisable position(sizeof(uint64_t) +
                     sizeof(uint8_t) +   // talker
                     2*sizeof(uint16_t) + // days since epoch and reference station ID
                     8*sizeof(double) + // seconds in day, position and associated metrics
                     6*sizeof(uint8_t) // qualifiers, station ID, correction age, etc.
                     );
-    time_datum.Serialise(position);
+    position += elapsed;
     position += (uint8_t)0xFF; // Means "me"
     position += (uint16_t)epoch_days;
     position += seconds_in_day;

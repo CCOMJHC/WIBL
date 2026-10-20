@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <Arduino.h>
 #include "FS.h"
+#include "timing.h"
 #include "serialisation.h"
 #include "StatusLED.h"
 #include "MemController.h"
@@ -57,7 +58,7 @@ const int MaxLogFiles = 1000; ///< Maximum number of log files that we will crea
 class Manager {
 public:
     /// \brief Default constructor
-    Manager(StatusLED *led, mem::MemController *storage);
+    Manager(StatusLED *led, timing::Timestamper *timestamper, mem::MemController *storage);
     /// \brief Default destructor
     ~Manager(void);
     
@@ -128,6 +129,9 @@ public:
     Serialiser *OutputChannel(void) { return m_serialiser; }
     /// @brief Provide a reference for the file system being used to store files
     fs::FS& FileSystem(void) { return m_storage->Controller(); }
+
+    bool Timestamp(timing::TimePoint& now) const;
+    uint64_t GetElapsedTime(void) const;
     
     /// \brief Call to log on the console log
     void Syslog(String const& message);
@@ -194,6 +198,7 @@ private:
     uint32_t    m_currentFile;      ///< Filenumber of the currently open file
     Serialiser  *m_serialiser;      ///< Object to handle serialisation of data
     StatusLED   *m_led;             ///< Pointer for status (data event) handling
+    timing::Timestamper *m_timestamper; ///< Pointer for source of time information (for all loggers)
     Inventory   *m_inventory;       ///< Cache for file information, if available
 
     bool m_noDataAlgEmitted;    ///< Flag for whether the "NoDataReject" algorithm packet has been emitted

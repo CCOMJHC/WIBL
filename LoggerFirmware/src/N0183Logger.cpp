@@ -37,7 +37,7 @@ namespace nmea {
 namespace N0183 {
   
 const int SoftwareVersionMajor = 1; ///< Software major version for the logger
-const int SoftwareVersionMinor = 1; ///< Software minor version for the logger
+const int SoftwareVersionMinor = 2; ///< Software minor version for the logger
 const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
 /// Validate the sentence, making sure that it meets the requirements to be a NMEA0183 message.  For
@@ -183,7 +183,7 @@ void MessageAssembler::AddCharacter(const char in)
         case STATE_SEARCHING:
             if (in == '$') {
                 // This is the start of a string, so get the timestamp, and stash
-                auto now = millis();
+                uint64_t now = m_logManager->GetElapsedTime();
                 m_current.Reset();
                 m_current.Timestamp(now);
                 m_current.AddCharacter(in);
@@ -235,7 +235,7 @@ void MessageAssembler::AddCharacter(const char in)
             }
             break;
         case STATE_CAPTURING:
-            unsigned int now;
+            uint64_t now;
             switch(in) {
                 case '\n':
                     // The end of the current sentence, so we convert the current sentence
@@ -259,7 +259,7 @@ void MessageAssembler::AddCharacter(const char in)
                     break;
                 case '$':
                     // The start of a new sentence, which is odd ...
-                    now = millis();
+                    now = m_logManager->GetElapsedTime();
                     m_current.Reset();
                     m_current.Timestamp(now);
                     m_current.AddCharacter(in);
@@ -471,7 +471,7 @@ void Logger::ProcessMessages(void)
             logger::Metrics.RegisterObs(obs);
 
             Serialisable s;
-            s += (uint32_t)(sentence->Timestamp());
+            s += sentence->Timestamp();
             s += sentence->Contents();
             m_logManager->Record(logger::Manager::PacketIDs::Pkt_NMEAString, s);
         }
