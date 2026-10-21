@@ -142,11 +142,33 @@ void setup()
     Serial.printf("DBG: After memory interface start, free heap = %d B, delta = %d B\n",
         heap.CurrentSize(), heap.DeltaSinceLast());
 
+    // Pull out configuration options early so we can work out whether to start the time-reference objects
+    // before making the log manager.
+    bool start_nmea_2000, start_nmea_0183, start_motion_sensor, start_gnss_sensor;
+    logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_NMEA2000_B, start_nmea_2000);
+    logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_NMEA0183_B, start_nmea_0183);
+    logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_MOTION_B, start_motion_sensor);
+    logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_GNSS_B, start_gnss_sensor);
+
     Serial.print("Configuring timestamping sub-system ...");
+    nmea::N2000::N2KTimeSource *n2k_timesource = nullptr;
+    nmea::N0183::N1KTimeSource *n1k_timesource = nullptr;
+    gnss::GNSSTimeSource *gnss_timesource = nullptr;
+
     timestamper = new timing::Timestamper();
-    auto n2k_timesource = new nmea::N2000::N2KTimeSource();
-    timestamper->RegisterSource(n2k_timesource, timing::TIMING_HIGH);
-    Serial.printf("DBG: After memory interface start, free heap = %d B, delta = %d B\n",
+    if (start_nmea_2000) {
+        n2k_timesource = new nmea::N2000::N2KTimeSource();
+        timestamper->RegisterSource(n2k_timesource, timing::TIMING_HIGH);
+    }
+    if (start_nmea_0183) {
+        n1k_timesource = new nmea::N0183::N1KTimeSource();
+        timestamper->RegisterSource(n1k_timesource, timing::TIMING_LOW);
+    }
+    if (start_gnss_sensor) {
+        gnss_timesource = new gnss::GNSSTimeSource();
+        timestamper->RegisterSource(gnss_timesource, timing::TIMING_REFERENCE);
+    }
+    Serial.printf("DBG: After timestamper interface start, free heap = %d B, delta = %d B\n",
         heap.CurrentSize(), heap.DeltaSinceLast());
 
     Serial.println("Configuring logger manager ...");
@@ -157,34 +179,27 @@ void setup()
     Serial.printf("DBG: After inventory object start, free heap = %d B, delta = %d B\n",
         heap.CurrentSize(), heap.DeltaSinceLast());
     
-    bool start_nmea_2000, start_nmea_0183, start_motion_sensor, start_gnss_sensor;
-    if (logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_NMEA2000_B, start_nmea_2000)
-            && start_nmea_2000) {
+    if (start_nmea_2000) {
         Serial.println("Configuring NEMA2000 logger ...");
         N2000Logger = new nmea::N2000::Logger(&NMEA2000, logManager, n2k_timesource);
-
         Serial.printf("DBG: After NMEA2000 logger start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
     }
   
-    if (logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_NMEA0183_B, start_nmea_0183)
-            && start_nmea_0183) {
+    if (start_nmea_0183) {
         Serial.println("Configuring NMEA0183 logger (and configuring serial ports)...");
-        N0183Logger = new nmea::N0183::Logger(logManager);
-
+        N0183Logger = new nmea::N0183::Logger(logManager, n1k_timesource);
         Serial.printf("DBG: After NMEA0183 logger start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
     }
 
-    if (logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_MOTION_B, start_motion_sensor)
-            && start_motion_sensor) {
+    if (start_motion_sensor) {
         Serial.println("Configuring IMU logger ...");
         IMULogger = new imu::Logger(logManager);
-
         Serial.printf("DBG: After IMU logger start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
     }
 
-    if (logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_GNSS_B, start_gnss_sensor) && start_gnss_sensor) {
+    if (start_gnss_sensor) {
         Serial.println("Configuring GNSS logger ...");
-        GNSSLogger = new gnss::Logger(logManager, N2000Logger);
+        GNSSLogger = new gnss::Logger(logManager, gnss_timesource);
         GNSSLogger->SetVerbose(true);
         Serial.printf("DBG: After GNSS logger start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
     }

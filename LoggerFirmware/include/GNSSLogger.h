@@ -29,11 +29,31 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "timing.h"
 #include "LogManager.h"
 #include "N2kLogger.h"
 #include "SparkFun_u-blox_GNSS_v3.h"
 
 namespace gnss {
+
+/// \class GNSSTimeSource
+/// \brief Track the last reference time available from the receiver, for timestamping purposes
+class GNSSTimeSource : public timing::BaseTimeSource {
+public:
+    GNSSTimeSource(void);
+    bool assigntime(uint64_t const elapsed, timing::TimePoint& now);
+    String printable(void) const { return m_reference.printable(); }
+    bool isValid(void) const { return m_reference.isValid(); }
+
+private:
+    friend class Logger;
+    timing::TimePoint   m_reference;
+    time_t              m_pendingSecond;
+    uint32_t            m_pendingMicrosecond;
+        
+    void register_mark(uint16_t const week, uint32_t const tow_msec, uint32_t const tow_fracms);
+    void reference_mark(uint64_t const elapsed);
+};
 
 /// \class Logger
 /// \brief Provide abstracted interface to a u-blox GNSS receiver
@@ -46,7 +66,7 @@ namespace gnss {
 
 class Logger {
 public:
-    Logger(logger::Manager *output, nmea::N2000::Logger *n2k);
+    Logger(logger::Manager *output, GNSSTimeSource *timeref);
     ~Logger(void);
 
     /// \brief Determine whether the GNSS module is configured and available

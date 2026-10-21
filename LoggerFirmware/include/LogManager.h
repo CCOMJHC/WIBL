@@ -130,8 +130,9 @@ public:
     /// @brief Provide a reference for the file system being used to store files
     fs::FS& FileSystem(void) { return m_storage->Controller(); }
 
-    bool Timestamp(timing::TimePoint& now) const;
+    bool Timestamp(timing::TimePoint& now, timing::SourcePriority& source) const;
     uint64_t GetElapsedTime(void) const;
+    void UpdateTimeofday(void) { m_timestamper->update_timeofday(); }
     
     /// \brief Call to log on the console log
     void Syslog(String const& message);

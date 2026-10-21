@@ -45,12 +45,14 @@ class N2KTimeSource : public timing::BaseTimeSource {
 public:
     N2KTimeSource(void);
     bool assigntime(uint64_t const elapsed, timing::TimePoint& now);
-    void setReference(uint64_t const elapsed, uint16_t const days, double const seconds);
+    void setReferenceUnconditional(uint64_t const elapsed, uint16_t const days, double const seconds);
+    void setReferenceGNSS(uint64_t const elapsed, uint16_t const days, double const seconds);
     String printable(void) const;
     bool isValid(void) const;
 
 private:
     timing::TimePoint m_reference;
+    bool m_fromSystemTime;
 };
 
 /// \class Logger

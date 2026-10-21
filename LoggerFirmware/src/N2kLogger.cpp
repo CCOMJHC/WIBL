@@ -47,6 +47,7 @@ const int SoftwareVersionMinor = 3; ///< Software minor version for the logger
 const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
 N2KTimeSource::N2KTimeSource(void)
+: m_fromSystemTime(false)
 {
     m_reference.elapsed = 0ULL;
     m_reference.second = (time_t)0;
@@ -63,16 +64,56 @@ bool N2KTimeSource::assigntime(uint64_t const elapsed, timing::TimePoint& now)
     if (!isValid()) return false;
     now.elapsed = elapsed;
     uint64_t advance = elapsed - m_reference.elapsed;
+    // If the current time is more than fice seconds from the reference, we prefer to
+    // not give an answer than give a potentially bad answer.
+    if (advance > 5000000) {
+        return false;
+    }
     now.second = m_reference.second + advance / 1000000UL;
     now.microsecond = (m_reference.microsecond + advance) % 1000000UL;
     return true;
 }
 
-void N2KTimeSource::setReference(uint64_t const elapsed, uint16_t const days, double const seconds)
+/// \brief Set the reference time from a SystemTime message (which we always accept)
+///
+/// Set up a reference between the elapsed counter and UTC datetime based on a NMEA2000
+/// SystemTime message.  If this is present, it's always the time of the last UTC second
+/// that was seen, so we prefer it over anything else that we might have, and therefore
+/// unconditionally update.
+///
+/// \param elapsed  Elapsed count since boot (pseudo-microseconds)
+/// \param days     Days since 1970-01-01 (UTC)
+/// \param seconds  Seconds within the day (since midnight UTC)
+
+void N2KTimeSource::setReferenceUnconditional(uint64_t const elapsed, uint16_t const days, double const seconds)
 {
     m_reference.elapsed = elapsed;
     m_reference.second = days * 86400 + static_cast<int>(floor(seconds));
     m_reference.microsecond = static_cast<uint32_t>(1000000.0 * (seconds - floor(seconds)));
+}
+
+/// \brief Set the reference time from the GNSS message (but only if it's better than what we have)
+///
+/// The GNSS message has a date and time which we can use to give us a reasonable estimate of the current
+/// UTC time and date, but it's really for when the observation was valid, not what the current time is,
+/// so there can be a potentially significant latency between the time in the message and the time of
+/// reception.  So we only want to use it if we have no other alternative: if the reference time hasn't
+/// yet been set, or if the last reference was also from a GNSS message (in which case it's no worse), or
+/// if the last time the reference saw a SystemTime message was over five seconds ago.  The actual setup
+/// is a passthrough to \a setReferenceUnconditional()
+///
+/// \param elapsed  Elapsed count since boot (pseudo-microseconds)
+/// \param days     Days since 1970-01-01 (UTC)
+/// \param seconds  Seconds within the day (since midnight UTC)
+
+void N2KTimeSource::setReferenceGNSS(uint64_t const elapsed, uint16_t const days, double const seconds)
+{
+    uint64_t advance = elapsed - m_reference.elapsed;
+    if (!m_reference.isValid() ||
+        !m_fromSystemTime ||
+        (m_fromSystemTime && advance > 5000000)) {
+        setReferenceUnconditional(elapsed, days, seconds);
+    }
 }
 
 String N2KTimeSource::printable(void) const
@@ -208,7 +249,8 @@ void Logger::HandleSystemTime(uint64_t const t, const tN2kMsg& msg)
             if (t == 0 || N2kIsNA(date) || N2kIsNA(timestamp) || N2kIsNA((uint8_t)source))
                 m_logManager->EmitNoDataReject();
 
-            m_timeReference->setReference(t, date, timestamp);
+            m_timeReference->setReferenceUnconditional(t, date, timestamp);
+            m_logManager->UpdateTimeofday();
 
             logger::DataObs obs(t, date, timestamp);
             logger::Metrics.RegisterObs(obs);
@@ -375,12 +417,8 @@ void Logger::HandleGNSS(uint64_t const t, tN2kMsg const& msg)
         s += correctionAge;
         m_logManager->Record(logger::Manager::PacketIDs::Pkt_GNSS, s);
         
-        if (!m_timeReference->isValid()) {
-            // We haven't yet seen a valid time reference, but the time here is
-            // probably OK since it's usually 1Hz.  Therefore we can update if
-            // we don't have anything else
-            m_timeReference->setReference(datestamp, timestamp, t);
-        }
+        m_timeReference->setReferenceGNSS(t, datestamp, timestamp);
+        m_logManager->UpdateTimeofday();
     } else {
         m_logManager->Syslog("ERR: Failed to parse primary GNSS report packet.");
     }

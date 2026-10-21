@@ -44,8 +44,49 @@ const int RawDataPacketSize = 1024; ///< Size of raw byte packets transferred fr
 const int ReceiverDataBufferSize = 16384; ///< Size of internal logging buffer for GNSS
 
 logger::Manager *_log_output = nullptr;
-nmea::N2000::Logger *_n2k_logger = nullptr;
 bool _generate_realtime_debug = false;
+
+GNSSTimeSource::GNSSTimeSource(void)
+{
+    m_reference.reset();
+    m_pendingSecond = m_pendingMicrosecond = 0UL;
+}
+
+bool GNSSTimeSource::assigntime(uint64_t const elapsed, timing::TimePoint& now)
+{
+    if (!isValid()) return false;
+    now.elapsed = elapsed;
+    uint64_t advance = elapsed - m_reference.elapsed;
+    // If the current time is more than fice seconds from the reference, we prefer to
+    // not give an answer than give a potentially bad answer.
+    if (advance > 5000000) {
+        return false;
+    }
+    now.second = m_reference.second + advance / 1000000UL;
+    now.microsecond = (m_reference.microsecond + advance) % 1000000UL;
+    return true;
+}
+
+void GNSSTimeSource::register_mark(uint16_t const week, uint32_t const tow_msec, uint32_t const tow_fractionms)
+{
+    static const uint64_t seconds_per_week = 604800ULL;
+    static const uint64_t week_epoch_unix_seconds = 315964800ULL;
+
+    const uint64_t utc_seconds = week_epoch_unix_seconds +
+        static_cast<uint64_t>(week) * seconds_per_week + tow_msec / 1000;
+    const uint64_t fractional_microseconds =
+        (static_cast<uint64_t>(tow_fractionms) * 1000ULL) >> 32;
+
+    m_pendingSecond = static_cast<time_t>(utc_seconds);
+    m_pendingMicrosecond = (tow_msec % 1000) * 1000 + fractional_microseconds;
+}
+
+void GNSSTimeSource::reference_mark(uint64_t const elapsed)
+{
+    m_reference.elapsed = elapsed;
+    m_reference.second = m_pendingSecond;
+    m_reference.microsecond = m_pendingMicrosecond;
+}
 
 int32_t get_utc_days_since_epoch(int32_t year, int32_t month, int32_t day) {
     // Shift calendar so the year begins in March (makes leap year math clean)
@@ -79,11 +120,8 @@ void tim_rcv(UBX_TIM_TP_data_t *data)
 
 void Logger::setup_tim_rcv(void)
 {
-    /* Configure the TP for appropriate edge direction, duration, etc. */
+    /* Configure the TP for appropriate edge direction, duration, etc., and 1PPS ISR */
 }
-
-// TODO: Establish ISR for 1PPS input, which finally marries up the TP_data_t information
-// with the micros() number associated with the interrupt.
 
 // Call-back for the GNSS library to report the real-time position, velocity, and time information
 // from the module.  This is unlikely to be of a level of accuracy that's of interest for TCB use,
@@ -166,11 +204,10 @@ void Logger::SetVerbose(bool verbose)
     _generate_realtime_debug = verbose;
 }
 
-Logger::Logger(logger::Manager *output, nmea::N2000::Logger *n2k)
+Logger::Logger(logger::Manager *output)
 : m_output(output), m_verbose(false)
 {
     _log_output = output; // !ick!
-    _n2k_logger = n2k;
     _generate_realtime_debug = m_verbose;
 
     m_sensor = new SFE_UBLOX_GNSS();

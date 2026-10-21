@@ -49,6 +49,7 @@ struct TimePoint {
     time_t      second;         ///< UTC second corresponding to elapsed count
     uint32_t    microsecond;    ///< UTC microsecond corresponding to elapsed count
 
+    void reset(void);
     bool isValid(void) const { return elapsed != 0ULL; }
     String printable(void) const;
 };
@@ -56,7 +57,9 @@ struct TimePoint {
 class BaseTimeSource {
 public:
     virtual ~BaseTimeSource(void) {}
-    virtual bool assigntime(uint64_t elapsed, TimePoint& now) = 0;
+    virtual bool assigntime(uint64_t const elapsed, TimePoint& now) = 0;
+    virtual String printable(void) const = 0;
+    virtual bool isValid(void) const = 0;
 };
 
 /// \enum SourcePriority
@@ -68,6 +71,8 @@ enum SourcePriority {
     TIMING_MAXPRI
 };
 
+SourcePriority operator++(SourcePriority);
+
 /// \class Timestamper
 /// \brief Manage time sources to provide a translation of elapsed time to real time
 class Timestamper {
@@ -78,16 +83,18 @@ public:
     void RegisterSource(BaseTimeSource *source, SourcePriority const priority);
 
     uint64_t GetElapsed(void);
-    bool Translate(uint64_t const elapsed, TimePoint& now);
+    bool Translate(uint64_t const elapsed, TimePoint& now, SourcePriority& source);
 
-    inline bool Timestamp(TimePoint& now) {
+    inline bool Timestamp(TimePoint& now, SourcePriority& source) {
         uint64_t elapsed = GetElapsed();
-        return Translate(elapsed, now);
+        return Translate(elapsed, now, source);
     }
+    void update_timeofday(void);
 
 private:
-    hw_timer_t *m_timer;
+    hw_timer_t      *m_timer;
     std::vector<std::list<BaseTimeSource*>> m_sources;
+    time_t          m_lastSystemTime;
 };
 
 }

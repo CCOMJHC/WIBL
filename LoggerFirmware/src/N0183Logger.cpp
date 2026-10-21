@@ -35,10 +35,234 @@
 
 namespace nmea {
 namespace N0183 {
-  
+
 const int SoftwareVersionMajor = 1; ///< Software major version for the logger
 const int SoftwareVersionMinor = 2; ///< Software minor version for the logger
 const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
+
+N1KTimeSource::N1KTimeSource(void)
+: timing::BaseTimeSource()
+{
+    m_reference.elapsed = 0ULL;
+    m_reference.second = (time_t)0;
+    m_reference.microsecond = 0UL;
+}
+
+bool N1KTimeSource::assigntime(uint64_t const elapsed, timing::TimePoint& now)
+{
+    if (!isValid()) {
+        return false;
+    }
+    now.elapsed = elapsed;
+    uint64_t advance = elapsed - m_reference.elapsed;
+    // If the current time is more than fice seconds from the reference, we prefer to
+    // not give an answer than give a potentially bad answer.
+    if (advance > 5000000) {
+        return false;
+    }
+    now.second = m_reference.second + advance / 1000000UL;
+    now.microsecond = (m_reference.microsecond + advance) % 1000000UL;
+    return true;
+}
+
+// \brief Set the reference time for time-stamping based on the ZDA or RMC sentence
+///
+/// This checks a given sentence for ZDA or RMC contents, and if present parses out the date and
+/// time and converts them into a reference time that can be used to associate a UTC timestamp with
+/// an elapsed time count.  Note that the code here assumes that the NMEA0183 sentence is valid,
+/// and makes no further checks (e.g., for checksum validity).  Badly formed sentences, and anything
+/// not ZDA or RMC are ignored.
+///
+/// \param elapsed  Elapsed time counter (64-bit monotonic count since boot) from Timestamper object
+/// \param message  Pointer to the NMEA0183 sentence to parse
+/// \returns N/A
+
+void N1KTimeSource::setReference(uint64_t const elapsed, const Sentence *message)
+{
+    String id(message->MessageID());
+    time_t seconds = (time_t)0; // Essentially "no value" since we can't get new data at 1970-01-01!
+    uint32_t microseconds = 0UL;
+    if (id == "ZDA") {
+        parse_zda(message, seconds, microseconds);
+    } else if (id == "RMC") {
+        parse_rmc(message, seconds, microseconds);
+    } else {
+        // The message, whatever it is, has no time information that's useful for us.
+        return;
+    }
+    // The parser code returns early without modifying the seconds/microseconds output
+    // if there's a validation failure from the NMEA sentences.  Detecting a non-zero
+    // seconds count (even if microseconds is zero) demonstrates that parsing worked.
+    if (seconds > 0) {
+        m_reference.second = seconds;
+        m_reference.microsecond = microseconds;
+    }
+}
+
+bool parse_uint(const char* begin, const char* end, unsigned int& value)
+{
+    if (begin == end) return false;
+
+    value = 0;
+    while (begin < end) {
+        if (*begin < '0' || *begin > '9') return false;
+        value = value * 10 + static_cast<unsigned int>(*begin - '0');
+        ++begin;
+    }
+    return true;
+}
+
+bool is_leap_year(unsigned int year)
+{
+    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+}
+
+int64_t days_from_civil(int year, unsigned int month, unsigned int day)
+{
+    year -= month <= 2;
+    const int era = (year >= 0 ? year : year - 399) / 400;
+    const unsigned int year_of_era = static_cast<unsigned int>(year - era * 400);
+    const unsigned int month_prime = month > 2 ? month - 3 : month + 9;
+    const unsigned int day_of_year = (153 * month_prime + 2) / 5 + day - 1;
+    const unsigned int day_of_era =
+        year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    return static_cast<int64_t>(era) * 146097 + day_of_era - 719468;
+}
+
+bool parse_time(const char* begin, const char* end, unsigned int& hour,
+                unsigned int& minute, unsigned int& second, uint32_t& microseconds)
+{
+    const char* whole_end = begin;
+    while (whole_end < end && *whole_end != '.') ++whole_end;
+    if (whole_end - begin != 6) return false;
+
+    if (!parse_uint(begin, begin + 2, hour) ||
+        !parse_uint(begin + 2, begin + 4, minute) ||
+        !parse_uint(begin + 4, whole_end, second) ||
+        hour > 23 || minute > 59 || second > 59) {
+        return false;
+    }
+
+    microseconds = 0;
+    if (whole_end < end) {
+        const char* fraction = whole_end + 1;
+        if (fraction == end) return false;
+
+        unsigned int digits = 0;
+        while (fraction < end) {
+            if (*fraction < '0' || *fraction > '9') return false;
+            if (digits < 6) {
+                microseconds = microseconds * 10 +
+                    static_cast<uint32_t>(*fraction - '0');
+            }
+            ++digits;
+            ++fraction;
+        }
+        while (digits < 6) {
+            microseconds *= 10;
+            ++digits;
+        }
+    }
+    return true;
+}
+
+bool date_to_epoch_seconds(unsigned int year, unsigned int month, unsigned int day,
+                           unsigned int hour, unsigned int minute, unsigned int second,
+                           time_t& epoch_seconds)
+{
+    static const unsigned int days_per_month[] = {31, 28, 31, 30, 31, 30,
+                                                   31, 31, 30, 31, 30, 31};
+    if (year == 0 || month < 1 || month > 12) return false;
+
+    unsigned int max_day = days_per_month[month - 1];
+    if (month == 2 && is_leap_year(year)) ++max_day;
+    if (day < 1 || day > max_day) return false;
+
+    const int64_t epoch_days = days_from_civil(static_cast<int>(year), month, day);
+    const int64_t total_seconds = epoch_days * 86400 +
+        static_cast<int64_t>(hour) * 3600 + minute * 60 + second;
+    epoch_seconds = static_cast<time_t>(total_seconds);
+    return true;
+}
+
+void N1KTimeSource::parse_zda(const Sentence *message, time_t& seconds, uint32_t& microseconds)
+{
+    const char* const contents = message->Contents();
+    const char* time_start = strchr(contents, ',');
+    if (time_start == nullptr) return;
+    ++time_start;
+
+    const char* time_end = strchr(time_start, ',');
+    if (time_end == nullptr) return;
+    const char* day_start = time_end + 1;
+    const char* day_end = strchr(day_start, ',');
+    if (day_end == nullptr) return;
+    const char* month_start = day_end + 1;
+    const char* month_end = strchr(month_start, ',');
+    if (month_end == nullptr) return;
+    const char* year_start = month_end + 1;
+    const char* year_end = strchr(year_start, '*');
+    if (year_end == nullptr) return;
+    if (day_end - day_start != 2 || month_end - month_start != 2 ||
+        year_end - year_start != 4) {
+        return;
+    }
+
+    unsigned int hour, minute, second;
+    uint32_t parsed_microseconds = 0;
+    if (!parse_time(time_start, time_end, hour, minute, second, parsed_microseconds)) return;
+
+    unsigned int day, month, year;
+    if (!parse_uint(day_start, day_end, day) ||
+        !parse_uint(month_start, month_end, month) ||
+        !parse_uint(year_start, year_end, year)) {
+        return;
+    }
+    if (!date_to_epoch_seconds(year, month, day, hour, minute, second, seconds)) return;
+    microseconds = parsed_microseconds;
+}
+
+void N1KTimeSource::parse_rmc(const Sentence *message, time_t& seconds, uint32_t& microseconds)
+{
+    const char* const contents = message->Contents();
+    const char* time_start = strchr(contents, ',');
+    if (time_start == nullptr) return;
+    ++time_start;
+
+    const char* time_end = strchr(time_start, ',');
+    if (time_end == nullptr) return;
+
+    const char* date_start = time_end;
+    for (int field = 0; field < 7; ++field) {
+        date_start = strchr(date_start + 1, ',');
+        if (date_start == nullptr) return;
+    }
+    ++date_start;
+
+    const char* date_end = strchr(date_start, ',');
+    const char* checksum = strchr(date_start, '*');
+    if (date_end == nullptr || (checksum != nullptr && checksum < date_end)) {
+        date_end = checksum;
+    }
+    if (date_end == nullptr || time_end - time_start < 6 || date_end - date_start != 6) {
+        return;
+    }
+
+    unsigned int hour, minute, second;
+    uint32_t parsed_microseconds = 0;
+    if (!parse_time(time_start, time_end, hour, minute, second, parsed_microseconds)) return;
+
+    unsigned int day, month, short_year;
+    if (!parse_uint(date_start, date_start + 2, day) ||
+        !parse_uint(date_start + 2, date_start + 4, month) ||
+        !parse_uint(date_start + 4, date_end, short_year)) {
+        return;
+    }
+
+    const unsigned int year = short_year >= 80 ? 1900 + short_year : 2000 + short_year;
+    if (!date_to_epoch_seconds(year, month, day, hour, minute, second, seconds)) return;
+    microseconds = parsed_microseconds;
+}
 
 /// Validate the sentence, making sure that it meets the requirements to be a NMEA0183 message.  For
 /// this, it has to contain only printable characters, it has to start with a "$", and end with a valid checksum
@@ -353,8 +577,8 @@ const int tx2_pin = 16; ///< UART port 2 transmit pin
 ///
 /// \param output   Reference for the output SD file logger to use
 
-Logger::Logger(logger::Manager *output)
-: m_verbose(false), m_logManager(output)
+Logger::Logger(logger::Manager *output, N1KTimeSource *timeref)
+: m_verbose(false), m_logManager(output), m_timeref(timeref)
 {
     m_channel[0].SetChannel(1);
     m_channel[0].SetLogManager(output);
@@ -469,6 +693,11 @@ void Logger::ProcessMessages(void)
 
             logger::DataObs obs(sentence->Timestamp(), sentence->Contents());
             logger::Metrics.RegisterObs(obs);
+
+            // In order to avoid checking the message ID here, and then again to work out how to
+            // parse, we offer each valid, non-filtered message to the time-referencing code.
+            m_timeref->setReference(sentence->Timestamp(), sentence);
+            m_logManager->UpdateTimeofday();
 
             Serialisable s;
             s += sentence->Timestamp();

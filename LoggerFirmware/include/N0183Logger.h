@@ -29,6 +29,7 @@
 #define __N0183_LOGGER_H__
 
 #include <set>
+#include "timing.h"
 #include "LogManager.h"
 #include "IncrementalBuffer.h"
 #include "Configuration.h"
@@ -151,6 +152,22 @@ private:
     bool      m_inverted;                   ///< Indicator that RX inversion has been attempted
 };
 
+/// \class N1KTimeSource
+/// \brief Capture time information from ZDA/RMC/GGA messages (as a last resort)
+class N1KTimeSource : public timing::BaseTimeSource {
+public:
+    N1KTimeSource(void);
+    bool assigntime(uint64_t const elapsed, timing::TimePoint& now);
+    void setReference(uint64_t const elapsed, const Sentence *message);
+    String printable(void) const { return m_reference.printable(); }
+    bool isValid(void) const { return m_reference.isValid(); }
+
+private:
+    timing::TimePoint   m_reference;
+    void parse_zda(const Sentence *zda, time_t& seconds, uint32_t& microseconds);
+    void parse_rmc(const Sentence *rmc, time_t& seconds, uint32_t& microseconds);
+};
+
 /// \class Logger
 /// \brief Handle NMEA0183 data on inputs, and transpose full sentences to log file
 ///
@@ -162,7 +179,7 @@ private:
 class Logger {
 public:
     /// \brief Default constructor    
-    Logger(logger::Manager *output);
+    Logger(logger::Manager *output, N1KTimeSource *timeref);
     /// \brief Default destructor
     ~Logger(void);
     
@@ -183,7 +200,8 @@ public:
 private:
     static const int ChannelCount = 2;            ///< Number of channels that we manage
     bool                m_verbose;                ///< Verbose status for the logger
-    logger::Manager    *m_logManager;             ///< Handler for log files on SD card
+    logger::Manager     *m_logManager;            ///< Handler for log files on SD card
+    N1KTimeSource       *m_timeref;               ///< Time reference information from ZDA/RMC
     MessageAssembler    m_channel[ChannelCount];  ///< Message handler for two channels
     std::set<String>    m_filter;                 ///< Set of NMEA0183 IDs to accept
 

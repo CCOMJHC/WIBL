@@ -782,9 +782,9 @@ void Manager::Record(PacketIDs pktID, Serialisable const& data)
     }
 }
 
-bool Manager::Timestamp(timing::TimePoint& now) const
+bool Manager::Timestamp(timing::TimePoint& now, timing::SourcePriority& source) const
 {
-    return m_timestamper->Timestamp(now);
+    return m_timestamper->Timestamp(now, source);
 }
 
 uint64_t Manager::GetElapsedTime(void) const

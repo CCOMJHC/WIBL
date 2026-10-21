@@ -27,10 +27,25 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+ #include <time.h>
 #include "driver/timer.h"
-
 #include "timing.h"
+
 namespace timing {
+
+SourcePriority operator++(SourcePriority a)
+{
+    if (a == TIMING_MAXPRI) return TIMING_MAXPRI;
+    int b = static_cast<int>(a) + 1;
+    return static_cast<SourcePriority>(b);
+}
+
+void TimePoint::reset(void)
+{
+    elapsed = 0ULL;
+    second = (time_t)0;
+    microsecond = 0UL;
+}
 
 String TimePoint::printable(void) const
 {
@@ -46,6 +61,7 @@ const int TIMER_NUMBER = 0;
 const bool TIMER_COUNTDIR = true; // Count up from zero by default
 
 Timestamper::Timestamper(void)
+: m_lastSystemTime(0)
 {
     if ((m_timer = timerBegin(TIMER_NUMBER, TIMER_DIVIDER, TIMER_COUNTDIR)) == nullptr) {
         Serial.print("ERR: failed to configure hardware timer for timing sub-system.\n");
@@ -74,16 +90,37 @@ uint64_t Timestamper::GetElapsed(void)
     return 0ULL;
 }
 
-bool Timestamper::Translate(uint64_t const elapsed, TimePoint& now)
+bool Timestamper::Translate(uint64_t const elapsed, TimePoint& now, SourcePriority& source)
 {
-    for (int n = 0; n < static_cast<int>(SourcePriority::TIMING_MAXPRI); ++n) {
-        for (auto it = m_sources[n].begin(); it != m_sources[n].end(); ++it) {
+    for (source = TIMING_HIGH; source != SourcePriority::TIMING_MAXPRI; ++source) {
+        for (auto it = m_sources[source].begin(); it != m_sources[source].end(); ++it) {
             if ((*it)->assigntime(elapsed, now)) {
                 return true;
             }
         }
     }
     return false;
+}
+
+void Timestamper::update_timeofday(void)
+{
+    TimePoint now;
+    SourcePriority source;
+
+    if (!Timestamp(now, source)) {
+        return;
+    }
+
+    // This routine can be called each time new information is added to the system, so it's
+    // possible that we might end up with the same time being returned (at least to the second)
+    // on multiple calls, which means we can optimise away the system call.
+    if (now.second <= m_lastSystemTime) {
+        return;
+    }
+
+    struct timeval tv = { .tv_sec = now.second, .tv_usec = static_cast<suseconds_t>(now.microsecond) };
+    settimeofday(&tv, nullptr);
+    m_lastSystemTime = now.second;
 }
 
 }
