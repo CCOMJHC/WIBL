@@ -120,7 +120,8 @@ public:
         Pkt_Setup = 18,         ///< Setup JSON string for entire configuration
         Pkt_NMEA2000PGNS = 19,  ///< JSON string for list of integer PGNs to record (as binary) from NMEA2000
         Pkt_N2kBinary = 20,     ///< The binary representation of a NMEA2000 packet
-        Pkt_RawGNSS = 21        ///< Raw store for logger's on-board GNSS
+        Pkt_RawGNSS = 21,       ///< Raw store for logger's on-board GNSS
+        Pkt_1PPS = 22           ///< Time reference from the logger's on-board GNSS
     };
     
     /// \brief Write a packet into the current log file

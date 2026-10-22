@@ -29,6 +29,7 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <functional>
 #include <Wire.h>
 #include "N2kTypes.h"
 #include "N2kLogger.h"
@@ -40,11 +41,24 @@ const int SoftwareVersionMajor = 1; ///< Software major version for the logger
 const int SoftwareVersionMinor = 0; ///< Software minor version for the logger
 const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
-const int RawDataPacketSize = 1024; ///< Size of raw byte packets transferred from the GNSS
-const int ReceiverDataBufferSize = 16384; ///< Size of internal logging buffer for GNSS
+const int RawDataPacketSize = 1024;         //< Size of raw byte packets transferred from the GNSS
+const int ReceiverDataBufferSize = 16384;   ///< Size of internal logging buffer for GNSS
+const int PPS_INPUT_PIN = 26;               ///< GPIO used for the 1PPS input
 
+// The GNSS library uses call-backs to tell us when packets have been decoded from the
+// binary stream, which we use to (a) capture the UTC second that's about to be announced
+// by the 1PPS interrupt, and (b) capture real-time position as a backup for the PPP
+// solution.  Unfortunately, that means that we need to be able to access the objects from
+// the call-back, and therefore that we need them to be global (since the call-backs can't
+// reasily be methods).  The variables here provide those globals (at least with respect
+// to this translation unit).
 logger::Manager *_log_output = nullptr;
 bool _generate_realtime_debug = false;
+GNSSTimeSource *_timeref = nullptr;
+
+// Shared space for the elapsed time when a PPS hits, and the indicator that it has,
+// accessed by the ISR for the 1PPS interrupt, and the main Logger/GNSSTimeSource
+volatile bool pps_fired = false;
 
 GNSSTimeSource::GNSSTimeSource(void)
 {
@@ -57,11 +71,16 @@ bool GNSSTimeSource::assigntime(uint64_t const elapsed, timing::TimePoint& now)
     if (!isValid()) return false;
     now.elapsed = elapsed;
     uint64_t advance = elapsed - m_reference.elapsed;
-    // If the current time is more than fice seconds from the reference, we prefer to
+    // If the current time is more than five seconds from the reference, we prefer to
     // not give an answer than give a potentially bad answer.
-    if (advance > 5000000) {
+    if (advance > 5000000ULL) {
         return false;
     }
+    // This assumes that we don't really care that the clock might drift a little
+    // between the reference point and the current elapsed count (i.e., that there might
+    // be a few more or a few less counts than the million per second that we expect),
+    // and we therefore don't have to account for drift by looking at the difference in
+    // count at each 1PPS and adjusting here.
     now.second = m_reference.second + advance / 1000000UL;
     now.microsecond = (m_reference.microsecond + advance) % 1000000UL;
     return true;
@@ -115,12 +134,37 @@ void rawx_rcv(UBX_RXM_RAWX_data_t *data)
 
 void tim_rcv(UBX_TIM_TP_data_t *data)
 {
+    if (_generate_realtime_debug) {
+        Serial.printf("TP week %d/%d ms+%d, quantisation %d ps for timebase %s (UTC %savailable), RAIM %s, quantisation %svalid\n", data->week, data->towMS, data->towSubMS, data->qErr,
+        data->flags.bits.timeBase == 0 ? "GNSS" : "UTC",
+        data->flags.bits.utc == 0 ? "not " : "",
+        data->flags.bits.raim == 0 ? "on" : "off",
+        data->flags.bits.qErrInvalid == 0 ? "in" : "");
+    }
+    if (data->flags.bits.timeBase == 0 || data->flags.bits.utc == 0) {
+        // No UTC in the packet
+        if (_generate_realtime_debug) {
+            Serial.printf("WARN: UTC timebase not configured or not available (%d/%d)\n",
+                data->flags.bits.timeBase, data->flags.bits.utc);
+        }
+        return;
+    }
+    if (_timeref != nullptr) {
+        _timeref->register_mark(data->week, data->towMS, data->towSubMS);
+    }
+}
 
+void IRAM_ATTR pps_isr(void)
+{
+    if (_timeref != nullptr) {
+        _timeref->reference_mark(_log_output->GetElapsedTime());
+        pps_fired = true;
+    }
 }
 
 void Logger::setup_tim_rcv(void)
 {
-    /* Configure the TP for appropriate edge direction, duration, etc., and 1PPS ISR */
+    attachInterrupt(digitalPinToInterrupt(PPS_INPUT_PIN), pps_isr, RISING);
 }
 
 // Call-back for the GNSS library to report the real-time position, velocity, and time information
@@ -204,11 +248,12 @@ void Logger::SetVerbose(bool verbose)
     _generate_realtime_debug = verbose;
 }
 
-Logger::Logger(logger::Manager *output)
+Logger::Logger(logger::Manager *output, GNSSTimeSource *timeref)
 : m_output(output), m_verbose(false)
 {
     _log_output = output; // !ick!
     _generate_realtime_debug = m_verbose;
+    _timeref = timeref;
 
     m_sensor = new SFE_UBLOX_GNSS();
     if (!Wire.begin()) {
@@ -258,6 +303,19 @@ bool Logger::isAvailable(void)
 
 void Logger::TransferData(void)
 {
+    if (pps_fired) {
+        // If the PPS has fired, then the time reference should be set up, and
+        // we want to preserve it and then reset.  Note that the 1PPS is obviously
+        // only going to fire once a second, and the time reference is set in the ISR,
+        // so there's no rush to make this happen and no potential for another TIM_TP
+        // message arriving before we do (it'd just set the pending time instead).
+        Serialisable pkt(sizeof(uint64_t) + 2*sizeof(uint32_t));
+        pkt += _timeref->reference().elapsed;
+        pkt += static_cast<uint32_t>(_timeref->reference().second);
+        pkt += _timeref->reference().microsecond;
+        m_output->Record(logger::Manager::PacketIDs::Pkt_1PPS, pkt);
+        pps_fired = false;
+    }
     if (!isAvailable()) return;
     m_sensor->checkUblox();
     m_sensor->checkCallbacks();

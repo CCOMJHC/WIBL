@@ -44,8 +44,11 @@ public:
     bool assigntime(uint64_t const elapsed, timing::TimePoint& now);
     String printable(void) const { return m_reference.printable(); }
     bool isValid(void) const { return m_reference.isValid(); }
+    timing::TimePoint const& reference(void) const { return m_reference; }
 
 private:
+    friend void tim_rcv(UBX_TIM_TP_data_t *data);
+    friend void pps_isr(void);
     friend class Logger;
     timing::TimePoint   m_reference;
     time_t              m_pendingSecond;
