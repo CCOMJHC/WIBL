@@ -40,14 +40,6 @@ const int SoftwareVersionMajor = 1; ///< Software major version for the logger
 const int SoftwareVersionMinor = 2; ///< Software minor version for the logger
 const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
-N1KTimeSource::N1KTimeSource(void)
-: timing::BaseTimeSource()
-{
-    m_reference.elapsed = 0ULL;
-    m_reference.second = (time_t)0;
-    m_reference.microsecond = 0UL;
-}
-
 bool N1KTimeSource::assigntime(uint64_t const elapsed, timing::TimePoint& now)
 {
     if (!isValid()) {
@@ -60,7 +52,7 @@ bool N1KTimeSource::assigntime(uint64_t const elapsed, timing::TimePoint& now)
     if (advance > 5000000) {
         return false;
     }
-    now.second = m_reference.second + advance / 1000000UL;
+    now.second = m_reference.second + (m_reference.microsecond + advance) / 1000000UL;
     now.microsecond = (m_reference.microsecond + advance) % 1000000UL;
     return true;
 }
@@ -77,7 +69,7 @@ bool N1KTimeSource::assigntime(uint64_t const elapsed, timing::TimePoint& now)
 /// \param message  Pointer to the NMEA0183 sentence to parse
 /// \returns N/A
 
-void N1KTimeSource::setReference(uint64_t const elapsed, const Sentence *message)
+bool N1KTimeSource::setReference(uint64_t const elapsed, const Sentence *message)
 {
     String id(message->MessageID());
     time_t seconds = (time_t)0; // Essentially "no value" since we can't get new data at 1970-01-01!
@@ -88,7 +80,7 @@ void N1KTimeSource::setReference(uint64_t const elapsed, const Sentence *message
         parse_rmc(message, seconds, microseconds);
     } else {
         // The message, whatever it is, has no time information that's useful for us.
-        return;
+        return false;
     }
     // The parser code returns early without modifying the seconds/microseconds output
     // if there's a validation failure from the NMEA sentences.  Detecting a non-zero
@@ -97,6 +89,7 @@ void N1KTimeSource::setReference(uint64_t const elapsed, const Sentence *message
         m_reference.second = seconds;
         m_reference.microsecond = microseconds;
     }
+    return true;
 }
 
 bool parse_uint(const char* begin, const char* end, unsigned int& value)
@@ -407,9 +400,8 @@ void MessageAssembler::AddCharacter(const char in)
         case STATE_SEARCHING:
             if (in == '$') {
                 // This is the start of a string, so get the timestamp, and stash
-                uint64_t now = m_logManager->GetElapsedTime();
                 m_current.Reset();
-                m_current.Timestamp(now);
+                m_current.Timestamp(m_logManager->GetElapsedTime());
                 m_current.AddCharacter(in);
                 m_state = STATE_CAPTURING;
                 if (m_debugAssembly) {
@@ -459,7 +451,6 @@ void MessageAssembler::AddCharacter(const char in)
             }
             break;
         case STATE_CAPTURING:
-            uint64_t now;
             switch(in) {
                 case '\n':
                     // The end of the current sentence, so we convert the current sentence
@@ -483,9 +474,8 @@ void MessageAssembler::AddCharacter(const char in)
                     break;
                 case '$':
                     // The start of a new sentence, which is odd ...
-                    now = m_logManager->GetElapsedTime();
                     m_current.Reset();
-                    m_current.Timestamp(now);
+                    m_current.Timestamp(m_logManager->GetElapsedTime());
                     m_current.AddCharacter(in);
                     message = "WARN: sentence restarted before end of previous one?! (channel " + String(m_channel) + ").";
                     Serial.println(message);
@@ -695,9 +685,11 @@ void Logger::ProcessMessages(void)
             logger::Metrics.RegisterObs(obs);
 
             // In order to avoid checking the message ID here, and then again to work out how to
-            // parse, we offer each valid, non-filtered message to the time-referencing code.
-            m_timeref->setReference(sentence->Timestamp(), sentence);
-            m_logManager->UpdateTimeofday();
+            // parse, we offer each valid, non-filtered message to the time-referencing code, but only
+            // attempt to reset the timeofday() value if the offer is accepted.
+            if (m_timeref->setReference(sentence->Timestamp(), sentence)) {
+                m_logManager->UpdateTimeofday();
+            }
 
             Serialisable s;
             s += sentence->Timestamp();

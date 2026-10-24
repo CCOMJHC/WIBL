@@ -49,6 +49,7 @@ struct TimePoint {
     time_t      second;         ///< UTC second corresponding to elapsed count
     uint32_t    microsecond;    ///< UTC microsecond corresponding to elapsed count
 
+    TimePoint(void) { reset(); }
     void reset(void);
     bool isValid(void) const { return elapsed != 0ULL; }
     String printable(void) const;
@@ -86,8 +87,7 @@ public:
     bool Translate(uint64_t const elapsed, TimePoint& now, SourcePriority& source);
 
     inline bool Timestamp(TimePoint& now, SourcePriority& source) {
-        uint64_t elapsed = GetElapsed();
-        return Translate(elapsed, now, source);
+        return Translate(GetElapsed(), now, source);
     }
     void update_timeofday(void);
 

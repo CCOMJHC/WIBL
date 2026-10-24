@@ -25,6 +25,12 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+// The ESP32 version of the CAN bus library used for NMEA2000 packets uses the following two defines
+// in the prototype for the setup call to set the default pins.  You could in theory set these up
+// directly if you were to construct your own tNMEA2000 object, but since we use the default NMEA2000
+// object here, this is now we specify the pins used to talk to the CAN PHY.  TL/DR: Don't remove these
+// definitions, even if you can't find any reference to them in the rest of the source code!  Also, don't
+// move these after the include for NMEA2000_CAN.h!
 #define ESP32_CAN_TX_PIN GPIO_NUM_16
 #define ESP32_CAN_RX_PIN GPIO_NUM_17
 
@@ -150,6 +156,13 @@ void setup()
     logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_MOTION_B, start_motion_sensor);
     logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_GNSS_B, start_gnss_sensor);
 
+    // Note that we make raw pointers here, but then transfer responsibility to the Timestamper object
+    // for their management.  They're also shared with the specific logger (so the time references can
+    // be updated when the appropriate message arrives).  Arguably this should be a std::shared_ptr<>,
+    // but since it's an embedded system and very constrained, that seems like a little too much
+    // overhead.  TL/DR: Yes, these are auto and therefore will disappear when the routine completes,
+    // but that's OK because they still exist in the Timestamper.  These will also appear to be leaked
+    // memory, but that's OK too.
     Serial.print("Configuring timestamping sub-system ...");
     nmea::N2000::N2KTimeSource *n2k_timesource = nullptr;
     nmea::N0183::N1KTimeSource *n1k_timesource = nullptr;
@@ -235,13 +248,15 @@ void setup()
 
         NMEA2000.Open();
 
-        Serial.printf("DBG: After NMEA2000 interface start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+        Serial.printf("DBG: After NMEA2000 interface start, free heap = %d B, delta = %d B\n",
+            heap.CurrentSize(), heap.DeltaSinceLast());
     }
 
     Serial.println("Bringing up supply voltage monitoring ...");
     supplyMonitor = new logger::SupplyMonitor();
 
-    Serial.printf("DBG: After voltage monitoring start, free heap = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+    Serial.printf("DBG: After voltage monitoring start, free heap = %d B, delta = %d B\n",
+        heap.CurrentSize(), heap.DeltaSinceLast());
 
     Serial.println("Setup complete, setting status for normal operations.");
     LEDs->SetStatus(StatusLED::Status::sNORMAL);

@@ -79,6 +79,7 @@ Timestamper::~Timestamper(void)
 
 void Timestamper::RegisterSource(BaseTimeSource *source, SourcePriority const priority)
 {
+    if (priority < TIMING_REFERENCE || priority > TIMING_LOW) return;
     m_sources[static_cast<int>(priority)].push_back(source);
 }
 

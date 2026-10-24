@@ -24,6 +24,7 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <ctime>
 #include <Arduino.h>
 #include "ArduinoJson.h"
 #include "WiFiAdapter.h"
@@ -1521,6 +1522,50 @@ void SerialCommand::ConfigureUpload(String const& command, CommandSource src)
     }
 }
 
+void SerialCommand::ReportCurrentTime(CommandSource src)
+{
+    uint64_t elapsed_count;
+    timing::TimePoint now;
+    timing::SourcePriority source;
+
+    elapsed_count = m_logManager->GetElapsedTime();
+    if (m_logManager->TranslateElapsed(elapsed_count, now, source)) {
+        char timestamp[128], datetime[32], elapsed[24];
+        snprintf(timestamp, 128, "%d.%06d", now.second, now.microsecond);
+        auto pos = strftime(datetime, 32, "%Y-%m-%d/%H:%M:%S.", std::gmtime(&now.second));
+        snprintf(datetime + pos, 32 - pos, "%06d\n", now.microsecond);
+        snprintf(elapsed, 32, "%d", elapsed_count);
+        String elapsed_msg = String("Elapsed time count ") + elapsed + String(" pseudo-us\n");
+        String timestamp_msg = String("Unix timestamp ") + timestamp + String(" s (") + datetime + String(") UTC\n");
+        String source_msg;
+        switch (source) {
+            case timing::TIMING_REFERENCE:
+                source_msg = String("Source: GNSS/1PPS\n");
+                break;
+            case timing::TIMING_HIGH:
+                source_msg = String("Source: NMEA2000/SystemTime-GNSS\n");
+                break;
+            case timing::TIMING_LOW:
+                source_msg = String("Source: NMEA0183/ZDA-RMC\n");
+                break;
+            default:
+                source_msg = String("Source: Not Recognised.\n");
+                break;
+        }
+        if (src == CommandSource::SerialPort) {
+            EmitMessage(elapsed_msg, src);
+            EmitMessage(timestamp_msg, src);
+            EmitMessage(source_msg, src);
+        } else if (src == CommandSource::WirelessPort && m_wifi != nullptr) {
+            m_wifi->AddMessage(elapsed_msg);
+            m_wifi->AddMessage(timestamp_msg);
+            m_wifi->AddMessage(source_msg);
+        }
+    } else {
+        EmitMessage("ERR: failed to generate real time estimate.\n", src);
+    }
+}
+
 /// Output a list of known commands, since there are now enough of them to make remembering them
 /// all a little difficult.
 
@@ -1559,6 +1604,7 @@ void SerialCommand::Syntax(CommandSource src)
     EmitMessage("  status                              Generate JSON-format status message for current dynamic configuration\n", src);
     EmitMessage("  steplog                             Close current log file, and move to the next in sequence.\n", src);
     EmitMessage("  stop                                Close files and go into self-loop for power-down.\n", src);
+    EmitMessage("  time                                Report current real time estimate and source.\n", src);
     EmitMessage("  transfer file-number                Transfer log file [file-number] (WiFi and serial only).\n", src);
     EmitMessage("  uniqueid [logger-name]              Set or report the logger's unique identification string.\n", src);
     EmitMessage("  upload [on|off]|[srvaddr srvport timeout interval duration]\n", src);
@@ -1699,6 +1745,8 @@ void SerialCommand::Execute(String const& cmd, CommandSource src)
         }
     } else if (cmd == "stop") {
         Shutdown();
+    } else if (cmd == "time") {
+        ReportCurrentTime(src);
     } else if (cmd.startsWith("transfer")) {
         TransferLogFile(cmd.substring(9), src);
     } else if (cmd.startsWith("uniqueid")) {

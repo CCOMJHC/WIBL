@@ -46,19 +46,6 @@ const int SoftwareVersionMajor = 1; ///< Software major version for the logger
 const int SoftwareVersionMinor = 3; ///< Software minor version for the logger
 const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
-N2KTimeSource::N2KTimeSource(void)
-: m_fromSystemTime(false)
-{
-    m_reference.elapsed = 0ULL;
-    m_reference.second = (time_t)0;
-    m_reference.microsecond = 0UL;
-}
-
-bool N2KTimeSource::isValid(void) const
-{
-    return m_reference.elapsed != 0ULL;
-}
-
 bool N2KTimeSource::assigntime(uint64_t const elapsed, timing::TimePoint& now)
 {
     if (!isValid()) return false;
@@ -69,7 +56,7 @@ bool N2KTimeSource::assigntime(uint64_t const elapsed, timing::TimePoint& now)
     if (advance > 5000000) {
         return false;
     }
-    now.second = m_reference.second + advance / 1000000UL;
+    now.second = m_reference.second + (m_reference.microsecond + advance) / 1000000UL;
     now.microsecond = (m_reference.microsecond + advance) % 1000000UL;
     return true;
 }
@@ -114,11 +101,6 @@ void N2KTimeSource::setReferenceGNSS(uint64_t const elapsed, uint16_t const days
         (m_fromSystemTime && advance > 5000000)) {
         setReferenceUnconditional(elapsed, days, seconds);
     }
-}
-
-String N2KTimeSource::printable(void) const
-{
-    return m_reference.printable();
 }
 
 /// Default constructor for the logger and message handler.  This essentially just initialises

@@ -194,6 +194,8 @@ private:
     void ReportUploadConfig(CommandSource src);
     /// @brief Set the auto-upload configuration status
     void ConfigureUpload(String const& command, CommandSource src);
+    /// \brief Query the current time, reference, and source
+    void ReportCurrentTime(CommandSource src);
     /// \brief Check for commands, and execute them if found
     void Execute(String const& command, CommandSource src);
     

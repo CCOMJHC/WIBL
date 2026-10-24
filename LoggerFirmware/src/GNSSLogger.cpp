@@ -29,7 +29,6 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <functional>
 #include <Wire.h>
 #include "N2kTypes.h"
 #include "N2kLogger.h"
@@ -43,26 +42,25 @@ const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
 const int RawDataPacketSize = 1024;         //< Size of raw byte packets transferred from the GNSS
 const int ReceiverDataBufferSize = 16384;   ///< Size of internal logging buffer for GNSS
-const int PPS_INPUT_PIN = 26;               ///< GPIO used for the 1PPS input
+const int PPS_INPUT_PIN = GPIO_NUM_23;      ///< GPIO used for the 1PPS input
 
 // The GNSS library uses call-backs to tell us when packets have been decoded from the
 // binary stream, which we use to (a) capture the UTC second that's about to be announced
 // by the 1PPS interrupt, and (b) capture real-time position as a backup for the PPP
 // solution.  Unfortunately, that means that we need to be able to access the objects from
 // the call-back, and therefore that we need them to be global (since the call-backs can't
-// reasily be methods).  The variables here provide those globals (at least with respect
+// readily be methods).  The variables here provide those globals (at least with respect
 // to this translation unit).
 logger::Manager *_log_output = nullptr;
 bool _generate_realtime_debug = false;
 GNSSTimeSource *_timeref = nullptr;
 
-// Shared space for the elapsed time when a PPS hits, and the indicator that it has,
-// accessed by the ISR for the 1PPS interrupt, and the main Logger/GNSSTimeSource
+// Shared space for the indicator that the 1PPS interrupt has occured, accessed by the ISR
+// for the 1PPS interrupt, and the main Logger/GNSSTimeSource
 volatile bool pps_fired = false;
 
 GNSSTimeSource::GNSSTimeSource(void)
 {
-    m_reference.reset();
     m_pendingSecond = m_pendingMicrosecond = 0UL;
 }
 
@@ -81,7 +79,7 @@ bool GNSSTimeSource::assigntime(uint64_t const elapsed, timing::TimePoint& now)
     // be a few more or a few less counts than the million per second that we expect),
     // and we therefore don't have to account for drift by looking at the difference in
     // count at each 1PPS and adjusting here.
-    now.second = m_reference.second + advance / 1000000UL;
+    now.second = m_reference.second + (m_reference.microsecond + advance) / 1000000UL;
     now.microsecond = (m_reference.microsecond + advance) % 1000000UL;
     return true;
 }
@@ -124,12 +122,12 @@ int32_t get_utc_days_since_epoch(int32_t year, int32_t month, int32_t day) {
 
 void sfrbx_rcv(UBX_RXM_SFRBX_data_t *data)
 {
-
+    // TODO: Determine whether we need this routine if we aren't using the data
 }
 
 void rawx_rcv(UBX_RXM_RAWX_data_t *data)
 {
-
+    // TODO: Determine whether we need this routine if we aren't using the data
 }
 
 void tim_rcv(UBX_TIM_TP_data_t *data)
@@ -175,6 +173,7 @@ void Logger::setup_tim_rcv(void)
 // \param data  Structure with broken-out information on the current position solution.
 void pvt_rcv(UBX_NAV_PVT_data_t * data)
 {
+    // Pick the elapsed time count for the message as early as possible after call.
     uint64_t elapsed = _log_output->GetElapsedTime();
     
     if (_generate_realtime_debug) {
@@ -209,8 +208,8 @@ void pvt_rcv(UBX_NAV_PVT_data_t * data)
     }
 
     // Note that the time in the packet is meant to be the validity time of the observation, not
-    // when it was sent.  So we convert this for metadata on the position, but get a separate
-    // timestamp from the time source for the header.
+    // when it was sent.  So we convert this for metadata on the position, but use the elapsed
+    // time snapped at the start of the routine for the elapsed time count in the header.
     uint32_t epoch_days = get_utc_days_since_epoch(data->year, data->month, data->day);
     double   seconds_in_day = data->hour * 3600.0 + data->min * 60.0 + data->sec +
                               data->nano / 1.0e9;
@@ -258,18 +257,18 @@ Logger::Logger(logger::Manager *output, GNSSTimeSource *timeref)
     m_sensor = new SFE_UBLOX_GNSS();
     if (!Wire.begin()) {
         Serial.println("ERROR: Failed to initialise Wire interface for GNSS module; logging disabled.");
-        delete m_sensor; m_sensor = nullptr; m_output = nullptr;
+        delete m_sensor; m_sensor = nullptr; m_output = nullptr; _timeref = nullptr;
         return;
     }
     if (!m_sensor->setPacketCfgPayloadSize(3000)) {
         Serial.println("ERROR: failed to set receive packet size for GNSS module; logging disabled.");
-        delete m_sensor; m_sensor = nullptr; m_output = nullptr;
+        delete m_sensor; m_sensor = nullptr; m_output = nullptr; _timeref = nullptr;
         return;
     }
     m_sensor->setFileBufferSize(ReceiverDataBufferSize);
     if (!m_sensor->begin()) {
         Serial.println("ERROR: failed to start GNSS module; logging disabled.");
-        delete m_sensor; m_sensor = nullptr; m_output = nullptr;
+        delete m_sensor; m_sensor = nullptr; m_output = nullptr; _timeref = nullptr;
         return;
     }
 
@@ -294,6 +293,8 @@ Logger::~Logger(void)
 {
     delete m_sensor;
     delete m_pktBuffer;
+    _log_output = nullptr;
+    _timeref = nullptr;
 }
 
 bool Logger::isAvailable(void)
@@ -309,6 +310,7 @@ void Logger::TransferData(void)
         // only going to fire once a second, and the time reference is set in the ISR,
         // so there's no rush to make this happen and no potential for another TIM_TP
         // message arriving before we do (it'd just set the pending time instead).
+        m_output->UpdateTimeofday();
         Serialisable pkt(sizeof(uint64_t) + 2*sizeof(uint32_t));
         pkt += _timeref->reference().elapsed;
         pkt += static_cast<uint32_t>(_timeref->reference().second);
