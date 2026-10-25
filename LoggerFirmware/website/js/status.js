@@ -24,7 +24,7 @@ function roundVoltage(rawVoltage) {
 }
 
 function translateTime(elapsed) {
-    let secs = elapsed / 1000.0;
+    let secs = elapsed / 1000000.0;
 
     const one_day = 24.0*60.0*60.0;
     const one_hour = 60.0*60.0;

@@ -110,8 +110,7 @@ DynamicJsonDocument CurrentStatus(logger::Manager *m)
     status["version"]["gnss"] = gnss::Logger::SoftwareVersion();
     status["version"]["serialiser"] = Serialiser::SoftwareVersion();
 
-    int now = millis();
-    status["elapsed"] = now;
+    status["elapsed"] = m->GetElapsedTime();
     
     status["supply"] = logger::Metrics.SupplyVoltage();
 
