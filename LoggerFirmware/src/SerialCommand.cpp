@@ -1531,6 +1531,8 @@ void SerialCommand::ReportCurrentTime(CommandSource src)
 
     elapsed_count = m_logManager->GetElapsedTime();
     if (m_logManager->TranslateElapsed(elapsed_count, now, source)) {
+        Serial.printf("DBG: elapsed count %lld translates to %ld s/%ld us UTC from source %d\n",
+            elapsed_count, (int32_t)now.second, now.microsecond, (int)source);
         char timestamp[128], datetime[32], elapsed[24];
         snprintf(timestamp, 128, "%lld.%06ld", now.second, now.microsecond);
         auto pos = strftime(datetime, 32, "%Y-%m-%d/%H:%M:%S.", std::gmtime(&now.second));
@@ -1553,6 +1555,9 @@ void SerialCommand::ReportCurrentTime(CommandSource src)
                 source_msg = String("Source: Not Recognised.\n");
                 break;
         }
+        Serial.printf("DBG: elapsed: \"%s\".\n", elapsed_msg.c_str());
+        Serial.printf("DBG: timestamp: \"%s\".\n", timestamp_msg.c_str());
+        Serial.printf("DBG: source: \"%s\".\n", source_msg.c_str());
         if (src == CommandSource::SerialPort) {
             EmitMessage(elapsed_msg, src);
             EmitMessage(timestamp_msg, src);
@@ -1563,7 +1568,7 @@ void SerialCommand::ReportCurrentTime(CommandSource src)
             m_wifi->AddMessage(source_msg);
         }
     } else {
-        EmitMessage("ERR: failed to generate real time estimate.\n", src);
+        EmitMessage("WARN: time source cannot yet generate a UTC time reference.\n", src);
     }
 }
 

@@ -330,12 +330,12 @@ bool ConfigJSON::SetConfig(String const& json_string)
         if (params["wifi"].is<JsonObject>()) {
             if (params["wifi"]["mode"].is<String>())
                 LoggerConfig.SetConfigString(Config::CONFIG_WIFIMODE_S, params["wifi"]["mode"]);
-            if (params["wifi"]["station"].is<String>()) {
-                if (params["wifi"]["station"]["delay"].is<String>())
+            if (params["wifi"]["station"].is<JsonObject>()) {
+                if (params["wifi"]["station"]["delay"].is<int>())
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_DELAY_S, params["wifi"]["station"]["delay"]);
-                if (params["wifi"]["station"]["retries"].is<String>())
+                if (params["wifi"]["station"]["retries"].is<int>())
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_RETRIES_S, params["wifi"]["station"]["retries"]);
-                if (params["wifi"]["station"]["timeout"].is<String>())
+                if (params["wifi"]["station"]["timeout"].is<int>())
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_TIMEOUT_S, params["wifi"]["station"]["timeout"]);
                 if (params["wifi"]["station"]["mdns"].is<String>())
                     LoggerConfig.SetConfigString(Config::CONFIG_MDNS_NAME_S, params["wifi"]["station"]["mdns"]);
@@ -354,27 +354,27 @@ bool ConfigJSON::SetConfig(String const& json_string)
             }
         }
         if (params["baudrate"].is<JsonObject>()) {
-            if (params["baudrate"]["port1"].is<String>())
+            if (params["baudrate"]["port1"].is<int>())
                 LoggerConfig.SetConfigString(Config::CONFIG_BAUDRATE_1_S, params["baudrate"]["port1"]);
-            if (params["baudrate"]["port2"].is<String>())
+            if (params["baudrate"]["port2"].is<int>())
                 LoggerConfig.SetConfigString(Config::CONFIG_BAUDRATE_2_S, params["baudrate"]["port2"]);
         }
         if (params["uniqueID"].is<String>())
             LoggerConfig.SetConfigString(Config::CONFIG_MODULEID_S, params["uniqueID"]);
         if (params["shipname"].is<String>())
             LoggerConfig.SetConfigString(Config::CONFIG_SHIPNAME_S, params["shipname"]);
-        if (params["udpbridge"].is<String>())
+        if (params["udpbridge"].is<int>())
             LoggerConfig.SetConfigString(Config::CONFIG_BRIDGE_PORT_S, params["udpbridge"]);
         if (params["upload"].is<JsonObject>()) {
             if (params["upload"]["server"].is<String>())
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_SERVER_S, params["upload"]["server"]);
-            if (params["upload"]["port"].is<String>())
+            if (params["upload"]["port"].is<int>())
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_PORT_S, params["upload"]["port"]);
-            if (params["upload"]["timeout"].is<String>())
+            if (params["upload"]["timeout"].is<float>())
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_TIMEOUT_S, params["upload"]["timeout"]);
-            if (params["upload"]["interval"].is<String>())
+            if (params["upload"]["interval"].is<float>())
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_INTERVAL_S, params["upload"]["interval"]);
-            if (params["upload"]["duration"].is<String>())
+            if (params["upload"]["duration"].is<float>())
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_DURATION_S, params["upload"]["duration"]);
         }
     } else {

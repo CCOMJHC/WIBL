@@ -47,7 +47,7 @@ bool N1KTimeSource::assigntime(uint64_t const elapsed, timing::TimePoint& now)
     }
     now.elapsed = elapsed;
     uint64_t advance = elapsed - m_reference.elapsed;
-    // If the current time is more than fice seconds from the reference, we prefer to
+    // If the current time is more than five seconds from the reference, we prefer to
     // not give an answer than give a potentially bad answer.
     if (advance > 5000000) {
         return false;

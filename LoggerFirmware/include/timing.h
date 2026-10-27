@@ -72,8 +72,6 @@ enum SourcePriority {
     TIMING_MAXPRI
 };
 
-SourcePriority operator++(SourcePriority);
-
 /// \class Timestamper
 /// \brief Manage time sources to provide a translation of elapsed time to real time
 class Timestamper {

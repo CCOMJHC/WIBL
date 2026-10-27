@@ -33,13 +33,6 @@
 
 namespace timing {
 
-SourcePriority operator++(SourcePriority a)
-{
-    if (a == TIMING_MAXPRI) return TIMING_MAXPRI;
-    int b = static_cast<int>(a) + 1;
-    return static_cast<SourcePriority>(b);
-}
-
 void TimePoint::reset(void)
 {
     elapsed = 0ULL;
@@ -52,7 +45,7 @@ String TimePoint::printable(void) const
     String rtn;
     double seconds = second + microsecond / 1000000.0;
     rtn = "R: " + String(seconds) + " s since datum, " +
-        String(elapsed) + " us since boot";
+        String(elapsed) + " pseudo-us since boot";
     return rtn;
 }
 
@@ -91,8 +84,9 @@ uint64_t Timestamper::GetElapsed(void)
 
 bool Timestamper::Translate(uint64_t const elapsed, TimePoint& now, SourcePriority& source)
 {
-    for (source = TIMING_HIGH; source != SourcePriority::TIMING_MAXPRI; ++source) {
-        for (auto it = m_sources[source].begin(); it != m_sources[source].end(); ++it) {
+    for (int source = (int)TIMING_REFERENCE; source < (int)TIMING_MAXPRI; ++source) {
+        int count = 0;
+        for (auto it = m_sources[source].begin(); it != m_sources[source].end(); ++it, ++count) {
             if ((*it)->assigntime(elapsed, now)) {
                 return true;
             }
@@ -118,6 +112,7 @@ void Timestamper::update_timeofday(void)
     }
 
     struct timeval tv = { .tv_sec = now.second, .tv_usec = static_cast<suseconds_t>(now.microsecond) };
+    Serial.printf("DBG: setting time of day to %s\n", now.printable().c_str());
     settimeofday(&tv, nullptr);
     m_lastSystemTime = now.second;
 }

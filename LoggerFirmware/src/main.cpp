@@ -195,37 +195,43 @@ void setup()
     if (start_nmea_2000) {
         Serial.println("Configuring NEMA2000 logger ...");
         N2000Logger = new nmea::N2000::Logger(&NMEA2000, logManager, n2k_timesource);
-        Serial.printf("DBG: After NMEA2000 logger start, free heap = %ld B, delta = %ld B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+        Serial.printf("DBG: After NMEA2000 logger start, free heap = %ld B, delta = %ld B\n",
+            heap.CurrentSize(), heap.DeltaSinceLast());
     }
   
     if (start_nmea_0183) {
         Serial.println("Configuring NMEA0183 logger (and configuring serial ports)...");
         N0183Logger = new nmea::N0183::Logger(logManager, n1k_timesource);
-        Serial.printf("DBG: After NMEA0183 logger start, free heap = %ld B, delta = %ld B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+        Serial.printf("DBG: After NMEA0183 logger start, free heap = %ld B, delta = %ld B\n",
+            heap.CurrentSize(), heap.DeltaSinceLast());
     }
 
     if (start_motion_sensor) {
         Serial.println("Configuring IMU logger ...");
         IMULogger = new imu::Logger(logManager);
-        Serial.printf("DBG: After IMU logger start, free heap = %ld B, delta = %ld B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+        Serial.printf("DBG: After IMU logger start, free heap = %ld B, delta = %ld B\n",
+            heap.CurrentSize(), heap.DeltaSinceLast());
     }
 
     if (start_gnss_sensor) {
         Serial.println("Configuring GNSS logger ...");
         GNSSLogger = new gnss::Logger(logManager, gnss_timesource);
         GNSSLogger->SetVerbose(true);
-        Serial.printf("DBG: After GNSS logger start, free heap = %ld B, delta = %ld B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+        Serial.printf("DBG: After GNSS logger start, free heap = %ld B, delta = %ld B\n",
+            heap.CurrentSize(), heap.DeltaSinceLast());
     }
 
     Serial.println("Configuring command processor ...");
     CommandProcessor = new SerialCommand(N2000Logger, N0183Logger, logManager, LEDs);
 
-    Serial.printf("DBG: After SerialCommand start, free heap = %ld B, delta = %ld B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+    Serial.printf("DBG: After SerialCommand start, free heap = %ld B, delta = %ld B\n",
+        heap.CurrentSize(), heap.DeltaSinceLast());
 
     Serial.println("Starting log manager interface to SD card ...");
     logManager->StartNewLog();
 
-    Serial.printf("DBG: After new log file start, free heap = %ld B, delta = %ld B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+    Serial.printf("DBG: After new log file start, free heap = %ld B, delta = %ld B\n",
+        heap.CurrentSize(), heap.DeltaSinceLast());
   
     if (start_nmea_2000) {
         Serial.println("Starting NMEA2000 bus interface ...");
