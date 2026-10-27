@@ -66,7 +66,7 @@ String Manager::MD5Hash::Value(void) const
     return String(buffer);
 }
 
-uint8_t const * const Manager::MD5Hash::Hash(void) const
+const uint8_t *Manager::MD5Hash::Hash(void) const
 {
     return m_hash;
 }
@@ -140,20 +140,20 @@ bool Manager::Inventory::reinitialise(void)
     uint32_t filesize;
     auto filecount = m_logManager->ScanLogFolder(filenumbers, nullptr);
     if (m_verbose) {
-        Serial.printf("DBG: Reinitialising Inventory for %u objects.\n", filecount);
+        Serial.printf("DBG: Reinitialising Inventory for %lu objects.\n", filecount);
     }
     for (uint32_t f = 0; f < filecount; ++f) {
         m_logManager->enumerate(filenumbers[f], filename, filesize);
         if (filesize != m_filesize[filenumbers[f]]) {
             if (m_verbose) {
-                Serial.printf("DBG: INCONSISTENCY file |%s|, %u B on card does not match cache size %u B; rehashing.\n",
+                Serial.printf("DBG: INCONSISTENCY file |%s|, %lu B on card does not match cache size %lu B; rehashing.\n",
                     filename.c_str(), filesize, m_filesize[filenumbers[f]]);
             }
             rehash(filenumbers[f], nullptr);
             modified = true;
         } else {
             if (m_verbose) {
-                Serial.printf("DBG: file |%s|, %u B on card matches cache.\n",
+                Serial.printf("DBG: file |%s|, %lu B on card matches cache.\n",
                     filename.c_str(), filesize);
             }
         }
@@ -177,7 +177,7 @@ bool Manager::Inventory::reinitialise(void)
         // At this stage, we must have a stale entry in the cache, since the file wasn't seen on first pass,
         // so we reset.
         if (m_verbose) {
-            Serial.printf("DBG: INCONSISTENT filenumber %u not on card, and non-zero filesize (%u)l;resetting.\n",
+            Serial.printf("DBG: INCONSISTENT filenumber %lu not on card, and non-zero filesize (%lu);resetting.\n",
                 entry, m_filesize[entry]);
         }
         m_filesize[entry] = 0;
@@ -216,13 +216,13 @@ bool Manager::Inventory::rehash(uint32_t filenum, MD5Hash *filehash)
     String filename;
 
     if (m_verbose) {
-        Serial.printf("DBG: Inventory update for file %u.\n", filenum);
+        Serial.printf("DBG: Inventory update for file %lu.\n", filenum);
     }
     if (filenum >= MaxLogFiles) return false;
     m_logManager->enumerate(filenum, filename, m_filesize[filenum]);
     m_logManager->hash(filename, m_hashes[filenum]);
     if (m_verbose) {
-        Serial.printf("DBG: File |%s|, %u B, hash |%s|.\n",
+        Serial.printf("DBG: File |%s|, %lu B, hash |%s|.\n",
             filename.c_str(), m_filesize[filenum], m_hashes[filenum].Value().c_str());
     }
     if (filehash != nullptr) *filehash = m_hashes[filenum];
@@ -279,7 +279,7 @@ void Manager::Inventory::DumpCache(Stream& stream)
     stream.println("DBG: File Inventory Cache contents:");
     for (uint32_t entry = 0; entry < MaxLogFiles; ++entry) {
         if (m_filesize[entry] == 0) continue;
-        stream.printf("[%4u] %8u %5u %s\n", entry,
+        stream.printf("[%4lu] %8lu %5u %s\n", entry,
             m_filesize[entry], m_uploadCount[entry], m_hashes[entry].Value().c_str());
     }
 }
@@ -679,10 +679,10 @@ bool Manager::RemoveLogFile(uint32_t file_num)
     bool rc = m_storage->Controller().remove(filename);
 
     if (rc) {
-        m_consoleLog.printf("INFO: erased log file %d by user command.\n", file_num);
+        m_consoleLog.printf("INFO: erased log file %ld by user command.\n", file_num);
         if (m_inventory != nullptr) m_inventory->RemoveLogFile(file_num);
     } else {
-        m_consoleLog.printf("ERR: failed to erase log file %d on user command.\n", file_num);
+        m_consoleLog.printf("ERR: failed to erase log file %ld on user command.\n", file_num);
     }
     m_consoleLog.flush();
     
@@ -713,7 +713,7 @@ void Manager::RemoveAllLogfiles(void)
         }
     }
 
-    m_consoleLog.printf("INFO: erased %u log files of %u.\n", files_closed, fileNumbers.size());
+    m_consoleLog.printf("INFO: erased %lu log files of %u.\n", files_closed, fileNumbers.size());
     m_consoleLog.flush();
     StartNewLog(); // We need to have something running for the logging effort!
 }
@@ -785,7 +785,7 @@ void Manager::Record(PacketIDs pktID, Serialisable const& data)
 void Manager::Syslog(String const& message)
 {
     uint64_t now = m_timestamper->GetElapsed();
-    m_consoleLog.printf("%10d: %s\n", now, message.c_str());
+    m_consoleLog.printf("%10lld: %s\n", now, message.c_str());
     m_consoleLog.flush();
     RotateConsoleLogs(); // This is maybe a little much, but does ensure we don't exceed the max size.
 }
@@ -916,7 +916,7 @@ String Manager::MakeLogName(uint32_t log_num)
         log_num = remapped_lognum;
     }
     char log_num_str[10];
-    snprintf(log_num_str, 10, "%05d.wbl", log_num);
+    snprintf(log_num_str, 10, "%05ld.wbl", log_num);
     filename.concat(log_num_str);
     return filename;
 }
@@ -1007,13 +1007,13 @@ void Manager::TransferLogFile(uint32_t file_num, MD5Hash const& filehash, Stream
         output.write(f.read());
         ++bytes_transferred;
         if ((bytes_transferred % 1024) == 0) {
-            Serial.printf("Transferred %u bytes.\n", bytes_transferred);
+            Serial.printf("Transferred %lu bytes.\n", bytes_transferred);
         }
     }
     unsigned long end = millis();
     unsigned long duration = (end - start)/1000;
     f.close();
-    Serial.printf("Sent %u B in %lu s.\n", bytes_transferred, duration);
+    Serial.printf("Sent %lu B in %lu s.\n", bytes_transferred, duration);
 }
 
 uint32_t Manager::ScanLogFolder(uint32_t fileNumbers[MaxLogFiles], uint64_t * totalSize)

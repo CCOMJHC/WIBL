@@ -28,7 +28,7 @@
  */
 
  #include <time.h>
-#include "driver/timer.h"
+#include "driver/gptimer.h"
 #include "timing.h"
 
 namespace timing {
@@ -56,14 +56,12 @@ String TimePoint::printable(void) const
     return rtn;
 }
 
-const int TIMER_DIVIDER = 80;
-const int TIMER_NUMBER = 0;
-const bool TIMER_COUNTDIR = true; // Count up from zero by default
+const uint32_t TIMER_FREQUENCY = 1000000;
 
 Timestamper::Timestamper(void)
 : m_lastSystemTime(0)
 {
-    if ((m_timer = timerBegin(TIMER_NUMBER, TIMER_DIVIDER, TIMER_COUNTDIR)) == nullptr) {
+    if ((m_timer = timerBegin(TIMER_FREQUENCY)) == nullptr) {
         Serial.print("ERR: failed to configure hardware timer for timing sub-system.\n");
         return;
     }

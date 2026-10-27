@@ -194,13 +194,13 @@ Config LoggerConfig;    ///< Static parameter to use for lookups (rather than ma
 /// @param secure Set true to avoid writing password information into the output dictionary.
 /// @return \a String object with the serialised JSON dictionary of configuration parameters.
 
-DynamicJsonDocument ConfigJSON::ExtractConfig(bool secure)
+JsonDocument ConfigJSON::ExtractConfig(bool secure)
 {
     using namespace ArduinoJson;
     // Note fixed size of document here.  Since what's being rendered into it is pretty well
     // controlled here, it's probably relatively safe; you should assess if you add anything
     // into the payload, however.
-    DynamicJsonDocument params(1024);
+    JsonDocument params;
     params["version"]["firmware"] = FirmwareVersion();
     params["version"]["commandproc"] = SerialCommand::SoftwareVersion();
     params["version"]["nmea0183"] = nmea::N0183::Logger::SoftwareVersion();
@@ -299,81 +299,82 @@ bool ConfigJSON::SetConfig(String const& json_string)
     // Note fixed size of document here.  Since the configuration string is typically of well-
     // known size, this shouldn't be too dangerous, but it's probably wise to review this if
     // you add anything into the payload.
-    DynamicJsonDocument params(1024);
+    JsonDocument params;
     deserializeJson(params, json_string);
 
-    if (!params.containsKey("version") || !params["version"].containsKey("commandproc")) {
+    if (!params["version"].is<JsonObject>() || !params["version"]["commandproc"].is<String>()) {
+        Serial.printf("ERR: configuration string doesn't have version object, or commandproc; not valid.\n");
         return false;
     }
     if (params["version"]["commandproc"].as<String>() == SerialCommand::SoftwareVersion()) {
-        if (params.containsKey("enable")) {
-            if (params["enable"].containsKey("nmea0183"))
+        if (params["enable"].is<JsonObject>()) {
+            if (params["enable"]["nmea0183"].is<bool>())
                 LoggerConfig.SetConfigBinary(Config::CONFIG_NMEA0183_B, params["enable"]["nmea0183"]);
-            if (params["enable"].containsKey("nmea2000"))
+            if (params["enable"]["nmea2000"].is<bool>())
                 LoggerConfig.SetConfigBinary(Config::CONFIG_NMEA2000_B, params["enable"]["nmea2000"]);
-            if (params["enable"].containsKey("imu"))
+            if (params["enable"]["imu"].is<bool>())
                 LoggerConfig.SetConfigBinary(Config::CONFIG_MOTION_B, params["enable"]["imu"]);
-            if (params["enable"].containsKey("gnss"))
+            if (params["enable"]["gnss"].is<bool>())
                 LoggerConfig.SetConfigBinary(Config::CONFIG_GNSS_B, params["enable"]["gnss"]);
-            if (params["enable"].containsKey("powermonitor"))
+            if (params["enable"]["powermonitor"].is<bool>())
                 LoggerConfig.SetConfigBinary(Config::CONFIG_POWMON_B, params["enable"]["powermonitor"]);
-            if (params["enable"].containsKey("sdmmc"))
+            if (params["enable"]["sdmmc"].is<bool>())
                 LoggerConfig.SetConfigBinary(Config::CONFIG_SDMMC_B, params["enable"]["sdmmc"]);
-            if (params["enable"].containsKey("udpbridge"))
+            if (params["enable"]["udpbridge"].is<bool>())
                 LoggerConfig.SetConfigBinary(Config::CONFIG_BRIDGE_B, params["enable"]["udpbridge"]);
-            if (params["enable"].containsKey("webserver"))
+            if (params["enable"]["webserver"].is<bool>())
                 LoggerConfig.SetConfigBinary(Config::CONFIG_WEBSERVER_B, params["enable"]["webserver"]);
-            if (params["enable"].containsKey("upload"))
+            if (params["enable"]["upload"].is<bool>())
                 LoggerConfig.SetConfigBinary(Config::CONFIG_UPLOAD_B, params["enable"]["upload"]);
         }
-        if (params.containsKey("wifi")) {
-            if (params["wifi"].containsKey("mode"))
+        if (params["wifi"].is<JsonObject>()) {
+            if (params["wifi"]["mode"].is<String>())
                 LoggerConfig.SetConfigString(Config::CONFIG_WIFIMODE_S, params["wifi"]["mode"]);
-            if (params["wifi"].containsKey("station")) {
-                if (params["wifi"]["station"].containsKey("delay"))
+            if (params["wifi"]["station"].is<String>()) {
+                if (params["wifi"]["station"]["delay"].is<String>())
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_DELAY_S, params["wifi"]["station"]["delay"]);
-                if (params["wifi"]["station"].containsKey("retries"))
+                if (params["wifi"]["station"]["retries"].is<String>())
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_RETRIES_S, params["wifi"]["station"]["retries"]);
-                if (params["wifi"]["station"].containsKey("timeout"))
+                if (params["wifi"]["station"]["timeout"].is<String>())
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_TIMEOUT_S, params["wifi"]["station"]["timeout"]);
-                if (params["wifi"]["station"].containsKey("mdns"))
+                if (params["wifi"]["station"]["mdns"].is<String>())
                     LoggerConfig.SetConfigString(Config::CONFIG_MDNS_NAME_S, params["wifi"]["station"]["mdns"]);
             }
-            if (params["wifi"].containsKey("ssids")) {
-                if (params["wifi"]["ssids"].containsKey("ap"))
+            if (params["wifi"]["ssids"].is<JsonObject>()) {
+                if (params["wifi"]["ssids"]["ap"].is<String>())
                     LoggerConfig.SetConfigString(Config::CONFIG_AP_SSID_S, params["wifi"]["ssids"]["ap"]);
-                if (params["wifi"]["ssids"].containsKey("station"))
+                if (params["wifi"]["ssids"]["station"].is<String>())
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_SSID_S, params["wifi"]["ssids"]["station"]);
             }
-            if (params["wifi"].containsKey("passwords")) {
-                if (params["wifi"]["passwords"].containsKey("ap"))
+            if (params["wifi"]["passwords"].is<JsonObject>()) {
+                if (params["wifi"]["passwords"]["ap"].is<String>())
                     LoggerConfig.SetConfigString(Config::CONFIG_AP_PASSWD_S, params["wifi"]["passwords"]["ap"]);
-                if (params["wifi"]["passwords"].containsKey("station"))
+                if (params["wifi"]["passwords"]["station"].is<String>())
                     LoggerConfig.SetConfigString(Config::CONFIG_STATION_PASSWD_S, params["wifi"]["passwords"]["station"]);
             }
         }
-        if (params.containsKey("baudrate")) {
-            if (params["baudrate"].containsKey("port1"))
+        if (params["baudrate"].is<JsonObject>()) {
+            if (params["baudrate"]["port1"].is<String>())
                 LoggerConfig.SetConfigString(Config::CONFIG_BAUDRATE_1_S, params["baudrate"]["port1"]);
-            if (params["baudrate"].containsKey("port2"))
+            if (params["baudrate"]["port2"].is<String>())
                 LoggerConfig.SetConfigString(Config::CONFIG_BAUDRATE_2_S, params["baudrate"]["port2"]);
         }
-        if (params.containsKey("uniqueID"))
+        if (params["uniqueID"].is<String>())
             LoggerConfig.SetConfigString(Config::CONFIG_MODULEID_S, params["uniqueID"]);
-        if (params.containsKey("shipname"))
+        if (params["shipname"].is<String>())
             LoggerConfig.SetConfigString(Config::CONFIG_SHIPNAME_S, params["shipname"]);
-        if (params.containsKey("udpbridge"))
+        if (params["udpbridge"].is<String>())
             LoggerConfig.SetConfigString(Config::CONFIG_BRIDGE_PORT_S, params["udpbridge"]);
-        if (params.containsKey("upload")) {
-            if (params["upload"].containsKey("server"))
+        if (params["upload"].is<JsonObject>()) {
+            if (params["upload"]["server"].is<String>())
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_SERVER_S, params["upload"]["server"]);
-            if (params["upload"].containsKey("port"))
+            if (params["upload"]["port"].is<String>())
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_PORT_S, params["upload"]["port"]);
-            if (params["upload"].containsKey("timeout"))
+            if (params["upload"]["timeout"].is<String>())
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_TIMEOUT_S, params["upload"]["timeout"]);
-            if (params["upload"].containsKey("interval"))
+            if (params["upload"]["interval"].is<String>())
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_INTERVAL_S, params["upload"]["interval"]);
-            if (params["upload"].containsKey("duration"))
+            if (params["upload"]["duration"].is<String>())
                 LoggerConfig.SetConfigString(Config::CONFIG_UPLOAD_DURATION_S, params["upload"]["duration"]);
         }
     } else {

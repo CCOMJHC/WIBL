@@ -3,7 +3,7 @@
  *
  * The logger needs to generate status information to report to the user, and for
  * uploads when enabled.  The free functions here manage this process, and the
- * construction of DynamicJsonDocuments (without the memory hassles).
+ * construction of JsonDocuments (without the memory hassles).
  *
  * Copyright (c) 2024, University of New Hampshire, Center for Coastal and Ocean Mapping.
  *
@@ -31,13 +31,13 @@ namespace logger {
 namespace status {
 
 /// @brief Generate a JSON list of the set of files (and their metrics) currently on the logger
-DynamicJsonDocument GenerateFilelist(logger::Manager *m);
+JsonDocument GenerateFilelist(logger::Manager *m);
 
 /// @brief Generate a JSON document representing the current status of the logger
-DynamicJsonDocument CurrentStatus(logger::Manager *m);
+JsonDocument CurrentStatus(logger::Manager *m);
 
 /// @brief Generate a correctly-sized JSON document from a minified string
-DynamicJsonDocument GenerateJSON(String const& s);
+JsonDocument GenerateJSON(String const& s);
 
 }
 }

@@ -240,18 +240,18 @@ Serialiser::Serialiser(File& file)
     String name, identifier;
     logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_SHIPNAME_S, name);
     logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_MODULEID_S, identifier);
-    meta += name.length();
+    meta += static_cast<uint32_t>(name.length());
     meta += name.c_str();
-    meta += identifier.length();
+    meta += static_cast<uint32_t>(identifier.length());
     meta += identifier.c_str();
 
     rawProcess(logger::Manager::PacketIDs::Pkt_Metadata, meta);
 
-    DynamicJsonDocument json_setup(logger::ConfigJSON::ExtractConfig(true));
+    JsonDocument json_setup(logger::ConfigJSON::ExtractConfig(true));
     String json_str;
     serializeJson(json_setup, json_str);
     Serialisable setup(json_str.length() + sizeof(size_t));
-    setup += json_str.length();
+    setup += static_cast<uint32_t>(json_str.length());
     setup += json_str.c_str();
 
     rawProcess(logger::Manager::PacketIDs::Pkt_Setup, setup);

@@ -26,7 +26,6 @@
 
 #include <set>
 #include "NVMFile.h"
-#include "JSONUtilities.h"
 #include "LittleFS.h"
 #include "LogManager.h"
 #include "serialisation.h"
@@ -90,15 +89,15 @@ NVMFile::~NVMFile(void)
 }
 
 /// Start a modification to the contents of the object.  This translates the contents of the
-/// object into a DynamicJsonDocument (i.e., storage on the heap), with enough capacity to allow
+/// object into a JsonDocument (i.e., storage on the heap), with enough capacity to allow
 /// for the object to be doubled in size.  This should allow most modifications to be made without
 /// running out of space, but if that's a concern, the user has to check on this with the usual
-/// ArduinoJson methods: the DynamicJsonDocument isn't extensible.  Note that the user owns the
+/// ArduinoJson methods: the JsonDocument isn't extensible.  Note that the user owns the
 /// returned document; this class keeps no record.
 ///
-/// @return A DynamicJsonDocument with the contents of the object initialised.
+/// @return A JsonDocument with the contents of the object initialised.
 
-DynamicJsonDocument NVMFile::BeginTransaction(void)
+JsonDocument NVMFile::BeginTransaction(void)
 {
     return logger::status::GenerateJSON(m_contents);
 }
@@ -111,7 +110,7 @@ DynamicJsonDocument NVMFile::BeginTransaction(void)
 /// @param source Document to parse into the object
 /// @return Number of bytes written into the object (i.e., how many bytes were converted)
 
-size_t NVMFile::EndTransaction(DynamicJsonDocument& source)
+size_t NVMFile::EndTransaction(JsonDocument& source)
 {
     m_contents.clear();
     m_changed = true;
@@ -135,7 +134,7 @@ String NVMFile::JSONRepresentation(bool indented) const
     //   m_contents.c_str(), m_backingStore.c_str());
     if (indented) {
         // Since the contents string is minified, we need to deserialise, and then re-serialise ...
-        DynamicJsonDocument doc(logger::status::GenerateJSON(m_contents));
+        JsonDocument doc(logger::status::GenerateJSON(m_contents));
         serializeJsonPretty(doc, rtn);
     } else {
         rtn = m_contents;
@@ -149,7 +148,7 @@ String NVMFile::JSONRepresentation(bool indented) const
 ///
 /// @param dest Document into which to generate contents
 
-DynamicJsonDocument NVMFile::GetContents(void) const
+JsonDocument NVMFile::GetContents(void) const
 {
     return logger::status::GenerateJSON(m_contents);
 }
@@ -229,7 +228,7 @@ void MetadataStore::SerialiseMetadata(Serialiser *s)
     String meta = JSONRepresentation();
     Serialisable packet(meta.length() + 4);
 
-    packet += meta.length();
+    packet += static_cast<uint32_t>(meta.length());
     packet += meta.c_str();
     s->Process(logger::Manager::PacketIDs::Pkt_JSON, packet);
 }
@@ -258,8 +257,8 @@ ScalesStore::ScalesStore(void)
 
 void ScalesStore::AddScale(String const& group, String const& name, double value)
 {
-    DynamicJsonDocument doc(BeginTransaction());
-    if (doc.containsKey("error")) {
+    JsonDocument doc(BeginTransaction());
+    if (doc["error"].is<JsonObject>()) {
         // The internal JSON didn't convert
         Serial.printf("ERR: scales update failed (%s/%s)\n",
             doc["error"]["message"].as<const char *>(), doc["error"]["detail"].as<const char*>());
@@ -271,8 +270,8 @@ void ScalesStore::AddScale(String const& group, String const& name, double value
 
 void ScalesStore::AddScales(String const& group, const char *names[], double *values, int count)
 {
-    DynamicJsonDocument doc(BeginTransaction());
-    if (doc.containsKey("error")) {
+    JsonDocument doc(BeginTransaction());
+    if (doc["error"].is<JsonObject>()) {
         // The internal JSON didn't convert
         Serial.printf("ERR: scales update failed (%s/%s)\n",
             doc["error"]["message"].as<const char *>(), doc["error"]["detail"].as<const char*>());
@@ -304,7 +303,7 @@ void ScalesStore::SerialiseScales(Serialiser *s)
     String scales = JSONRepresentation();
     Serialisable packet(scales.length() + 4);
 
-    packet += scales.length();
+    packet += static_cast<uint32_t>(scales.length());
     packet += scales.c_str();
     s->Process(logger::Manager::PacketIDs::Pkt_SensorScales, packet);
 }
@@ -318,7 +317,7 @@ AlgoRequestStore::AlgoRequestStore(void)
 {
     if (Empty()) {
         // First time opening the file from the NVM store
-        StaticJsonDocument<256> doc;
+        JsonDocument doc;
         doc["count"] = 0;
         Set(doc);
     }
@@ -336,21 +335,17 @@ AlgoRequestStore::AlgoRequestStore(void)
 
 void AlgoRequestStore::AddAlgorithm(String const& alg_name, String const& alg_params)
 {
-    DynamicJsonDocument doc(BeginTransaction());
-    if (doc.containsKey("error")) {
+    JsonDocument doc(BeginTransaction());
+    if (doc["error"].is<JsonObject>()) {
         // The internal JSON didn't convert
         Serial.printf("ERR: algorithm update failed (%s/%s)\n",
             doc["error"]["message"].as<const char *>(), doc["error"]["detail"].as<const char*>());
         return;
     }
     int count = doc["count"];
-    StaticJsonDocument<256> entry;
+    JsonDocument entry;
     entry["name"] = alg_name;
     entry["parameters"] = alg_params;
-    if ((doc.memoryUsage() + entry.capacity()) > 0.95*doc.capacity()) {
-        // The document needs to be bigger to handle the new entry
-        GrowJsonDocumentBy(doc, entry.capacity());
-    }
     doc["algorithm"].add(entry.as<JsonObject>());
     doc["count"] = count + 1;
     EndTransaction(doc);
@@ -364,7 +359,7 @@ void AlgoRequestStore::AddAlgorithm(String const& alg_name, String const& alg_pa
 
 void AlgoRequestStore::ClearAlgorithmList(void)
 {
-    StaticJsonDocument<128> doc;
+    JsonDocument doc;
     doc["count"] = 0;
     Set(doc);
 }
@@ -376,16 +371,16 @@ void AlgoRequestStore::ClearAlgorithmList(void)
 
 void AlgoRequestStore::SerialiseAlgorithms(Serialiser *s)
 {
-    DynamicJsonDocument doc(GetContents());
+    JsonDocument doc(GetContents());
 
     int alg_count = doc["count"];
     for (int n = 0; n < alg_count; ++n) {
         String algorithm = doc["algorithm"][n]["name"];
         String parameters = doc["algorithm"][n]["parameters"];
         Serialisable ser(algorithm.length() + parameters.length() + sizeof(unsigned int)*2);
-        ser += algorithm.length();
+        ser += static_cast<uint32_t>(algorithm.length());
         ser += algorithm.c_str();
-        ser += parameters.length();
+        ser += static_cast<uint32_t>(parameters.length());
         ser += parameters.c_str();
         s->Process(logger::Manager::PacketIDs::Pkt_Algorithms, ser); 
     }
@@ -394,9 +389,9 @@ void AlgoRequestStore::SerialiseAlgorithms(Serialiser *s)
 void AlgoRequestStore::SerialiseSingleAlgorithm(String const& algo, String const& params, Serialiser *s)
 {
     Serialisable ser(255);
-    ser += algo.length();
+    ser += static_cast<uint32_t>(algo.length());
     ser += algo.c_str();
-    ser += params.length();
+    ser += static_cast<uint32_t>(params.length());
     ser += params.c_str();
     s->Process(logger::Manager::PacketIDs::Pkt_Algorithms, ser);
 }
@@ -409,7 +404,7 @@ N0183IDStore::N0183IDStore(void)
 {
     if (Empty()) {
         // First load from NVM store
-        StaticJsonDocument<128> doc;
+        JsonDocument doc;
         doc["count"] = 0;
         Set(doc);
     }
@@ -425,8 +420,8 @@ N0183IDStore::N0183IDStore(void)
 
 bool N0183IDStore::AddIDs(String const& msg_set)
 {
-    DynamicJsonDocument doc(BeginTransaction());
-    if (doc.containsKey("error")) {
+    JsonDocument doc(BeginTransaction());
+    if (doc["error"].is<JsonObject>()) {
         // The internal JSON didn't convert
         Serial.printf("ERR: NMEA0183 filter update failed (%s/%s)\n",
             doc["error"]["message"].as<const char *>(), doc["error"]["detail"].as<const char*>());
@@ -465,7 +460,7 @@ bool N0183IDStore::AddIDs(String const& msg_set)
 
 void N0183IDStore::ClearIDList(void)
 {
-    StaticJsonDocument<128> doc;
+    JsonDocument doc;
     doc["count"] = 0;
     Set(doc);
 }
@@ -477,13 +472,13 @@ void N0183IDStore::ClearIDList(void)
 
 void N0183IDStore::SerialiseIDs(Serialiser *s)
 {
-    DynamicJsonDocument doc(GetContents());
+    JsonDocument doc(GetContents());
 
     int count = doc["count"];
     for (int n = 0; n < count; ++n) {
         Serialisable ser;
         String IDname = doc["ids"][n];
-        ser += IDname.length();
+        ser += static_cast<uint32_t>(IDname.length());
         ser += IDname.c_str();
         s->Process(logger::Manager::PacketIDs::Pkt_NMEA0183ID, ser);
     }
@@ -497,7 +492,7 @@ void N0183IDStore::SerialiseIDs(Serialiser *s)
 
 void N0183IDStore::BuildSet(std::set<String>& s)
 {
-    DynamicJsonDocument doc(GetContents());
+    JsonDocument doc(GetContents());
 
     int count = doc["count"];
     s.clear();
@@ -512,7 +507,7 @@ N2000PGNStore::N2000PGNStore(void)
 {
     if (Empty()) {
         // This is the first time we've been booted, so there's no store; initialise
-        StaticJsonDocument<128> doc;
+        JsonDocument doc;
         doc["count"] = 0;
         doc["all"] = false;
         Set(doc);
@@ -561,7 +556,7 @@ bool N2000PGNStore::AddPGNs(String const& pgns)
 
     // Having added all of the PGNs (not necessarily all new) to the known set, we now
     // need to make a JSON representation for them.
-    DynamicJsonDocument doc(BeginTransaction());
+    JsonDocument doc(BeginTransaction());
     int count = 0;
     for (auto s = known_pgns.begin(); s != known_pgns.end(); ++s, ++count) {
         doc["ids"][count] = *s;
@@ -575,14 +570,14 @@ bool N2000PGNStore::AddPGNs(String const& pgns)
 
 void N2000PGNStore::WriteAll(bool write_all)
 {
-    DynamicJsonDocument doc(BeginTransaction());
+    JsonDocument doc(BeginTransaction());
     doc["all"] = write_all;
     EndTransaction(doc);
 }
 
 void N2000PGNStore::ClearPGNList(void)
 {
-    StaticJsonDocument<128> doc;
+    JsonDocument doc;
     doc["count"] = 0;
     doc["all"] = false;
     Set(doc);
@@ -594,7 +589,7 @@ void N2000PGNStore::SerialisePGNs(Serialiser *s)
 
     String rep(JSONRepresentation());
     Serialisable ser(rep.length() + sizeof(unsigned int));
-    ser += rep.length();
+    ser += static_cast<uint32_t>(rep.length());
     ser += rep.c_str();
     s->Process(logger::Manager::PacketIDs::Pkt_NMEA2000PGNS, ser);
 }
@@ -604,7 +599,7 @@ void N2000PGNStore::BuildSet(std::set<int>& s, bool& write_all)
     s.clear();
     if (Empty()) return;
 
-    DynamicJsonDocument doc(GetContents());
+    JsonDocument doc(GetContents());
     int count = doc["count"];
     for (int n = 0; n < count; ++n) {
         s.insert(doc["ids"][n].as<int>());

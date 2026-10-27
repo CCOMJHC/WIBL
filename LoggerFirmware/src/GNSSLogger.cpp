@@ -133,7 +133,7 @@ void rawx_rcv(UBX_RXM_RAWX_data_t *data)
 void tim_rcv(UBX_TIM_TP_data_t *data)
 {
     if (_generate_realtime_debug) {
-        Serial.printf("TP week %d/%d ms+%d, quantisation %d ps for timebase %s (UTC %savailable), RAIM %s, quantisation %svalid\n", data->week, data->towMS, data->towSubMS, data->qErr,
+        Serial.printf("TP week %d/%ld ms+%ld, quantisation %ld ps for timebase %s (UTC %savailable), RAIM %s, quantisation %svalid\n", data->week, data->towMS, data->towSubMS, data->qErr,
         data->flags.bits.timeBase == 0 ? "GNSS" : "UTC",
         data->flags.bits.utc == 0 ? "not " : "",
         data->flags.bits.raim == 0 ? "on" : "off",
@@ -177,7 +177,7 @@ void pvt_rcv(UBX_NAV_PVT_data_t * data)
     uint64_t elapsed = _log_output->GetElapsedTime();
     
     if (_generate_realtime_debug) {
-        Serial.printf("GNSS at %d-%d-%d/%d:%d:%d.%09d (valid date: %d time: %d) acc: %d ns\n",
+        Serial.printf("GNSS at %d-%d-%d/%d:%d:%d.%09ld (valid date: %d time: %d) acc: %ld ns\n",
             data->year, (int)data->month, (int)data->day, (int)data->hour, (int)data->min, (int)data->sec,
             data->nano, (int)data->valid.bits.validDate, (int)data->valid.bits.validTime,
             data->tAcc);
@@ -191,18 +191,14 @@ void pvt_rcv(UBX_NAV_PVT_data_t * data)
     if (data->valid.bits.validDate == 0 || data->valid.bits.validTime == 0) {
         // Only process the data if at least the time's marked as valid
         if (_generate_realtime_debug) {
-            Serial.printf("WARN: GNSS time not valid; ignoring all data.\n",
-                data->year, (int)data->month, (int)data->day,
-                (int)data->hour, (int)data->min, (int)data->sec, data->nano);
+            Serial.printf("WARN: GNSS time not valid; ignoring all data.\n");
         }
         return;
     }
     if (data->flags.bits.gnssFixOK == 0) {
         // Only generate the position packet if it's marked as valid
         if (_generate_realtime_debug) {
-            Serial.printf("WARN: GNSS position not valid; ignored.\n",
-                data->lon/1.0e7, data->lat/1.0e7, data->height/1000.0, data->pDOP/100.0,
-                (int)data->numSV, (int)data->fixType);
+            Serial.printf("WARN: GNSS position not valid; ignored.\n");
         }
         return;
     }
@@ -257,18 +253,18 @@ Logger::Logger(logger::Manager *output, GNSSTimeSource *timeref)
     m_sensor = new SFE_UBLOX_GNSS();
     if (!Wire.begin()) {
         Serial.println("ERROR: Failed to initialise Wire interface for GNSS module; logging disabled.");
-        delete m_sensor; m_sensor = nullptr; m_output = nullptr; _timeref = nullptr;
+        m_sensor = nullptr; m_output = nullptr; _timeref = nullptr;
         return;
     }
     if (!m_sensor->setPacketCfgPayloadSize(3000)) {
         Serial.println("ERROR: failed to set receive packet size for GNSS module; logging disabled.");
-        delete m_sensor; m_sensor = nullptr; m_output = nullptr; _timeref = nullptr;
+        m_sensor = nullptr; m_output = nullptr; _timeref = nullptr;
         return;
     }
     m_sensor->setFileBufferSize(ReceiverDataBufferSize);
     if (!m_sensor->begin()) {
         Serial.println("ERROR: failed to start GNSS module; logging disabled.");
-        delete m_sensor; m_sensor = nullptr; m_output = nullptr; _timeref = nullptr;
+        m_sensor = nullptr; m_output = nullptr; _timeref = nullptr;
         return;
     }
 
@@ -291,7 +287,6 @@ Logger::Logger(logger::Manager *output, GNSSTimeSource *timeref)
 
 Logger::~Logger(void)
 {
-    delete m_sensor;
     delete m_pktBuffer;
     _log_output = nullptr;
     _timeref = nullptr;

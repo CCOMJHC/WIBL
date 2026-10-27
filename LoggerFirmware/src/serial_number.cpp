@@ -80,6 +80,8 @@ uint32_t GetSerialNumber(void) {
 
 #elif defined(ARDUINO_ARCH_ESP32) || defined(ESP32)
 
+#include "esp_mac.h"
+
 /// Get a unique serial number from an ESP32 module using the eFuse MAC address.
 ///
 /// \return 32-bit base MAC address for the current ESP32 module

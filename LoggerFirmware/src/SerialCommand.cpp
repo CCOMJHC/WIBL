@@ -57,7 +57,7 @@ SerialCommand::SerialCommand(nmea::N2000::Logger *CANLogger, nmea::N0183::Logger
 {
     logger::HeapMonitor heap;
 
-    Serial.printf("DBG: Before SerialCommand setup, heap free = %d B\n", heap.CurrentSize());
+    Serial.printf("DBG: Before SerialCommand setup, heap free = %ld B\n", heap.CurrentSize());
 
     m_serialBuffer.ResetLength(1024);
 
@@ -65,13 +65,13 @@ SerialCommand::SerialCommand(nmea::N2000::Logger *CANLogger, nmea::N0183::Logger
     // whether it gets started when the system first somes up or not.
     m_wifi = WiFiAdapterFactory::Create();
 
-    Serial.printf("DBG: After WiFi interface create, heap free = %d B, delta = %d B\n",
+    Serial.printf("DBG: After WiFi interface create, heap free = %ld B, delta = %ld B\n",
         heap.CurrentSize(), heap.DeltaSinceLast());
     bool start_wifi;
     if (logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_WEBSERVER_B, start_wifi)
         && start_wifi) {
         if (m_wifi->Startup()) {
-            Serial.printf("DBG: After WiFi interface start, heap free = %d B, delta = %d B\n",
+            Serial.printf("DBG: After WiFi interface start, heap free = %ld B, delta = %ld B\n",
                 heap.CurrentSize(), heap.DeltaSinceLast());
 
             bool start_bridge;
@@ -79,7 +79,7 @@ SerialCommand::SerialCommand(nmea::N2000::Logger *CANLogger, nmea::N0183::Logger
             if (start_bridge) {
                 m_bridge = new nmea::N0183::PointBridge();
 
-                Serial.printf("DBG: After UDP bridge start, heap free = %d B, delta = %d B\n",
+                Serial.printf("DBG: After UDP bridge start, heap free = %ld B, delta = %ld B\n",
                     heap.CurrentSize(), heap.DeltaSinceLast());
             } else {
                 m_bridge = nullptr;
@@ -89,7 +89,7 @@ SerialCommand::SerialCommand(nmea::N2000::Logger *CANLogger, nmea::N0183::Logger
             logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_UPLOAD_B, start_autoupload);
             if (start_autoupload) {
                 m_uploadManager = new net::UploadManager(m_logManager);
-                Serial.printf("DBG: After UploadManager start, heap free = %d B, delta = %d B\n",
+                Serial.printf("DBG: After UploadManager start, heap free = %ld B, delta = %ld B\n",
                     heap.CurrentSize(), heap.DeltaSinceLast());
             } else {
                 m_uploadManager = nullptr;
@@ -119,7 +119,7 @@ SerialCommand::~SerialCommand()
 String SerialCommand::SoftwareVersion(void)
 {
     char buffer[32];
-    snprintf(buffer, 32, "%d.%d.%d", CommandMajorVersion, CommandMinorVersion, CommandPatchVersion);
+    snprintf(buffer, 32, "%ld.%ld.%ld", CommandMajorVersion, CommandMinorVersion, CommandPatchVersion);
     return String(buffer);
 }
 
@@ -479,20 +479,20 @@ void SerialCommand::ManageWireless(String const& command, CommandSource src)
     if (command == "on") {
         if (src == CommandSource::SerialPort) {
             logger::HeapMonitor heap;
-            Serial.printf("DBG: Before starting WiFi, heap free = %d B\n", heap.CurrentSize());
+            Serial.printf("DBG: Before starting WiFi, heap free = %ld B\n", heap.CurrentSize());
             if (m_wifi->Startup()) {
                 EmitMessage("WiFi started on ", src);
                 String ip_address;
                 logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_WIFIIP_S, ip_address);
                 EmitMessage(ip_address + "\n", src);
-                Serial.printf("DBG: After WiFi startup, heap fee = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+                Serial.printf("DBG: After WiFi startup, heap fee = %ld B, delta = %ld B\n", heap.CurrentSize(), heap.DeltaSinceLast());
                 
                 bool start_bridge;
                 logger::LoggerConfig.GetConfigBinary(logger::Config::ConfigParam::CONFIG_BRIDGE_B, start_bridge);
                 if (start_bridge) {
                     if (m_bridge == nullptr)
                         m_bridge = new nmea::N0183::PointBridge();
-                    Serial.printf("DBG: After UDP bridge start, heap free = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+                    Serial.printf("DBG: After UDP bridge start, heap free = %ld B, delta = %ld B\n", heap.CurrentSize(), heap.DeltaSinceLast());
                 } else {
                     m_bridge = nullptr;
                 }
@@ -508,15 +508,15 @@ void SerialCommand::ManageWireless(String const& command, CommandSource src)
     } else if (command == "off") {
         if (src == CommandSource::SerialPort) {
             logger::HeapMonitor heap;
-            Serial.printf("DBG: Before stopping WiFi, heap free = %d B\n", heap.CurrentSize());
+            Serial.printf("DBG: Before stopping WiFi, heap free = %ld B\n", heap.CurrentSize());
 
             m_wifi->Shutdown();
             Serial.println("WiFi stopped.");
-            Serial.printf("DBG: After WiFi stopped, heap free = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+            Serial.printf("DBG: After WiFi stopped, heap free = %ld B, delta = %ld B\n", heap.CurrentSize(), heap.DeltaSinceLast());
             if (m_bridge != nullptr) {
                 delete m_bridge;
                 m_bridge = nullptr;
-                Serial.printf("DBG: After UDP bridge stopped, heap free = %d B, delta = %d B\n", heap.CurrentSize(), heap.DeltaSinceLast());
+                Serial.printf("DBG: After UDP bridge stopped, heap free = %ld B, delta = %ld B\n", heap.CurrentSize(), heap.DeltaSinceLast());
             }
         } else {
             EmitMessage("ERR: manual wireless shutdown can only be done on serial line.", src);
@@ -577,7 +577,7 @@ void SerialCommand::TransferLogFile(String const& filenum, CommandSource src)
             m_logManager->TransferLogFile(file_number, filehash, Serial);
             break;
         case CommandSource::WirelessPort:
-            Serial.printf("DBG: Transferring \"%s\", total %u bytes.\n", filename.c_str(), filesize);
+            Serial.printf("DBG: Transferring \"%s\", total %lu bytes.\n", filename.c_str(), filesize);
             tx_start = millis();
             m_wifi->TransferFile(filename, filesize, filehash);
             tx_end = millis();
@@ -784,7 +784,7 @@ void SerialCommand::ConfigurePassthrough(String const& params, CommandSource src
 
 void SerialCommand::ReportConfigurationJSON(CommandSource src, bool secure)
 {
-    EmitJSON(logger::ConfigJSON::ExtractConfig(), src);
+    EmitJSON(logger::ConfigJSON::ExtractConfig(secure), src);
 }
 
 /// Provide summary report of all of the configuration parameters being managed by the Confgiuration
@@ -1392,7 +1392,7 @@ void SerialCommand::SnapshotResource(String const& resource, CommandSource src)
     bool rc;
 
     if (resource == "config") {
-        DynamicJsonDocument json(logger::ConfigJSON::ExtractConfig());
+        JsonDocument json(logger::ConfigJSON::ExtractConfig());
         String contents;
         serializeJson(json, contents);
         rc = m_logManager->WriteSnapshot("config.jsn", contents, url);
@@ -1403,20 +1403,20 @@ void SerialCommand::SnapshotResource(String const& resource, CommandSource src)
             defaults = String("{}");
         rc = m_logManager->WriteSnapshot("defaults.jsn", defaults, url);
     } else if (resource == "catalog") {
-        DynamicJsonDocument files(logger::status::GenerateFilelist(m_logManager));
+        JsonDocument files(logger::status::GenerateFilelist(m_logManager));
         String contents;
         serializeJson(files, contents);
         rc = m_logManager->WriteSnapshot("catalog.jsn", contents, url);
     } else if (resource == "archive") {
         String contents;
-        DynamicJsonDocument json(logger::ConfigJSON::ExtractConfig());
+        JsonDocument json(logger::ConfigJSON::ExtractConfig());
         serializeJson(json, contents);
         m_logManager->WriteSnapshot("config.jsn", contents, url);
         logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_DEFAULTS_S, contents);
         if (contents.isEmpty())
             contents = String("{}");
         m_logManager->WriteSnapshot("defaults.jsn", contents, url);
-        json = DynamicJsonDocument(logger::status::GenerateFilelist(m_logManager));
+        json = JsonDocument(logger::status::GenerateFilelist(m_logManager));
         contents.clear(); // Because the JSON serialisation appends ...
         serializeJson(json, contents);
         m_logManager->WriteSnapshot("catalog.jsn", contents, url);
@@ -1424,9 +1424,10 @@ void SerialCommand::SnapshotResource(String const& resource, CommandSource src)
         rc = true;
     } else {
         EmitMessage("ERR: unknown snapshot resource requested.\n", src);
+        return;
     }
 
-    DynamicJsonDocument responseJson(256);
+    JsonDocument responseJson;
     if (rc)
         responseJson["url"] = url;
     else
@@ -1531,10 +1532,10 @@ void SerialCommand::ReportCurrentTime(CommandSource src)
     elapsed_count = m_logManager->GetElapsedTime();
     if (m_logManager->TranslateElapsed(elapsed_count, now, source)) {
         char timestamp[128], datetime[32], elapsed[24];
-        snprintf(timestamp, 128, "%d.%06d", now.second, now.microsecond);
+        snprintf(timestamp, 128, "%lld.%06ld", now.second, now.microsecond);
         auto pos = strftime(datetime, 32, "%Y-%m-%d/%H:%M:%S.", std::gmtime(&now.second));
-        snprintf(datetime + pos, 32 - pos, "%06d\n", now.microsecond);
-        snprintf(elapsed, 32, "%d", elapsed_count);
+        snprintf(datetime + pos, 32 - pos, "%06ld\n", now.microsecond);
+        snprintf(elapsed, 32, "%lld", elapsed_count);
         String elapsed_msg = String("Elapsed time count ") + elapsed + String(" pseudo-us\n");
         String timestamp_msg = String("Unix timestamp ") + timestamp + String(" s (") + datetime + String(") UTC\n");
         String source_msg;
@@ -1888,7 +1889,7 @@ bool SerialCommand::EmitJSON(String const& source, CommandSource chan)
 /// @param json   JSON document
 /// @param src    Input channel on which the command arrived
 
-void SerialCommand::EmitJSON(DynamicJsonDocument && json, CommandSource src)
+void SerialCommand::EmitJSON(JsonDocument && json, CommandSource src)
 {
     if (src == CommandSource::SerialPort) {
         serializeJsonPretty(json, Serial);

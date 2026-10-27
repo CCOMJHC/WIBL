@@ -135,7 +135,7 @@ extern Config LoggerConfig; ///< Declaration of a global pre-allocated instance 
 class ConfigJSON {
 public:
     /// @brief Generate a serialised JSON dictionary as a String for all of the configuration parameters
-    static DynamicJsonDocument ExtractConfig(bool secure = false);
+    static JsonDocument ExtractConfig(bool secure = false);
     /// @brief Configure the logger from a serialsed JSON dictionary of the configuration parameters
     static bool SetConfig(String const& json_string);
     /// \brief Establish a "known stable" configuration if the current configuration is not valid

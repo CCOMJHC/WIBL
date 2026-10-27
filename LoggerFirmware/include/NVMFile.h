@@ -74,13 +74,13 @@ public:
     String JSONRepresentation(bool indented = false) const;
 
     /// @brief Generate a JsonDocument representation of the underlying object
-    DynamicJsonDocument GetContents(void) const;
+    JsonDocument GetContents(void) const;
 
 protected:
     /// @brief Start a transaction to update the contents of the object
-    DynamicJsonDocument BeginTransaction(void);
+    JsonDocument BeginTransaction(void);
     /// @brief End a transaction that updated the contents of the object
-    size_t EndTransaction(DynamicJsonDocument& dest);
+    size_t EndTransaction(JsonDocument& dest);
     /// @brief Indicate that the contents of the object have been changed
     void MarkChanged(void) { m_changed = true; }
     /// @brief Replace the contents of the objects with a JSON document

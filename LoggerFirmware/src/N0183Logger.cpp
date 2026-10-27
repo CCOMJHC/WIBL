@@ -356,7 +356,7 @@ void MessageAssembler::ErrorCount::ReportCounts(logger::Manager *manager, int ch
 
     char *buf = new char[512];
 
-    snprintf(buf, 512, "ERR: NMEA0183 ch %d (%d ms/report):", channel, report_interval);
+    snprintf(buf, 512, "ERR: NMEA0183 ch %d (%ld ms/report):", channel, report_interval);
     manager->Syslog(buf);
     snprintf(buf, 512, "  %d non-start characters while looking for start.", m_counts[0]);
     manager->Syslog(buf);
@@ -394,7 +394,6 @@ MessageAssembler::~MessageAssembler(void)
 void MessageAssembler::AddCharacter(const char in)
 {
     String message;
-    bool report = false;
     
     switch(m_state) {
         case STATE_SEARCHING:
@@ -747,7 +746,7 @@ void Logger::SetVerbose(bool verbose)
 void Logger::SetRxInvert(uint32_t port, bool invert)
 {
     if (port < 1 || port > ChannelCount) {
-        Serial.printf("ERR: can't set rx-invert for port %d\n", port);
+        Serial.printf("ERR: can't set rx-invert for port %ld\n", port);
     } else {
         if (port == 1)
             Serial1.setRxInvert(invert);

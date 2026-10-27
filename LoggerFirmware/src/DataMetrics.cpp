@@ -103,11 +103,11 @@ DataObs::DataObs(uint64_t elapsed, uint16_t date, double time)
     m_display = String(asctime(gmtime(&timestamp)));
 }
 
-DynamicJsonDocument DataObs::Render(uint64_t const elapsed) const
+JsonDocument DataObs::Render(uint64_t const elapsed) const
 {
     // Note the fixed size of the document here.  This should be sufficient for one
     // observation, but you should re-assess if you add a lot more into the payload.
-    DynamicJsonDocument summary(MaximumDataObsRender);
+    JsonDocument summary;
     uint64_t time_difference = elapsed - m_receivedTime;
     summary["name"] = m_name;
     summary["tag"] = m_tag;
@@ -150,7 +150,7 @@ void DataMetrics::RegisterObs(DataObs const& obs)
     }
 }
 
-DynamicJsonDocument DataMetrics::LastKnownGood(uint64_t const now) const
+JsonDocument DataMetrics::LastKnownGood(uint64_t const now) const
 {
     // The rendering of each DataObs is maximum 256 bytes, so if we compute
     // the number of valid outputs, then add a bit for the fixed overhead,
@@ -161,8 +161,7 @@ DynamicJsonDocument DataMetrics::LastKnownGood(uint64_t const now) const
         if (m_nmea0183[n].Valid()) ++n_0183_valid;
         if (m_nmea2000[n].Valid()) ++n_2000_valid;
     }
-    int capacity = m_nmea0183[0].Size()*(n_0183_valid + n_2000_valid) + MaximumRenderOverhead;
-    DynamicJsonDocument summary(capacity);
+    JsonDocument summary;
 
     for (int n = 0, op = 0; n < DATA_UNKNOWN; ++n) {
         if (m_nmea0183[n].Valid()) {

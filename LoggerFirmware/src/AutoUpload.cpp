@@ -77,7 +77,7 @@ void UploadManager::UploadCycle(void)
 
     if (!ReportStatus()) {
         // Failed to report status ... means the server's not there, or we're not connected
-        Serial.printf("DBG: UploadManager::UploadCycle failed to report status at %d ms elapsed.\n",
+        Serial.printf("DBG: UploadManager::UploadCycle failed to report status at %ld ms elapsed.\n",
             m_lastUploadCycle);
         return;
     }
@@ -148,7 +148,7 @@ String AuthHeader(void)
 
 bool UploadManager::ReportStatus(void)
 {
-    DynamicJsonDocument status(logger::status::CurrentStatus(m_logManager));
+    JsonDocument status(logger::status::CurrentStatus(m_logManager));
     String url = m_serverURL + "checkin";
     String status_json;
     serializeJson(status, status_json);
@@ -220,9 +220,9 @@ bool UploadManager::TransferFile(fs::FS& controller, uint32_t file_id)
             // If we get a 200OK then the response body should be a JSON document with information
             // about the upload (successful or unsuccessful).
             String payload = client.getString();
-            DynamicJsonDocument response(1024);
+            JsonDocument response;
             deserializeJson(response, payload);
-            if (response.containsKey("status")) {
+            if (response["status"].is<const char *>()) {
                 if (response["status"] == "success") {
                     // Since the file is now transferred, delete from the logger
                     // (but note that we don't do that here ...)

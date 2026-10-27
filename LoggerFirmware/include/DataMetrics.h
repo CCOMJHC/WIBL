@@ -58,7 +58,7 @@ public:
     DataObs(uint64_t elapsed, double depth, double offset);
     DataObs(uint64_t elapsed, uint16_t date, double time);
 
-    DynamicJsonDocument Render(uint64_t const elapsed) const;
+    JsonDocument Render(uint64_t const elapsed) const;
     DataIf Interface(void) const { return m_interface; }
     DataObsType ObsType(void) const { return m_obsType; }
     bool Valid(void) const;
@@ -81,7 +81,7 @@ public:
     ~DataMetrics(void);
 
     void RegisterObs(DataObs const& obs);
-    DynamicJsonDocument LastKnownGood(uint64_t const now) const;
+    JsonDocument LastKnownGood(uint64_t const now) const;
     void SupplyVoltage(double voltage) { m_supplyVoltage = voltage; }
     double SupplyVoltage(void) const { return m_supplyVoltage; }
 

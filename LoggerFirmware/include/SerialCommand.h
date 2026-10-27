@@ -204,7 +204,7 @@ private:
     /// \brief Send stringified JSON, with error reporting
     bool EmitJSON(String const& source, CommandSource src);
     /// \brief Send a JSON document, with error reporting
-    void EmitJSON(DynamicJsonDocument && json, CommandSource src);
+    void EmitJSON(JsonDocument && json, CommandSource src);
     /// @brief Display a NMEA0183 filter ID list
     void DisplayNMEAFilter(logger::N0183IDStore const& filter, CommandSource src);
     /// @brief Display an Algorithm Store list

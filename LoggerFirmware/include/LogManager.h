@@ -84,7 +84,7 @@ public:
     public:
         MD5Hash(void);
         String Value(void) const;
-        uint8_t const * const Hash(void) const;
+        const uint8_t* Hash(void) const;
         bool Empty(void) const;
         void Set(uint8_t hash[16]);
         static uint32_t ObjectSize(void) { return sizeof(uint8_t)*16; }

@@ -92,7 +92,7 @@ void HeapMonitor::FlashMemoryReport(Stream& s)
     uint32_t flash_size = ESP.getFlashChipSize();
     uint32_t flash_speed = ESP.getFlashChipSpeed();
     FlashMode_t flash_mode = ESP.getFlashChipMode();
-    s.printf("Flash size is %d B, at %d B/s (mode: %d)",
+    s.printf("Flash size is %ld B, at %ld B/s (mode: %ld)",
         flash_size, flash_speed, static_cast<uint32_t>(flash_mode));
 }
 

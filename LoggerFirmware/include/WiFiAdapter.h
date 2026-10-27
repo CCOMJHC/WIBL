@@ -58,7 +58,7 @@ public:
 
     /// \brief Replace the entire message to be returned to the client for the current transaction
     void SetMessage(JsonDocument const& message) { setMessage(message); }
-    void SetMessage(DynamicJsonDocument && message) { setMessage(std::move(message)); }
+    void SetMessage(JsonDocument && message) { setMessage(std::move(message)); }
 
     enum HTTPReturnCodes {
         OK              = 200,  // The request succeeded
@@ -105,7 +105,7 @@ private:
 
     /// \brief Sub-class implementation of code to replace message for transmission
     virtual void setMessage(JsonDocument const& message) = 0;
-    virtual void setMessage(DynamicJsonDocument && message) = 0;
+    virtual void setMessage(JsonDocument && message) = 0;
 
     /// \brief Sub-class implementation of code to set the status code for the transaction
     virtual void setStatusCode(HTTPReturnCodes status_code) = 0;

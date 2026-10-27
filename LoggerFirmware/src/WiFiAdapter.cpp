@@ -35,7 +35,6 @@
 #include <LittleFS.h>
 #include <ESP32-targz.h>
 
-#include "JSONUtilities.h"
 #include "LogManager.h"
 #include "WiFiAdapter.h"
 #include "Configuration.h"
@@ -382,7 +381,7 @@ public:
     /// Default constructor for the ESP32 adapter.  This brings up the parameter store to use
     /// for WiFi parameters, but takes no other action until the user explicitly starts the AccessPoint.
     ESP32WiFiAdapter(void)
-    : m_storage(nullptr), m_server(nullptr), m_messages(defaultMessageBufferSize), m_statusCode(HTTPReturnCodes::OK)
+    : m_storage(nullptr), m_server(nullptr), m_statusCode(HTTPReturnCodes::OK)
     {
         if ((m_storage = mem::MemControllerFactory::Create()) == nullptr) {
             return;
@@ -402,7 +401,7 @@ private:
     mem::MemController  *m_storage;     ///< Pointer to the storage object to use
     ExtendedWebServer   *m_server;      ///< Pointer to the server object, if started.
     std::queue<String>  m_commands;     ///< Queue to handle commands sent by the user
-    DynamicJsonDocument m_messages;     ///< Accumulating message content to be send to the client
+    JsonDocument        m_messages;     ///< Accumulating message content to be send to the client
     HTTPReturnCodes     m_statusCode;   ///< Status code to return to the user with the transaction response
     ConnectionStateMachine m_state;     ///< Manager for connection state
 
@@ -532,14 +531,8 @@ private:
 
     void accumulateMessage(String const& message)
     {
-        bool needToGrowBuffer = (m_messages.memoryUsage() + message.length()) > 0.95 * m_messages.capacity();
-        if (needToGrowBuffer && !GrowJsonDocument(m_messages)) {
-            Serial.printf("ERR: failed to grow buffer beyond %d bytes; messages will be lost.\n", m_messages.capacity());
-            return;
-        }
         if (!m_messages["messages"].add(message)) {
-            Serial.printf("ERR: failed to add message to accumulation buffer (capacity %d bytes); messages may be truncated.\n",
-                m_messages.capacity());
+            Serial.printf("ERR: failed to add message to accumulation buffer due to overflow; messages may be truncated.\n");
         }
     }
 
@@ -551,7 +544,7 @@ private:
     {
         m_messages = message;
     }
-    void setMessage(DynamicJsonDocument && message)
+    void setMessage(JsonDocument && message)
     {
         m_messages = std::move(message);
 
@@ -584,13 +577,7 @@ private:
         //Serial.printf("DBG: WiFi transmitting response |%s|\n", message.c_str());
         m_server->send(m_statusCode, "application/json", message);
 
-        // If the JSON document got too large, replace it with a smaller one to avoid needlessly
-        // holding on to too much memory. Otherwise, just clear the document and reuse it.
-        if (defaultMessageBufferSize < m_messages.capacity()) {
-            m_messages = DynamicJsonDocument(defaultMessageBufferSize);
-        } else {
-            m_messages.clear();
-        }
+        m_messages.clear();
 
         m_statusCode = HTTPReturnCodes::OK; // "OK" by default
         return true;

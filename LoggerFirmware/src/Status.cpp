@@ -3,7 +3,7 @@
  *
  * The logger needs to generate status information to report to the user, and for
  * uploads when enabled.  The free functions here manage this process, and the
- * construction of DynamicJsonDocuments (without the memory hassles).
+ * construction of JsonDocuments (without the memory hassles).
  *
  * Copyright (c) 2024, University of New Hampshire, Center for Coastal and Ocean Mapping.
  *
@@ -25,7 +25,6 @@
  */
 
 #include "ArduinoJson.h"
-#include "JSONUtilities.h"
 #include "LogManager.h"
 #include "Configuration.h"
 #include "N0183Logger.h"
@@ -44,12 +43,12 @@ namespace status {
 ///
 /// @param filelist JsonDocument with the file list, ready to insert
 
-DynamicJsonDocument GenerateFilelist(logger::Manager *m)
+JsonDocument GenerateFilelist(logger::Manager *m)
 {
     auto fileNumbers = m->GetLogFileNumbers();
 
     // Start small. We really don't want this first allocation to fail.
-    DynamicJsonDocument doc(512);
+    JsonDocument doc;
 
     // Assume the list will be truncated, because we might not have enough memory
     // to set it to true later when allocation fails.
@@ -62,7 +61,7 @@ DynamicJsonDocument GenerateFilelist(logger::Manager *m)
         logger::Manager::MD5Hash filehash;
         uint16_t uploadCount;
         m->EnumerateLogFile(fileNumber, filename, filesize, filehash, uploadCount);
-        StaticJsonDocument<256> entry;
+        JsonDocument entry;
         entry["id"] = fileNumber;
         entry["len"] = filesize;
         if (!filehash.Empty())
@@ -77,30 +76,17 @@ DynamicJsonDocument GenerateFilelist(logger::Manager *m)
             // element before continuing -- luckily, it should be at the index in
             // the array of the file number.
             doc["files"]["detail"].remove(n);
-            
-            if(!GrowJsonDocument(doc))
-            {
-                // Allocation failed. Not really anything we can do other than
-                // return what we have.
-                return doc;
-            }
+            return doc;
         }
     }
     doc["files"]["isTruncated"] = false;
     return doc;
 }
 
-DynamicJsonDocument CurrentStatus(logger::Manager *m)
+JsonDocument CurrentStatus(logger::Manager *m)
 {
-    DynamicJsonDocument lkg(logger::Metrics.LastKnownGood(m->GetElapsedTime()));
-
-    // The total capacity should be, approximately, the sum of the biggest components
-    // (above), plus some limited information on versions, elapsed time, and boot
-    // status.  We're assuming here that 1024B is enough for the extras ... that
-    // might not always be the case.
-    int capacity = lkg.capacity() + 1024;
-
-    DynamicJsonDocument status(capacity);
+    JsonDocument lkg(logger::Metrics.LastKnownGood(m->GetElapsedTime()));
+    JsonDocument status;
 
     status["version"]["firmware"] = logger::FirmwareVersion();
     status["version"]["commandproc"] = SerialCommand::SoftwareVersion();
@@ -124,32 +110,31 @@ DynamicJsonDocument CurrentStatus(logger::Manager *m)
 
     uint64_t totalFileSize = 0;
     auto totalFileCount = m->CountLogFiles(&totalFileSize);
-    auto files = status.createNestedObject("files");
+    auto files = status["files"].to<JsonObject>();
     files["totalFileCount"] = totalFileCount;
     files["totalFileSize"] = totalFileSize;
 
     return status;
 }
 
-DynamicJsonDocument GenerateJSON(String const& source)
+JsonDocument GenerateJSON(String const& source)
 {
-    size_t capacity = std::max<size_t>(source.length()*2, 1024);
     bool done = false;
     DeserializationError err;
-    while (true) {
-        DynamicJsonDocument doc(capacity);
+    while (!done) {
+        JsonDocument doc;
         if ((err = deserializeJson(doc, source)) == DeserializationError::NoMemory) {
-            capacity *= 2;
+            done = false;
         } else if (err == DeserializationError::Ok) {
             return doc;
         } else {
             done = true;
         }
     }
-    // If we get to here, then something went wrong on the deserialisation that wasn't
-    // not having enough memory, so we need to report that to the end user.  This really
-    // shouldn't happen, because the internal JSON should always be well formed, but ...
-    DynamicJsonDocument doc(256 + strlen(err.c_str()));
+    // If we get to here, then something went wrong on the deserialisation so we need
+    // to report that to the end user.  This really shouldn't happen, because the
+    // internal JSON should always be well formed, but ...
+    JsonDocument doc;
     doc["error"]["message"] = String("failed to render internal string to JSON for transaction");
     doc["error"]["detail"] = err.c_str();
     return doc;
