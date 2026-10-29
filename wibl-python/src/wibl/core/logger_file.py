@@ -228,7 +228,11 @@ class SystemTime(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, data_source) = struct.unpack('<HdIBB', buffer)
+        if len(buffer) == 15:
+            (date, timestamp, elapsed_time, data_source) = struct.unpack('<HdIB', buffer)
+            talker_id = 0
+        else:
+            (date, timestamp, elapsed_time, talker_id, data_source) = struct.unpack('<HdIBB', buffer)
         ## Source of the timestamp (see documentation for decoding, but at least GNSS)
         self.data_source = data_source
         self.talker_id = talker_id
@@ -245,7 +249,7 @@ class SystemTime(DataPacket):
     def data_constructor(self, **kwargs) -> None:
         try:
             self.data_source = kwargs['data_source']
-            self.talker_id = kwargs['talker_id']
+            self.talker_id = kwargs.get('talker_id', 0)
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
@@ -303,7 +307,11 @@ class Attitude(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes byffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, yaw, pitch, roll) = struct.unpack("<HdIBddd", buffer)
+        if len(buffer) == 38:
+            (date, timestamp, elapsed_time, yaw, pitch, roll) = struct.unpack("<HdIddd", buffer)
+            talker_id = 0
+        else:
+            (date, timestamp, elapsed_time, talker_id, yaw, pitch, roll) = struct.unpack("<HdIBddd", buffer)
         self.talker_id = talker_id
         ## Yaw angle of the ship, radians (+ve clockwise from north)
         self.yaw = yaw
@@ -330,7 +338,7 @@ class Attitude(DataPacket):
     #   'roll':             Roll angle (radians, +ve port up)
     def data_constructor(self, **kwargs) -> None:
         try:
-            self.talker_id = kwargs['talker_id']
+            self.talker_id = kwargs.get('talker_id', 0)
             self.yaw = kwargs['yaw']
             self.pitch = kwargs['pitch']
             self.roll = kwargs['roll']
@@ -387,7 +395,11 @@ class Depth(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, depth, offset, range) = struct.unpack('<HdIBddd', buffer)
+        if len(buffer) == 38:
+            (date, timestamp, elapsed_time, depth, offset, range) = struct.unpack('<HdIddd', buffer)
+            talker_id = 0
+        else:
+            (date, timestamp, elapsed_time, talker_id, depth, offset, range) = struct.unpack('<HdIBddd', buffer)
         self.talker_id = talker_id
         ## Observed depth below transducer, metres
         self.depth = depth
@@ -419,7 +431,7 @@ class Depth(DataPacket):
     #   'range':            Maximum range of the echosounder (m)
     def data_constructor(self, **kwargs) -> None:
         try:
-            self.talker_id = kwargs['talker_id']
+            self.talker_id = kwargs.get('talker_id', 0)
             self.depth = kwargs['depth']
             self.offset = kwargs['offset']
             self.range = kwargs['range']
@@ -473,7 +485,11 @@ class COG(DataPacket):
     # \param self   Pointer to the objet
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, courseOverGround, speedOverGround) = struct.unpack('<HdIBdd', buffer)
+        if len(buffer) == 30:
+            (date, timestamp, elapsed_time, courseOverGround, speedOverGround) = struct.unpack('<HdIdd', buffer)
+            talker_id = 0
+        else:
+            (date, timestamp, elapsed_time, talker_id, courseOverGround, speedOverGround) = struct.unpack('<HdIBdd', buffer)
         self.talker_id = talker_id
         ## Course over ground (radians)
         self.courseOverGround = courseOverGround
@@ -499,7 +515,7 @@ class COG(DataPacket):
     #   'sog':              Speed over ground (m/s)
     def data_constructor(self, **kwargs) -> None:
         try:
-            self.talker_id = kwargs['talker_id']
+            self.talker_id = kwargs.get('talker_id', 0)
             self.courseOverGround = kwargs['cog']
             self.speedOverGround = kwargs['sog']
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
@@ -557,9 +573,15 @@ class GNSS(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (sys_date, sys_timestamp, sys_elapsed, talker_id, date, timestamp, latitude, longitude, altitude,
-         receiverType, receiverMethod, numSVs, horizontalDOP, positionDOP, separation, numRefStations, refStationType,
-         refStationID, correctionAge) = struct.unpack('<HdIBHddddBBBdddBBHd', buffer)
+        if len(buffer) == 87:
+            (sys_date, sys_timestamp, sys_elapsed, date, timestamp, latitude, longitude, altitude,
+             receiverType, receiverMethod, numSVs, horizontalDOP, positionDOP, separation, numRefStations, refStationType,
+             refStationID, correctionAge) = struct.unpack('<HdIHddddBBBdddBBHd', buffer)
+            talker_id = 0
+        else:
+            (sys_date, sys_timestamp, sys_elapsed, talker_id, date, timestamp, latitude, longitude, altitude,
+             receiverType, receiverMethod, numSVs, horizontalDOP, positionDOP, separation, numRefStations, refStationType,
+             refStationID, correctionAge) = struct.unpack('<HdIBHddddBBBdddBBHd', buffer)
         self.talker_id = talker_id
         ## In-message date (days since epoch)
         self.msg_date = date
@@ -632,7 +654,7 @@ class GNSS(DataPacket):
     # which one you reported, or how you'd report more than one.
     def data_constructor(self, **kwargs) -> None:
         try:
-            self.talker_id = kwargs['talker_id']
+            self.talker_id = kwargs.get('talker_id', 0)
             self.msg_date = kwargs['msg_date']
             self.msg_timestamp = kwargs['msg_timestamp']
             self.latitude = kwargs['latitude']
@@ -711,8 +733,13 @@ class Environment(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, tempSource, temperature, humiditySource, humidity, pressure) = \
-            struct.unpack('<HdIBBdBdd', buffer)
+        if len(buffer) == 33:
+            (date, timestamp, elapsed_time, tempSource, temperature, humiditySource, humidity, pressure) = \
+                struct.unpack('<HdIBdBdd', buffer)
+            talker_id = 0
+        else:
+            (date, timestamp, elapsed_time, talker_id, tempSource, temperature, humiditySource, humidity, pressure) = \
+                struct.unpack('<HdIBBdBdd', buffer)
         self.talker_id = talker_id
         ## Source of temperature information (e.g., inside, outside)
         self.tempSource = tempSource
@@ -750,7 +777,7 @@ class Environment(DataPacket):
     #   'pressure':     Pressure (Pa)
     def data_constructor(self, **kwargs) -> None:
         try:
-            self.talker_id = kwargs['talker_id']
+            self.talker_id = kwargs.get('talker_id', 0)
             self.tempSource = kwargs['temp_source']
             self.temperature = kwargs['temp']
             self.humiditySource = kwargs['humid_source']
@@ -809,7 +836,11 @@ class Temperature(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes object from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, tempSource, temperature) = struct.unpack('<HdIBBd', buffer)
+        if len(buffer) == 23:
+            (date, timestamp, elapsed_time, tempSource, temperature) = struct.unpack('<HdIBd', buffer)
+            talker_id = 0
+        else:
+            (date, timestamp, elapsed_time, talker_id, tempSource, temperature) = struct.unpack('<HdIBBd', buffer)
         self.talker_id = talker_id
         ## Source of temperature information (e.g., water, air, cabin)
         self.tempSource = tempSource
@@ -836,7 +867,7 @@ class Temperature(DataPacket):
     #   'temp_source':  Source of temperature (see Wiki for details)
     def data_constructor(self, **kwargs) -> None:
         try:
-            self.talker_id = kwargs['talker_id']
+            self.talker_id = kwargs.get('talker_id', 0)
             self.tempSource = kwargs['temp_source']
             self.temperature = kwargs['temp']
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
@@ -892,7 +923,11 @@ class Humidity(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes object from which to unpack the binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, humiditySource, humidity) = struct.unpack('<HdIBBd', buffer)
+        if len(buffer) == 23:
+            (date, timestamp, elapsed_time, humiditySource, humidity) = struct.unpack('<HdIBd', buffer)
+            talker_id = 0
+        else:
+            (date, timestamp, elapsed_time, talker_id, humiditySource, humidity) = struct.unpack('<HdIBBd', buffer)
         self.talker_id = talker_id
         ## Source of humidity (e.g., inside, outside)
         self.humiditySource = humiditySource
@@ -919,7 +954,7 @@ class Humidity(DataPacket):
     #   'humid_source': Source of humidity (see Wiki for details)
     def data_constructor(self, **kwargs):
         try:
-            self.talker_id = kwargs['talker_id']
+            self.talker_id = kwargs.get('talker_id', 0)
             self.humiditySource = kwargs['humid_source']
             self.humidity = kwargs['humidity']
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
@@ -975,7 +1010,11 @@ class Pressure(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes object from which to unpack the information
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, pressureSource, pressure) = struct.unpack('<HdIBBd', buffer)
+        if len(buffer) == 23:
+            (date, timestamp, elapsed_time, pressureSource, pressure) = struct.unpack('<HdIBd', buffer)
+            talker_id = 0
+        else:
+            (date, timestamp, elapsed_time, talker_id, pressureSource, pressure) = struct.unpack('<HdIBBd', buffer)
         self.talker_id = talker_id
         ## Source of pressure measurement (e.g., atmospheric, compressed air)
         self.pressureSource = pressureSource
@@ -1002,7 +1041,7 @@ class Pressure(DataPacket):
     #   'press_source': Source of pressure (see Wiki for details)
     def data_constructor(self, **kwargs):
         try:
-            self.talker_id = kwargs['talker_id']
+            self.talker_id = kwargs.get('talker_id', 0)
             self.pressureSource = kwargs['press_source']
             self.pressure = kwargs['pressure']
             super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
