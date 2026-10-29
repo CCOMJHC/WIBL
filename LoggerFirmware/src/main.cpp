@@ -163,7 +163,7 @@ void setup()
     // overhead.  TL/DR: Yes, these are auto and therefore will disappear when the routine completes,
     // but that's OK because they still exist in the Timestamper.  These will also appear to be leaked
     // memory, but that's OK too.
-    Serial.print("Configuring timestamping sub-system ...");
+    Serial.print("Configuring timestamping sub-system ...\n");
     nmea::N2000::N2KTimeSource *n2k_timesource = nullptr;
     nmea::N0183::N1KTimeSource *n1k_timesource = nullptr;
     gnss::GNSSTimeSource *gnss_timesource = nullptr;
