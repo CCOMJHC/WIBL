@@ -10,7 +10,11 @@ terraform {
     }
   }
 
-  backend "s3" {}
+  backend "s3" {
+    bucket = "${PROVIDER_PREFIX}-wibl-tf-state"
+    region = "${WIBL_AWS_REGION}"
+    key    = "terraform/state/wibl-processing-server-deploy.tfstate"
+  }
 
   required_version = ">= 1.5.0"
 }

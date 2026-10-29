@@ -170,3 +170,4 @@ ingest-external*
 terraform.tfvars
 default_auth.txt
 backend.hcl
+main.tf

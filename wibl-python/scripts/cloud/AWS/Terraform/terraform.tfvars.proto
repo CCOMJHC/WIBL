@@ -2,7 +2,7 @@
 # Values that must be changed
 # ---------------------------
 
-region = "us-east-2"
+region = "${WIBL_AWS_REGION}"
 
 DCDB_provider_id = "UNHJHC"
 
