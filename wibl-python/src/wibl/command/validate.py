@@ -40,7 +40,7 @@ from wibl.validation.cloud.aws.lambda_function import validate_metadata
 @click.option('-c', '--config',
               type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True),
               help='Specify configuration file for installation')
-def geojson_validate(input: str, config: Path=None):
+def geojson_validate(input: str, config: Path):
     """Validate GeoJSON metadata stored in INPUT."""
     infilename = input
 

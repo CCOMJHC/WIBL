@@ -18,20 +18,37 @@
             <h2>NMEA0183 Message Filtering</h2>
             <fieldset class="algorithms">
                 <legend>Current List</legend>
-                <p id="filter-list"></p>
+                <p id="n1k-filter-list"></p>
             </fieldset>
             <fieldset class="algorithms">
                 <legend>Add New Message ID</legend>
-                <label for="add-item">Message ID:</label>
-                <input type="text" name="add" id="add-item"/>
+                <label for="add-n1k-item">Message ID:</label>
+                <input type="text" name="add-n1k" id="add-n1k-item"/>
                 <button onclick="addFilter()">Add</button>
             </fieldset>
             <div class="algorithms">
                 <button onclick="clearFilterList()">Clear List</button>
             </div>
         </div>
+        <div class="main-wrapper">
+            <h2>NMEA2000 Message Recording</h2>
+            <fieldset class="algorithms">
+                <legend>Current List</legend>
+                <p id="n2k-pgn-list"></p>
+            </fieldset>
+            <fieldset class="algorithms">
+                <legend>Add PGN to Record</legend>
+                <label for="add-item">Message PGN:</label>
+                <input type="text" name="add-n2k" id="add-n2k-item"/>
+                <button onclick="addPGN()">Add</button>
+            </fieldset>
+            <div class="algorithms">
+                <button onclick="addAll()">Write All PGNs</button>
+                <button onclick="clearPGNList()">Clear List</button>
+            </div>
+        </div>
         <script>
-            bootstrapFilterTable();
+            bootstrapFilterTables();
         </script>
     </body>
 </html>

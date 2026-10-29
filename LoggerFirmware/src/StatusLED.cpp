@@ -58,8 +58,9 @@ StatusLED::StatusLED(int red_pin, int green_pin, int blue_pin)
     last_change_time = 0;
     on_period = 500; // milliseconds
     
+    data_next_available = 0;
     data_end_time = 0;
-    data_flash_duration = 100;  // milliseconds
+    data_flash_duration = 200;  // milliseconds
 }
 
 /// Set the specific colours and flash pattern for any given state.  This translates the state
@@ -80,7 +81,7 @@ void StatusLED::SetColour(Colour colour, boolean flash)
             led_state[0] = OFF; led_state[1] = ON; led_state[2] = OFF; /* Green */
             break;
         case Colour::cCARD_FULL:
-            led_state[0] = OFF; led_state[1] = ON; led_state[2] = ON; /* Green/Blue (i.e., working, but card's full) */
+            led_state[0] = ON; led_state[1] = ON; led_state[2] = OFF; /* Red/Green (i.e., working, but card's full) */
             break;
         case Colour::cALARM:
             led_state[0] = ON; led_state[1] = OFF; led_state[2] = OFF; /* Red (Or Yellow, depending on build) */
@@ -128,8 +129,14 @@ void StatusLED::SetStatus(Status status)
 
 void StatusLED::TriggerDataIndication(void)
 {
-    DataLEDOn();
-    data_end_time = millis() + data_flash_duration;
+    unsigned long now = millis();
+    if (now >= data_next_available) {
+        // We only allow a new trigger if the last one has at least flashed once (so it doesn't
+        // appear to be on all the time).
+        DataLEDOn();
+        data_end_time = now + data_flash_duration;
+        data_next_available = data_end_time + data_flash_duration;
+    }
 }
 
 /// Turn on the data LED (whatever that means for the current board)
@@ -157,11 +164,12 @@ void StatusLED::DataLEDOff(void)
 
 void StatusLED::ProcessFlash(void)
 {
+    unsigned long now = millis();
     if (last_change_time > 0) {
         // This implies that we are flashing the LED
-        if ((last_change_time + on_period) < millis()) {
+        if ((last_change_time + on_period) < now) {
             // Only do anything if we've hit the time marker
-            last_change_time = millis();
+            last_change_time = now;
             if (led_flasher == ON) {
                 led_flasher = OFF;
             } else {
@@ -183,7 +191,7 @@ void StatusLED::ProcessFlash(void)
     if (data_end_time > 0) {
         // This implies that we've indicated a data event, so we need to check whether
         // it's time to turn the LED off again.
-        if (data_end_time < millis()) {
+        if (data_end_time < now) {
             DataLEDOff();
             data_end_time = 0;
         }
