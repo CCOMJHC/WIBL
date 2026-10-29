@@ -4,6 +4,8 @@
 
 Firmware 1.7.0 addresses multiple issues in the repository, including:
 
+* Contributed [Issue 133](https://github.com/CCOMJHC/WIBL/issues/133), [Issue 135](https://github.com/CCOMJHC/WIBL/issues/135), [Issue 136](https://github.com/CCOMJHC/WIBL/issues/136) and [Issue 137](https://github.com/CCOMJHC/WIBL/issues/137) for backwards compatibility with v 1.3 files if you don't get the right reader in post for some reason, for a firmware configuration bug fix, a compatibility issue with the new timestamping code when outputing auxiliary data to ASCII files, and for a visualisation change in an auxiliary plotting script.
+
 * [Issue 110](https://github.com/CCOMJHC/WIBL/issues/110), which changes the filename structure for raw files to include a fixed extension (e.g., "raw00000.wbl") rather than encoding the filename in the extension.  In addition to allowing for more files, this avoids problems in processing later.
 
 * [Isssue 81](https://github.com/CCOMJHC/WIBL/issues/81), which adds the talker ID from any NMEA2000 message for which it's defined into the output file, allowing for post-processing filtering of talkers (if one is generating bad or inconsistent data).  This steps the firmware serialiser to v. 1.4, which then ripples through the Python core code for reading the binary file format.
