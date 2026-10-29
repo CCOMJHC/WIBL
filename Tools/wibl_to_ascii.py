@@ -36,6 +36,7 @@ import argparse as arg
 from datetime import datetime
 
 import wibl.core.timestamping as ts
+from wibl.core import Lineage
 
 def main():
     parser = arg.ArgumentParser(description = 'Convert WIBL logger data to timestamped ASCII')
@@ -62,7 +63,8 @@ def main():
         out_filename = optargs.output
     
     try:
-        tsdata = ts.time_interpolation(in_filename, elapsed_time_quantum)
+        lineage = Lineage()
+        tsdata = ts.time_interpolation(in_filename, lineage, elapsed_time_quantum)
         
     except ts.NoTimeSource:
         print('Error: failed to find a time source to timestamp file.')
