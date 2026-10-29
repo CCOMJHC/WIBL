@@ -42,6 +42,8 @@ namespace po = boost::program_options;
 #include "serialisation.h"
 #include "SerialisableFactory.h"
 
+const char *version = "1.2.0";
+
 /// Dummy code to allow the system to pretend that there's a millisecond counter
 ///
 /// \return Nominally the millisecond counter since boot; there, uniformly zero
@@ -157,7 +159,9 @@ std::string NameOutputPacket(uint32_t packet_id)
 
 void Syntax(po::options_description const& cmdopt)
 {
-    std::cout << "logconvert [" << __DATE__ << ", " << __TIME__ << "] - Convert VGI log output to WIBL for upload." << std::endl;
+    std::cout << "logconvert [" << __DATE__ << ", " << __TIME__ << "] v." << version
+              << " - Convert VGI log output to WIBL for upload." << std::endl;
+    std::cout << "  Serialiser Version: " << SerialiserVersionMajor << "." << SerialiserVersionMinor << std::endl;
     std::cout << "Syntax: logconvert [opt] <input><output>" << std::endl;
     std::cout << cmdopt << std::endl;
 }
@@ -223,6 +227,29 @@ void ReportProductInformation(tN2kMsg const& msg, FILE *out)
     fprintf(out, " Load Equivalent:\t%d\n\n", (uint32_t)load_equiv);
 }
 
+void convert_pgns(std::string const& raw_pgns, std::set<uint32_t>& pgns, bool& all_pgn)
+{
+    if (raw_pgns == "all") {
+        all_pgn = true;
+        return;
+    } else {
+        all_pgn = false;
+    }
+    std::istringstream stream(raw_pgns);
+    std::string token;
+    while (std::getline(stream, token, ',')) {
+        try {
+            pgns.insert(std::stoi(token));
+        }
+        catch (const std::invalid_argument& e) {
+            std::cerr << "ERR: failed to parse |" << token << "| for a PGN integer." << std::endl;
+        }
+        catch (const std::out_of_range& e) {
+            std::cerr << "ERR: proposed PGN |" << token << "| out of range on conversion to integer." << std::endl;
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     // Get command line options
@@ -238,6 +265,7 @@ int main(int argc, char **argv)
         ("stats,s",                                             "Show detailed packet statistics")
         ("ignore",          po::value<std::vector<uint32_t>>(), "Ignore one or more data source senders")
         ("prodinfo,p",      po::value<std::string>(),           "Write product information messages to file")
+        ("keep,k",          po::value<std::string>(),           "List of N2K PGNs (comma separated) to preserve raw")
         ;
     po::positional_options_description cmdline;
     cmdline.add("input", 1);
@@ -248,7 +276,9 @@ int main(int argc, char **argv)
     po::notify(optvals);
     
     bool show_statistics = false;
-    std::set<uint32_t>  reject_sources;
+    std::set<uint32_t> reject_sources;
+    std::set<uint32_t> raw_pgn;
+    bool all_pgn = false;
     FILE *prod_info_file = nullptr;
     
     // Check on command line parameters that are mandatory
@@ -280,6 +310,9 @@ int main(int argc, char **argv)
     }
     if (optvals.count("prodinfo") != 0) {
         prod_info_file = fopen(optvals["prodinfo"].as<std::string>().c_str(), "w");
+    }
+    if (optvals.count("keep") != 0) {
+        convert_pgns(optvals["keep"].as<std::string>(), raw_pgn, all_pgn);
     }
 
     FILE *in = fopen(optvals["input"].as<std::string>().c_str(), "rb");
@@ -317,8 +350,8 @@ int main(int argc, char **argv)
     std::map<uint32_t, uint32_t> packet_counts, packet_counts_by_source, source_count;
     std::set<uint32_t> product_info;
     
-    Version n2k(1, 1, 0);
-    Version n1k(1, 0, 1);
+    Version n2k(1, 2, 0);
+    Version n1k(1, 1, 0);
     Version imu(1, 0, 0);
 
     bool noDataReject_done = false;
@@ -358,7 +391,8 @@ int main(int argc, char **argv)
             if (reject_sources.find((uint32_t)msg.Source) == reject_sources.end()) {
                 PayloadID payload_id;
                 bool no_data_detected = false;
-                std::shared_ptr<Serialisable> pkt = SerialisableFactory::Convert(msg, payload_id, no_data_detected);
+                std::shared_ptr<Serialisable> pkt =
+                    SerialisableFactory::Convert(msg, raw_pgn, all_pgn, payload_id, no_data_detected);
                 if (no_data_detected) {
                     ++no_data_packets;
                     noData_packet_by_type[pkt_tag]++;

@@ -182,6 +182,22 @@ void Serialisable::operator+=(const char *p)
     }
 }
 
+/// Serialise a known length array of raw bytes into the output buffer.  Unlike the incremental
+/// builders, this code adds the length of the array into the output automatically, and therefore
+/// is a complete call for serialisation of the object.
+///
+/// @param len  Length in bytes of the array to serialise
+/// @param p    Pointer to the source array to serialise
+
+void Serialisable::add(uint32_t len, uint8_t const *p)
+{
+    EnsureSpace(len + 4);
+    this->operator+=(len);
+    for (int n = 0; n < len; ++n) {
+        m_buffer[m_nData++] = *p++;
+    }
+}
+
 /// Constructor for the serialiser, which writes \a Serialisable objects to file.  The file has
 /// to be opened in binary mode in order for this to work effectively.
 ///
