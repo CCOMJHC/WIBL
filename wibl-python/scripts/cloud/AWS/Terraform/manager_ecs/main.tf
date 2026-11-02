@@ -371,10 +371,10 @@ resource "aws_ecs_cluster_capacity_providers" "capacity_attach" {
   }
 }
 
-# Setup 'ecsTaskExecutionRole' role and attach relevant policies
-# Create `ecsTaskExecutionRole`
+# Setup 'wibl-tf-ecsTaskExecutionRole' role and attach relevant policies
+# Create `wibl-tf-ecsTaskExecutionRole`
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecsTaskExecutionRole"
+  name = "wibl-tf-ecsTaskExecutionRole"
   assume_role_policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/task-execution-assume-role.json")
 }
 
@@ -408,7 +408,7 @@ resource "aws_iam_role_policy" "manager_s3_access_all" {
 # Associate CloudWatch policy to `ecsInstanceRole` to allow ECS tasks to send logs to CloudWatch
 # Create policy
 resource "aws_iam_policy" "ecs_cloudwatch_logs" {
-  name   = "ECS-CloudWatchLogs"
+  name   = "wibl-tf-ecsCloudWatchLogs"
   policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/ecs-cloudwatch-policy.json")
 }
 
@@ -931,7 +931,7 @@ resource "aws_location_map" "map" {
 
 # Frontend ECS task role
 resource "aws_iam_role" "ecs_frontend_task_role" {
-  name = "ecsFrontEndTaskRole"
+  name = "wibl-tf-ecsFrontEndTaskRole"
   assume_role_policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/task-execution-assume-role.json")
 }
 
