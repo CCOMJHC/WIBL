@@ -14,7 +14,12 @@ tools on AWS. Replace the value inside the quotation marks with a unique name to
 nature of the cloud, all AWS components must have name unique to its region, type. So, the value given will be used 
 to create unique names for all necessary resources.
 
-Example: `PROVIDER_PREFIX='UNHJHC'`
+Example: `PROVIDER_PREFIX='unhjhc'`
+
+Whatever `PROVIDER_PREFIX` you choose, make sure it is less than 13 characters long (since the provider prefix will be
+combined with various suffixes to generate S3 bucket names, which must be less than 64 characters) and otherwise 
+complies with the AWS 
+[general purpose bucket naming rules](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html#general-purpose-bucket-names).
 
 Next, verify that the variable `WIBL_AWS_REGION` is set to the AWS region you wish to deploy to. This must be a 
 [valid AWS region code](https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-regions.html).

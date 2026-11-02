@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eux -o pipefail
+set -eu -o pipefail
 
 CONTENT_ROOT=$(realpath "$(dirname $0)/../../../..")
 
@@ -13,7 +13,7 @@ if [ "${AWS_REGION}" == 'us-east-1' ]; then
   ${AWS_CLI} s3api create-bucket \
     --bucket "${ACCOUNT_REGION_BUCKET_NAME}" \
     --region "${AWS_REGION}" \
-    --request-headers '{"x-amz-bucket-namespace": "'"${AWS_ACCOUNT_NUMBER}"'"}' \
+    --bucket-namespace account-regional \
     --output json | tee ${AWS_TF_ROOT}/create-terraform-state-bucket.json
   CREATE_RC=${PIPESTATUS[0]}
 else
@@ -21,7 +21,7 @@ else
     --bucket "${ACCOUNT_REGION_BUCKET_NAME}" \
     --region "${AWS_REGION}" \
     --create-bucket-configuration LocationConstraint="${AWS_REGION}" \
-    --bucket-namespace "account-regional"  \
+    --bucket-namespace account-regional  \
     --output json | tee ${AWS_TF_ROOT}/create-terraform-state-bucket.json
   CREATE_RC=${PIPESTATUS[0]}
 fi

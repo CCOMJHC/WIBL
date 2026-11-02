@@ -32,10 +32,11 @@ resource "docker_image" "frontend_image" {
     platform   = "linux/${var.architecture}"
   }
   triggers = {
-    source_hash = sha1(join("", [
-      for f in fileset("${var.src_path}/wibl-frontend", "**/*") :
-      filemd5("${var.src_path}/wibl-frontend/${f}")
-    ]))
+    source_hash = sha1(join("",
+      [filemd5("${var.src_path}/wibl-frontend/Dockerfile"),
+      filemd5("${var.src_path}/wibl-frontend/requirements.txt")],
+      [for f in fileset("${var.src_path}/wibl-frontend", "src/**") : filemd5("${var.src_path}/wibl-frontend/${f}")]
+    ))
   }
 }
 
@@ -53,10 +54,12 @@ resource "docker_image" "manager_image" {
     platform   = "linux/${var.architecture}"
   }
   triggers = {
-    source_hash = sha1(join("", [
-      for f in fileset("${var.src_path}/wibl-manager", "**/*") :
-      filemd5("${var.src_path}/wibl-manager/${f}")
-    ]))
+    source_hash = sha1(join("",
+      [filemd5("${var.src_path}/wibl-manager/Dockerfile"),
+      filemd5("${var.src_path}/wibl-manager/requirements.txt"),
+      filemd5("${var.src_path}/wibl-manager/pyproject.toml")],
+      [for f in fileset("${var.src_path}/wibl-manager", "src/wibl_manager/**") : filemd5("${var.src_path}/wibl-manager/${f}")]
+    ))
   }
 }
 
