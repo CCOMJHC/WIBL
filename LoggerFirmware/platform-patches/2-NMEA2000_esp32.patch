@@ -1,0 +1,58 @@
+--- NMEA2000_esp32.cpp	2020-11-15 03:51:26
++++ NMEA2000_esp32.cpp	2026-10-26 19:37:25
+@@ -27,11 +27,16 @@
+ can.h library, which may cause even naming problem.
+ */
+ 
+-#include "driver/periph_ctrl.h"
++#include <rom/gpio.h>
++#include "esp_private/periph_ctrl.h"
+ 
+ #include "soc/dport_reg.h"
+ #include "NMEA2000_esp32.h"
+ 
++#if !defined(round)
++#include <math.h>
++#endif
++
+ bool tNMEA2000_esp32::CanInUse=false;
+ tNMEA2000_esp32 *pNMEA2000_esp32=0;
+ 
+@@ -125,8 +130,14 @@
+ 
+     //configure RX pin
+ 	gpio_set_direction(RxPin,GPIO_MODE_INPUT);
++
++#if (ESP_IDF_VERSION_MAJOR >= 5)
++  esp_rom_gpio_connect_in_signal(RxPin, CAN_RX_IDX, 0);
++  esp_rom_gpio_pad_select_gpio(RxPin);
++#else
+ 	gpio_matrix_in(RxPin,CAN_RX_IDX,0);
+ 	gpio_pad_select_gpio(RxPin);
++#endif
+ 
+     //set to PELICAN mode
+ 	MODULE_CAN->CDR.B.CAN_M=0x1;
+@@ -150,7 +161,7 @@
+ 			break;
+ 		default:
+ 			MODULE_CAN->BTR1.B.TSEG1	=0xc;
+-			__tq = ((float)1000/speed) / 16;
++			__tq = ((float)1000/(float)speed) / 16;
+ 	}
+ 
+ 	//set baud rate prescaler
+@@ -193,8 +204,13 @@
+     // shortly causing one error frame on startup. By setting CAN pin here
+     // it works right.
+     gpio_set_direction(TxPin,GPIO_MODE_OUTPUT);
++#if (ESP_IDF_VERSION_MAJOR >= 5)
++    esp_rom_gpio_connect_out_signal(TxPin, CAN_TX_IDX, 0, 0);
++    esp_rom_gpio_pad_select_gpio(TxPin);
++#else
+     gpio_matrix_out(TxPin,CAN_TX_IDX,0,0);
+     gpio_pad_select_gpio(TxPin);
++#endif
+ 
+     //Showtime. Release Reset Mode.
+     MODULE_CAN->MOD.B.RM = 0;

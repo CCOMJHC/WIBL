@@ -7,12 +7,15 @@ Import("env")
 
 PATCHES_PATH = 'platform-patches'
 FRAMEWORK_DIR = env.PioPlatform().get_package_dir("framework-arduinoespressif32")
+DEPENDENCIES_DIR = Path(env.subst("$PROJECT_LIBDEPS_DIR")) / env["PIOENV"]
 
 print("Patching PlatformIO files...")
 
 patches = {
-    Path(PATCHES_PATH, "1-framework-arduinoespressif32-webserver.patch"):
-        Path(FRAMEWORK_DIR, "libraries", "WebServer", "src", "WebServer.cpp")
+#    Path(PATCHES_PATH, "1-framework-arduinoespressif32-webserver.patch"):
+#        Path(FRAMEWORK_DIR, "libraries", "WebServer", "src", "WebServer.cpp"),
+    Path(PATCHES_PATH, "2-NMEA2000_esp32.patch"):
+        Path(DEPENDENCIES_DIR, "NMEA2000_esp32", "NMEA2000_esp32.cpp")
 }
 
 # Patching with patch.py is idempotent, so always apply patches to make sure all files are patched that ought to be. 
