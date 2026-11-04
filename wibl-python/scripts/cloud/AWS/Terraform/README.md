@@ -20,6 +20,17 @@ following JSON document as the contents of the policy:
 {
 	"Version": "2012-10-17",
 	"Statement": [
+        {
+            "Sid": "CreateServiceLinkedRole",
+            "Effect": "Allow",
+            "Action": "iam:CreateServiceLinkedRole",
+            "Resource": "arn:aws:iam::*:role/aws-service-role/elasticache.amazonaws.com/AWSServiceRoleForElastiCache",
+            "Condition": {
+                "StringLike": {
+                    "iam:AWSServiceName": "elasticache.amazonaws.com"
+                }
+            }
+        },
 		{
 			"Sid": "",
 			"Effect": "Allow",
@@ -96,9 +107,13 @@ following JSON document as the contents of the policy:
 				"ecs:DeleteCluster",
 				"ecs:DescribeClusters",
 				"ecs:PutClusterCapacityProviders",
+                "ecs:RegisterTaskDefinition",
 				"ecs:TagResource",
 				"elasticache:AddTagsToResource",
 				"elasticache:CreateCacheSubnetGroup",
+                "elasticache:CreateReplicationGroup",
+                "elasticache:DescribeCacheSubnetGroups",
+                "elasticache:ListTagsForResource",
 				"elasticloadbalancing:AddTags",
 				"elasticloadbalancing:CreateListener",
 				"elasticloadbalancing:CreateLoadBalancer",
@@ -146,7 +161,9 @@ following JSON document as the contents of the policy:
 				"rds:AddTagsToResource",
 				"rds:CreateDBInstance",
 				"rds:CreateDBSubnetGroup",
+                "rds:DeleteDBInstance",
 				"rds:DeleteDBSubnetGroup",
+                "rds:DescribeDBInstances",
 				"rds:DescribeDBSubnetGroups",
 				"rds:ListTagsForResource",
 				"s3-object-lambda:GetObject",
@@ -203,7 +220,8 @@ Example: `PROVIDER_PREFIX='unhjhc'`
 Whatever `PROVIDER_PREFIX` you choose, make sure it is less than 13 characters long (since the provider prefix will be
 combined with various suffixes to generate S3 bucket names, which must be less than 64 characters) and otherwise 
 complies with the AWS 
-[general purpose bucket naming rules](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html#general-purpose-bucket-names).
+[general purpose bucket naming rules](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html#general-purpose-bucket-names). Also, since the prefix is used as part of RDS database names, it must
+begin with a letter and contain only alphanumeric characters.
 
 Next, verify that the variable `WIBL_AWS_REGION` is set to the AWS region you wish to deploy to. This must be a 
 [valid AWS region code](https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-regions.html).
