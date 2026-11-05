@@ -5,6 +5,7 @@
       "id": "757e68f6-cc5f-4e35-999c-82fb0e7fec0e",
       "settings": {
         "black_and_white": true,
+        "check_zones": false,
         "create_gerber_job_file": true,
         "crossout_dnp_footprints_on_fab_layers": true,
         "description": "",
@@ -72,7 +73,8 @@
         "subtract_solder_mask_from_silk": false,
         "use_drill_origin": false,
         "use_protel_file_extension": true,
-        "use_x2_format": true
+        "use_x2_format": true,
+        "variant": ""
       },
       "type": "pcb_export_gerbers"
     },
@@ -88,9 +90,12 @@
         "excellon.oval_drill_route": false,
         "format": "excellon",
         "generate_map": false,
+        "generate_report": false,
+        "generate_tenting": false,
         "gerber_precision": 5,
         "map_format": "pdf",
         "output_dir": "",
+        "report_filename": "",
         "units": "in",
         "zero_format": "decimal"
       },
@@ -119,7 +124,7 @@
         "include_unspecified": true,
         "occt_format": 0,
         "optimize_step": true,
-        "output_filename": "WILB.step",
+        "output_filename": "WILB_V2.5.1_251001.step",
         "overwrite": false,
         "subst_models": true,
         "use_defined_origin": false,
@@ -128,6 +133,7 @@
         "use_pcb_center_origin": true,
         "user_origin.x": 0.0,
         "user_origin.y": 0.0,
+        "variant": "",
         "vrml_model_dir": "",
         "vrml_relative_paths": false
       },
@@ -138,6 +144,7 @@
       "id": "5658437e-7938-4ffc-b38f-0717e2be0ecd",
       "settings": {
         "description": "",
+        "exclude_bom": false,
         "exclude_dnp": false,
         "exclude_footprints_with_th": false,
         "format": "csv",
@@ -148,7 +155,8 @@
         "single_file": false,
         "smd_only": false,
         "units": "mm",
-        "use_drill_place_file_origin": false
+        "use_drill_place_file_origin": false,
+        "variant": ""
       },
       "type": "pcb_export_pos"
     },
@@ -225,15 +233,16 @@
           "__Alter_SPNum"
         ],
         "filter_string": "",
-        "include_excluded_from_bom": false,
+        "group_symbols": true,
         "keep_line_breaks": false,
         "keep_tabs": false,
-        "output_filename": "WIBL_BOM.csv",
+        "output_filename": "WIBL_V2.5.1_BOM_251001.csv",
         "ref_delimiter": ",",
         "ref_range_delimiter": "-",
         "sort_asc": true,
         "sort_field": "${ITEM_NUMBER}",
-        "string_delimiter": "\""
+        "string_delimiter": "\"",
+        "variant_names": []
       },
       "type": "sch_export_bom"
     },
@@ -246,18 +255,18 @@
         "description": "",
         "drawing_sheet": "",
         "format": "pdf",
-        "hpgl_page_size": "default",
-        "hpgl_pen_size": 1.016,
-        "hpgl_plot_origin": "A3",
         "min_pen_width": 847,
-        "output_dir": "",
+        "output_filename": "",
         "page_size": "auto",
         "pdf_hierarchical_links": true,
         "pdf_metadata": true,
         "pdf_property_popups": true,
         "plot_all": true,
         "plot_drawing_sheet": true,
-        "use_background_color": true
+        "show_hop_over": false,
+        "use_background_color": true,
+        "variant_name": "",
+        "variant_names": []
       },
       "type": "sch_export_plot_pdf"
     },
@@ -266,7 +275,9 @@
       "id": "f510827f-ccb6-4bef-82a2-d498d565a3b4",
       "settings": {
         "back_fp_property_popups": true,
+        "background_color": "rgba(0,0,0,0)",
         "black_and_white": false,
+        "check_zones": false,
         "color_theme": "",
         "crossout_dnp_footprints_on_fab_layers": true,
         "description": "",
@@ -321,11 +332,13 @@
         "plot_footprint_values": true,
         "plot_pad_numbers": false,
         "plot_ref_des": true,
+        "scale": 1.0,
         "single_document": true,
         "sketch_dnp_footprints_on_fab_layers": true,
         "sketch_pads_on_fab_layers": false,
         "subtract_solder_mask_from_silk": false,
-        "use_drill_origin": false
+        "use_drill_origin": false,
+        "variant": ""
       },
       "type": "pcb_export_pdf"
     },
@@ -338,7 +351,8 @@
         "drawing_sheet": "",
         "output_filename": "ODB++.tgz",
         "precision": 4,
-        "units": "mm"
+        "units": "mm",
+        "variant": ""
       },
       "type": "pcb_export_odb"
     },
@@ -347,7 +361,9 @@
       "id": "f164e3b7-9c06-4927-8dee-0887b14341a2",
       "settings": {
         "back_fp_property_popups": true,
+        "background_color": "rgba(0,0,0,0)",
         "black_and_white": false,
+        "check_zones": false,
         "color_theme": "",
         "crossout_dnp_footprints_on_fab_layers": true,
         "description": "",
@@ -399,11 +415,13 @@
         "plot_footprint_values": true,
         "plot_pad_numbers": false,
         "plot_ref_des": true,
+        "scale": 1.0,
         "single_document": false,
         "sketch_dnp_footprints_on_fab_layers": true,
         "sketch_pads_on_fab_layers": false,
         "subtract_solder_mask_from_silk": false,
-        "use_drill_origin": false
+        "use_drill_origin": false,
+        "variant": ""
       },
       "type": "pcb_export_pdf"
     },
@@ -412,7 +430,9 @@
       "id": "cf181012-2728-48fe-8e18-be4cfbf72e5f",
       "settings": {
         "back_fp_property_popups": true,
+        "background_color": "rgba(0,0,0,0)",
         "black_and_white": false,
+        "check_zones": false,
         "color_theme": "",
         "crossout_dnp_footprints_on_fab_layers": true,
         "description": "",
@@ -464,11 +484,13 @@
         "plot_footprint_values": true,
         "plot_pad_numbers": false,
         "plot_ref_des": true,
+        "scale": 1.0,
         "single_document": false,
         "sketch_dnp_footprints_on_fab_layers": true,
         "sketch_pads_on_fab_layers": false,
         "subtract_solder_mask_from_silk": false,
-        "use_drill_origin": false
+        "use_drill_origin": false,
+        "variant": ""
       },
       "type": "pcb_export_pdf"
     }
@@ -485,7 +507,7 @@
         "0cca89c8-1de4-41a1-935f-c117ffe04ded"
       ],
       "settings": {
-        "output_path": "C:\\Users\\Zack\\Desktop\\KiCAD_Projects\\CCOM\\WIBL_V2.5.1_251001\\WIBL_V2.5.1_251001_OUTPUT_JOBS\\GERBERS\\"
+        "output_path": "C:\\Users\\Zack\\Desktop\\CAD_EE\\KiCAD_Projects\\CCOM\\WILB\\WIBL_V2.5.2_260605\\WIBL_V2.5.2_260605_OUTPUT_JOBS\\GRB\\"
       },
       "type": "folder"
     },
@@ -499,7 +521,7 @@
         "cf181012-2728-48fe-8e18-be4cfbf72e5f"
       ],
       "settings": {
-        "output_path": "C:\\Users\\Zack\\Desktop\\KiCAD_Projects\\CCOM\\WIBL_V2.5.1_251001\\WIBL_V2.5.1_251001_OUTPUT_JOBS\\ASM\\"
+        "output_path": "C:\\Users\\Zack\\Desktop\\CAD_EE\\KiCAD_Projects\\CCOM\\WILB\\WIBL_V2.5.2_260605\\WIBL_V2.5.2_260605_OUTPUT_JOBS\\ASM\\"
       },
       "type": "folder"
     },
@@ -510,7 +532,7 @@
         "5a22ccf6-4ce5-449f-8b74-dddd81259bc1"
       ],
       "settings": {
-        "output_path": "C:\\Users\\Zack\\Desktop\\KiCAD_Projects\\CCOM\\WIBL_V2.5.1_251001\\WIBL_V2.5.1_251001_OUTPUT_JOBS\\SCH\\"
+        "output_path": "C:\\Users\\Zack\\Desktop\\CAD_EE\\KiCAD_Projects\\CCOM\\WILB\\WIBL_V2.5.2_260605\\WIBL_V2.5.2_260605_OUTPUT_JOBS\\SCH\\"
       },
       "type": "folder"
     },
@@ -521,7 +543,7 @@
         "8001cdcf-6312-4a12-ba76-0ee1b10674cf"
       ],
       "settings": {
-        "output_path": "C:\\Users\\Zack\\Desktop\\KiCAD_Projects\\CCOM\\WIBL_V2.5.1_251001\\WIBL_V2.5.1_251001_OUTPUT_JOBS\\STEP\\"
+        "output_path": "C:\\Users\\Zack\\Desktop\\CAD_EE\\KiCAD_Projects\\CCOM\\WILB\\WIBL_V2.5.2_260605\\WIBL_V2.5.2_260605_OUTPUT_JOBS\\3DM\\"
       },
       "type": "folder"
     },
@@ -532,7 +554,7 @@
         "bbfd7835-a0eb-4ad7-ab6d-7a28d6d82218"
       ],
       "settings": {
-        "output_path": "C:\\Users\\Zack\\Desktop\\KiCAD_Projects\\CCOM\\WIBL_V2.5.1_251001\\WIBL_V2.5.1_251001_OUTPUT_JOBS\\BOM\\"
+        "output_path": "C:\\Users\\Zack\\Desktop\\CAD_EE\\KiCAD_Projects\\CCOM\\WILB\\WIBL_V2.5.2_260605\\WIBL_V2.5.2_260605_OUTPUT_JOBS\\BOM\\"
       },
       "type": "folder"
     },
@@ -543,7 +565,7 @@
         "97c71146-da72-41c1-9c22-f1e3f52ef3dd"
       ],
       "settings": {
-        "output_path": "C:\\Users\\Zack\\Desktop\\KiCAD_Projects\\CCOM\\WIBL_V2.5.1_251001\\WIBL_V2.5.1_251001_OUTPUT_JOBS\\ODB++\\"
+        "output_path": "C:\\Users\\Zack\\Desktop\\CAD_EE\\KiCAD_Projects\\CCOM\\WILB\\WIBL_V2.5.2_260605\\WIBL_V2.5.2_260605_OUTPUT_JOBS\\ODB++\\"
       },
       "type": "folder"
     }
