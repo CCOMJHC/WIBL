@@ -1,0 +1,182 @@
+(footprint "ML414H_IV01E_TBC"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "SEIKO ML414H-IV01E Reflowable Lithium Battery\n\nML414H is a rechargeable, coin type battery with features such as Pb-free reflowable (Peak temperature: 260 C) and high temperature heat resistance.\n\n• 3V\n• 1mAH\n• 4.8mm Diamter")
+	(property "Reference" "REF**"
+		(at -1.81 -3.67 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "f08cbe34-8d82-4ab3-83ea-af14a0ea4126")
+		(effects
+			(font
+				(size 0.512064 0.512064)
+				(thickness 0.064008)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Value" "ML414H_IV01E_TBC"
+		(at -2.49 3.32 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "bd5a92ea-f51e-4388-b71a-2d25760de180")
+		(effects
+			(font
+				(size 0.35052 0.35052)
+				(thickness 0.03048)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "9d8969fb-2215-49ba-8912-fb2b279f2104")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "ec190475-748e-4051-8bcd-ed34d17a4db9")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(fp_poly
+		(pts
+			(xy -1.5 2.7) (xy 2.7 2.7) (xy 2.7 1) (xy -1.5 1)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill yes)
+		(layer "F.Mask")
+		(uuid "3cb9233e-048d-4e7e-ab08-29b95cad6808")
+	)
+	(fp_arc
+		(start -1.752599 1.625602)
+		(mid -2.167967 -1.045069)
+		(end 0.1778 -2.3876)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "8da5ef49-5e94-465c-b6af-6fb9165e5f23")
+	)
+	(fp_arc
+		(start 2.350324 -0.277774)
+		(mid 2.387677 0.25)
+		(end 2.260599 0.763606)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "f7a43a81-aff4-42ab-9d74-2e552bdf1121")
+	)
+	(fp_poly
+		(pts
+			(xy -1.5 2.7) (xy 2.7 2.7) (xy 2.7 1) (xy -1.5 1)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill yes)
+		(layer "F.Paste")
+		(uuid "78bb1f49-3253-4032-8873-212365f616f9")
+	)
+	(fp_rect
+		(start -2.525 -2.775)
+		(end 2.775 2.8)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "e486ed74-4ad0-4cb8-bb7f-5e7d518bfe76")
+	)
+	(fp_circle
+		(center 0 0)
+		(end 2.4 0)
+		(stroke
+			(width 0.0508)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "6e171f95-9d57-4aec-b7d3-c9062d940df1")
+	)
+	(fp_poly
+		(pts
+			(xy 2.41 2.41) (xy -1.11 2.41) (xy -1.11 1) (xy 2.41 1)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill yes)
+		(layer "F.Fab")
+		(uuid "76551bb1-584b-419f-ba3d-ec8d2db63444")
+	)
+	(fp_poly
+		(pts
+			(xy 2.65 -2.65) (xy 2.65 -0.31) (xy 0.29 -2.64) (xy 0.35 -2.64)
+		)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.Fab")
+		(uuid "1bbf2063-970a-41e4-a228-167c8594ef37")
+	)
+	(fp_text user "${REFERENCE}"
+		(at -2.63 -3 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "df1d21df-8a65-420e-9ea9-e9409bcf3b46")
+		(effects
+			(font
+				(size 0.512064 0.512064)
+				(thickness 0.064008)
+			)
+			(justify left bottom)
+		)
+	)
+	(pad "+" smd trapezoid
+		(at 2.05 -2.075 315)
+		(size 1.7 1.7)
+		(rect_delta 0 1.7)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.1016)
+		(solder_paste_margin 0)
+		(thermal_bridge_angle 0)
+		(uuid "32f3d4e7-b5cb-4b4f-8c04-8b1746950c3f")
+	)
+	(pad "-" smd rect
+		(at 0.6 1.85)
+		(size 4.2 1.7)
+		(layers "F.Cu" "F.Mask")
+		(solder_mask_margin 0.1016)
+		(solder_paste_margin 0)
+		(thermal_bridge_angle 0)
+		(uuid "ed3c1310-aede-4518-a168-16722de3ed71")
+	)
+	(embedded_fonts no)
+)

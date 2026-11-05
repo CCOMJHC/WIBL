@@ -1,0 +1,237 @@
+(footprint "LED-0603"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "LED 0603 SMT\n\n0603, surface mount.\n\nSpecifications:\n\n• Pin count: 2\n• Pin pitch:0.075inch\n• Area: 0.06\" x 0.03\"\n\nExample device(s):\n\n• LED - BLUE")
+	(property "Reference" "REF**"
+		(at 0.19 -0.805 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "a2e41a13-96b8-4e80-b1ee-b0f72f18ef83")
+		(effects
+			(font
+				(size 0.48768 0.48768)
+				(thickness 0.12192)
+			)
+			(justify bottom)
+		)
+	)
+	(property "Value" "LED-0603"
+		(at 0.075 0.825 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "dc65ec42-6b66-4859-81af-b3275a57e0a4")
+		(effects
+			(font
+				(size 0.48768 0.48768)
+				(thickness 0.12192)
+			)
+			(justify top)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "4f090a8b-dbe6-44f1-a38e-bcea586743a2")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "ef963c0b-02ea-4901-9d5d-5d498286c582")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(fp_line
+		(start -0.1675 -0.325)
+		(end -0.1675 0.3175)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "a90de976-317f-48e3-a341-7b27f3583d91")
+	)
+	(fp_line
+		(start 0.15 -0.47625)
+		(end 0.15 0.475)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "2debd76e-5353-4f73-a8f7-8bf1de9f0a8b")
+	)
+	(fp_line
+		(start 0.15 0)
+		(end -0.1675 -0.325)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "9731a788-3c68-449b-a18a-44021e43fda8")
+	)
+	(fp_line
+		(start 0.15 0)
+		(end -0.1675 0.3175)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "f8e40346-a4ff-4205-a343-5d0fa6abbf4d")
+	)
+	(fp_rect
+		(start -1.55 -0.675)
+		(end 1.55 0.675)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(fill no)
+		(layer "F.SilkS")
+		(uuid "5985054d-1cb9-4a83-8489-e1b1bee2dc02")
+	)
+	(fp_rect
+		(start 1.55 -0.675)
+		(end 1.675 0.675)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(fill no)
+		(layer "F.SilkS")
+		(uuid "8967204f-1c15-435b-8547-e971cecf9f63")
+	)
+	(fp_rect
+		(start -0.27 -0.36)
+		(end 0.27 0.41)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.Adhes")
+		(uuid "c724952f-9f44-4dbe-be17-44a18bbaf62d")
+	)
+	(fp_rect
+		(start -1.6 -0.725)
+		(end 1.7 0.725)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "28ad6bfa-7e04-49e2-a11d-91d9503afdc2")
+	)
+	(fp_line
+		(start -0.17 -0.323125)
+		(end -0.17 0.3175)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.Fab")
+		(uuid "913cd6dd-77d4-490e-b9a4-d1f89c1cee89")
+	)
+	(fp_line
+		(start 0.14875 0)
+		(end -0.16875 0.3175)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "2b993ef9-0da7-4166-ad2b-3029db0b8761")
+	)
+	(fp_line
+		(start 0.15 -0.47625)
+		(end 0.15 0.47)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "b897ea87-89dc-4678-853f-36e1f39444ec")
+	)
+	(fp_line
+		(start 0.15 -0.003125)
+		(end -0.17 -0.323125)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "357f7853-1837-4984-9eab-df8569c6bae9")
+	)
+	(fp_rect
+		(start -1.55 -0.675)
+		(end 1.65 0.675)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "c1bb8304-bd92-42a2-86c4-aca494cd2926")
+	)
+	(fp_text user "${REFERENCE}"
+		(at -1.69 -0.83 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "d34968bf-0daa-40df-93eb-b5a05174506b")
+		(effects
+			(font
+				(size 0.48768 0.48768)
+				(thickness 0.06096)
+			)
+			(justify left bottom)
+		)
+	)
+	(pad "A" smd roundrect
+		(at -0.877 0 270)
+		(size 1 1)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.15)
+		(solder_mask_margin 0.1016)
+		(solder_paste_margin 0)
+		(thermal_bridge_angle 0)
+		(uuid "c9b7edac-d13a-42a1-92eb-d97d6fd69841")
+	)
+	(pad "C" smd roundrect
+		(at 0.877 0 270)
+		(size 1 1)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.15)
+		(solder_mask_margin 0.1016)
+		(solder_paste_margin 0)
+		(thermal_bridge_angle 0)
+		(uuid "fbacf4bc-9c7c-4138-b490-f41289a620d0")
+	)
+	(embedded_fonts no)
+	(model "${KICAD9_3DMODEL_DIR}/3dmodels/LED_SMD.3dshapes/LED_0603_1608Metric_Castellated.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -0 -0 -0)
+		)
+	)
+)

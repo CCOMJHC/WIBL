@@ -1,0 +1,100 @@
+(footprint "PTH_D1.9mm_Drill1.1mm"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "PTH pad as test Point, diameter 1.9mm, hole diameter 1.1mm ")
+	(tags "Plated THT pad")
+	(property "Reference" "REF**"
+		(at 0 -2.148 0)
+		(layer "F.SilkS")
+		(uuid "c7b0dfc5-fc48-416f-9c85-c1ba86f80e0e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "PTH_D1.9mm_Drill1.1mm"
+		(at 0 2.25 0)
+		(layer "F.Fab")
+		(uuid "d8eb0ea4-0ce8-404a-837b-1fc5acb71d8d")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "ae76ca3a-0baa-4ec1-a99e-25fa51d5399d")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "4a3d8b09-a9b9-4b88-bbb6-80c95e6f3895")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr through_hole exclude_from_bom)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_circle
+		(center 0 0)
+		(end 1.05 0)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.SilkS")
+		(uuid "dadbf1e7-4ff1-4fcf-803c-157ae0ac1669")
+	)
+	(fp_circle
+		(center 0 0)
+		(end 1.15 0)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "b894643b-7765-41b4-a00d-a7562d1003db")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 -2.15 0)
+		(layer "F.Fab")
+		(uuid "b9e8f1cc-c0e3-42bc-b19e-e4503418b79e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" thru_hole circle
+		(at 0 0)
+		(size 1.9 1.9)
+		(drill 1.1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "80d08a12-a3aa-42b3-8b28-c3b95cfca0d2")
+	)
+	(embedded_fonts no)
+)
