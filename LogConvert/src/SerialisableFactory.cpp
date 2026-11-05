@@ -23,6 +23,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <set>
+
 #include "SerialisableFactory.h"
 #include "N2kMessages.h"
 #include "N2kMsg.h"
@@ -106,10 +108,11 @@ std::shared_ptr<Serialisable> HandleSystemTime(tN2kMsg& msg, bool& no_data_detec
                 no_data_detected = true;
             }
 
-            rtn = std::shared_ptr<Serialisable>(new Serialisable(sizeof(uint16_t) + sizeof(double) + sizeof(unsigned long) + 1));
+            rtn = std::shared_ptr<Serialisable>(new Serialisable(sizeof(uint16_t) + sizeof(double) + sizeof(unsigned long) + sizeof(uint8_t)*2));
             *rtn += date;
             *rtn += timestamp;
             *rtn += static_cast<uint32_t>(msg.MsgTime);
+            *rtn += (uint8_t)msg.Source;
             *rtn += (uint8_t)source;
         }
     }
@@ -136,8 +139,9 @@ std::shared_ptr<Serialisable> HandleAttitude(tN2kMsg& msg, bool& no_data_detecte
             no_data_detected = true;
         }
 
-        rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 3*sizeof(double)));
+        rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + sizeof(uint8_t) + 3*sizeof(double)));
         t.Serialise(rtn);
+        *rtn += (uint8_t)msg.Source;
         *rtn += yaw;
         *rtn += pitch;
         *rtn += roll;
@@ -164,8 +168,9 @@ std::shared_ptr<Serialisable> HandleDepth(tN2kMsg& msg, bool& no_data_detected)
             no_data_detected = true;
         }
 
-        rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 3*sizeof(double)));
+        rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + sizeof(uint8_t) + 3*sizeof(double)));
         t.Serialise(rtn);
+        *rtn += (uint8_t)msg.Source;
         *rtn += depth;
         *rtn += offset;
         *rtn += range;
@@ -194,8 +199,9 @@ std::shared_ptr<Serialisable> HandleCOG(tN2kMsg& msg, bool& no_data_detected)
                 no_data_detected = true;
             }
 
-            rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 2*sizeof(double)));
+            rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + sizeof(uint8_t) + 2*sizeof(double)));
             t.Serialise(rtn);
+            *rtn += (uint8_t)msg.Source;
             *rtn += cog;
             *rtn += sog;
         }
@@ -235,8 +241,9 @@ std::shared_ptr<Serialisable> HandleGNSS(tN2kMsg& msg, bool& no_data_detected)
             || N2kIsNA(sep) || N2kIsNA(nRefStations) || N2kIsNA((uint8_t)refStationType) || N2kIsNA(refStationID) || N2kIsNA(correctionAge)) {
             no_data_detected = true;
         }
-        rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 2*sizeof(uint16_t) + 8*sizeof(double) + 5));
+        rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + sizeof(uint8_t) + 2*sizeof(uint16_t) + 8*sizeof(double) + 5));
         t.Serialise(rtn); // Put in the standard timestamp, as well as the in-message one.
+        *rtn += (uint8_t)msg.Source;
         *rtn += datestamp; *rtn += timestamp;
         *rtn += latitude; *rtn += longitude; *rtn += altitude;
         *rtn += (uint8_t)rec_type; *rtn += (uint8_t)rec_method;
@@ -272,8 +279,10 @@ std::shared_ptr<Serialisable> HandleEnvironment(tN2kMsg& msg, bool& no_data_dete
             no_data_detected = true;
         }
 
-        rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 3*sizeof(double) + 2));
+        rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + sizeof(uint8_t) +
+                                            3*sizeof(double) + 2*sizeof(uint8_t)));
         t.Serialise(rtn);
+        *rtn += (uint8_t)msg.Source;
         *rtn += (uint8_t)t_source;
         *rtn += temp;
         *rtn += (uint8_t)h_source;
@@ -305,8 +314,10 @@ std::shared_ptr<Serialisable> HandleTemperature(tN2kMsg& msg, bool& no_data_dete
                 no_data_detected = true;
             }
 
-            rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 1 + sizeof(double)));
+            rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() +
+                                                2*sizeof(uint8_t) + sizeof(double)));
             t.Serialise(rtn);
+            *rtn += (uint8_t)msg.Source;
             *rtn += (uint8_t)t_source;
             *rtn += temp;
         }
@@ -336,8 +347,9 @@ std::shared_ptr<Serialisable> HandleHumidity(tN2kMsg& msg, bool& no_data_detecte
                 no_data_detected = true;
             }
 
-            rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 1 + sizeof(double)));
+            rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 2*sizeof(uint8_t) + sizeof(double)));
             t.Serialise(rtn);
+            *rtn += (uint8_t)msg.Source;
             *rtn += (uint8_t)h_source;
             *rtn += humidity;
         }
@@ -367,8 +379,9 @@ std::shared_ptr<Serialisable> HandlePressure(tN2kMsg& msg, bool& no_data_detecte
                 no_data_detected = true;
             }
 
-            rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 1 + sizeof(double)));
+            rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 2*sizeof(uint8_t) + sizeof(double)));
             t.Serialise(rtn);
+            *rtn += (uint8_t)msg.Source;
             *rtn += (uint8_t)p_source;
             *rtn += pressure;
         }
@@ -398,11 +411,26 @@ std::shared_ptr<Serialisable> HandleExtTemperature(tN2kMsg& msg, bool& no_data_d
                 no_data_detected = true;
             }
 
-            rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 1 + sizeof(double)));
+            rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 2*sizeof(uint8_t) + sizeof(double)));
             t.Serialise(rtn);
+            *rtn += (uint8_t)msg.Source;
             *rtn += (uint8_t)t_source;
             *rtn += temp;
         }
+    }
+    return rtn;
+}
+
+std::shared_ptr<Serialisable> HandleBinary(tN2kMsg& msg)
+{
+    std::shared_ptr<Serialisable> rtn;
+    DummyTimestamp t(msg.MsgTime);
+    rtn = std::shared_ptr<Serialisable>(new Serialisable(t.SerialisationSize() + 5 + msg.DataLen));
+    t.Serialise(rtn);
+    *rtn += static_cast<uint32_t>(msg.PGN);
+    *rtn += static_cast<uint32_t>(msg.DataLen);
+    for (int n = 0; n < msg.DataLen; ++n) {
+        *rtn += static_cast<uint8_t>(msg.Data[n]);
     }
     return rtn;
 }
@@ -416,7 +444,9 @@ std::shared_ptr<Serialisable> HandleExtTemperature(tN2kMsg& msg, bool& no_data_d
 /// \param payload_id   Reference (output) for the payload-id number for the packet
 /// \return Shared pointer for the \a Serialisable object containing the binary data
 
-std::shared_ptr<Serialisable> SerialisableFactory::Convert(tN2kMsg& msg, PayloadID& payload_id, bool& no_data_detected)
+std::shared_ptr<Serialisable> SerialisableFactory::Convert(tN2kMsg& msg,
+    std::set<uint32_t> const& pgns, bool const& all_pgn,
+    PayloadID& payload_id, bool& no_data_detected)
 {
     std::shared_ptr<Serialisable> rtn;
     payload_id = Pkt_Version;   // Invalid for normal users (can only be added by serialisation code)
@@ -433,6 +463,11 @@ std::shared_ptr<Serialisable> SerialisableFactory::Convert(tN2kMsg& msg, Payload
         case 130314UL:  rtn = HandlePressure(msg, no_data_detected);          payload_id = Pkt_Pressure;      break;
         case 130316UL:  rtn = HandleExtTemperature(msg, no_data_detected);    payload_id = Pkt_Temperature;   break;
         default:
+            if (all_pgn || pgns.find(msg.PGN) != pgns.end()) {
+                no_data_detected = false; // Since we don't parse the packet, we can't detect this
+                rtn = HandleBinary(msg);
+                payload_id = Pkt_N2kBinary;
+            }
             break;
     }
     return rtn;

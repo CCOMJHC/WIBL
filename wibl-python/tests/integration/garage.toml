@@ -1,0 +1,27 @@
+# Minimal single-node Garage configuration for WIBL integration tests.
+# NOT for production use: secrets below are fixed on purpose so tests are reproducible.
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+
+# Single node, no redundancy
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "e270faa2f56d59ef1f35681be7d2bd02acc1b0b52f4e5c6693bc87965914db34"
+
+[s3_api]
+s3_region = "us-east-1"
+api_bind_addr = "[::]:3900"
+root_domain = ".s3.garage.localhost"
+
+[s3_web]
+bind_addr = "[::]:3902"
+root_domain = ".web.garage.localhost"
+index = "index.html"
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token = "wibl-test-admin-token"

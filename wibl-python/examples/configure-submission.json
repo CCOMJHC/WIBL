@@ -6,5 +6,6 @@
 	"strict_mode": 			false,
 	"provider_id": 			"UNHJHC",
 	"management_url": 		"",
-  	"upload_point": 		"https://www.ngdc.noaa.gov/ingest-external/upload/csb/geojson/"
+  	"upload_point": 		"https://www.ngdc.noaa.gov/ingest-external/upload/csb/geojson/",
+	"bad_talkers":			[]
 }

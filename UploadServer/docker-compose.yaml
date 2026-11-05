@@ -2,7 +2,7 @@ name: wibl-upload
 
 services:
   localstack:
-    image: localstack/localstack
+    image: localstack/localstack:4.8.1
     environment:
       - AWS_DEFAULT_REGION=us-east-2
       - AWS_ACCESS_KEY_ID=test

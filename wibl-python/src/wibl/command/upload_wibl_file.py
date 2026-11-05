@@ -82,8 +82,16 @@ def uploadwibl(input: Path, bucket: str, json: bool, source: str):
               client = boto3.client('s3', endpoint_url=os.environ['S3_ENDPOINT_URL'])
             else:
                 client = boto3.client('s3')
-            client.put_object_tagging(Bucket=bucket, Key=obj_key, Tagging=tagset)
+            if 'WIBL_TEST' in os.environ:
+                # We use garage for local testing, which doesn't currently support the S3 action PutObjectTagging,
+                # so if we are running in a test environment, omit the tagging.
+                click.echo("WARNING: WIBL_TEST environment variable is set, "
+                           "upload will occur without object tagging...")
+                client.put_object(Bucket=bucket, Key=obj_key)
+            else:
+                client.put_object_tagging(Bucket=bucket, Key=obj_key, Tagging=tagset)
             
         click.echo(f"Successfully uploaded {filename} to bucket {bucket} for object {obj_key}.")
     except Exception as e:
         click.echo(f"Failed to upload file to CSB ingest bucket due to error: {str(e)}")
+        raise click.ClickException(f"Exiting due to error: {str(e)}")

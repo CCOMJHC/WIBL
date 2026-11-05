@@ -114,8 +114,31 @@ private:
         STATE_CAPTURING     ///< In the middle of a sentence, looking for the end character(s)
     };
 
+    class ErrorCount {
+    public:
+        ErrorCount(void);
+        enum ErrorType {
+            NON_START = 0,
+            RX_INVERSION,
+            RESTART,
+            OVERLONG,
+            MAX_ERRORS
+        };
+        void Note(ErrorType event);
+        void ReportCounts(logger::Manager *manager, int channel);
+    
+    private:
+        unsigned int m_counts[ErrorCount::MAX_ERRORS];
+        unsigned long m_nextReport;
+        const unsigned long report_interval = 5000;
+        bool reportable(void);
+        bool timeout(void);
+        void reset(void);
+    };
+
     static const int RingBufferLength = 10; ///< Maximum number of sentences we'll attempt to buffer
     logger::Manager *m_logManager;          ///< Log manager to use for console logging, if required
+    ErrorCount m_errors;                    ///< Object to count errors during assembly (for later report)
     State     m_state;                      ///< Current state of the message being assembled
     Sentence  m_current;                    ///< Sentence currently being assembled
     int       m_readPoint;                  ///< Ring buffer read position
@@ -125,6 +148,7 @@ private:
     bool      m_debugAssembly;              ///< Flag for debug message construction
     int       m_badStartCount;              ///< Count of the number of bad start characters since last inversion reset
     int       m_lastInvertResetTime;        ///< Elapsed time when we last tried inverting the input to get good data
+    bool      m_inverted;                   ///< Indicator that RX inversion has been attempted
 };
 
 /// \class Logger
