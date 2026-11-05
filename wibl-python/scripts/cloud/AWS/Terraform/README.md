@@ -20,34 +20,10 @@ following JSON document as the contents of the policy:
 {
 	"Version": "2012-10-17",
 	"Statement": [
-        {
-            "Sid": "CreateServiceLinkedRole",
-            "Effect": "Allow",
-            "Action": "iam:CreateServiceLinkedRole",
-            "Resource": "arn:aws:iam::*:role/aws-service-role/elasticache.amazonaws.com/AWSServiceRoleForElastiCache",
-            "Condition": {
-                "StringLike": {
-                    "iam:AWSServiceName": "elasticache.amazonaws.com"
-                }
-            }
-        },
 		{
 			"Sid": "",
 			"Effect": "Allow",
 			"Action": [
-				"cloudfront:CreateCloudFrontOriginAccessIdentity",
-				"cloudfront:CreateDistribution",
-				"cloudfront:DeleteDistribution",
-				"cloudfront:DeleteCloudFrontOriginAccessIdentity",
-				"cloudfront:GetCachePolicy",
-				"cloudfront:GetCloudFrontOriginAccessIdentity",
-				"cloudfront:GetDistribution",
-				"cloudfront:GetOriginRequestPolicy",
-				"cloudfront:ListCachePolicies",
-				"cloudfront:ListCachePolicies",
-				"cloudfront:ListOriginRequestPolicies",
-				"cloudfront:ListTagsForResource",
-				"cloudfront:UpdateDistribution",
 				"ec2:AllocateAddress",
 				"ec2:AssociateRouteTable",
 				"ec2:AttachInternetGateway",
@@ -90,35 +66,6 @@ following JSON document as the contents of the policy:
 				"ec2:ReleaseAddress",
 				"ec2:RevokeSecurityGroupEgress",
 				"ec2:RevokeSecurityGroupIngress",
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:BatchGetImage",
-                "ecr:CompleteLayerUpload",
-				"ecr:CreateRepository",
-				"ecr:DeleteRepository",
-				"ecr:DescribeRepositories",
-				"ecr:GetAuthorizationToken",
-				"ecr:GetDownloadUrlForLayer",
-                "ecr:InitiateLayerUpload",
-				"ecr:ListTagsForResource",
-				"ecr:TagResource",
-				"ecr:PutImage",
-                "ecr:UploadLayerPart",
-				"ecs:CreateCluster",
-				"ecs:DeleteCluster",
-				"ecs:DescribeClusters",
-				"ecs:PutClusterCapacityProviders",
-                "ecs:RegisterTaskDefinition",
-				"ecs:TagResource",
-				"elasticache:AddTagsToResource",
-				"elasticache:CreateCacheSubnetGroup",
-                "elasticache:CreateReplicationGroup",
-                "elasticache:CreateSnapshot",
-                "elasticache:DeleteCacheSubnetGroup",
-                "elasticache:DeleteReplicationGroup",
-                "elasticache:DescribeCacheClusters",
-                "elasticache:DescribeCacheSubnetGroups",
-                "elasticache:DescribeReplicationGroups",
-                "elasticache:ListTagsForResource",
 				"elasticloadbalancing:AddTags",
 				"elasticloadbalancing:CreateListener",
 				"elasticloadbalancing:CreateLoadBalancer",
@@ -153,6 +100,7 @@ following JSON document as the contents of the policy:
 				"iam:GetRole",
 				"iam:GetRolePolicy",
 				"iam:ListAttachedRolePolicies",
+				"iam:ListEntitiesForPolicy",
 				"iam:ListInstanceProfilesForRole",
 				"iam:ListPolicyVersions",
 				"iam:ListRolePolicies",
@@ -163,55 +111,32 @@ following JSON document as the contents of the policy:
 				"logs:DescribeLogGroups",
 				"logs:ListTagsForResource",
 				"logs:PutRetentionPolicy",
-				"rds:AddTagsToResource",
-				"rds:CreateDBInstance",
-				"rds:CreateDBSubnetGroup",
-                "rds:DeleteDBInstance",
-				"rds:DeleteDBSubnetGroup",
-                "rds:DescribeDBInstances",
-				"rds:DescribeDBSubnetGroups",
-				"rds:ListTagsForResource",
-				"s3-object-lambda:GetObject",
-				"s3:CreateBucket",
-				"s3:DeleteBucket",
-				"s3:DeleteBucketPolicy",
-				"s3:DeleteObject",
-				"s3:GetAccelerateConfiguration",
-				"s3:GetBucketAcl",
-				"s3:GetBucketCORS",
-				"s3:GetBucketLocation",
-				"s3:GetBucketLogging",
-				"s3:GetBucketObjectLockConfiguration",
-				"s3:GetBucketPolicy",
-				"s3:GetBucketRequestPayment",
-				"s3:GetBucketTagging",
-				"s3:GetBucketVersioning",
-				"s3:GetBucketWebsite",
-				"s3:GetEncryptionConfiguration",
-				"s3:GetLifecycleConfiguration",
-				"s3:GetObject",
-				"s3:GetObjectLegalHold",
-				"s3:GetObjectRetention",
-				"s3:GetReplicationConfiguration",
-				"s3:ListBucket",
-				"s3:PutBucketCORS",
-				"s3:PutBucketPolicy",
-				"s3:PutBucketVersioning",
-				"s3:PutObject",
-				"s3:PutObjectTagging",
-				"sns:CreateTopic",
-				"sns:DeleteTopic",
-				"sns:GetTopicAttributes",
-				"sns:ListTagsForResource",
-				"sns:PutDataProtectionPolicy",
-				"sns:SetTopicAttributes",
-				"sns:TagResource"
+				"ssm:AddTagsToResource",
+				"ssm:DeleteParameter",
+				"ssm:DescribeParameters",
+				"ssm:GetParameter",
+				"ssm:ListTagsForResource",
+				"ssm:PutParameter"
 			],
 			"Resource": "*"
 		}
 	]
 }
 ```
+
+You will also need to add the following AWS-managed policies to `wibl-admin` group:
+
+ - AmazonEC2ContainerRegistryFullAccess
+ - AmazonECS_FullAccess
+ - AmazonElastiCacheFullAccess
+ - AmazonRDSFullAccess
+ - AmazonS3FullAccess
+ - AmazonSNSFullAccess
+ - AWSCloudTrail_FullAccess
+ - AWSLambda_FullAccess
+ - CloudFrontFullAccess
+ - SecretsManagerReadWrite
+
 
 ### 1. Changing default configurations
 Inside the [tf-configure-step-1.bash](./tf-configure-step-1.bash) file there are two variables that must be examined.

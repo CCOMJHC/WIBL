@@ -43,7 +43,7 @@ terraform_state_bucket = "${PROVIDER_PREFIX}-wibl-tf-state"
 terraform_state_key = "terraform/state/wibl-processing-server-deploy.tfstate"
 
 incoming_bucket_name  = "${PROVIDER_PREFIX}-wibl-incoming-bucket"
-staging_bucket_name   = "${PROVIDER_PREFIX}-wibl-staging-bucket-gt"
+staging_bucket_name   = "${PROVIDER_PREFIX}-wibl-staging-bucket"
 viz_bucket_name       = "${PROVIDER_PREFIX}-wibl-viz-bucket"
 static_bucket_name = "${PROVIDER_PREFIX}-wibl-static-files-bucket"
 
