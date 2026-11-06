@@ -30,7 +30,9 @@ from pathlib import Path
 
 import click
 
+from wibl.core.datasource import LocalSource, LocalController
 from wibl.validation.cloud.aws import get_config_file
+import wibl.core.datasource as ds
 import wibl.core.config as conf
 from wibl.validation.cloud.aws.lambda_function import validate_metadata
 
@@ -58,7 +60,12 @@ def geojson_validate(input: str, config: Path):
     if cfg['management_url']:
         os.environ['MANAGEMENT_URL'] = cfg['management_url']
 
-    if not validate_metadata(infilename, cfg):
+    source = LocalSource(infilename, infilename, cfg)
+    controller = LocalController(cfg)
+    item: ds.DataItem = source.nextSource()
+    local_file, source_info = controller.obtain(item)
+
+    if not validate_metadata(local_file, source_info, cfg):
         click.echo(f"error: failed to validate {infilename} metadata.")
     else:
         click.echo(f"info: completed successful validate of {infilename} metadata.")

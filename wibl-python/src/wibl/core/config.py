@@ -131,6 +131,8 @@ def read_config(config_file: Union[Path, str]) -> Dict[str, Any]:
             config['strict_mode'] = False
         if 'management_url' not in config:
             config['management_url'] = ''
+        if 'bad_talkers' not in config:
+            config['bad_talkers'] = []
 
         return config
 
