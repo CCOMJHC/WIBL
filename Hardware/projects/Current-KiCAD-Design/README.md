@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This directory contains all of the files required for the [KiCAD](https://www.kicad.org) projects associated with the [WIBL](https://wibl.ccom.unh.edu) project.  You will need at least v. 9.0 of KiCAD to use the files.
+This directory contains all of the files required for the [KiCAD](https://www.kicad.org) projects associated with the [WIBL](https://wibl.ccom.unh.edu) project.  You will need at least v. 10.0 of KiCAD to use the files.
 
 ## Portability
 
@@ -11,7 +11,7 @@ There have been some reported issues with project files containing hard-coded di
 1. Open [the project file](WIBL.kicad_pro) in KiCAD.
 2. Open menu Peferences > Manage Symbol Libraries
     - Switch to the "Project Specific Libraries" tab.
-    - Click on the cell containing the pathname for the "WIBL-eagle-import" library, and navigate to the [WIBL-eagle-import.kicad_sym](WIBL-eagle-import.kicad_sym) file.
+    - Click on the cell containing the pathname for the "WIBL-sym" library, and navigate to the [WIBL.kicad_sym](WIBL.kicad_sym) file.
     - Click "OK" to save.
 3. Open menu Preferences > Manage Footprint Libraries
     - Switch to the "Project Specific Libraries" tab.

@@ -312,7 +312,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:LSM6DS3TR-C_LSM6DS3TR-C"
+		(symbol "WIBL-sym:LSM6DS3TR-C_LSM6DS3TR-C"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -703,7 +703,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:frames_A4L-LOC_250721"
+		(symbol "WIBL-sym:frames_A4L-LOC_250721"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -1418,7 +1418,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:led_LEDCHIP-LED0603"
+		(symbol "WIBL-sym:led_LEDCHIP-LED0603"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -1672,7 +1672,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:pinhead_PINHD-1X2"
+		(symbol "WIBL-sym:pinhead_PINHD-1X2"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -1821,7 +1821,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:pinhead_PINHD-1X4"
+		(symbol "WIBL-sym:pinhead_PINHD-1X4"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -2006,7 +2006,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:pinhead_PINHD-1X6"
+		(symbol "WIBL-sym:pinhead_PINHD-1X6"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -2227,7 +2227,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:rcl_C-EUC0805"
+		(symbol "WIBL-sym:rcl_C-EUC0805"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -2374,7 +2374,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:rcl_R-EU_R0805"
+		(symbol "WIBL-sym:rcl_R-EU_R0805"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -2523,7 +2523,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:sb2030_logger_ESP32-WROOM-32E"
+		(symbol "WIBL-sym:sb2030_logger_ESP32-WROOM-32E"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -3234,7 +3234,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:sb2030_logger_MCP2562T-E/SN"
+		(symbol "WIBL-sym:sb2030_logger_MCP2562T-E/SN"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -3535,7 +3535,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:sb2030_logger_NMEA2000"
+		(symbol "WIBL-sym:sb2030_logger_NMEA2000"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -3760,7 +3760,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:sb2030_logger_S8050"
+		(symbol "WIBL-sym:sb2030_logger_S8050"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -4065,7 +4065,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:sb2030_logger_XUNPU-MICROSD-SOCKET"
+		(symbol "WIBL-sym:sb2030_logger_XUNPU-MICROSD-SOCKET"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -4456,7 +4456,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:supply1_+3V3"
+		(symbol "WIBL-sym:supply1_+3V3"
 			(power global)
 			(exclude_from_sim no)
 			(in_bom yes)
@@ -4574,7 +4574,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:supply1_+5V"
+		(symbol "WIBL-sym:supply1_+5V"
 			(power global)
 			(exclude_from_sim no)
 			(in_bom yes)
@@ -4692,7 +4692,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:supply1_GND"
+		(symbol "WIBL-sym:supply1_GND"
 			(power global)
 			(exclude_from_sim no)
 			(in_bom yes)
@@ -8383,7 +8383,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 214.63 91.44 270)
 		(mirror x)
 		(unit 1)
@@ -8498,7 +8498,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:sb2030_logger_ESP32-WROOM-32E")
+		(lib_id "WIBL-sym:sb2030_logger_ESP32-WROOM-32E")
 		(at 95.25 101.6 0)
 		(unit 1)
 		(body_style 1)
@@ -8757,7 +8757,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 170.18 121.92 180)
 		(unit 1)
 		(body_style 1)
@@ -8871,7 +8871,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 85.09 72.39 0)
 		(unit 1)
 		(body_style 1)
@@ -8949,7 +8949,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 160.02 25.4 90)
 		(unit 1)
 		(body_style 1)
@@ -9063,7 +9063,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:pinhead_PINHD-1X2")
+		(lib_id "WIBL-sym:pinhead_PINHD-1X2")
 		(at 41.91 105.41 0)
 		(unit 1)
 		(body_style 1)
@@ -9221,7 +9221,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:sb2030_logger_S8050")
+		(lib_id "WIBL-sym:sb2030_logger_S8050")
 		(at 27.94 127 0)
 		(unit 1)
 		(body_style 1)
@@ -9393,7 +9393,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 147.32 25.4 90)
 		(unit 1)
 		(body_style 1)
@@ -9540,7 +9540,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_C-EUC0805")
+		(lib_id "WIBL-sym:rcl_C-EUC0805")
 		(at 25.4 86.36 0)
 		(unit 1)
 		(body_style 1)
@@ -9654,7 +9654,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_+3V3")
+		(lib_id "WIBL-sym:supply1_+3V3")
 		(at 116.84 179.07 0)
 		(unit 1)
 		(body_style 1)
@@ -9732,7 +9732,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 95.25 134.62 0)
 		(unit 1)
 		(body_style 1)
@@ -9810,7 +9810,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:sb2030_logger_XUNPU-MICROSD-SOCKET")
+		(lib_id "WIBL-sym:sb2030_logger_XUNPU-MICROSD-SOCKET")
 		(at 231.14 43.18 0)
 		(unit 1)
 		(body_style 1)
@@ -10001,7 +10001,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 172.72 25.4 90)
 		(unit 1)
 		(body_style 1)
@@ -10115,7 +10115,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:pinhead_PINHD-1X2")
+		(lib_id "WIBL-sym:pinhead_PINHD-1X2")
 		(at 34.29 168.91 180)
 		(unit 1)
 		(body_style 1)
@@ -10273,7 +10273,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_C-EUC0805")
+		(lib_id "WIBL-sym:rcl_C-EUC0805")
 		(at 49.53 181.61 0)
 		(unit 1)
 		(body_style 1)
@@ -10387,7 +10387,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 208.28 91.44 270)
 		(mirror x)
 		(unit 1)
@@ -10502,7 +10502,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 36.83 149.86 0)
 		(unit 1)
 		(body_style 1)
@@ -10580,7 +10580,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 114.3 165.1 0)
 		(unit 1)
 		(body_style 1)
@@ -10658,7 +10658,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_+5V")
+		(lib_id "WIBL-sym:supply1_+5V")
 		(at 49.53 157.48 0)
 		(unit 1)
 		(body_style 1)
@@ -10736,7 +10736,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:LSM6DS3TR-C_LSM6DS3TR-C")
+		(lib_id "WIBL-sym:LSM6DS3TR-C_LSM6DS3TR-C")
 		(at 245.11 101.6 0)
 		(mirror y)
 		(unit 1)
@@ -10926,7 +10926,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:pinhead_PINHD-1X2")
+		(lib_id "WIBL-sym:pinhead_PINHD-1X2")
 		(at 207.01 77.47 0)
 		(unit 1)
 		(body_style 1)
@@ -11084,7 +11084,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_+3V3")
+		(lib_id "WIBL-sym:supply1_+3V3")
 		(at 262.89 78.74 0)
 		(mirror y)
 		(unit 1)
@@ -11163,7 +11163,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:pinhead_PINHD-1X4")
+		(lib_id "WIBL-sym:pinhead_PINHD-1X4")
 		(at 201.93 176.53 0)
 		(unit 1)
 		(body_style 1)
@@ -11327,7 +11327,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 25.4 134.62 90)
 		(unit 1)
 		(body_style 1)
@@ -11441,7 +11441,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 170.18 106.68 180)
 		(unit 1)
 		(body_style 1)
@@ -11555,7 +11555,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_C-EUC0805")
+		(lib_id "WIBL-sym:rcl_C-EUC0805")
 		(at 116.84 186.69 0)
 		(unit 1)
 		(body_style 1)
@@ -11669,7 +11669,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 153.67 25.4 90)
 		(unit 1)
 		(body_style 1)
@@ -11783,7 +11783,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:sb2030_logger_S8050")
+		(lib_id "WIBL-sym:sb2030_logger_S8050")
 		(at 53.34 127 0)
 		(unit 1)
 		(body_style 1)
@@ -11955,7 +11955,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 135.89 152.4 90)
 		(unit 1)
 		(body_style 1)
@@ -12069,7 +12069,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 166.37 25.4 90)
 		(unit 1)
 		(body_style 1)
@@ -12183,7 +12183,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_C-EUC0805")
+		(lib_id "WIBL-sym:rcl_C-EUC0805")
 		(at 251.46 40.64 0)
 		(unit 1)
 		(body_style 1)
@@ -12376,7 +12376,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 116.84 195.58 0)
 		(unit 1)
 		(body_style 1)
@@ -12454,7 +12454,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 67.31 19.05 0)
 		(unit 1)
 		(body_style 1)
@@ -12532,7 +12532,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 267.97 139.7 0)
 		(mirror y)
 		(unit 1)
@@ -12611,7 +12611,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 179.07 25.4 90)
 		(unit 1)
 		(body_style 1)
@@ -12725,7 +12725,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_C-EUC0805")
+		(lib_id "WIBL-sym:rcl_C-EUC0805")
 		(at 80.01 62.23 0)
 		(unit 1)
 		(body_style 1)
@@ -12839,7 +12839,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:pinhead_PINHD-1X6")
+		(lib_id "WIBL-sym:pinhead_PINHD-1X6")
 		(at 203.2 22.86 90)
 		(unit 1)
 		(body_style 1)
@@ -13009,7 +13009,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:pinhead_PINHD-1X2")
+		(lib_id "WIBL-sym:pinhead_PINHD-1X2")
 		(at 41.91 91.44 0)
 		(unit 1)
 		(body_style 1)
@@ -13167,7 +13167,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_+3V3")
+		(lib_id "WIBL-sym:supply1_+3V3")
 		(at 187.96 106.68 0)
 		(unit 1)
 		(body_style 1)
@@ -13245,7 +13245,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_C-EUC0805")
+		(lib_id "WIBL-sym:rcl_C-EUC0805")
 		(at 267.97 114.3 0)
 		(mirror y)
 		(unit 1)
@@ -13360,7 +13360,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:sb2030_logger_S8050")
+		(lib_id "WIBL-sym:sb2030_logger_S8050")
 		(at 40.64 127 0)
 		(unit 1)
 		(body_style 1)
@@ -13532,7 +13532,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 25.4 96.52 0)
 		(unit 1)
 		(body_style 1)
@@ -13610,7 +13610,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 49.53 195.58 0)
 		(unit 1)
 		(body_style 1)
@@ -13688,7 +13688,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_+3V3")
+		(lib_id "WIBL-sym:supply1_+3V3")
 		(at 246.38 10.16 0)
 		(unit 1)
 		(body_style 1)
@@ -13766,7 +13766,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:pinhead_PINHD-1X6")
+		(lib_id "WIBL-sym:pinhead_PINHD-1X6")
 		(at 26.67 22.86 0)
 		(mirror y)
 		(unit 1)
@@ -13937,7 +13937,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 179.07 195.58 0)
 		(unit 1)
 		(body_style 1)
@@ -14015,7 +14015,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:frames_A4L-LOC_250721")
+		(lib_id "WIBL-sym:frames_A4L-LOC_250721")
 		(at 0 214.63 0)
 		(unit 1)
 		(body_style 1)
@@ -14102,7 +14102,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 31.75 73.66 90)
 		(unit 1)
 		(body_style 1)
@@ -14216,7 +14216,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:led_LEDCHIP-LED0603")
+		(lib_id "WIBL-sym:led_LEDCHIP-LED0603")
 		(at 160.02 106.68 270)
 		(unit 1)
 		(body_style 1)
@@ -14386,7 +14386,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_+3V3")
+		(lib_id "WIBL-sym:supply1_+3V3")
 		(at 25.4 58.42 0)
 		(unit 1)
 		(body_style 1)
@@ -14464,7 +14464,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 170.18 114.3 180)
 		(unit 1)
 		(body_style 1)
@@ -14578,7 +14578,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_+3V3")
+		(lib_id "WIBL-sym:supply1_+3V3")
 		(at 83.82 52.07 0)
 		(unit 1)
 		(body_style 1)
@@ -14656,7 +14656,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_C-EUC0805")
+		(lib_id "WIBL-sym:rcl_C-EUC0805")
 		(at 87.63 62.23 0)
 		(unit 1)
 		(body_style 1)
@@ -14770,7 +14770,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:sb2030_logger_MCP2562T-E/SN")
+		(lib_id "WIBL-sym:sb2030_logger_MCP2562T-E/SN")
 		(at 88.9 173.99 270)
 		(unit 1)
 		(body_style 1)
@@ -14946,7 +14946,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 25.4 73.66 90)
 		(unit 1)
 		(body_style 1)
@@ -15060,7 +15060,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 246.38 55.88 0)
 		(mirror y)
 		(unit 1)
@@ -15139,7 +15139,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_R-EU_R0805")
+		(lib_id "WIBL-sym:rcl_R-EU_R0805")
 		(at 220.98 91.44 270)
 		(mirror x)
 		(unit 1)
@@ -15254,7 +15254,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:led_LEDCHIP-LED0603")
+		(lib_id "WIBL-sym:led_LEDCHIP-LED0603")
 		(at 160.02 121.92 270)
 		(unit 1)
 		(body_style 1)
@@ -15424,7 +15424,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:led_LEDCHIP-LED0603")
+		(lib_id "WIBL-sym:led_LEDCHIP-LED0603")
 		(at 160.02 114.3 270)
 		(unit 1)
 		(body_style 1)
@@ -15594,7 +15594,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:sb2030_logger_NMEA2000")
+		(lib_id "WIBL-sym:sb2030_logger_NMEA2000")
 		(at 160.02 147.32 180)
 		(unit 1)
 		(body_style 1)
@@ -15761,7 +15761,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:rcl_C-EUC0805")
+		(lib_id "WIBL-sym:rcl_C-EUC0805")
 		(at 261.62 40.64 0)
 		(unit 1)
 		(body_style 1)

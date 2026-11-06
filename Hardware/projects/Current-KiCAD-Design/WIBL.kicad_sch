@@ -183,7 +183,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:MTH_P_3.2mm_M3"
+		(symbol "WIBL-sym:MTH_P_3.2mm_M3"
 			(pin_numbers
 				(hide yes)
 			)
@@ -306,7 +306,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:frames_A4L-LOC_250721"
+		(symbol "WIBL-sym:frames_A4L-LOC_250721"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -1021,7 +1021,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "WIBL-eagle-import:supply1_GND"
+		(symbol "WIBL-sym:supply1_GND"
 			(power global)
 			(exclude_from_sim no)
 			(in_bom yes)
@@ -5641,7 +5641,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:supply1_GND")
+		(lib_id "WIBL-sym:supply1_GND")
 		(at 33.02 96.52 0)
 		(unit 1)
 		(body_style 1)
@@ -5796,7 +5796,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:MTH_P_3.2mm_M3")
+		(lib_id "WIBL-sym:MTH_P_3.2mm_M3")
 		(at 11.43 78.74 0)
 		(unit 1)
 		(body_style 1)
@@ -5997,7 +5997,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:MTH_P_3.2mm_M3")
+		(lib_id "WIBL-sym:MTH_P_3.2mm_M3")
 		(at 49.53 78.74 0)
 		(unit 1)
 		(body_style 1)
@@ -6246,7 +6246,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:frames_A4L-LOC_250721")
+		(lib_id "WIBL-sym:frames_A4L-LOC_250721")
 		(at 0 209.55 0)
 		(unit 1)
 		(body_style 1)
@@ -6662,7 +6662,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:MTH_P_3.2mm_M3")
+		(lib_id "WIBL-sym:MTH_P_3.2mm_M3")
 		(at 36.83 78.74 0)
 		(unit 1)
 		(body_style 1)
@@ -6785,7 +6785,7 @@
 		)
 	)
 	(symbol
-		(lib_id "WIBL-eagle-import:MTH_P_3.2mm_M3")
+		(lib_id "WIBL-sym:MTH_P_3.2mm_M3")
 		(at 24.13 78.74 0)
 		(unit 1)
 		(body_style 1)
