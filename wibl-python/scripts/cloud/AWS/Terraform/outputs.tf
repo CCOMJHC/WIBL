@@ -21,3 +21,7 @@ output "validation_lambda_name" {
 output "submission_lambda_name" {
   value = var.submission_lambda_name
 }
+
+output "frontend_hostname" {
+  value = module.configure-manager-ecs.frontend_hostname
+}
