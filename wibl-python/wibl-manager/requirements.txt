@@ -1,6 +1,6 @@
 gunicorn~=23.0.0
 uvicorn
-SQLAlchemy
+sqlalchemy[asyncio]
 fastapi
 requests~=2.32.4
 dataclasses-json~=0.5.7

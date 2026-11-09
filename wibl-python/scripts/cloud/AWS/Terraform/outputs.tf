@@ -25,3 +25,11 @@ output "submission_lambda_name" {
 output "frontend_hostname" {
   value = module.configure-manager-ecs.frontend_hostname
 }
+
+output "wibl_aws_region" {
+  value = var.region
+}
+
+output "incoming_bucket_name" {
+  value = module.configure-buckets.incoming_bucket_full_name
+}

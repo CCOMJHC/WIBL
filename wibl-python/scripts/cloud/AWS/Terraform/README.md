@@ -1,4 +1,31 @@
-# Terraform AWS Build Instructions
+# WIBL Terraform AWS Build Instructions
+
+## Usage
+First, install the WIBL cloud data processing tools using Terraform as described in the "Setup" section below.
+
+Next, load the WIBL frontend in your web browser. You can find the hostname for the WIBL frontend associated
+with your installation by running:
+```shell
+$ terraform output frontend_hostname
+"xyz1abc2efg3hi.cloudfront.net"
+```
+
+To log into your instance of the WIBL frontend, use the `superuser_username` and `superuser_password` you 
+specified in the file `terraform.tfvars` file, as instructed in the instructions below.
+
+You can post dummy test data to the system using the [test_lambda.sh](test/test_lambda.sh) script. To do
+so, you'll first need to create a Python virtual environment:
+```shell
+$ python3 -m venv venv-test && \
+  source venv-test/bin/activate && \
+  pip install -r test/requirements.txt
+```
+
+Then run the script:
+```shell
+$ ./test/test_lambda.sh
+```
+
 
 ## Setup
 The following software items must be installed and configured before continuing
@@ -40,6 +67,7 @@ following JSON document as the contents of the policy:
 				"ec2:CreateVpcEndpoint",
 				"ec2:DeleteInternetGateway",
 				"ec2:DeleteNatGateway",
+                "ec2:DeleteNetworkInterface",
 				"ec2:DeleteRouteTable",
 				"ec2:DeleteSecurityGroup",
 				"ec2:DeleteSubnet",
