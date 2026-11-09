@@ -26,6 +26,8 @@ Then run the script:
 $ ./test/test_lambda.sh
 ```
 
+Finally, use your instance of WIBL frontend to examine the processing metadata for the test file.
+
 
 ## Setup
 The following software items must be installed and configured before continuing
