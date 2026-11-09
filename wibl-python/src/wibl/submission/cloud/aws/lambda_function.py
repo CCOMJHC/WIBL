@@ -79,6 +79,9 @@ def read_local_event(event_file: str) -> Dict:
 
 def transmit_geojson(source_info: Dict[str, Any], provider_id: str, provider_auth: str, local_file: str,
                      config: Dict[str, Any]) -> bool:
+    is_local = config['local']
+    is_verbose = config['verbose']
+
     auth_token: str = provider_auth.strip()
     headers = {
         'x-auth-token': auth_token
@@ -90,63 +93,72 @@ def transmit_geojson(source_info: Dict[str, Any], provider_id: str, provider_aut
     else:
         dest_uniqueID = source_info['sourceID']
 
-    filesize = os.path.getsize(local_file) / (1024.0 * 1024.0)
     filename = os.path.split(local_file)[-1]
     if filename == '':
         print(f'warning: unable to determine of file to upload. local_file was: {local_file}.')
-    manager: ManagerInterface = ManagerInterface(MetadataType.GEOJSON_METADATA, filename, config['verbose'])
+    manager: ManagerInterface = ManagerInterface(MetadataType.GEOJSON_METADATA, filename, is_verbose)
 
     rc, meta = manager.lookup()
     if not rc:
-        if config['verbose']:
+        if is_verbose:
             print(f'error: failed to find metadata on {filename} from database manager.')
         return rc
 
     clearedStatus = meta.status & GeoJSONStatus.EMPTY_UPLOAD.value
     meta.status = clearedStatus | GeoJSONStatus.UPLOAD_STARTED.value
 
-    if config['verbose']:
+    if is_verbose:
         print(f'Source ID is: {source_info["sourceID"]}; ' +
               f'Destination object uniqueID is: {dest_uniqueID}; ' +
-              f'Authorisation token is: {auth_token}')
+              f'Authorisation token is specified? {auth_token is not None and len(auth_token) > 0}')
 
     files = {
         'file': (local_file, open(local_file, 'rb')),
-        'metadataInput': (None, '{\n    "uniqueID": "' + dest_uniqueID + '"\n}')
+    }
+    payload = {
+        'metadataInput': f'{{"uniqueID":"{dest_uniqueID}"}}'
     }
 
     upload_point = getenv('UPLOAD_POINT')
 
-    if config['local']:
-        print(f'Local mode: Transmitting to {upload_point} for source ID {source_info["sourceID"]} with destination ID {dest_uniqueID}.')
-        meta.status = GeoJSONStatus.UPLOAD_SUCCESSFUL.value
-        rc = True
+    if is_local:
+        print(f'Local mode: Transmitting to {upload_point} for source ID {source_info["sourceID"]} with '
+              f'destination ID {dest_uniqueID}.')
     else:
-        response = requests.post(upload_point, headers=headers, files=files)
-        if config['verbose']:
-            print(f'Submission status for file {local_file} was {response.status_code}')
-            print(f'\tResponse text was: {response.text}')
+        if is_verbose:
+            print(f'Transmitting for source ID {source_info["sourceID"]} to {upload_point} '
+                  f'as destination ID {dest_uniqueID}.')
+
+    response = requests.post(upload_point.strip('/'), headers=headers, files=files, data=payload)
+    if is_verbose:
+        print(f'Submission status for file {local_file} was {response.status_code}; '
+              f'Response text was: {response.text}')
+    try:
         json_response = response.json()
-        if config['verbose']:
+        if is_verbose:
             print(f'POST response is {json_response}')
-        try:
-            json_code = json_response['success']
-            if json_code:
-                rc = True
-                meta.status = clearedStatus | GeoJSONStatus.UPLOAD_SUCCESSFUL.value
-            else:
-                rc = False
-                meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
-                manager.logmsg(f'error: DCDB responded {json_response}')
-        except (json.decoder.JSONDecodeError, KeyError) as e:
+        json_code = json_response['success']
+        if json_code:
+            rc = True
+            meta.status = clearedStatus | GeoJSONStatus.UPLOAD_SUCCESSFUL.value
+            submission_ids = ', '.join(json_response['submissionIds'])
+            manager.logmsg(f'submission id(s): {submission_ids}')
+            if is_local:
+                print(f"Submission ID(s) were: {submission_ids}")
+        else:
             rc = False
             meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
             manager.logmsg(f'error: DCDB responded {json_response}')
-            manager.logmsg(f'error: {type(e).__name__}: {e}')
-            manager.logmsg(f'error: failure trace:\n{traceback.format_exc()}')
+    except (json.decoder.JSONDecodeError, KeyError) as e:
+        rc = False
+        meta.status = clearedStatus | GeoJSONStatus.UPLOAD_FAILED.value
+        manager.logmsg(f'error: DCDB responded {response.text}')
+        manager.logmsg(f'error: {type(e).__name__}: {e}')
+        manager.logmsg(f'error: failure trace:\n{traceback.format_exc()}')
 
     manager.update(meta)
     return rc
+
 
 def lambda_handler(event, context):
     try:
@@ -156,6 +168,8 @@ def lambda_handler(event, context):
             'statusCode': ReturnCodes.FAILED.value,
             'body': 'Bad configuration file.'
         }
+
+    is_verbose = config['verbose']
 
     # Construct a data source to handle the input items, and a controller to manage the transmission of
     # data from buckets to local files. We instantiate the DataSource and CloudController sub-classes
@@ -186,34 +200,19 @@ def lambda_handler(event, context):
         local_file, source_info = controller.obtain(item)
         print(f'Source information is {source_info}.')
         if not source_info['sourceID']:
-            if config['verbose']:
+            if is_verbose:
                 print(f'Failed to transfer item {item} because it has no SourceID specified.')
             failed.append(item)
         else:
             rc = transmit_geojson(source_info, provider_id, provider_auth, local_file, config)
             if rc:
-                if config['verbose']:
+                if is_verbose:
                     print(f'Succeeded in transferring item {item}')
                 succeeded.append(item)
                 item.dest_size = item.source_size
                 notifier.notify(item)
             else:
-                if config['verbose']:
+                if is_verbose:
                     print(f'Failed to transfer item {item}')
                 failed.append(item)
         item = source.nextSource()
-
-    # Status report for the user
-    if failed:
-        status_code = ReturnCodes.FAILED.value
-    else:
-        status_code = ReturnCodes.OK.value
-    n_succeed = len(succeeded)
-    n_fail = len(failed)
-    n_total = n_succeed + n_fail
-    rtn = {
-        'statusCode': status_code,
-        'body': f'Success on {n_succeed}, failed on {n_fail}; total {n_total}.'
-    }
-
-    return rtn
