@@ -31,7 +31,6 @@
 #include <WiFiAP.h>
 #include <ESPmDNS.h>
 #include <WebServer.h>
-#include <WifiClient.h>
 #include <LittleFS.h>
 #include <ESP32-targz.h>
 
@@ -40,6 +39,7 @@
 #include "Configuration.h"
 #include "MemController.h"
 #include "serial_number.h"
+#include "timing.h"
 
 #if defined(ARDUINO_ARCH_ESP32) || defined(ESP32)
 
@@ -91,7 +91,7 @@ public:
         // Due to an oddness in the WebServer library, it ignores the content length set in the
         // _prepareHeader() method unless the length has never been set (_contentLength ==
         // CONTENT_LENGTH_NOT_SET), so we have to set the length to CONTENT_LENGTH_UNKNOWN
-        // here to make sure it does into chunked mode...
+        // here to make sure it goes into chunked mode...
         setContentLength(CONTENT_LENGTH_UNKNOWN);
 
         // OK, so there's something to send, so we can build the headers then stream
@@ -373,6 +373,191 @@ private:
     }
 };
 
+/// @brief POD for the information associated with a pending command
+struct PendingCommand {
+    uint32_t    cmdId;      ///< Command identifier associated with this command
+    uint64_t    created;    ///< Elapsed time (psuedo-us) for when the command was added
+    String      command;    ///< Command string the user sent to us
+    WiFiAdapter::HTTPReturnCodes status; ///< Status to return with result
+
+    PendingCommand(void)
+    {
+        cmdId = 0UL;
+        created = 0ULL;
+    }
+
+    PendingCommand(uint32_t const command_id, uint64_t const now, String const& cmd)
+    : cmdId(command_id), created(now), command(cmd)
+    {}
+
+    bool timedOut(uint64_t now, uint64_t timeout)
+    {
+        return (now - created) > timeout;
+    }
+};
+
+/// \class CommandStack
+/// \brief Manage a list of outstanding commands for the client
+///
+/// Clients can send multiple requests to the server at the same time, but we need to allow the command
+/// processor (\a SerialCommand) execute any commands sent from the JavaScript interface (or otherwise),
+/// which means that we can't respond immediately when they're received.  To avoid stalling the web server
+/// (which is single-threaded and can only handle one request at a time), this class provides the means
+/// to track a command request and the result until such time as the client polls for the result.  For
+/// resource usage reasons (mostly in the output JSON), a limited number of commands are allowed in the
+/// stack before returning "busy" signals.
+class CommandStack {
+public:
+    CommandStack(logger::Manager *logger, uint32_t pending_timeout = 10000)
+    : m_logger(logger), m_pendingTimeout(pending_timeout), m_nextCommandId(0), m_verbose(false)
+    {
+    }
+
+    ~CommandStack(void)
+    {
+        while (!m_results.empty()) {
+            m_logger->FileSystem().remove(getFilename(m_results.front().cmdId));
+            m_results.pop_front();
+        }
+    }
+
+    void set_verbose(bool const state) { m_verbose = state; }
+
+    /// @brief Assign a job slot to a new command, returning ID if available
+    /// @param commandIdAssigned Output of the command identifier assigned to the command for results polling
+    uint32_t addCommand(String const& command)
+    {
+        uint32_t command_id = m_nextCommandId++;
+        m_pending.push(PendingCommand(command_id, m_logger->GetElapsedTime(), command));
+        if (m_verbose) {
+            Serial.printf("DBG: adding command |%s| to WiFi pending list with ID %ld.\n", command.c_str(), command_id);
+        }
+        return command_id;
+    }
+
+    /// @brief Return the next command from the queue, if one exists
+    /// @param cmd Output command that's next on the list
+    /// @return True if the command is valid, otherwise false (no command waiting)
+    bool nextCommand(PendingCommand& cmd)
+    {
+        if (m_pending.empty()) {
+            return false;
+        }
+        cmd = m_pending.front();
+        if (m_verbose) {
+            Serial.printf("DBG: handing out WiFi command %ld = |%s| for execution.\n",
+                cmd.cmdId, cmd.command.c_str());
+        }
+        return true;
+    }
+
+    /// @brief Add the JSON document result for a command for later pick-up
+    /// @param result    Reference to the JSON document that resulted from the command
+    /// @return True if the result was stashed correctly and is ready for pickup, otherwise False.
+    bool addResult(WiFiAdapter::HTTPReturnCodes status, JsonDocument const& result)
+    {
+        TimeoutPending();
+        fs::File res = m_logger->FileSystem().open(getFilename(m_pending.front().cmdId), FILE_WRITE, true);
+        if (res) {
+            if (m_verbose) {
+                Serial.printf("DBG: transferred command %ld = |%s| to results list, status %d\n",
+                    m_pending.front().cmdId, m_pending.front().command.c_str(), (int)status);
+            }
+            serializeJson(result, res);
+            res.close();
+            m_pending.front().status = status;
+            m_results.push_back(m_pending.front());
+            m_pending.pop();
+            return true;
+        } else {
+            String msg("ERR: failed to write command result for command ");
+            msg += m_pending.front().cmdId;
+            m_logger->Syslog(msg);
+            if (m_verbose) {
+                Serial.printf("%s\n", msg.c_str());
+            }
+            m_pending.pop();
+            return false;
+        }
+    }
+
+    /// @brief Check whether a given command's results are ready for pick-up
+    /// @param commandId Command identifier assigned to the command
+    /// @return True if the result is ready, otherwise False.
+    bool resultReady(uint32_t const commandId)
+    {
+        for (auto it = m_results.begin(); it != m_results.end(); ++it) {
+            if (it->cmdId == commandId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// @brief Return the minified String representation of the JSON results from a given command
+    /// @param commandId Command identifier assigned to the command
+    /// @return The JSON command result, serialised and converted to String
+    String result(uint32_t const commandId, WiFiAdapter::HTTPReturnCodes& status_code)
+    {
+        for (auto it = m_results.begin(); it != m_results.end(); ++it) {
+            if (it->cmdId != commandId) continue;
+            String filename(getFilename(commandId));
+            fs::File res = m_logger->FileSystem().open(filename);
+            if (res) {
+                String rtn = res.readString();
+                res.close();
+                m_logger->FileSystem().remove(filename);
+                status_code = it->status;
+                if (m_verbose) {
+                    Serial.printf("DBG: returning result for WiFi command %ld = |%s| → |%s| status %d\n",
+                        it->cmdId, it->command.c_str(), rtn.c_str(), status_code);
+                }
+                m_results.erase(it);
+                return rtn;
+            } else {
+                m_logger->Syslog(String("ERR: failed to read command result for command ") + commandId);
+                if (m_verbose) {
+                    Serial.printf("ERR: failed to read result for WiFi command %ld (%s) from SD card.\n",
+                        it->cmdId, it->command.c_str());
+                }
+                m_results.erase(it);
+                return String("");
+            }
+        }
+        return String("");
+    }
+
+private:
+    std::queue<PendingCommand> m_pending;   ///< FIFO queue of pending commands
+    std::list<PendingCommand>  m_results;   ///< List of the available results
+    logger::Manager     *m_logger;          ///< Output logger (mainly for time reference)
+    uint32_t            m_pendingTimeout;   ///< Duration for a command until it's pulled from the array
+    uint32_t            m_nextCommandId;    ///< State to assign monotonic increasing numbers for commands
+    bool                m_verbose;          ///< Flag: report diagnostics for debugging
+
+    /// @brief Remove all command results that have hung around for too long
+    ///
+    /// Commands in the stack are only held for a finite time to avoid clients asking for results and then
+    /// not picking them up filling the buffer.  This routine runs through the array of pending commands and
+    /// removes any that have lingered a little too long by resetting their command identifier to zero.
+    ///
+    /// @return The elapsed time at which the scan took place (pseudo-us)
+    void TimeoutPending(void)
+    {
+        uint64_t elapsed = m_logger->GetElapsedTime();
+        for (auto it = m_results.begin(); it != m_results.end(); ++it) {
+            if (it->timedOut(elapsed, m_pendingTimeout)) {
+                m_results.erase(it);
+            }
+        }
+    }
+
+    String getFilename(uint32_t const commandId)
+    {
+        return String("/results/") + commandId + ".bin";
+    }
+};
+
 /// \class ESP32WiFiAdapter
 /// \brief Implementation of the WiFiAdapter base class for the ESP32 module
 
@@ -380,10 +565,14 @@ class ESP32WiFiAdapter : public WiFiAdapter {
 public:
     /// Default constructor for the ESP32 adapter.  This brings up the parameter store to use
     /// for WiFi parameters, but takes no other action until the user explicitly starts the AccessPoint.
-    ESP32WiFiAdapter(void)
+    ESP32WiFiAdapter(logger::Manager *logger)
     : m_storage(nullptr), m_server(nullptr), m_statusCode(HTTPReturnCodes::OK)
     {
         if ((m_storage = mem::MemControllerFactory::Create()) == nullptr) {
+            return;
+        }
+        if ((m_pending = new CommandStack(logger)) == nullptr) {
+            delete m_storage;
             return;
         }
     }
@@ -392,6 +581,7 @@ public:
     virtual ~ESP32WiFiAdapter(void)
     {
         stop();
+        delete m_pending;
         delete m_storage; // Note that we're not stopping the interface, since it may still be required elsewhere
     }
     
@@ -400,10 +590,24 @@ private:
 
     mem::MemController  *m_storage;     ///< Pointer to the storage object to use
     ExtendedWebServer   *m_server;      ///< Pointer to the server object, if started.
-    std::queue<String>  m_commands;     ///< Queue to handle commands sent by the user
     JsonDocument        m_messages;     ///< Accumulating message content to be send to the client
     HTTPReturnCodes     m_statusCode;   ///< Status code to return to the user with the transaction response
     ConnectionStateMachine m_state;     ///< Manager for connection state
+    CommandStack        *m_pending;     ///< Pending commands awaiting execution and results pickup
+
+    /// @brief Pass on verbosity indicator to the command stack
+    /// @param verbose Flag: true => generate more information on operation
+    void set_verbose(bool verbose)
+    {
+        m_pending->set_verbose(verbose);
+    }
+
+    /// @brief Common code to send an "accepted" response with ID for the result to poll
+    /// @param ref_id Identifier to poll for the result of the command being ready
+    void sendAccepted(uint32_t const ref_id)
+    {
+        m_server->send(HTTPReturnCodes::ACCEPTED, "application/json", "{\"id\":" + String(ref_id) + "}");
+    }
 
     /// @brief Handle HTTP requests to the /command endpoint
     ///
@@ -414,10 +618,27 @@ private:
     /// @return N/A
     void handleCommand(void)
     {
-        for (uint32_t i = 0; i < m_server->args(); ++i) {
-            if (m_server->argName(i) == "command") {
-                m_commands.push(m_server->arg(i));
-            }
+        uint32_t command_id = m_pending->addCommand(m_server->arg("command"));
+        sendAccepted(command_id);
+    }
+
+    /// @brief Handle polling for results on the /results endpoint
+    ///
+    /// HTTP GET endpoint handler for results being picked up from the server after the associated
+    /// command completes.  The commands are assigned a reference number when accepted for execution
+    /// and this is passed back to the client to poll for results.  This routine expects to be given
+    /// this reference number as 'id' and checks whether the result is valid, returning a "pending"
+    /// response with status code ACCEPTED (202) if no, and the result JSON with status code OK (200)
+    /// if it is.
+    void handleResults(void)
+    {
+        uint32_t command_id = m_server->arg("id").toInt();
+        HTTPReturnCodes status_code;
+        String result = m_pending->result(command_id, status_code);
+        if (result.isEmpty()) {
+            m_server->send(HTTPReturnCodes::ACCEPTED, "application_json", "{\"pending\": true}");
+        } else {
+            m_server->send(status_code, "application/json", result);
         }
     }
 
@@ -431,9 +652,15 @@ private:
     /// @return N/A
     void heartbeat(void)
     {
-        m_commands.push("status");
+        uint32_t command_id = m_pending->addCommand(m_server->arg("status"));
+        sendAccepted(command_id);
     }
     
+    /// @brief As a special case, transfer all of the log files on the logger as an archive
+    ///
+    /// This packages up all of the log files currently on the system (in /logs on the SD card) as
+    /// a gzip-compressed tar archive.  This, unlike getting a log file at a time through the normal
+    /// download mechanism, preserves the file creation dates.
     void transferLogs(void)
     {
         size_t bytes_sent = m_server->StreamArchive(m_storage->ControllerPtr(), "/logs");
@@ -463,11 +690,11 @@ private:
             // Configure the endpoints served by the server
             m_server->on("/heartbeat", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::heartbeat, this));
             m_server->on("/command", HTTPMethod::HTTP_POST, std::bind(&ESP32WiFiAdapter::handleCommand, this));
+            m_server->on("/results", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::handleResults, this));
             m_server->on("/archive", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::transferLogs, this));
             m_server->serveStatic("/logs", m_storage->Controller(), "/logs/");
             m_server->serveStatic("/", LittleFS, "/website/"); // Note trailing '/' since this is a directory being served.
         }
-        //m_state.Verbose(true);
         m_state.Start();
         m_server->begin();
         return true;
@@ -489,12 +716,11 @@ private:
     
     String readBuffer(void)
     {
-        if (m_commands.size() == 0) {
-            return String("");
+        PendingCommand cmd;
+        if (m_pending->nextCommand(cmd)) {
+            return cmd.command;
         } else {
-            String rtn = m_commands.front();
-            m_commands.pop();
-            return rtn;
+            return String("");
         }
     }
     
@@ -572,13 +798,8 @@ private:
 
     bool transmitMessages(void)
     {
-        String message;
-        serializeJson(m_messages, message);
-        //Serial.printf("DBG: WiFi transmitting response |%s|\n", message.c_str());
-        m_server->send(m_statusCode, "application/json", message);
-
+        m_pending->addResult(m_statusCode, m_messages);
         m_messages.clear();
-
         m_statusCode = HTTPReturnCodes::OK; // "OK" by default
         return true;
     }
@@ -685,11 +906,11 @@ void WiFiAdapter::RunLoop(void) { runLoop(); }
 /// in the current logger module.
 ///
 /// \return Pointer to the adapter, cast to the base WiFiAdapter.
-WiFiAdapter *WiFiAdapterFactory::Create(void)
+WiFiAdapter *WiFiAdapterFactory::Create(logger::Manager *logger)
 {
     WiFiAdapter *obj;
 #if defined(ARDUINO_ARCH_ESP32) || defined(ESP32)
-    obj = new ESP32WiFiAdapter();
+    obj = new ESP32WiFiAdapter(logger);
 #else
 #error "No WiFi Adapter supported for hardware."
 #endif

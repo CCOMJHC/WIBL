@@ -62,13 +62,13 @@ public:
 
     enum HTTPReturnCodes {
         OK              = 200,  // The request succeeded
+        ACCEPTED        = 202,  // The request was accepted for later processing 
         BADREQUEST      = 400,  // The server cannot or will not process the request
         NOTFOUND        = 404,  // Resource not found
         IMATEAPOT       = 418,  // Really ... not expected to be used, but good for the yucks.
         SERVERERR       = 500,  // Internal server error
         NOTIMPLEMENTED  = 501,  // Request not supported by the server
         UNAVAILABLE     = 503   // Server not ready to handle request
-
     };
 
     /// \brief Set the status code to return to the client
@@ -85,6 +85,9 @@ public:
     static void SetWirelessMode(WirelessMode mode);
     /// \brief Determine the wireless mode currently configures
     static WirelessMode GetWirelessMode(void);
+
+    // \brief Set the verbosity of reporting from the webserver
+    void SetVerbose(bool verbose) { set_verbose(verbose); }
 
     void RunLoop(void);
     
@@ -113,6 +116,11 @@ private:
     /// \brief Sub-class implementation of code to transmit messages (and complete transaction)
     virtual bool transmitMessages(void) = 0;
 
+    virtual void set_verbose([[maybe_unused]] bool verbose)
+    {
+        return;
+    }
+
     virtual void runLoop(void) = 0;
 };
 
@@ -125,7 +133,7 @@ private:
 class WiFiAdapterFactory {
 public:
     /// \brief Constructor for a WiFiAdapter of the appropriate implementation.
-    static WiFiAdapter *Create(void);
+    static WiFiAdapter *Create(logger::Manager *logger);
 };
 
 #endif

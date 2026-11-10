@@ -23,6 +23,11 @@ function roundVoltage(rawVoltage) {
     return rounded + ' V';
 }
 
+function roundCycle(rawCycle) {
+    const rounded = Math.round(rawCycle*100)/100;
+    return rounded + ' Hz';
+}
+
 function translateTime(elapsed) {
     let secs = elapsed / 1000000.0;
 
@@ -171,6 +176,7 @@ function updateStatus(tablePrefix) {
         const statsTable = tablePrefix + '-stats';
         const n0183Table = tablePrefix + '-nmea0183';
         const n2000Table = tablePrefix + '-nmea2000';
+        const gnssTable = tablePrefix + '-gnss';
         const detailTable = tablePrefix + '-detail';
     
         let versions = document.getElementById(versionsTable);
@@ -187,6 +193,7 @@ function updateStatus(tablePrefix) {
         stats.replaceChildren(assembleSummaryHeader("Status"));
         stats.appendChild(assembleSummaryRow("Elapsed Time", translateTime(data.elapsed)));
         stats.appendChild(assembleSummaryRow("Supply Voltage", roundVoltage(data.supply)));
+        stats.appendChild(assembleSummaryRow("Run-loop Cycle", roundCycle(data.cycle)));
         stats.appendChild(assembleSummaryRow("Webserver Status Current", data.webserver.current));
         stats.appendChild(assembleSummaryRow("Webserver Status Boot", data.webserver.boot));
         stats.appendChild(assembleSummaryRow("Files on Logger", data.files.totalFileCount));
@@ -202,7 +209,7 @@ function updateStatus(tablePrefix) {
                 nmea0183.appendChild(assembleDataRow(
                     data.data.nmea0183.detail[n].name,
                     data.data.nmea0183.detail[n].tag,
-                    data.data.nmea0183.detail[n].time + ' ' + data.data.nmea0183.detail[n].time_units,
+                    translateTime(data.data.nmea0183.detail[n].time),
                     data.data.nmea0183.detail[n].display));
             }
         }
@@ -217,8 +224,24 @@ function updateStatus(tablePrefix) {
                 nmea2000.appendChild(assembleDataRow(
                     data.data.nmea2000.detail[n].name,
                     data.data.nmea2000.detail[n].tag,
-                    data.data.nmea2000.detail[n].time + ' ' + data.data.nmea2000.detail[n].time_units,
+                    translateTime(data.data.nmea2000.detail[n].time),
                     data.data.nmea2000.detail[n].display));
+            }
+        }
+
+        let gnss = document.getElementById(gnssTable);
+        if (gnss !== null) {
+            gnss.replaceChildren(assembleDataHeader("Latest GNSS Data"));
+            if (data.data.gnss.count === 0) {
+                gnss.appendChild(emptyCurrentData());
+            }
+            for (let n = 0; n < data.data.gnss.count; ++n) {
+                gnss.appendChild(assembleDataRow(
+                    data.data.gnss.detail[n].name,
+                    data.data.gnss.detail[n].tag,
+                    translateTime(data.data.gnss.detail[n].time),
+                    data.data.gnss.detail[n].display
+                ));
             }
         }
 

@@ -112,7 +112,7 @@ void Timestamper::update_timeofday(void)
     }
 
     struct timeval tv = { .tv_sec = now.second, .tv_usec = static_cast<suseconds_t>(now.microsecond) };
-    Serial.printf("DBG: setting time of day to %s\n", now.printable().c_str());
+    //Serial.printf("DBG: setting time of day to %s\n", now.printable().c_str());
     settimeofday(&tv, nullptr);
     m_lastSystemTime = now.second;
 }

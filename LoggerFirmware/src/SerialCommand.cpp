@@ -63,7 +63,7 @@ SerialCommand::SerialCommand(nmea::N2000::Logger *CANLogger, nmea::N0183::Logger
 
     // WiFi always gets created, since we'll need it eventually to get data off.  The only question is
     // whether it gets started when the system first somes up or not.
-    m_wifi = WiFiAdapterFactory::Create();
+    m_wifi = WiFiAdapterFactory::Create(logManager);
 
     Serial.printf("DBG: After WiFi interface create, heap free = %ld B, delta = %ld B\n",
         heap.CurrentSize(), heap.DeltaSinceLast());
@@ -1181,6 +1181,24 @@ void SerialCommand::ConfigureWebserver(String const& params, CommandSource src)
 {
     bool state;
 
+    // Configuring the web-server into debug mode is not in the public syntax list, and generally
+    // isn't something that you want to do unless you really know what you're doing.  That being
+    // said, it isn't forbidden...
+    if (params.startsWith("debug")) {
+        int action_position = params.indexOf(' ') + 1;
+        String action = params.substring(action_position);
+        if (action == "on") {
+            m_wifi->SetVerbose(true);
+        } else if (action == "off") {
+            m_wifi->SetVerbose(false);
+        } else {
+            EmitMessage("ERR: webserver debug can only be set 'on' or 'off.\n", src);
+            if (src == CommandSource::WirelessPort && m_wifi != nullptr) {
+                m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
+            }
+        }
+        return;
+    }
     if (params.startsWith("on")) {
         state = true;
     } else if (params.startsWith("off")) {

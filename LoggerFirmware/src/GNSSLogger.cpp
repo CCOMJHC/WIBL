@@ -32,6 +32,7 @@
 #include <Wire.h>
 #include "N2kTypes.h"
 #include "N2kLogger.h"
+#include "DataMetrics.h"
 #include "GNSSLogger.h"
 
 namespace gnss {
@@ -147,6 +148,7 @@ void tim_rcv(UBX_TIM_TP_data_t *data)
         }
         return;
     }
+
     if (_timeref != nullptr) {
         _timeref->register_mark(data->week, data->towMS, data->towSubMS);
     }
@@ -177,7 +179,7 @@ void pvt_rcv(UBX_NAV_PVT_data_t * data)
     uint64_t elapsed = _log_output->GetElapsedTime();
     
     if (_generate_realtime_debug) {
-        Serial.printf("GNSS at %d-%d-%d/%d:%d:%d.%09ld (valid date: %d time: %d) acc: %ld ns\n",
+        Serial.printf("GNSS at %d-%02d-%02d/%02d:%02d:%02d.%09ld (valid date: %d time: %d) acc: %ld ns\n",
             data->year, (int)data->month, (int)data->day, (int)data->hour, (int)data->min, (int)data->sec,
             data->nano, (int)data->valid.bits.validDate, (int)data->valid.bits.validTime,
             data->tAcc);
@@ -202,6 +204,8 @@ void pvt_rcv(UBX_NAV_PVT_data_t * data)
         }
         return;
     }
+    logger::DataObs obs(elapsed, logger::DataIf::INT_GNSS, data->lon/1.0e7, data->lat/1.0e7, data->height/1000.0);
+    logger::Metrics.RegisterObs(obs);
 
     // Note that the time in the packet is meant to be the validity time of the observation, not
     // when it was sent.  So we convert this for metadata on the position, but use the elapsed
@@ -306,6 +310,14 @@ void Logger::TransferData(void)
         // so there's no rush to make this happen and no potential for another TIM_TP
         // message arriving before we do (it'd just set the pending time instead).
         m_output->UpdateTimeofday();
+        
+        logger::DataObs obs(
+            _timeref->reference().elapsed,
+            _timeref->reference().second,
+            _timeref->reference().microsecond
+        );
+        logger::Metrics.RegisterObs(obs);
+
         Serialisable pkt(sizeof(uint64_t) + 2*sizeof(uint32_t));
         pkt += _timeref->reference().elapsed;
         pkt += static_cast<uint32_t>(_timeref->reference().second);

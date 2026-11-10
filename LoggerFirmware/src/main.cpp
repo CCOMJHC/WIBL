@@ -216,7 +216,7 @@ void setup()
     if (start_gnss_sensor) {
         Serial.println("Configuring GNSS logger ...");
         GNSSLogger = new gnss::Logger(logManager, gnss_timesource);
-        GNSSLogger->SetVerbose(true);
+        //GNSSLogger->SetVerbose(true);
         Serial.printf("DBG: After GNSS logger start, free heap = %ld B, delta = %ld B\n",
             heap.CurrentSize(), heap.DeltaSinceLast());
     }
@@ -281,6 +281,26 @@ void setup()
 
 void loop()
 {
+    static uint64_t base_time = 0, n_calls = 0;
+    constexpr int call_limit = 100;
+
+    if (base_time == 0) {
+        base_time = timestamper->GetElapsed();
+        ++n_calls;
+        Serial.printf("INFO: first boot to loop() call: %lld pseudo-us\n", base_time);
+    } else {
+        if (n_calls == call_limit) {
+            uint64_t now = timestamper->GetElapsed();
+            double average_cycle_time = static_cast<float>((now - base_time))/call_limit; // In pseudo-us
+            double average_cycle_rate = 1000000.0 / average_cycle_time;
+            logger::Metrics.CycleRate(average_cycle_rate);
+            base_time = now;
+            n_calls = 0;
+        } else {
+            ++n_calls;
+        }
+    }
+
     if (N2000Logger != nullptr) {
         NMEA2000.ParseMessages();
     }

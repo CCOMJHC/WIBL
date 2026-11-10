@@ -60,7 +60,7 @@ OTAUpdater::OTAUpdater(void)
     delete N0183Logger;
     delete logManager;
     Serial.println("Configuring WiFi Adapter ...");
-    WiFiAdapter *wifi = WiFiAdapterFactory::Create();
+    WiFiAdapter *wifi = WiFiAdapterFactory::Create(nullptr);
     Serial.println("Starting WiFi interface ...");
     if (wifi->Startup()) {
         String ip_address;

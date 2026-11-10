@@ -374,7 +374,7 @@ void Logger::HandleGNSS(uint64_t const t, tN2kMsg const& msg)
     if (ParseN2kGNSS(msg, SID, datestamp, timestamp, latitude, longitude, altitude,
                      rec_type, rec_method, nSvs, hdop, pdop, sep, nRefStations,
                      refStationType, refStationID, correctionAge)) {
-        logger::DataObs obs(t, longitude, latitude, altitude);
+        logger::DataObs obs(t, logger::DataIf::INT_NMEA2000, longitude, latitude, altitude);
         logger::Metrics.RegisterObs(obs);
         if (t == 0 || N2kIsNA(datestamp) || N2kIsNA(timestamp) || N2kIsNA(latitude) ||
             N2kIsNA(longitude) || N2kIsNA(altitude) || N2kIsNA((uint8_t)rec_type) ||

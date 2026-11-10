@@ -99,6 +99,7 @@ JsonDocument CurrentStatus(logger::Manager *m)
     status["elapsed"] = m->GetElapsedTime();
     
     status["supply"] = logger::Metrics.SupplyVoltage();
+    status["cycle"] = logger::Metrics.CycleRate();
 
     String server_status, boot_status;
     logger::LoggerConfig.GetConfigString(logger::Config::ConfigParam::CONFIG_WS_STATUS_S, server_status);

@@ -37,7 +37,8 @@ namespace logger {
 enum DataIf {
     INT_NONE,
     INT_NMEA0183,
-    INT_NMEA2000
+    INT_NMEA2000,
+    INT_GNSS
 };
 
 enum DataObsType {
@@ -54,9 +55,10 @@ class DataObs {
 public:
     DataObs(void);
     DataObs(uint64_t elapsed, const char *message);
-    DataObs(uint64_t elapsed, double lon, double lat, double altitude);
+    DataObs(uint64_t elapsed, DataIf interface, double lon, double lat, double altitude);
     DataObs(uint64_t elapsed, double depth, double offset);
     DataObs(uint64_t elapsed, uint16_t date, double time);
+    DataObs(uint64_t elapsed, time_t utc_second, uint32_t microsec);
 
     JsonDocument Render(uint64_t const elapsed) const;
     DataIf Interface(void) const { return m_interface; }
@@ -84,11 +86,15 @@ public:
     JsonDocument LastKnownGood(uint64_t const now) const;
     void SupplyVoltage(double voltage) { m_supplyVoltage = voltage; }
     double SupplyVoltage(void) const { return m_supplyVoltage; }
+    void CycleRate(double rate) { m_cycleRate = rate; }
+    double CycleRate(void) const { return m_cycleRate; }
 
 private:
     DataObs m_nmea0183[3];
     DataObs m_nmea2000[3];
+    DataObs m_gnss[3];
     double m_supplyVoltage;
+    double m_cycleRate;
 };
 
 extern DataMetrics Metrics;

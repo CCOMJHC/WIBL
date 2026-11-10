@@ -62,9 +62,9 @@ DataObs::DataObs(uint64_t elapsed, const char *message)
     }
 }
 
-DataObs::DataObs(uint64_t elapsed, double lon, double lat, double altitude)
+DataObs::DataObs(uint64_t elapsed, DataIf interface, double lon, double lat, double altitude)
 {
-    m_interface = INT_NMEA2000;
+    m_interface = interface;
     m_obsType = DATA_POSITION;
     m_name = String("Position");
     m_tag = m_name;
@@ -78,7 +78,7 @@ DataObs::DataObs(uint64_t elapsed, double lon, double lat, double altitude)
         hemi_lon = 'E';
     else
         hemi_lon = 'W';
-    m_display = String(fabs(lat)) + " " + hemi_lat + ", " + String(fabs(lon)) + " " + hemi_lon + ", " + String(altitude) + "m";
+    m_display = String(fabs(lat), 6) + " " + hemi_lat + ", " + String(fabs(lon), 6) + " " + hemi_lon + ", " + String(altitude, 3) + "m";
 }
 
 DataObs::DataObs(uint64_t elapsed, double depth, double offset)
@@ -101,6 +101,19 @@ DataObs::DataObs(uint64_t elapsed, uint16_t date, double time)
     m_receivedTime = elapsed;
     time_t timestamp = static_cast<time_t>(floor(seconds_per_day * date + time));
     m_display = String(asctime(gmtime(&timestamp)));
+    m_display.trim();
+}
+
+DataObs::DataObs(uint64_t elapsed, time_t utc_second, uint32_t microsec)
+{
+    m_interface = INT_GNSS;
+    m_obsType = DATA_TIME;
+    m_name = String("1PPS");
+    m_tag = m_name;
+    m_receivedTime = elapsed;
+    m_display = String(asctime(gmtime(&utc_second)));
+    m_display.trim();
+    m_display += " + " + String(microsec) + " µs";
 }
 
 JsonDocument DataObs::Render(uint64_t const elapsed) const
@@ -111,8 +124,8 @@ JsonDocument DataObs::Render(uint64_t const elapsed) const
     uint64_t time_difference = elapsed - m_receivedTime;
     summary["name"] = m_name;
     summary["tag"] = m_tag;
-    summary["time"] = time_difference/1000000;
-    summary["time_units"] = "s";
+    summary["time"] = time_difference;
+    summary["time_units"] = "µs";
     summary["display"] = m_display;
 
     return summary;
@@ -131,6 +144,7 @@ int DataObs::Size(void) const
 DataMetrics::DataMetrics(void)
 {
     m_supplyVoltage = -1.0;
+    m_cycleRate = -1.0;
 }
 
 DataMetrics::~DataMetrics(void)
@@ -147,6 +161,10 @@ void DataMetrics::RegisterObs(DataObs const& obs)
         if (obs.ObsType() != DATA_UNKNOWN) {
             m_nmea2000[obs.ObsType()] = obs;
         }
+    } else if (obs.Interface() == INT_GNSS) {
+        if (obs.ObsType() != DATA_UNKNOWN) {
+            m_gnss[obs.ObsType()] = obs;
+        }
     }
 }
 
@@ -156,10 +174,11 @@ JsonDocument DataMetrics::LastKnownGood(uint64_t const now) const
     // the number of valid outputs, then add a bit for the fixed overhead,
     // we should be able to estimate the total capacity required for the
     // document.
-    int n_0183_valid = 0, n_2000_valid = 0;
+    int n_0183_valid = 0, n_2000_valid = 0, n_gnss_valid = 0;
     for (int n = 0; n < DATA_UNKNOWN; ++n) {
         if (m_nmea0183[n].Valid()) ++n_0183_valid;
         if (m_nmea2000[n].Valid()) ++n_2000_valid;
+        if (m_gnss[n].Valid()) ++n_gnss_valid;
     }
     JsonDocument summary;
 
@@ -176,6 +195,13 @@ JsonDocument DataMetrics::LastKnownGood(uint64_t const now) const
         }
     } 
     summary["nmea2000"]["count"] = n_2000_valid;
+
+    for (int n = 0, op = 0; n < DATA_UNKNOWN; ++n) {
+        if (m_gnss[n].Valid()) {
+            summary["gnss"]["detail"][op++] = m_gnss[n].Render(now);
+        }
+    }
+    summary["gnss"]["count"] = n_gnss_valid;
 
     return summary;
 }
