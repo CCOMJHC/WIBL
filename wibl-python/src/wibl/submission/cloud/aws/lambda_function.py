@@ -129,7 +129,7 @@ def transmit_geojson(source_info: Dict[str, Any], provider_id: str, provider_aut
             print(f'Transmitting for source ID {source_info["sourceID"]} to {upload_point} '
                   f'as destination ID {dest_uniqueID}.')
 
-    response = requests.post(upload_point.strip('/'), headers=headers, files=files, data=payload)
+    response = requests.post(upload_point.rstrip('/'), headers=headers, files=files, data=payload)
     if is_verbose:
         print(f'Submission status for file {local_file} was {response.status_code}; '
               f'Response text was: {response.text}')

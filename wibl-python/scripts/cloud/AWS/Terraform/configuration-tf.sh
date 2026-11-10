@@ -1,6 +1,5 @@
-WIBL_SRC_LOCATION=$(git rev-parse --show-toplevel)/wibl-python
-WIBL_BUILD_LOCATION=${WIBL_SRC_LOCATION}/awsbuild
-mkdir -p ${WIBL_BUILD_LOCATION} || exit $?
+CONTENT_ROOT=$(realpath "$(dirname $0)/../../../..")
+source ${CONTENT_ROOT}/scripts/cloud/AWS/Terraform/configuration-base.sh
 
 ARCHITECTURE=$(terraform output -raw architecture)
 PYTHONVERSION=$(terraform output -raw python_version)

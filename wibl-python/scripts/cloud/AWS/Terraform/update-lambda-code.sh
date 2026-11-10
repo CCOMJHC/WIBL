@@ -5,7 +5,7 @@ set -eu -o pipefail
 CONTENT_ROOT=$(realpath "$(dirname $0)/../../../..")
 
 source ${CONTENT_ROOT}/scripts/cloud/AWS/Terraform/tf-aws-init.sh
-source ${CONTENT_ROOT}/scripts/cloud/AWS/Terraform/configuration-parameters.sh
+source ${CONTENT_ROOT}/scripts/cloud/AWS/Terraform/configuration-tf.sh
 
 
 # Rebuild lambda package for upload

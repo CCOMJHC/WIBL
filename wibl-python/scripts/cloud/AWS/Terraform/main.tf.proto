@@ -95,6 +95,8 @@ module "configure-lambda" {
     source = "./lambda"
 
     aws_region = var.region
+    architecture = var.architecture
+    python_version = var.python_version
     package_path = "${var.wibl_build_path}/wibl-package-py${var.python_version}-${var.architecture}.zip"
     conversion_lambda_name = var.conversion_lambda_name
     conversion_start_lambda_name = var.conversion_start_lambda_name

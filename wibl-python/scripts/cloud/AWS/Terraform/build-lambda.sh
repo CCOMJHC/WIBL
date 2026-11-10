@@ -2,8 +2,7 @@
 set -eu -o pipefail
 
 CONTENT_ROOT=$(realpath "$(dirname $0)/../../../..")
-
-source ${CONTENT_ROOT}/scripts/cloud/AWS/Terraform/configuration-parameters.sh
+source ${CONTENT_ROOT}/scripts/cloud/AWS/Terraform/configuration-base.sh
 
 echo $'\e[31mBuilding the WIBL package from' ${WIBL_SRC_LOCATION} $'...\e[0m'
 
