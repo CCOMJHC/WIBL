@@ -1,0 +1,91 @@
+name: wibl-frontend
+
+include:
+  - ../wibl-manager/docker-compose.yaml
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: frontend
+    command: >
+      bash -c "set -e &&
+                  python manage.py collectstatic --noinput &&
+                  daphne -b 0.0.0.0 -p 8000 wiblfe.asgi:application"
+    depends_on:
+      - frontendDB
+      - redis
+      - manager
+    restart: always
+    env_file:
+      - frontend.env
+    environment:
+      - DEBUG=1
+      - SUPERUSER_USERNAME=foo
+      - SUPERUSER_PASSWORD=bar
+      - FRONTEND_DATABASE_NAME=postgres
+      - FRONTEND_DATABASE_USER=postgres
+      - FRONTEND_DATABASE_PASSWORD=postgres
+      - FRONTEND_DATABASE_HOST=frontendDB
+      - FRONTEND_DATABASE_PORT=5432
+      - DATABASE_NAME=postgres
+      - MANAGEMENT_URL=http://manager:5000
+      - MANAGEMENT_HEARTBEAT_PATH=/heartbeat
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    ports:
+      - '6081:8000'
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/heartbeat" ]
+      interval: 10s
+      timeout: 1s
+      retries: 5
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./src
+          target: /var/local/wibl/frontend
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery --app=wiblfe worker --pool threads --loglevel=info
+    volumes:
+      - ./src:/var/local/wibl/frontend
+    environment:
+      - DEBUG=1
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - MANAGEMENT_URL=http://manager:5000
+      - MANAGEMENT_HEARTBEAT_PATH=/heartbeat
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    depends_on:
+      - manager
+      - frontend
+      - redis
+
+  frontendDB:
+    image: postgres:17-bookworm
+    container_name: frontendDB
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "6432:5432"
+    volumes:
+      - frontendpgdata:/var/lib/postgresql/data/
+    command: -p 5432
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:7-bookworm
+
+# Enable db persistence with a volume definition
+volumes:
+  frontendpgdata:

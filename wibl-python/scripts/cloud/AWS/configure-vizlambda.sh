@@ -1,5 +1,8 @@
 #!/bin/bash
-#
+# IMPORTANT: This file and all other scripts other than "build-lambda.sh" are apart of the deprecated scripting
+# build approach. The intended build method is to use Terraform. Follow the instructions in the README.md located in the
+# Terraform folder.
+
 # This script creates an optional lambda for generating maps of soundings from one or more GeoJSON-converted WIBL
 # data files stored in ${STAGING_BUCKET}.
 

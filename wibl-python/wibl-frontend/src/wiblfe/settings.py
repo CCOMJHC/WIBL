@@ -13,40 +13,50 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+# Source - https://stackoverflow.com/a
+# Posted by Thomas Turner, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-01-05, License - CC BY-SA 4.0
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-&$!is&8jepj03)%%a8*=!qrdcmg+eo9h9*^hmg4rskd67dy_d%'
+SECRET_KEY = os.environ["FRONTEND_SECRET_KEY"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG_MODE: bool = bool(int(os.environ.get("DEBUG_MODE", 0)))
+DEBUG = DEBUG_MODE
 
-ALLOWED_HOSTS = []
+ALLOWED_CIDR_NETS = ['10.0.0.0/24', '10.0.1.0/24']
 
+ALLOWED_HOSTS = [".amazonaws.com", "wibl-manager-ecs-svc", "wibl-frontend-ecs-svc", "localhost", "127.0.0.1",
+                 os.environ["ALB_DNS_NAME"]]
+WEB_SOCKET_SCHEME = 'wss://'
 
+CSRF_TRUSTED_ORIGINS = [f"https://{os.environ['ALB_DNS_NAME']}"]
 # Application definition
 
 INSTALLED_APPS = [
     'daphne',
     'frontend',
     'channels',
+    'storages',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_plotly_dash.apps.DjangoPlotlyDashConfig'
+    'django_plotly_dash.apps.DjangoPlotlyDashConfig',
 ]
 
 ASGI_APPLICATION = 'wiblfe.asgi.application'
 
 MIDDLEWARE = [
+    'allow_cidr.middleware.AllowCIDRMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -57,8 +67,6 @@ MIDDLEWARE = [
     'django_plotly_dash.middleware.BaseMiddleware',
     'django_plotly_dash.middleware.ExternalRedirectionMiddleware'
 ]
-
-
 
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
@@ -92,21 +100,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'wiblfe.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'frontendDB',
+        'NAME': os.environ['FRONTEND_DATABASE_NAME'],
+        'USER': os.environ['FRONTEND_DATABASE_USER'],
+        'PASSWORD': os.environ['FRONTEND_DATABASE_PASSWORD'],
+        'HOST': os.environ['FRONTEND_DATABASE_HOST'],
         'PORT': '5432',
+        "CONN_MAX_AGE": 60
     },
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -126,7 +133,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -138,32 +144,49 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
-STATIC_ROOT = '/var/local/wibl/frontend/static'
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "wiblfe.storage_backends.StaticStorage",
+    },
+}
+
+# https://anupamkush9.medium.com/storing-django-static-and-media-files-on-amazon-s3-private-bucket-and-serve-it-through-cloudfront-7e5906735656
+# aws settings
+
+AWS_STORAGE_BUCKET_NAME = os.environ['STATIC_BUCKET_NAME']
+AWS_S3_REGION_NAME = os.environ["AWS_REGION"]
+CLOUDFRONT_DOMAIN = os.environ["ALB_DNS_NAME"]
+AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+
+# s3 static settings
+AWS_LOCATION = 'static'
+STATIC_URL = f'{CLOUDFRONT_DOMAIN}/{AWS_LOCATION}/'
+STATIC_ROOT = "/tmp/staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER", "redis://redis:6379/0")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_BROKER", "redis://redis:6379/0")
+REDIS_HOST = os.environ['REDIS_URL']
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}:6379/0"
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("redis", 6379)],
+            "hosts": [(REDIS_HOST, 6379)],
         },
     },
 }
 
 PLOTLY_DASH = {
-    "serve_locally": True,
+    "serve_locally": False,
     "insert_demo_migrations": False,
     "cache_timeout_initial_arguments": 60,
     "use_iframe": False
@@ -175,3 +198,12 @@ PLOTLY_COMPONENTS = [
 ]
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SAMESITE = "None"

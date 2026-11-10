@@ -6,15 +6,29 @@ from django.shortcuts import render
 from django.http import HttpRequest, StreamingHttpResponse, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.views.decorators.cache import cache_control
-
-from wiblfe.celery import app as celery
+from django.core.cache import cache
+from django.conf import settings
 import httpx
-import os
+from os import environ
+import boto3
+import requests
+from botocore.auth import SigV4Auth
+from botocore.awsrequest import AWSRequest
+import json
+MAP_NAME = environ['MAP_NAME']
+REGION = environ['AWS_REGION']
+
+_ws_scheme: str | None = None
+def get_ws_scheme() -> str:
+    global _ws_scheme
+    if _ws_scheme is None:
+        _ws_scheme = settings.WEB_SOCKET_SCHEME
+    return _ws_scheme
 
 @login_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 async def downloadFile(request, fileid):
-    manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+    manager_url: str = environ.get('MANAGEMENT_URL', "http://manager:5000")
     extension = fileid.split(".")[-1]
 
     download_url = f"{manager_url}/{extension}/download/{fileid}"
@@ -38,7 +52,7 @@ async def downloadFile(request, fileid):
 
 @login_required
 async def rawGeojsonFile(request, fileid):
-    manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+    manager_url: str = environ.get('MANAGEMENT_URL', "http://manager:5000")
     full_url = f"{manager_url}/geojson/raw/{fileid}"
 
     client = httpx.AsyncClient()
@@ -50,7 +64,7 @@ async def rawGeojsonFile(request, fileid):
 
 @login_required
 async def checkFileAvail(request, fileid):
-    manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
+    manager_url: str = environ.get('MANAGEMENT_URL', "http://manager:5000")
     extension = fileid.split(".")[-1]
 
     test_url = f"{manager_url}/{extension}/check/{fileid}"
@@ -65,7 +79,7 @@ async def checkFileAvail(request, fileid):
 
 @login_required
 def dashboard(request):
-    return render(request, 'frontend/dashboard.html')
+    return render(request, 'dashboard.html')
 
 @login_required
 def index(request: HttpRequest):
@@ -75,9 +89,9 @@ def index(request: HttpRequest):
     # back to the client via the websocket...
     # celery.send_task('get-wibl-files', (request.session.session_key,))
     context = {
-        'wsURL': f"ws://{request.get_host()}/ws/"
+        "wsURL": f"{get_ws_scheme()}{request.get_host()}/ws/"
     }
-    return render(request, 'frontend/index.html', context)
+    return render(request, 'index.html', context)
 
 
 @login_required
@@ -86,3 +100,73 @@ def logout(request: HttpRequest):
 
 def heartbeat(request):
     return HttpResponse(status=200)
+
+def map_tile_proxy(request, x, y, z):
+    session = boto3.Session()
+    credentials = session.get_credentials().get_frozen_credentials()
+
+    url = f"https://maps.geo.{REGION}.amazonaws.com/maps/v0/maps/{MAP_NAME}/tiles/{z}/{x}/{y}"
+
+    aws_request = AWSRequest(method='GET', url=url)
+    SigV4Auth(credentials, 'geo', REGION).add_auth(aws_request)
+
+    response = requests.get(url, headers=dict(aws_request.headers))
+
+    return HttpResponse(
+        response.content,
+        content_type='application/x-protobuf'
+    )
+
+def map_style_proxy(request):
+    session = boto3.Session()
+    credentials = session.get_credentials().get_frozen_credentials()
+
+    url = f"https://maps.geo.{REGION}.amazonaws.com/maps/v0/maps/{MAP_NAME}/style-descriptor"
+
+    aws_request = AWSRequest(method='GET', url=url)
+    SigV4Auth(credentials, 'geo', REGION).add_auth(aws_request)
+
+    response = requests.get(url, headers=dict(aws_request.headers))
+    style = response.json()
+
+    for source in style.get('sources', {}).values():
+        if 'tiles' in source:
+            source['tiles'] = ['/mapTile/{z}/{x}/{y}/']
+
+    if 'sprite' in style:
+        style['sprite'] = '/mapSprites/sprites'
+
+    if 'glyphs' in style:
+        style['glyphs'] = '/mapGlyphs/{fontstack}/{range}'
+
+    return HttpResponse(
+        json.dumps(style),
+        content_type='application/json'
+    )
+
+def map_sprites_proxy(request, filename):
+    session = boto3.Session()
+    credentials = session.get_credentials().get_frozen_credentials()
+
+    url = f"https://maps.geo.{REGION}.amazonaws.com/maps/v0/maps/{MAP_NAME}/sprites/{filename}"
+
+    aws_request = AWSRequest(method='GET', url=url)
+    SigV4Auth(credentials, 'geo', REGION).add_auth(aws_request)
+
+    response = requests.get(url, headers=dict(aws_request.headers))
+
+    content_type = 'application/json' if filename.endswith('.json') else 'image/png'
+    return HttpResponse(response.content, content_type=content_type)
+
+def map_glyphs_proxy(request, fontstack, range):
+    session = boto3.Session()
+    credentials = session.get_credentials().get_frozen_credentials()
+
+    url = f"https://maps.geo.{REGION}.amazonaws.com/maps/v0/maps/{MAP_NAME}/glyphs/{fontstack}/{range}"
+
+    aws_request = AWSRequest(method='GET', url=url)
+    SigV4Auth(credentials, 'geo', REGION).add_auth(aws_request)
+
+    response = requests.get(url, headers=dict(aws_request.headers))
+
+    return HttpResponse(response.content, content_type='application/x-protobuf')

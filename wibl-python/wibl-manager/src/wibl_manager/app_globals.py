@@ -27,8 +27,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 import os
+import boto3
 
-S3_WIBL_BUCKET_NAME = os.environ.get('S3_WIBL_BUCKET_NAME',
+S3_WIBL_BUCKET_NAME = os.environ.get('WIBL_METADATA_BUCKET',
                                      "WIBL-Metadata-Bucket")
-S3_GEOJSON_BUCKET_NAME = os.environ.get('S3_GEOJSON_BUCKET_NAME',
+S3_GEOJSON_BUCKET_NAME = os.environ.get('GEOJSON_METADATA_BUCKET',
                                         "GeoJSON-Metadata-Bucket")
+
+S3_CLIENT = boto3.client('s3', region_name=os.environ["AWS_REGION"])
