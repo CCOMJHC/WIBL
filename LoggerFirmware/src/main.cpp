@@ -222,7 +222,8 @@ void setup()
     }
 
     Serial.println("Configuring command processor ...");
-    CommandProcessor = new SerialCommand(N2000Logger, N0183Logger, logManager, LEDs);
+    CommandProcessor = new SerialCommand(N2000Logger, N0183Logger, GNSSLogger, IMULogger,
+                                         logManager, LEDs);
 
     Serial.printf("DBG: After SerialCommand start, free heap = %ld B, delta = %ld B\n",
         heap.CurrentSize(), heap.DeltaSinceLast());

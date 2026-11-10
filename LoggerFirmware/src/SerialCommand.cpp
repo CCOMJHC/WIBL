@@ -40,7 +40,7 @@
 
 const uint32_t CommandMajorVersion = 1;
 const uint32_t CommandMinorVersion = 4;
-const uint32_t CommandPatchVersion = 2;
+const uint32_t CommandPatchVersion = 3;
 
 /// Default constructor for the SerialCommand object.  This stores the pointers for the logger and
 /// status LED controllers for reference, and then generates a BLE service object.  This turns on
@@ -51,9 +51,15 @@ const uint32_t CommandPatchVersion = 2;
 /// \param logManager   Pointer to the object used to access the log files
 /// \param led          Pointer to the status LED controller object
 
-SerialCommand::SerialCommand(nmea::N2000::Logger *CANLogger, nmea::N0183::Logger *serialLogger,
-                             logger::Manager *logManager, StatusLED *led)
-: m_CANLogger(CANLogger), m_serialLogger(serialLogger), m_logManager(logManager), m_led(led), m_echoOn(true), m_passThrough(false)
+SerialCommand::SerialCommand(nmea::N2000::Logger *CANLogger,
+                             nmea::N0183::Logger *serialLogger,
+                             gnss::Logger *gnssLogger,
+                             imu::Logger *imuLogger,
+                             logger::Manager *logManager,
+                             StatusLED *led)
+: m_CANLogger(CANLogger), m_serialLogger(serialLogger),
+  m_gnssLogger(gnssLogger), m_imuLogger(imuLogger),
+  m_logManager(logManager), m_led(led), m_echoOn(true), m_passThrough(false)
 {
     logger::HeapMonitor heap;
 
@@ -304,20 +310,42 @@ void SerialCommand::SetShipname(String const& name, CommandSource src)
 /// is useful only for debugging, since it generates a lot of traffic on the serial output stream.  Allowable
 /// options are "on" and "off".
 ///
-/// \param mode String with "on" or "off" to configure verbose reporting mode
+/// \param mode String with "on" or "off" and a subsystem name to configure verbose reporting mode
 
-void SerialCommand::SetVerboseMode(String const& mode)
+void SerialCommand::SetVerboseMode(String const& spec, CommandSource src)
 {
+    int subsys_position = spec.indexOf(' ') + 1;
+    String mode = spec.substring(0, subsys_position-1);
+    String subsys = spec.substring(subsys_position);
+    bool verbosity;
     if (mode == "on") {
-        if (m_CANLogger != nullptr) m_CANLogger->SetVerbose(true);
-        if (m_serialLogger != nullptr) m_serialLogger->SetVerbose(true);
-        if (m_bridge != nullptr) m_bridge->SetVerbose(true);
+        verbosity = true;
     } else if (mode == "off") {
-        if (m_CANLogger != nullptr) m_CANLogger->SetVerbose(false);
-        if (m_serialLogger != nullptr) m_serialLogger->SetVerbose(false);
-        if (m_bridge != nullptr) m_bridge->SetVerbose(false);
+        verbosity = false;
     } else {
-        Serial.println("ERR: verbose mode not recognised.");
+        String msg("ERR: verbosity mode |");
+        msg += mode + "| not recognised.\n";
+        EmitMessage(msg, src);
+        if (src == CommandSource::WirelessPort && m_wifi != nullptr)
+            m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
+        return;
+    }
+    if (subsys == "nmea0183") {
+        if (m_serialLogger != nullptr) m_serialLogger->SetVerbose(verbosity);
+    } else if (subsys == "nmea2000") {
+        if (m_CANLogger != nullptr) m_CANLogger->SetVerbose(verbosity);
+    } else if (subsys == "gnss") {
+        if (m_gnssLogger != nullptr) m_gnssLogger->SetVerbose(verbosity);
+    } else if (subsys == "imu") {
+        if (m_imuLogger != nullptr) m_imuLogger->SetVerbose(verbosity);
+    } else if (subsys == "webserver") {
+        if (m_wifi != nullptr) m_wifi->SetVerbose(verbosity);
+    } else {
+        String msg("ERR: verbose subsystem |");
+        msg += subsys + "| not recognised.\n";
+        EmitMessage(msg, src);
+        if (src == CommandSource::WirelessPort && m_wifi != nullptr)
+            m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
     }
 }
 
@@ -1633,7 +1661,7 @@ void SerialCommand::Syntax(CommandSource src)
     EmitMessage("  uniqueid [logger-name]              Set or report the logger's unique identification string.\n", src);
     EmitMessage("  upload [on|off]|[srvaddr srvport timeout interval duration]\n", src);
     EmitMessage("                                      Control whether files are auto-updated when connected\n", src);
-    EmitMessage("  verbose on|off                      Control verbosity of reporting for serial input strings.\n", src);
+    EmitMessage("  verbose on|off subsystem            Control verbosity of reporting for the given sub-system.\n", src);
     EmitMessage("  version                             Report NMEA0183 and NMEA2000 logger version numbers.\n", src);
     EmitMessage("  webserver on|off delay reties timeout\n", src);
     EmitMessage("                                      Configure web-server interface with given retry delay (seconds), retries (int), and connection timeout (seconds).\n", src);
@@ -1786,7 +1814,7 @@ void SerialCommand::Execute(String const& cmd, CommandSource src)
             ConfigureUpload(cmd.substring(7), src);
         }
     } else if (cmd.startsWith("verbose")) {
-        SetVerboseMode(cmd.substring(8));
+        SetVerboseMode(cmd.substring(8), src);
     } else if (cmd == "version") {
         ReportSoftwareVersion(src);
     } else if (cmd.startsWith("webserver")) {

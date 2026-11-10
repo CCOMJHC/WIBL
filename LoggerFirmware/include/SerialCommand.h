@@ -30,6 +30,8 @@
 #include <Arduino.h>
 #include "N2kLogger.h"
 #include "N0183Logger.h"
+#include "GNSSLogger.h"
+#include "IMULogger.h"
 #include "PointBridge.h"
 #include "LogManager.h"
 #include "StatusLED.h"
@@ -56,6 +58,7 @@ class SerialCommand {
 public:
     /// \brief Default constructor for the command processor
     SerialCommand(nmea::N2000::Logger *canLogger, nmea::N0183::Logger *serialLogger,
+                  gnss::Logger *gnssLogger, imu::Logger *imuLogger,
                   logger::Manager *logManager, StatusLED *led);
     /// \brief Default destructor
     ~SerialCommand();
@@ -86,6 +89,8 @@ private:
     nmea::N2000::Logger *m_CANLogger;   ///< Pointer for the logger object to use
     nmea::N0183::Logger *m_serialLogger;///< Pointer for the NMEA0183 message handler
     nmea::N0183::PointBridge *m_bridge; ///< Pointer for the WiFi/UDP -> NEMA0183 bridge
+    gnss::Logger        *m_gnssLogger;  ///< Pointer to the GNSS module if available
+    imu::Logger         *m_imuLogger;   ///< Pointer to the IMU logger if available
     net::UploadManager  *m_uploadManager; ///< Pointer to the auto-upload manager
     logger::Manager     *m_logManager;  ///< Object to write to SD files and console log
     StatusLED           *m_led;         ///< Pointer for the status LED controller
@@ -111,7 +116,7 @@ private:
     /// \brief Set the host ship's name
     void SetShipname(String const& name, CommandSource src);
     /// \brief Turn on/off verbose information on messages received
-    void SetVerboseMode(String const& mode);
+    void SetVerboseMode(String const& spec, CommandSource src);
     /// \brief Shut down logging for safe power removal
     void Shutdown(void);
     /// \brief Set the WiFi SSID string

@@ -545,9 +545,11 @@ private:
     void TimeoutPending(void)
     {
         uint64_t elapsed = m_logger->GetElapsedTime();
-        for (auto it = m_results.begin(); it != m_results.end(); ++it) {
+        for (auto it = m_results.begin(); it != m_results.end();) {
             if (it->timedOut(elapsed, m_pendingTimeout)) {
-                m_results.erase(it);
+                it = m_results.erase(it);
+            } else {
+                ++it;
             }
         }
     }

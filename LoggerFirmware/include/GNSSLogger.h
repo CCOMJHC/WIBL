@@ -34,6 +34,9 @@
 #include "N2kLogger.h"
 #include "SparkFun_u-blox_GNSS_v3.h"
 
+#ifndef __GNSS_LOGGER_H__
+#define __GNSS_LOGGER_H__
+
 namespace gnss {
 
 /// \class GNSSTimeSource
@@ -96,3 +99,5 @@ private:
 };
 
 }
+
+#endif
