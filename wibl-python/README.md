@@ -414,6 +414,11 @@ Configuration files suitable for uploading to both the test and production DCDB 
 [examples](examples) directory; For test uploads, use [configure-submission-test.json](examples/configure-submission-test.json),
 and for production uploads use [configure-submission.json](examples/configure-submission.json).
 
+> Note: Previous versions of these example configuration files included a trailing slash ('/') character
+> for the DCDB `upload_point` URL. The presence of a trailing slash may cause uploads to DCDB to fail. 
+> If you experience failed uploads (via a 404 error, reported when setting `verbose` to `true`), please try
+> removing the trailing slash from the `upload_point` URL attribute in your configuration file.
+
 ## Batch processing scripts
 In addition to running the above-documented `wibl` commands on individual WIBL files, it is also possible to batch 
 process many WIBL files using the provided [data management PowerShell scripts](scripts/data-management/README.md). 
