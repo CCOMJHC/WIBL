@@ -158,12 +158,15 @@ JsonDocument NVMFile::GetContents(void) const
 ///
 /// @param doc Source document to use for the object contents
 
-void NVMFile::Set(JsonDocument& doc)
+bool NVMFile::Set(JsonDocument& doc)
 {
-    if (!Valid()) throw Invalid();
+    if (!Valid()) {
+        return false;
+    }
     m_contents.clear();
     serializeJson(doc, m_contents);
     m_changed = true;
+    return true;
 }
 
 /// Replace the contents of the object with the specified string.  This assumes that the contents
@@ -172,11 +175,14 @@ void NVMFile::Set(JsonDocument& doc)
 ///
 /// @param doc Source document to use for the object contents
 
-void NVMFile::Set(String const& doc)
+bool NVMFile::Set(String const& doc)
 {
-    if (!Valid()) throw Invalid();
+    if (!Valid()) {
+        return false;
+    }
     m_contents = doc;
     m_changed = true;
+    return true;
 }
 
 /// Estimate the capacity required to represent the minified string in a JsonDocument.  This

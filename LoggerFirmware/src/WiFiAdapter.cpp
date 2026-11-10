@@ -291,6 +291,7 @@ private:
         // logger first boots, the WIFi comes up with known SSID and password.
         if (ssid.length() == 0) ssid = "wibl-config";
         if (ssid.length() == 0) password = "wibl-config-password";
+        WiFi.softAPenableIPv6();
         WiFi.softAP(ssid.c_str(), password.c_str());
         WiFi.setSleep(false);
         IPAddress server_address = WiFi.softAPIP();
@@ -322,8 +323,8 @@ private:
             Serial.print("ERR: attempting to join a WiFi network as a station without a specified SSID\n");
             return false;
         }
+        WiFi.enableIPv6();
         wl_status_t status = WiFi.begin(ssid.c_str(), password.c_str());
-        WiFi.setSleep(false);
         m_lastConnectAttempt = millis();
         if (m_verbose) {
             Serial.printf("DBG: started network join on %s:%s at %d with immediate status %d\n", ssid.c_str(), password.c_str(), m_lastConnectAttempt, (int)status);
@@ -334,6 +335,7 @@ private:
     void completeStationJoin(void)
     {
         IPAddress server_address = WiFi.localIP();
+        WiFi.setSleep(false);
         logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_WIFIIP_S, server_address.toString());
         if (m_verbose) {
             Serial.printf("DBG: completing station join at IP %s, hostname reported as |%s|\n", server_address.toString().c_str(), WiFi.getHostname());
@@ -695,7 +697,7 @@ private:
             m_server->on("/results", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::handleResults, this));
             m_server->on("/archive", HTTPMethod::HTTP_GET, std::bind(&ESP32WiFiAdapter::transferLogs, this));
             m_server->serveStatic("/logs", m_storage->Controller(), "/logs/");
-            m_server->serveStatic("/", LittleFS, "/website/"); // Note trailing '/' since this is a directory being served.
+            m_server->serveStatic("/", LittleFS, "/website/", "max-age=3600"); // Note trailing '/' since this is a directory being served.
         }
         m_state.Start();
         m_server->begin();

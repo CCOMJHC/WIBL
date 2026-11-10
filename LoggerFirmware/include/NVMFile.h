@@ -34,8 +34,6 @@
 
 namespace logger {
 
-class Invalid {};
-
 /// \class NVMFile
 /// \brief Implementatin of code to read/write a non-volatile file
 ///
@@ -84,9 +82,9 @@ protected:
     /// @brief Indicate that the contents of the object have been changed
     void MarkChanged(void) { m_changed = true; }
     /// @brief Replace the contents of the objects with a JSON document
-    void Set(JsonDocument& doc);
+    bool Set(JsonDocument& doc);
     /// @brief Replace the contents of the objects with a minified JSON representation
-    void Set(String const& doc);
+    bool Set(String const& doc);
     /// @brief Check whether the internal representation of the object is empty
     bool Empty(void) { return m_contents.length() <= 2; }
     /// @brief Remove the contents of the object
