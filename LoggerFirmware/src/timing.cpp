@@ -84,10 +84,11 @@ uint64_t Timestamper::GetElapsed(void)
 
 bool Timestamper::Translate(uint64_t const elapsed, TimePoint& now, SourcePriority& source)
 {
-    for (int source = (int)TIMING_REFERENCE; source < (int)TIMING_MAXPRI; ++source) {
+    for (int s = (int)TIMING_REFERENCE; s < (int)TIMING_MAXPRI; ++s) {
         int count = 0;
-        for (auto it = m_sources[source].begin(); it != m_sources[source].end(); ++it, ++count) {
+        for (auto it = m_sources[s].begin(); it != m_sources[s].end(); ++it, ++count) {
             if ((*it)->assigntime(elapsed, now)) {
+                source = static_cast<SourcePriority>(s);
                 return true;
             }
         }

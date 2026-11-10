@@ -1577,14 +1577,12 @@ void SerialCommand::ReportCurrentTime(CommandSource src)
 
     elapsed_count = m_logManager->GetElapsedTime();
     if (m_logManager->TranslateElapsed(elapsed_count, now, source)) {
-        Serial.printf("DBG: elapsed count %lld translates to %ld s/%ld us UTC from source %d\n",
-            elapsed_count, (int32_t)now.second, now.microsecond, (int)source);
         char timestamp[128], datetime[32], elapsed[24];
         snprintf(timestamp, 128, "%lld.%06ld", now.second, now.microsecond);
         auto pos = strftime(datetime, 32, "%Y-%m-%d/%H:%M:%S.", std::gmtime(&now.second));
-        snprintf(datetime + pos, 32 - pos, "%06ld\n", now.microsecond);
+        snprintf(datetime + pos, 32 - pos, "%06ld", now.microsecond);
         snprintf(elapsed, 32, "%lld", elapsed_count);
-        String elapsed_msg = String("Elapsed time count ") + elapsed + String(" pseudo-us\n");
+        String elapsed_msg = String("Elapsed time count ") + elapsed + String(" pseudo-µs\n");
         String timestamp_msg = String("Unix timestamp ") + timestamp + String(" s (") + datetime + String(") UTC\n");
         String source_msg;
         switch (source) {
@@ -1601,9 +1599,6 @@ void SerialCommand::ReportCurrentTime(CommandSource src)
                 source_msg = String("Source: Not Recognised.\n");
                 break;
         }
-        Serial.printf("DBG: elapsed: \"%s\".\n", elapsed_msg.c_str());
-        Serial.printf("DBG: timestamp: \"%s\".\n", timestamp_msg.c_str());
-        Serial.printf("DBG: source: \"%s\".\n", source_msg.c_str());
         if (src == CommandSource::SerialPort) {
             EmitMessage(elapsed_msg, src);
             EmitMessage(timestamp_msg, src);
