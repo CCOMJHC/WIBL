@@ -1,16 +1,19 @@
+import os
 import time
-from dash import Dash, dcc, html
+import json
+
 from django_plotly_dash import DjangoDash
 from django.templatetags.static import static
+
 import dash
-import os
+from dash import dcc, html
+
 import plotly.express as px
 import plotly.graph_objects as go
+
 import pandas as pd
-import numpy as np
+
 import httpx
-import asyncio
-import json
 
 """
     Frontend Dashboard 

@@ -6,7 +6,7 @@ channels[daphne]
 channels-redis
 httpx[http2,brotli,zstd]
 boto3
-dash
+dash~=4.1.0
 django-plotly-dash
 django-allow-cidr
 django-storages[s3]
