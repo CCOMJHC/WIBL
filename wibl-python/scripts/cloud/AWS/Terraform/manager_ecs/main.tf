@@ -43,6 +43,10 @@ resource "docker_image" "frontend_image" {
 resource "docker_registry_image" "frontend" {
   name = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/frontend:latest"
   keep_remotely = true
+  triggers = {
+    image_id = docker_image.frontend_image.image_id
+  }
+
   depends_on = [aws_ecr_repository.frontend_ecr_repo, docker_image.frontend_image]
 }
 
@@ -66,6 +70,9 @@ resource "docker_image" "manager_image" {
 resource "docker_registry_image" "manager" {
   name = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/manager:latest"
   keep_remotely = true
+  triggers = {
+    image_id = docker_image.frontend_image.image_id
+  }
   depends_on = [aws_ecr_repository.manager_ecr_repo, docker_image.manager_image]
 }
 
@@ -564,8 +571,6 @@ resource "aws_vpc_security_group_ingress_rule" "private_rds_sg_rule1" {
 resource "aws_vpc_security_group_egress_rule" "private_rds_sg_rule2" {
   ip_protocol       = "-1"
   security_group_id = aws_security_group.private_rds_sg.id
-  from_port = 0
-  to_port = 0
   cidr_ipv4 = "0.0.0.0/0"
 }
 
