@@ -2,8 +2,13 @@
 import os
 import json
 from abc import ABC, abstractmethod
+from datetime import datetime
+
 from channels.generic.websocket import AsyncWebsocketConsumer
 import httpx
+
+
+DATETIME_FORMAT = "%B %d, %Y at %I:%M %p %Z"
 
 
 class FileConsumer(ABC, AsyncWebsocketConsumer):
@@ -197,7 +202,35 @@ class WiblFileDetailConsumer(FileConsumer):
 
         print(f"Got response from manager: {wf_json}")
         for heading in HEADERS:
-            wibl_file_data[heading] = wf_json[heading]
+            match heading:
+                case 'processtime' | 'updatetime' | 'notifytime' | 'starttime' | 'endtime':
+                    if wf_json[heading][0] == 'U':
+                        # time field with value of "Unknown"
+                        wibl_file_data[heading] = wf_json[heading]
+                    else:
+                        try:
+                            dt = datetime.fromisoformat(wf_json[heading])
+                            wibl_file_data[heading] = dt.strftime(DATETIME_FORMAT)
+                        except Exception as e:
+                            print(f"WARNING: Unable to format field '{heading}' with value: {wf_json[heading]}. "
+                                  f"Passing through raw value. Error was: {str(e)}")
+                            wibl_file_data[heading] = wf_json[heading]
+                case 'observations' | 'soundings':
+                    try:
+                        wibl_file_data[heading] = f"{wf_json[heading]:,d}"
+                    except Exception as e:
+                        print(f"WARNING: Unable to format field '{heading}' with value: {wf_json[heading]}. "
+                              f"Passing through raw value. Error was: {str(e)}")
+                        wibl_file_data[heading] = wf_json[heading]
+                case 'size':
+                    try:
+                        wibl_file_data[heading] = f"{wf_json[heading]:.2f} MB"
+                    except Exception as e:
+                        print(f"WARNING: Unable to format field '{heading}' with value: {wf_json[heading]}. "
+                              f"Passing through raw value. Error was: {str(e)}")
+                        wibl_file_data[heading] = wf_json[heading]
+                case _:
+                    wibl_file_data[heading] = wf_json[heading]
 
         print("sending to websocket...")
         await self.send(text_data=json.dumps({
@@ -376,7 +409,35 @@ class GeojsonFileDetailConsumer(FileConsumer):
 
         print(f"Got response from manager: {wf_json}")
         for heading in HEADERS:
-            geojson_file_data[heading] = wf_json[heading]
+            match heading:
+                case 'uploadtime' | 'updatetime' | 'notifytime':
+                    if wf_json[heading][0] == 'U':
+                        # time field with value of "Unknown"
+                        geojson_file_data[heading] = wf_json[heading]
+                    else:
+                        try:
+                            dt = datetime.fromisoformat(wf_json[heading])
+                            geojson_file_data[heading] = dt.strftime(DATETIME_FORMAT)
+                        except Exception as e:
+                            print(f"WARNING: Unable to format time field '{heading}' with value {wf_json[heading]}. "
+                                  f"Passing through raw value. Error was: {str(e)}")
+                            geojson_file_data[heading] = wf_json[heading]
+                case 'soundings':
+                    try:
+                        geojson_file_data[heading] = f"{wf_json[heading]:,d}"
+                    except Exception as e:
+                        print(f"WARNING: Unable to format field '{heading}' with value: {wf_json[heading]}. "
+                              f"Passing through raw value. Error was: {str(e)}")
+                        geojson_file_data[heading] = wf_json[heading]
+                case 'size':
+                    try:
+                        geojson_file_data[heading] = f"{wf_json[heading]:.2f} MB"
+                    except Exception as e:
+                        print(f"WARNING: Unable to format field '{heading}' with value: {wf_json[heading]}. "
+                              f"Passing through raw value. Error was: {str(e)}")
+                        geojson_file_data[heading] = wf_json[heading]
+                case _:
+                    geojson_file_data[heading] = wf_json[heading]
 
         print("sending to websocket...")
         await self.send(text_data=json.dumps({

@@ -58,7 +58,7 @@ convertedGauge = go.Figure(go.Indicator(
 ))
 
 convertedGauge.update_layout(autosize=False, width=1.2 * graphWidth, height=1.18 * graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=40))
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=36))
 
 emptyLocationDf = pd.DataFrame(columns=['longitude', 'latitude'])
 locationGraph = px.scatter_geo(emptyLocationDf, lon='longitude', lat='latitude', projection='natural earth')
@@ -93,7 +93,7 @@ totalSizeNumber = go.Figure(go.Indicator(
     mode='number',
     value=0,
     title={'text': 'Total Size', 'font': {'size': 15}},
-    number={'valueformat': '.2f', 'suffix': 'GB', 'font': {'size': 30}},
+    number={'valueformat': '.2f', 'suffix': 'MB', 'font': {'size': 30}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
 
@@ -109,7 +109,7 @@ totalObsNumber = go.Figure(go.Indicator(
 ))
 
 totalObsNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, t=10, b=0))
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=10))
 
 obsUsedGauge = go.Figure(go.Indicator(
     mode='gauge+number',
@@ -117,11 +117,17 @@ obsUsedGauge = go.Figure(go.Indicator(
     title={'text': 'Observations Used', 'font': {'size': 15}},
     number={'suffix': '%'},
     domain={'x': [0, 1], 'y': [0, 1]},
-    gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
+    gauge={'axis': {
+           'range': [None, 100],
+           'tick0': 0,
+           'dtick': 20,
+           'tickangle': 0
+        }
+    }
 ))
 
 obsUsedGauge.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                           margin=dict(l=lr_margin, r=lr_margin, b=0, t=35))
+                           margin=dict(l=lr_margin, r=lr_margin, b=0, t=40))
 
 totalObserversNumber = go.Figure(go.Indicator(
     mode='number',
@@ -291,16 +297,16 @@ def loadData():
                                      margin=dict(l=0, r=0, t=0, b=0),
                                      xaxis_title='Days', yaxis_title='Files Submitted')
 
-    if 'observer' not in file_date_df.columns:
+    if 'observer' not in observer_file_total_df.columns:
         observer_file_total_df['observer'] = []
-    if 'files' not in file_date_df.columns:
+    if 'files' not in observer_file_total_df.columns:
         observer_file_total_df['files'] = []
     newObserverFileCountGraph = px.line(observer_file_total_df, x='observer', y='files')
     newObserverFileCountGraph.update_layout(autosize=False, width=2.4 * graphWidth, height=1.7 * graphHeight,
                                          margin=dict(l=lr_margin, r=lr_margin, t=0, b=0),
                                          xaxis_title='Observer Name', yaxis_title='Files Submitted')
 
-    if 'soundings' not in file_date_df.columns:
+    if 'soundings' not in observer_file_total_df.columns:
         observer_file_total_df['soundings'] = []
     newObserverSndCountGraph = px.line(observer_file_total_df, x='observer', y='soundings')
     newObserverSndCountGraph.update_layout(autosize=False, width=2.4 * graphWidth, height=1.7 * graphHeight,

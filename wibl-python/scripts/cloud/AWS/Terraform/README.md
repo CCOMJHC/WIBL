@@ -269,6 +269,34 @@ script and try to build again.
 
 #### IMPORTANT: The system can take upwards of 15 to 25 minutes to fully build or destroy.
 
+### Updating an exising system
+To update an existing system, simply run `build.sh` again. You may get an error such as the following:
+```
+╷
+│ Error: Provider produced inconsistent result after apply
+│
+│ When applying changes to module.configure-lambda.aws_iam_policy_attachment.validation_lambda_s3_access_policy_attach, provider
+│ "provider[\"registry.terraform.io/hashicorp/aws\"]" produced an unexpected new value: Root object was present, but now absent.
+│
+│ This is a bug in the provider, which should be reported in the provider's own issue tracker.
+╵
+╷
+│ Error: Provider produced inconsistent result after apply
+│
+│ When applying changes to module.configure-lambda.aws_iam_policy_attachment.submission_lambda_s3_access_policy_attach, provider
+│ "provider[\"registry.terraform.io/hashicorp/aws\"]" produced an unexpected new value: Root object was present, but now absent.
+│
+│ This is a bug in the provider, which should be reported in the provider's own issue tracker.
+╵
+```
+
+If you get this error, try re-running `build.sh` again.
+
+If the changes you made were to `wibl-manager` or `wibl-frontend` ECS services, you will need to "Force new deployment"
+under the "Update service" button in the ECS service console entry (either `wibl-manager-ecs-svc` or 
+`wibl-frontend-ecs-svc`).
+
+
 ### How To Tear Down The System
 #### WARNING: This script destroys ALL resources, meaning all data put into the system will be unrecoverable.
 To destroy the resources in the cloud, including all AWS and docker resources, run the `destroy.sh` script. 
