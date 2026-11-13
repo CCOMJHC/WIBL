@@ -1,16 +1,19 @@
+import os
 import time
-from dash import Dash, dcc, html
+import json
+
 from django_plotly_dash import DjangoDash
 from django.templatetags.static import static
+
 import dash
-import os
+from dash import dcc, html
+
 import plotly.express as px
 import plotly.graph_objects as go
+
 import pandas as pd
-import numpy as np
+
 import httpx
-import asyncio
-import json
 
 """
     Frontend Dashboard 
@@ -55,7 +58,7 @@ convertedGauge = go.Figure(go.Indicator(
 ))
 
 convertedGauge.update_layout(autosize=False, width=1.2 * graphWidth, height=1.18 * graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=40))
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=36))
 
 emptyLocationDf = pd.DataFrame(columns=['longitude', 'latitude'])
 locationGraph = px.scatter_geo(emptyLocationDf, lon='longitude', lat='latitude', projection='natural earth')
@@ -90,7 +93,7 @@ totalSizeNumber = go.Figure(go.Indicator(
     mode='number',
     value=0,
     title={'text': 'Total Size', 'font': {'size': 15}},
-    number={'valueformat': '.2f', 'suffix': 'GB', 'font': {'size': 30}},
+    number={'valueformat': '.2f', 'suffix': 'MB', 'font': {'size': 30}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
 
@@ -106,7 +109,7 @@ totalObsNumber = go.Figure(go.Indicator(
 ))
 
 totalObsNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, t=10, b=0))
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=10))
 
 obsUsedGauge = go.Figure(go.Indicator(
     mode='gauge+number',
@@ -114,11 +117,17 @@ obsUsedGauge = go.Figure(go.Indicator(
     title={'text': 'Observations Used', 'font': {'size': 15}},
     number={'suffix': '%'},
     domain={'x': [0, 1], 'y': [0, 1]},
-    gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
+    gauge={'axis': {
+           'range': [None, 100],
+           'tick0': 0,
+           'dtick': 20,
+           'tickangle': 0
+        }
+    }
 ))
 
 obsUsedGauge.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                           margin=dict(l=lr_margin, r=lr_margin, b=0, t=35))
+                           margin=dict(l=lr_margin, r=lr_margin, b=0, t=40))
 
 totalObserversNumber = go.Figure(go.Indicator(
     mode='number',
@@ -265,30 +274,48 @@ def loadData():
     validated_total = manager_res['ValidatedTotal']
     submitted_total = manager_res['SubmittedTotal']
     size_total = manager_res['SizeTotal']
+    if size_total is None:
+        size_total = 0
     observations_total = manager_res['ObservationsTotal']
+    if observations_total is None:
+        observations_total = 0
     soundings_total = manager_res['SoundingsTotal']
+    if soundings_total is None:
+        soundings_total = 0
     zero_reports_total = manager_res['ObserverZeroReportsTotal']
     observer_total = manager_res['ObserverTotal']
     location_geojson = manager_res['LocationData']
 
     # Must regenerate all graphs
+    # Note: Before trying to create the graphs below, make sure each dataframe contains the expected columns.
+    if 'date' not in file_date_df.columns:
+        file_date_df['date'] = []
+    if 'submissions' not in file_date_df.columns:
+        file_date_df['submissions'] = []
     newSubmissionGraph = px.line(file_date_df, x='date', y='submissions')
     newSubmissionGraph.update_layout(autosize=False, width=2 * graphWidth, height=1.7 * graphHeight,
                                      margin=dict(l=0, r=0, t=0, b=0),
                                      xaxis_title='Days', yaxis_title='Files Submitted')
 
+    if 'observer' not in observer_file_total_df.columns:
+        observer_file_total_df['observer'] = []
+    if 'files' not in observer_file_total_df.columns:
+        observer_file_total_df['files'] = []
     newObserverFileCountGraph = px.line(observer_file_total_df, x='observer', y='files')
     newObserverFileCountGraph.update_layout(autosize=False, width=2.4 * graphWidth, height=1.7 * graphHeight,
                                          margin=dict(l=lr_margin, r=lr_margin, t=0, b=0),
                                          xaxis_title='Observer Name', yaxis_title='Files Submitted')
 
+    if 'soundings' not in observer_file_total_df.columns:
+        observer_file_total_df['soundings'] = []
     newObserverSndCountGraph = px.line(observer_file_total_df, x='observer', y='soundings')
     newObserverSndCountGraph.update_layout(autosize=False, width=2.4 * graphWidth, height=1.7 * graphHeight,
                                         margin=dict(l=lr_margin, r=lr_margin, t=10, b=0),
                                         xaxis_title='Observer Name', yaxis_title='Soundings Submitted')
 
     newLocationGraph = px.scatter_geo(emptyLocationDf, lon='longitude', lat='latitude', projection='natural earth')
-    newLocationGraph.update_layout(autosize=False, height=2 * graphHeight, width=2 * graphWidth, margin=dict(l=15, r=0, t=20, b=0))
+    newLocationGraph.update_layout(autosize=False, height=2 * graphHeight, width=2 * graphWidth,
+                                   margin=dict(l=15, r=0, t=20, b=0))
 
     # creates a "box" trace for every geojson file currently loaded in the manager
     for item in location_geojson:

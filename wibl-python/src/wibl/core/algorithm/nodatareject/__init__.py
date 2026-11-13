@@ -51,7 +51,8 @@ def reject_predicate(pkt: LoggerFile.DataPacket, *,
                      days_since_epoch: int,
                      verbose: bool = False) -> bool:
     counters['num_packets'] += 1
-    if isinstance(pkt, LoggerFile.GNSS):
+    pkt_name = pkt.name()
+    if pkt_name == 'GNSS':
         counters['num_packets_gnss'] += 1
         if pkt.longitude == NA_DATA_DOUBLE or pkt.latitude == NA_DATA_DOUBLE:
             if verbose:
@@ -59,7 +60,7 @@ def reject_predicate(pkt: LoggerFile.DataPacket, *,
             counters['num_filtered_gnss'] += 1
             return True
 
-    if isinstance(pkt, LoggerFile.Depth):
+    if pkt_name == 'Depth':
         counters['num_packets_depth'] += 1
         if pkt.depth == NA_DATA_DOUBLE:
             if verbose:
@@ -67,7 +68,7 @@ def reject_predicate(pkt: LoggerFile.DataPacket, *,
             counters['num_filtered_depth'] += 1
             return True
 
-    if isinstance(pkt, LoggerFile.SystemTime):
+    if pkt_name == 'SystemTime':
         counters['num_packets_systime'] += 1
         if pkt.date > days_since_epoch or pkt.timestamp > SECONDS_PER_DAY:
             if verbose:

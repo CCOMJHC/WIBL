@@ -90,7 +90,7 @@ def protocol_version(major: int, minor: int) -> int:
 ## Latest major protocol version understood by the code
 protocol_version_major = 1
 ## Latest minor protocol version understood by the code
-protocol_version_minor = 3
+protocol_version_minor = 4
  
 ## Maximum protocol version understood by the code
 maximum_version = protocol_version(protocol_version_major, protocol_version_minor)
@@ -126,12 +126,17 @@ def time_interpolation(filename: str, lineage: Lineage, elapsed_time_quantum: in
         strict_mode = kwargs['strict_mode']
     else:
         strict_mode = False
+    if 'bad_talkers' in kwargs:
+        bad_talkers = kwargs['bad_talkers']
+    else:
+        bad_talkers = []
     
     # Pull all of the packets out of the file, and fix up any preliminary problems
     try:
         stats, time_source, packets, algorithms = load_file(filename, lineage, verbose, fault_limit,
                                                             process_algorithms=process_algorithms,
-                                                            strict_mode=strict_mode)
+                                                            strict_mode=strict_mode,
+                                                            bad_talkers=bad_talkers)
     except flNoTimeSource as e:
         if verbose:
             print(f'Failed to determine a valid time source from file: {e}')
@@ -166,17 +171,18 @@ def time_interpolation(filename: str, lineage: Lineage, elapsed_time_quantum: in
         # There are some informational packets in the file that we can handle even if they
         # don't have assigned elapsed times; we deal with these first so that we can then
         # safely ignore any packets that are not time-enabled.
-        if isinstance(pkt, LoggerFile.SerialiserVersion):
-            stats.Observed(pkt.name())
+        pkt_name = pkt.name()
+        if pkt_name == 'SerialiserVersion':
+            stats.Observed(pkt_name)
             if protocol_version(pkt.major, pkt.minor) > maximum_version:
                 raise NewerDataFile()
             logger_version = f'{pkt.major}.{pkt.minor}/{pkt.nmea2000_version}/{pkt.nmea0183_version}'
-        if isinstance(pkt, LoggerFile.Metadata):
-            stats.Observed(pkt.name())
+        if pkt_name == 'Metadata':
+            stats.Observed(pkt_name)
             logger_name = pkt.logger_name
             platform_name = pkt.ship_name
-        if isinstance(pkt, LoggerFile.JSONMetadata):
-            stats.Observed(pkt.name())
+        if pkt_name == 'JSONMetadata':
+            stats.Observed(pkt_name)
             metadata = pkt.metadata_element.decode('UTF-8')
         
         # After this point, any packet that we're interested in has to have an elapsed time assigned
@@ -191,19 +197,20 @@ def time_interpolation(filename: str, lineage: Lineage, elapsed_time_quantum: in
             elapsed_offset = elapsed_offset + elapsed_time_quantum
         last_elapsed = pkt.elapsed
 
-        if isinstance(pkt, LoggerFile.SystemTime):
-            stats.Observed(pkt.name())
+        pkt_name = pkt.name()
+        if pkt_name == 'SystemTime':
+            stats.Observed(pkt_name)
             if time_source == TimeSource.Time_SysTime:
                 time_table.add_point(pkt.elapsed + elapsed_offset, 'ref', pkt.date * seconds_per_day + pkt.timestamp)
-        if isinstance(pkt, LoggerFile.Depth):
-            stats.Observed(pkt.name())
+        if pkt_name == 'Depth':
+            stats.Observed(pkt_name)
             depth_table.add_point(pkt.elapsed + elapsed_offset, 'z', pkt.depth)
-        if isinstance(pkt, LoggerFile.GNSS):
-            stats.Observed(pkt.name())
+        if pkt_name == 'GNSS':
+            stats.Observed(pkt_name)
             if time_source == TimeSource.Time_GNSS:
                 time_table.add_point(pkt.elapsed + elapsed_offset, 'ref', pkt.msg_date * seconds_per_day + pkt.msg_timestamp)
             position_table.add_points(pkt.elapsed + elapsed_offset, ('lat', 'lon'), (pkt.latitude, pkt.longitude))
-        if isinstance(pkt, LoggerFile.SerialString):
+        if pkt_name == 'SerialString':
             try:
                 pkt_name = pkt.data[3:6].decode('UTF-8')
                 stats.Observed(pkt_name)

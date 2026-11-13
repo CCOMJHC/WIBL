@@ -1,32 +1,39 @@
-import boto3
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "boto3",
+# ]
+# ///
 import json
 import os
-import pytest
+import sys
+from pathlib import Path
+import uuid
+
+import boto3
+
 from botocore.exceptions import ClientError
-import requests
+
+
 # Configuration
-REGION = "us-east-2"
-BUCKET_NAME = "default-incoming-bucket"
-LAMBDA_NAME = "default-wibl-conversion-start-lambda"
-TEST_FILE_PATH = "test_file.wibl"
-TEST_KEY = "test_file.wibl"
+REGION = os.environ.get("WIBL_AWS_REGION", "us-east-2")
+BUCKET_NAME = os.environ.get("WIBL_INCOMING_BUCKET_NAME", "default-incoming-bucket")
+LAMBDA_NAME = os.environ.get("WIBL_CONVERSION_START_LAMBDA_NAME", "default-wibl-conversion-start-lambda")
 
-@pytest.fixture(scope="module")
-def s3_client():
-    return boto3.client("s3", region_name=REGION)
+TEST_FILE_PATH = (Path(__file__).parent / "test_file.wibl").absolute()
+TEST_KEY = f"{str(uuid.uuid4())}.wibl"
 
 
-@pytest.fixture(scope="module")
-def lambda_client():
-    return boto3.client("lambda", region_name=REGION)
+def main():
+    s3_client = boto3.client("s3", region_name=REGION)
+    lambda_client = boto3.client("lambda", region_name=REGION)
 
-def test_upload(s3_client):
     try:
-        s3_client.upload_file(TEST_FILE_PATH, BUCKET_NAME, TEST_KEY)
+        sys.stdout.write(f"Uploading {str(TEST_FILE_PATH)} to {BUCKET_NAME} as key {TEST_KEY}...")
+        s3_client.upload_file(str(TEST_FILE_PATH), BUCKET_NAME, TEST_KEY)
+        sys.stdout.write("Done\n")
     except ClientError as e:
-        pytest.fail(f"S3 upload failed: {e}")
-
-def test_lambda(lambda_client):
+        sys.exit(f"S3 upload failed: {e}")
 
     event = {
         "version": "2.0",
@@ -45,14 +52,24 @@ def test_lambda(lambda_client):
                 "userAgent": "pytest"
             }
         },
-        "body": "{\"object\": \"test_file.wibl\"}",
+        "body": "{\"object\": \"" + TEST_KEY + "\"}",
         "isBase64Encoded": False
     }
 
+    print(f"Invoking lambda {LAMBDA_NAME} for item {TEST_KEY}...")
     response = lambda_client.invoke(FunctionName=LAMBDA_NAME, InvocationType="RequestResponse", Payload=json.dumps(event))
 
     response_payload = json.loads(response["Payload"].read())
 
     print("Lambda returned:", response_payload)
 
-    assert response["StatusCode"] == 200
+    if response["StatusCode"] != 200:
+        sys.exit(f"Failed to invoke lambda {LAMBDA_NAME}, status code was: {response["StatusCode"]}")
+
+    print("Done")
+
+    return 0
+
+
+if __name__ == '__main__':
+    main()

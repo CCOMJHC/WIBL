@@ -32,16 +32,21 @@ resource "docker_image" "frontend_image" {
     platform   = "linux/${var.architecture}"
   }
   triggers = {
-    source_hash = sha1(join("", [
-      for f in fileset("${var.src_path}/wibl-frontend", "**/*") :
-      filemd5("${var.src_path}/wibl-frontend/${f}")
-    ]))
+    source_hash = sha1(join("",
+      [filemd5("${var.src_path}/wibl-frontend/Dockerfile"),
+      filemd5("${var.src_path}/wibl-frontend/requirements.txt")],
+      [for f in fileset("${var.src_path}/wibl-frontend", "src/**") : filemd5("${var.src_path}/wibl-frontend/${f}")]
+    ))
   }
 }
 
 resource "docker_registry_image" "frontend" {
   name = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/frontend:latest"
   keep_remotely = true
+  triggers = {
+    image_id = docker_image.frontend_image.image_id
+  }
+
   depends_on = [aws_ecr_repository.frontend_ecr_repo, docker_image.frontend_image]
 }
 
@@ -53,16 +58,21 @@ resource "docker_image" "manager_image" {
     platform   = "linux/${var.architecture}"
   }
   triggers = {
-    source_hash = sha1(join("", [
-      for f in fileset("${var.src_path}/wibl-manager", "**/*") :
-      filemd5("${var.src_path}/wibl-manager/${f}")
-    ]))
+    source_hash = sha1(join("",
+      [filemd5("${var.src_path}/wibl-manager/Dockerfile"),
+      filemd5("${var.src_path}/wibl-manager/requirements.txt"),
+      filemd5("${var.src_path}/wibl-manager/pyproject.toml")],
+      [for f in fileset("${var.src_path}/wibl-manager", "src/wibl_manager/**") : filemd5("${var.src_path}/wibl-manager/${f}")]
+    ))
   }
 }
 
 resource "docker_registry_image" "manager" {
   name = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/manager:latest"
   keep_remotely = true
+  triggers = {
+    image_id = docker_image.frontend_image.image_id
+  }
   depends_on = [aws_ecr_repository.manager_ecr_repo, docker_image.manager_image]
 }
 
@@ -368,10 +378,10 @@ resource "aws_ecs_cluster_capacity_providers" "capacity_attach" {
   }
 }
 
-# Setup 'ecsTaskExecutionRole' role and attach relevant policies
-# Create `ecsTaskExecutionRole`
+# Setup 'wibl-tf-ecsTaskExecutionRole' role and attach relevant policies
+# Create `wibl-tf-ecsTaskExecutionRole`
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecsTaskExecutionRole"
+  name = "wibl-tf-ecsTaskExecutionRole"
   assume_role_policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/task-execution-assume-role.json")
 }
 
@@ -405,7 +415,7 @@ resource "aws_iam_role_policy" "manager_s3_access_all" {
 # Associate CloudWatch policy to `ecsInstanceRole` to allow ECS tasks to send logs to CloudWatch
 # Create policy
 resource "aws_iam_policy" "ecs_cloudwatch_logs" {
-  name   = "ECS-CloudWatchLogs"
+  name   = "wibl-tf-ecsCloudWatchLogs"
   policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/ecs-cloudwatch-policy.json")
 }
 
@@ -561,8 +571,6 @@ resource "aws_vpc_security_group_ingress_rule" "private_rds_sg_rule1" {
 resource "aws_vpc_security_group_egress_rule" "private_rds_sg_rule2" {
   ip_protocol       = "-1"
   security_group_id = aws_security_group.private_rds_sg.id
-  from_port = 0
-  to_port = 0
   cidr_ipv4 = "0.0.0.0/0"
 }
 
@@ -928,7 +936,7 @@ resource "aws_location_map" "map" {
 
 # Frontend ECS task role
 resource "aws_iam_role" "ecs_frontend_task_role" {
-  name = "ecsFrontEndTaskRole"
+  name = "wibl-tf-ecsFrontEndTaskRole"
   assume_role_policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/task-execution-assume-role.json")
 }
 

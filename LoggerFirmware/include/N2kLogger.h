@@ -28,6 +28,7 @@
 #ifndef __N2K_LOGGER_H__
 #define __N2K_LOGGER_H__
 
+#include <set>
 #include <stdint.h>
 #include <Arduino.h>
 #include <NMEA2000.h>
@@ -133,9 +134,11 @@ public:
     void SetVerbose(bool verb) { m_verbose = verb; }
     
 private:
-    bool        m_verbose;          ///< Flag for verbose debug output
-    Timestamp   m_timeReference;    ///< Time reference information for timestamping records
-    logger::Manager *m_logManager;  ///< Handler for output log files
+    bool            m_verbose;          ///< Flag for verbose debug output
+    Timestamp       m_timeReference;    ///< Time reference information for timestamping records
+    logger::Manager *m_logManager;      ///< Handler for output log files
+    std::set<int>   m_pgnList;          ///< List of PGNs to write to output (binary)
+    bool            m_writeAll;         ///< Flag: write all unknown PGNs to binary output if set
     
     /// \brief Translate and serialise the real-time information from GNSS (or atomic clock)
     void HandleSystemTime(Timestamp::TimeDatum const& t, tN2kMsg const& msg);
@@ -157,6 +160,13 @@ private:
     void HandleHumidity(Timestamp::TimeDatum const& t, tN2kMsg const& msg);
     /// \brief Translate and serialise a pressure observation
     void HandlePressure(Timestamp::TimeDatum const& t, tN2kMsg const& msg);
+    /// \brief Write the binary representation of an auxiliary packet
+    void HandleBinary(Timestamp::TimeDatum const& t, tN2kMsg const& msg);
+
+    /// \brief Get the list of PGNs that we need to write in binary to output
+    void retrievePGNlist(void);
+    /// \brief Checked whether a given PGN is on the list to write
+    bool writing_pgn_bin(unsigned long pgn);
 };
 
 }

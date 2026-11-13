@@ -46,10 +46,6 @@
           "value" : "${REPLACEME_DEBUG_MODE}"
         },
         {
-          "name" : "FRONTEND_SECRET_KEY",
-          "value" : "${REPLACEME_SECRET_KEY}"
-        },
-        {
           "name" : "ALB_DNS_NAME",
           "value" : "${REPLACEME_ALB_DNS}"
         },

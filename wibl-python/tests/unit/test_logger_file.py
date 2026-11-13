@@ -3,7 +3,7 @@ import unittest
 import xmlrunner
 
 from wibl import config_logger_service
-import wibl.core.logger_file as lf
+import wibl.core.logger_file.base as lf
 
 logger = config_logger_service()
 

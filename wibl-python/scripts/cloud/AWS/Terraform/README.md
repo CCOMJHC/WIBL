@@ -1,4 +1,33 @@
-# Terraform AWS Build Instructions
+# WIBL Terraform AWS Build Instructions
+
+## Usage
+First, install the WIBL cloud data processing tools using Terraform as described in the "Setup" section below.
+
+Next, load the WIBL frontend in your web browser. You can find the hostname for the WIBL frontend associated
+with your installation by running:
+```shell
+$ terraform output frontend_hostname
+"xyz1abc2efg3hi.cloudfront.net"
+```
+
+To log into your instance of the WIBL frontend, use the `superuser_username` and `superuser_password` you 
+specified in the file `terraform.tfvars` file, as instructed in the instructions below.
+
+You can post dummy test data to the system using the [test_lambda.sh](test/test_lambda.sh) script. To do
+so, you'll first need to create a Python virtual environment:
+```shell
+$ python3 -m venv venv-test && \
+  source venv-test/bin/activate && \
+  pip install -r test/requirements.txt
+```
+
+Then run the script:
+```shell
+$ ./test/test_lambda.sh
+```
+
+Finally, use your instance of WIBL frontend to examine the processing metadata for the test file.
+
 
 ## Setup
 The following software items must be installed and configured before continuing
@@ -7,84 +36,200 @@ The following software items must be installed and configured before continuing
 - AWS CLI
 - Terraform
 
-### 1. Changing default configurations
-Inside the [tf-configure-step-1.bash](./tf-configure-step-1.bash) file there is a variable called `PROVIDER_PREFIX`. 
-Replace the value inside the quotation marks with a unique name to apply to all resources. Due to the nature of the cloud, 
-all AWS components must have name unique to its region, type. So, the value given will be used to create unique names
-for all necessary resources. 
+### Set AWS permissions for your IAM user
+Using the IAM section of the AWS console, you must create a permission policy to grant permissions to create,
+modify, delete the AWS resources that constitute a working WIBL cloud data processing instance.
 
-Example: `PROVIDER_PREFIX='UNHJHC'`
+To do so, first, create an IAM group called "wibl-admin", when you create this group, you can associate it with
+the IAM user you will use to create and manage WIBl AWS resources.
 
-Once you have updated the value, run the [tf-configure-step-1.bash](./tf-configure-step-1.bash) file. This script will 
-generate a file called `terraform.tfvars` inside the [Terraform](../Terraform) folder. This file has three sections, 
-variables that need to be changed, variables that are optional to change, and variables that can be left alone. 
-
-#### Variables That Need To Be Changed:
-- region: Must be a valid AWS region code. Consider this list for available regions. [AWS_Region_List](https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-regions.html)
-- DCDB_provider_id: Replace with your given DCDB provider id.
-- superuser_username/password: Choose the main username and password used to access the frontend dashboard.
-- frontend_secret_key: Following the directions is the `terraform.tfvars` file to generate a Django secret. The script 
-to do so is located [here](./generate_secret.sh).
-- origin_secret: This password phrase adds an extra level of security between the CloudFront module and the 
-frontend's load balancer. Run the generate_secret script again to create a new value.
-- DCDB_mode: By default the test mode is active. To switch to using the production URL, set this variable to 1.
-
-#### Variables That Can Optionally Changed: 
-- frontend/manager_db_size: This variable sets the size, in gigabytes, of the respective databases. The frontend database 
-only contains bookkeeping information for user logins and common caching while the manager database contains all the 
-file metadata that is currently in the system. If you come across storage space issues, 99% of the time it will be the 
-manager database. 
-- frontend/manager_username/password: The database usernames and passwords are only used to internally access the database
-contents inside each separate AWS RDS instance. These values can be set for added security.
-
-#### Other Mandatory Replacement Area:
-- The step 1 script will generate an empty text file name `default_auth.txt`. Inside of this file you must put your DCDB
-provider secret. If the secret is not copied into this file, the final steps of the data pipeline will fail. 
-
-- In [main.tf](./main.tf) in the section near the top labeled `backend "s3"`, the variables inside must be 
-**manually updated**. They will not follow what is located inside the tfvars file. The variables that need to be updated 
-are `terraform-state-bucket`, `region`, and `terraform-state-key`. They must match their tfvars counter-parts, so copy 
-and pasting their values over is the easier course of action. If this change is done in an IDE, often this new block will
-show errors, but those can be ignored.
-
-Example 
-```
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "~> 3.0"
-    }
-  }
-
-  backend "s3" {
-    bucket = "REPLACE"
-    region = "REPLACE"
-    key = "REPLACE"
-  }
-
-  required_version = ">= 1.5.0"
+Next create an inline permission policy on the `wibl-admin` group called "wibl-tf-required-permissions", and use the
+following JSON document as the contents of the policy:
+```JSON
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "",
+			"Effect": "Allow",
+			"Action": [
+				"ec2:AllocateAddress",
+				"ec2:AssociateRouteTable",
+				"ec2:AttachInternetGateway",
+				"ec2:AuthorizeSecurityGroupEgress",
+				"ec2:AuthorizeSecurityGroupIngress",
+				"ec2:CreateInternetGateway",
+				"ec2:CreateNatGateway",
+				"ec2:CreateRoute",
+				"ec2:CreateRouteTable",
+				"ec2:CreateSecurityGroup",
+				"ec2:CreateSubnet",
+				"ec2:CreateTags",
+				"ec2:CreateVpc",
+				"ec2:CreateVpcEndpoint",
+				"ec2:DeleteInternetGateway",
+				"ec2:DeleteNatGateway",
+                "ec2:DeleteNetworkInterface",
+				"ec2:DeleteRouteTable",
+				"ec2:DeleteSecurityGroup",
+				"ec2:DeleteSubnet",
+				"ec2:DeleteVpc",
+				"ec2:DeleteVpcEndpoints",
+				"ec2:DescribeAddresses",
+				"ec2:DescribeAddressesAttribute",
+				"ec2:DescribeInternetGateways",
+				"ec2:DescribeNatGateways",
+				"ec2:DescribeNetworkInterfaces",
+				"ec2:DescribeVpcEndpoints",
+				"ec2:DescribePrefixLists",
+				"ec2:DescribeRouteTables",
+				"ec2:DescribeSecurityGroupRules",
+				"ec2:DescribeSecurityGroups",
+				"ec2:DescribeSubnets",
+				"ec2:DescribeVpcAttribute",
+				"ec2:DescribeVpcs",
+				"ec2:DetachInternetGateway",
+				"ec2:DisassociateAddress",
+				"ec2:DisassociateRouteTable",
+				"ec2:ModifySecurityGroupRules",
+				"ec2:ModifyVpcAttribute",
+				"ec2:ReleaseAddress",
+				"ec2:RevokeSecurityGroupEgress",
+				"ec2:RevokeSecurityGroupIngress",
+				"elasticloadbalancing:AddTags",
+				"elasticloadbalancing:CreateListener",
+				"elasticloadbalancing:CreateLoadBalancer",
+				"elasticloadbalancing:CreateRule",
+				"elasticloadbalancing:CreateTargetGroup",
+				"elasticloadbalancing:DeleteListener",
+				"elasticloadbalancing:DeleteLoadBalancer",
+				"elasticloadbalancing:DeleteRule",
+				"elasticloadbalancing:DeleteTargetGroup",
+				"elasticloadbalancing:DescribeListenerAttributes",
+				"elasticloadbalancing:DescribeListeners",
+				"elasticloadbalancing:DescribeLoadBalancerAttributes",
+				"elasticloadbalancing:DescribeLoadBalancers",
+				"elasticloadbalancing:DescribeRules",
+				"elasticloadbalancing:DescribeTags",
+				"elasticloadbalancing:DescribeTargetGroups",
+				"elasticloadbalancing:DescribeTargetGroupAttributes",
+				"elasticloadbalancing:ModifyLoadBalancerAttributes",
+				"elasticloadbalancing:ModifyTargetGroupAttributes",
+				"geo:CreateMap",
+				"geo:DeleteMap",
+				"geo:DescribeMap",
+				"iam:AttachRolePolicy",
+				"iam:CreatePolicy",
+				"iam:CreateRole",
+				"iam:DeletePolicy",
+				"iam:DeleteRole",
+				"iam:DeleteRolePolicy",
+				"iam:DetachRolePolicy",
+				"iam:GetPolicy",
+				"iam:GetPolicyVersion",
+				"iam:GetRole",
+				"iam:GetRolePolicy",
+				"iam:ListAttachedRolePolicies",
+				"iam:ListEntitiesForPolicy",
+				"iam:ListInstanceProfilesForRole",
+				"iam:ListPolicyVersions",
+				"iam:ListRolePolicies",
+				"iam:PassRole",
+				"iam:PutRolePolicy",
+				"logs:CreateLogGroup",
+				"logs:DeleteLogGroup",
+				"logs:DescribeLogGroups",
+				"logs:ListTagsForResource",
+				"logs:PutRetentionPolicy",
+				"ssm:AddTagsToResource",
+				"ssm:DeleteParameter",
+				"ssm:DescribeParameters",
+				"ssm:GetParameter",
+				"ssm:ListTagsForResource",
+				"ssm:PutParameter"
+			],
+			"Resource": "*"
+		}
+	]
 }
 ```
 
+You will also need to add the following AWS-managed policies to `wibl-admin` group:
+
+ - AmazonEC2ContainerRegistryFullAccess
+ - AmazonECS_FullAccess
+ - AmazonElastiCacheFullAccess
+ - AmazonRDSFullAccess
+ - AmazonS3FullAccess
+ - AmazonSNSFullAccess
+ - AWSCloudTrail_FullAccess
+ - AWSLambda_FullAccess
+ - CloudFrontFullAccess
+ - SecretsManagerReadWrite
+
+
+### 1. Changing default configurations
+Inside the [tf-configure-step-1.bash](./tf-configure-step-1.bash) file there are two variables that must be examined.
+First is a variable called `PROVIDER_PREFIX`, which must be unique to each installation of the WIBL cloud processing
+tools on AWS. Replace the value inside the quotation marks with a unique name to apply to all resources. Due to the 
+nature of the cloud, all AWS components must have name unique to its region, type. So, the value given will be used 
+to create unique names for all necessary resources.
+
+Example: `PROVIDER_PREFIX='unhjhc'`
+
+Whatever `PROVIDER_PREFIX` you choose, make sure it is less than 13 characters long (since the provider prefix will be
+combined with various suffixes to generate S3 bucket names, which must be less than 64 characters) and otherwise 
+complies with the AWS 
+[general purpose bucket naming rules](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html#general-purpose-bucket-names). Also, since the prefix is used as part of RDS database names, it must
+begin with a letter and contain only alphanumeric characters.
+
+Next, verify that the variable `WIBL_AWS_REGION` is set to the AWS region you wish to deploy to. This must be a 
+[valid AWS region code](https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-regions.html).
+
+Once you have made the desired changes to `tf-configure-step-1.bash`, run it. This script will generate two files:
+`main.tf` and `terraform.tfvars`, both inside the [Terraform](../Terraform) folder. You shouldn't need to make any
+changes in `main.tf`. `terraform.tfvars` contains three sections, variables that must be changed, variables that 
+are optional to change, and variables that do not need to be changed. 
+
+#### Variables That Need To Be Changed:
+- `DCDB_provider_id`: Replace with your given DCDB provider id.
+- `superuser_username`/`superuser_password`: Choose the main username and password used to access the frontend dashboard.
+- `frontend_secret_key`: Following the directions is the `terraform.tfvars` file to generate a Django secret. The script 
+to do so is located [here](./generate_secret.sh).
+- `origin_secret`: This password phrase adds an extra level of security between the CloudFront module and the 
+frontend's load balancer. Run the generate_secret script again to create a new value.
+- `DCDB_mode`: By default the test mode is active. To switch to using the production URL, set this variable to 1.
+
+#### Variables That Can Optionally Changed: 
+- `frontend_db_size`/`manager_db_size`: This variable sets the size, in gigabytes, of the respective databases. The frontend database only contains bookkeeping information for user logins and common caching while the manager database contains 
+all the file metadata that is currently in the system. If you come across storage space issues, 99% of the time it will be the 
+manager database. 
+- `frontend_db_user`/`manager_db_user`/`frontend_db_password`/`manager_db_password`: The database usernames and passwords are only used to internally access the database contents inside each separate AWS RDS instance. These values can be set for added security.
+
+#### Other Mandatory Replacement Area:
+- The `tf-configure-step-1.bash` script will also generate an empty text file name `default_auth.txt`. Inside of this file you must put your DCDB provider secret. If the secret is not copied into this file, the final steps of the data pipeline will fail.
+
 ### 2. Bootstrapping Terraform
-Terraform is able to modify and delete computing resources that were created using Terraform. To do this, Terraform must 
-store state information about what resources have been created. This state information can be stored locally on a single 
-compute. However, if the locally stored state information is lost, then you lose the ability to automatically update or 
-delete the computing resources originally created by Terraform. To avoid this problem, Terraform state can be stored 
-remotely in S3. In addition to providing a disaster recovery solution, storing state in S3 allows multiple 
-people/computers to manage a WIBL system created with Terraform, and to do so asynchronously, without having to
-worry about each person's updates overwriting each other.
+Terraform is able to create, modify, and delete computing resources that were created using Terraform. To do this, 
+Terraform must store state information about what resources have been created. This state information can be stored 
+locally on a single computer. However, if the locally stored state information is lost, then you lose the ability to
+automatically update or delete the AWS computing resources originally created by Terraform. To avoid this problem, 
+Terraform state can be stored remotely in an S3 bucket. In addition to providing a disaster recovery solution, 
+storing state in S3 allows multiple people/computers to manage a WIBL cloud processing system created with Terraform, 
+and to do so asynchronously, without having to worry about one person's updates overwriting the other.
 
-You can use the script [tf-configure-step-2.bash](tf-configure-step-2.bash) to create an S3 bucket in which to store 
-Terraform state. The name and key for the bucket should have been automatically set in the previous step, but remember 
-to update the [main.tf](./main.tf) so it matches the value in the `terraform.tfvars` file. 
+You can use the script [tf-configure-step-2.bash](tf-configure-step-2.bash) to create the S3 bucket to store Terraform state in. The 
+name of the Terraform state bucket was automatically set in `main.tf` and `terraform.tfvars` by running 
+`tf-configure-step-1.bash`. If for some reason you wish to change the Terraform state bucket name, key, or region,
+make sure to make the same change in both `main.tf` and `terraform.tfvars`; the reason for the duplication is that
+the Terraform S3 backend is initialized early when Terraform runs, before Terraform can read variables from 
+`terraform.tfvars`. You must not change these values after you have run `tf-configure-step-2.bash`.
 
-Running tf-configure-step-2.bash will look something like this:
+Before running `tf-configure-step-2.bash`, you must edit the `AWS_PROFILE` variable in [tf-aws-init.sh](tf-aws-init.sh)
+to match the name of the [AWS CLI profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+you wish to use.
+
+Running `tf-configure-step-2.bash` will look something like this:
 
 ```
 CONTENT_ROOT: /Users/USER_NAME/.../WIBL/wibl-python
@@ -105,9 +250,12 @@ Done.
 ```
 
 ### 3. Building The Lambda Package
-This step only works if `docker` is currently running on your system. This step also require the "zip" command line tool.
-Inside the outer [AWS](../../AWS) folder is a script called [build-lambda.sh](../build-lambda.sh), run this script. Even if the script 
-is successful, there may still be a lingering `build` or `package` folder, pay these no mind and continue to the next step.
+This step only works if `docker` is currently running on your system. This step also require the "zip" command line 
+tool. Inside the outer [Terraform](./) directory is a script called [build-lambda.sh](./build-lambda.sh), run this 
+script.
+
+To update the lambda code after it has been deployed, but without having to re-deploy the entire Terraform stack,
+run the [update-lambda-code.sh](./update-lambda-code.sh) script.
 
 ### 4. Building The System With Terraform
 This step also requires `docker` to work, so ensure it is running. First, run the `plan.sh` script inside the Terraform 
@@ -120,6 +268,34 @@ If you experience this error, **Error: Backend configuration changed**, then run
 script and try to build again.
 
 #### IMPORTANT: The system can take upwards of 15 to 25 minutes to fully build or destroy.
+
+### Updating an exising system
+To update an existing system, simply run `build.sh` again. You may get an error such as the following:
+```
+╷
+│ Error: Provider produced inconsistent result after apply
+│
+│ When applying changes to module.configure-lambda.aws_iam_policy_attachment.validation_lambda_s3_access_policy_attach, provider
+│ "provider[\"registry.terraform.io/hashicorp/aws\"]" produced an unexpected new value: Root object was present, but now absent.
+│
+│ This is a bug in the provider, which should be reported in the provider's own issue tracker.
+╵
+╷
+│ Error: Provider produced inconsistent result after apply
+│
+│ When applying changes to module.configure-lambda.aws_iam_policy_attachment.submission_lambda_s3_access_policy_attach, provider
+│ "provider[\"registry.terraform.io/hashicorp/aws\"]" produced an unexpected new value: Root object was present, but now absent.
+│
+│ This is a bug in the provider, which should be reported in the provider's own issue tracker.
+╵
+```
+
+If you get this error, try re-running `build.sh` again.
+
+If the changes you made were to `wibl-manager` or `wibl-frontend` ECS services, you will need to "Force new deployment"
+under the "Update service" button in the ECS service console entry (either `wibl-manager-ecs-svc` or 
+`wibl-frontend-ecs-svc`).
+
 
 ### How To Tear Down The System
 #### WARNING: This script destroys ALL resources, meaning all data put into the system will be unrecoverable.

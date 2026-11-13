@@ -2,7 +2,7 @@
 # Values that must be changed
 # ---------------------------
 
-region = "us-east-2"
+region = "${WIBL_AWS_REGION}"
 
 DCDB_provider_id = "UNHJHC"
 
@@ -39,11 +39,14 @@ frontend_db_password = "test_test"
 # Values that do not need to be changed
 # -------------------------------------
 
+architecture = "arm64"
+python_version = "3.12"
+
 terraform_state_bucket = "${PROVIDER_PREFIX}-wibl-tf-state"
 terraform_state_key = "terraform/state/wibl-processing-server-deploy.tfstate"
 
 incoming_bucket_name  = "${PROVIDER_PREFIX}-wibl-incoming-bucket"
-staging_bucket_name   = "${PROVIDER_PREFIX}-wibl-staging-bucket-gt"
+staging_bucket_name   = "${PROVIDER_PREFIX}-wibl-staging-bucket"
 viz_bucket_name       = "${PROVIDER_PREFIX}-wibl-viz-bucket"
 static_bucket_name = "${PROVIDER_PREFIX}-wibl-static-files-bucket"
 
@@ -64,8 +67,8 @@ validation_lambda_role_name = "${PROVIDER_PREFIX}-wibl-validation-lambda-role"
 submission_lambda_role_name = "${PROVIDER_PREFIX}-wibl-submission-lambda-role"
 viz_lambda_role_name = "${PROVIDER_PREFIX}-wibl-viz-lambda-role"
 
-DCDB_test_url = "https://www.ngdc.noaa.gov/ingest-external/upload/csb/test/geojson/"
-DCDB_prod_url = "https://www.ngdc.noaa.gov/ingest-external/upload/csb/geojson/"
+DCDB_test_url = "https://www.ngdc.noaa.gov/ingest-external/upload/csb/test/geojson"
+DCDB_prod_url = "https://www.ngdc.noaa.gov/ingest-external/upload/csb/geojson"
 
 map_name = "${PROVIDER_PREFIX}-open-layers-map"
 

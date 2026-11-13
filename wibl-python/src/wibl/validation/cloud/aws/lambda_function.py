@@ -38,6 +38,7 @@ from wibl.core import getenv
 import wibl.core.config as conf
 from wibl.validation.cloud.aws import get_config_file
 
+
 def validate_metadata(local_file: str, source_info: Dict[str,Any], config: Dict[str,Any]) -> bool:
     verbose = config['verbose']
     filesize = os.path.getsize(local_file) / (1024.0 * 1024.0)

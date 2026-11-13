@@ -1,16 +1,16 @@
 {
     "properties": {
         "trustedNode": {
-            "providerOrganizationName": "",
-            "providerEmail": "",
-            "uniqueVesselID": "",
+            "providerOrganizationName": "UNHJHC",
+            "providerEmail": "test@example.com",
+            "uniqueVesselID": "BA027724-0C32-4052-BAC6-B59569E5A3D9",
             "providerLogger": "",
             "providerLoggerVersion": ""
         },
         "platform": {
-            "length": 0,
-            "IDType": "",
-            "IDNumber": "",
+            "length": 10,
+            "IDType": "MMSI",
+            "IDNumber": "639985000",
             "soundSpeedDocumented": false,
             "postionOffsetsDocumented": false,
             "dataProcessed": false

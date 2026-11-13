@@ -46,14 +46,14 @@ from wibl.core.notification import LocalNotifier
 @click.option('-c', '--config',
               type=click.Path(exists=True), required=True,
               help='Specify configuration file for installation')
-def wibl_proc(input: Path, output: Path, config: Path=None):
+def wibl_proc(input: Path, output: Path, config: Path):
     """Process a WIBL file INPUT into GeoJSON file OUTPUT locally."""
     infilename = str(input)
     outfilename = str(output)
 
     try:
         cfg = conf.read_config(config)
-        if 'notification' not in config:
+        if 'notification' not in cfg:
             cfg['notification'] = {}
         if 'converted' not in cfg['notification']:
             cfg['notification']['converted'] = ''

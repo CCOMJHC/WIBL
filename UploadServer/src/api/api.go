@@ -58,16 +58,9 @@ type DataSummary struct {
 	Nmea2000 DataInfo `json:"nmea2000"`
 }
 
-type FileEntry struct {
-	Id  uint   `json:"id"`
-	Len uint32 `json:"len"`
-	MD5 string `json:"md5"`
-	Url string `json:"url"`
-}
-
 type FileInfo struct {
-	Count  uint        `json:"count"`
-	Detail []FileEntry `json:"detail"`
+	Count int `json:"totalFileCount"`
+	Size  int `json:"totalFileSize"`
 }
 
 type Status struct {

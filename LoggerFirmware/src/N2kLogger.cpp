@@ -37,12 +37,13 @@
 #include "N2kMessages.h"
 #include "DataMetrics.h"
 #include "N2kMsg.h"
+#include "NVMFile.h"
 
 namespace nmea {
 namespace N2000 {
 
 const int SoftwareVersionMajor = 1; ///< Software major version for the logger
-const int SoftwareVersionMinor = 1; ///< Software minor version for the logger
+const int SoftwareVersionMinor = 2; ///< Software minor version for the logger
 const int SoftwareVersionPatch = 0; ///< Software patch version for the logger
 
 /// Constructor for a timestamp holder.  This initialises with the last datum time set to a
@@ -169,6 +170,23 @@ String Timestamp::TimeDatum::printable(void) const
 Logger::Logger(tNMEA2000 *source, logger::Manager *output)
 : tNMEA2000::tMsgHandler(0, source), m_verbose(false), m_logManager(output)
 {
+    retrievePGNlist();
+}
+
+void Logger::retrievePGNlist(void)
+{
+    logger::N2000PGNStore pgns;
+    pgns.BuildSet(m_pgnList, m_writeAll);
+}
+
+bool Logger::writing_pgn_bin(unsigned long pgn)
+{
+    if (m_writeAll) {
+        return true;
+    } else if (m_pgnList.empty() || m_pgnList.find(pgn) == m_pgnList.end()) {
+        return false;
+    }
+    return true;
 }
 
 /// Default destructor for the object.  This attempts to take down the output log file cleanly,
@@ -236,9 +254,13 @@ void Logger::HandleMsg(const tN2kMsg& message)
         case 130314UL:  HandlePressure(now, message); break;
         case 130316UL:  HandleExtTemperature(now, message); break;
         default:
-            // We ignore all packets, unless we're in verbose mode
-            if (m_verbose) {
-                Serial.printf("DBG: Found, and ignoring, packet ID %lu\n", message.PGN);
+            if (writing_pgn_bin(message.PGN)) {
+                HandleBinary(now, message);
+            } else {
+                // We ignore all packets, unless we're in verbose mode
+                if (m_verbose) {
+                    Serial.printf("DBG: Found, and ignoring, packet ID %lu\n", message.PGN);
+                }
             }
             break;
     }
@@ -277,13 +299,13 @@ void Logger::HandleSystemTime(Timestamp::TimeDatum const& t, const tN2kMsg& msg)
             logger::DataObs obs(t.RawElapsed(), date, timestamp);
             logger::Metrics.RegisterObs(obs);
 
-            Serialisable s(sizeof(uint16_t) + sizeof(double) + sizeof(unsigned long) + 1);
+            Serialisable s(sizeof(uint16_t) + sizeof(double) + sizeof(unsigned long) + 2*sizeof(uint8_t));
             s += date;
             s += timestamp;
             s += t.RawElapsed();
+            s += (uint8_t)msg.Source;
             s += (uint8_t)source;
             m_logManager->Record(logger::Manager::PacketIDs::Pkt_SystemTime, s);
-            m_logManager->Syslog(String("INF: Time update to: ") + m_timeReference.printable());
         }
     }
 }
@@ -306,8 +328,9 @@ void Logger::HandleAttitude(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
         if (IsNA(t) || N2kIsNA(yaw) || N2kIsNA(pitch) || N2kIsNA(roll))
             m_logManager->EmitNoDataReject();
 
-        Serialisable s(t.SerialisationSize() + 3*sizeof(double));
+        Serialisable s(t.SerialisationSize() + sizeof(uint8_t) + 3*sizeof(double));
         t.Serialise(s);
+        s += (uint8_t)msg.Source;
         s += yaw;
         s += pitch;
         s += roll;
@@ -338,8 +361,9 @@ void Logger::HandleDepth(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
         if (IsNA(t) || N2kIsNA(depth) || N2kIsNA(offset) || N2kIsNA(range))
             m_logManager->EmitNoDataReject();
         
-        Serialisable s(t.SerialisationSize() + 3*sizeof(double));
+        Serialisable s(t.SerialisationSize() + sizeof(uint8_t) + 3*sizeof(double));
         t.Serialise(s);
+        s += (uint8_t)msg.Source;
         s += depth;
         s += offset;
         s += range;
@@ -370,8 +394,9 @@ void Logger::HandleCOG(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
             if (IsNA(t) || N2kIsNA(cog) || N2kIsNA(sog))
                 m_logManager->EmitNoDataReject();
             
-            Serialisable s(t.SerialisationSize() + 2*sizeof(double));
+            Serialisable s(t.SerialisationSize() + sizeof(uint8_t) + 2*sizeof(double));
             t.Serialise(s);
+            s += (uint8_t)msg.Source;
             s += cog;
             s += sog;
             m_logManager->Record(logger::Manager::PacketIDs::Pkt_COG, s);
@@ -420,8 +445,10 @@ void Logger::HandleGNSS(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
             N2kIsNA(refStationID) || N2kIsNA(correctionAge))
             m_logManager->EmitNoDataReject();
         
-        Serialisable s(t.SerialisationSize() + 2*sizeof(uint16_t) + 8*sizeof(double) + 5);
+        Serialisable s(t.SerialisationSize() + sizeof(uint8_t) + 2*sizeof(uint16_t) +
+                        8*sizeof(double) + 5*sizeof(uint8_t));
         t.Serialise(s); // Put in the standard timestamp, as well as the in-message one.
+        s += (uint8_t)msg.Source;
         s += datestamp; s += timestamp;
         s += latitude; s += longitude; s += altitude;
         s += (uint8_t)rec_type; s += (uint8_t)rec_method;
@@ -439,7 +466,6 @@ void Logger::HandleGNSS(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
             // probably OK since it's usually 1Hz.  Therefore we can update if
             // we don't have anything else
             m_timeReference.Update(datestamp, timestamp, t.RawElapsed());
-            m_logManager->Syslog(String("INFO: Time update to: ") + m_timeReference.printable() + String(" from GNSS record."));
         }
     } else {
         m_logManager->Syslog(t.printable() + ": ERR: Failed to parse primary GNSS report packet.");
@@ -470,8 +496,9 @@ void Logger::HandleEnvironment(Timestamp::TimeDatum const& t, tN2kMsg const& msg
             N2kIsNA((uint8_t)h_source) || N2kIsNA(humidity) || N2kIsNA(pressure))
             m_logManager->EmitNoDataReject();
         
-        Serialisable s(t.SerialisationSize() + 3*sizeof(double) + 2);
+        Serialisable s(t.SerialisationSize() + sizeof(uint8_t) + 3*sizeof(double) + 2*sizeof(uint8_t));
         t.Serialise(s);
+        s += (uint8_t)msg.Source;
         s += (uint8_t)t_source;
         s += temp;
         s += (uint8_t)h_source;
@@ -506,8 +533,9 @@ void Logger::HandleTemperature(Timestamp::TimeDatum const& t, tN2kMsg const& msg
             if (IsNA(t) || N2kIsNA((uint8_t)t_source) || N2kIsNA(temp))
                 m_logManager->EmitNoDataReject();
             
-            Serialisable s(t.SerialisationSize() + 1 + sizeof(double));
+            Serialisable s(t.SerialisationSize() + 2*sizeof(uint8_t) + sizeof(double));
             t.Serialise(s);
+            s += (uint8_t)msg.Source;
             s += (uint8_t)t_source;
             s += temp;
             m_logManager->Record(logger::Manager::PacketIDs::Pkt_Temperature, s);
@@ -539,8 +567,9 @@ void Logger::HandleHumidity(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
             if (IsNA(t) || N2kIsNA((uint8_t)h_source) || N2kIsNA(humidity))
                 m_logManager->EmitNoDataReject();
             
-            Serialisable s(t.SerialisationSize() + 1 + sizeof(double));
+            Serialisable s(t.SerialisationSize() + 2*sizeof(uint8_t) + sizeof(double));
             t.Serialise(s);
+            s += (uint8_t)msg.Source;
             s += (uint8_t)h_source;
             s += humidity;
             m_logManager->Record(logger::Manager::PacketIDs::Pkt_Humidity, s);
@@ -572,8 +601,9 @@ void Logger::HandlePressure(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
             if (IsNA(t) || N2kIsNA((uint8_t)p_source) || N2kIsNA(pressure))
                 m_logManager->EmitNoDataReject();
             
-            Serialisable s(t.SerialisationSize() + 1 + sizeof(double));
+            Serialisable s(t.SerialisationSize() + 2*sizeof(uint8_t) + sizeof(double));
             t.Serialise(s);
+            s += (uint8_t)msg.Source;
             s += (uint8_t)p_source;
             s += pressure;
             m_logManager->Record(logger::Manager::PacketIDs::Pkt_Pressure, s);
@@ -605,8 +635,9 @@ void Logger::HandleExtTemperature(Timestamp::TimeDatum const& t, tN2kMsg const& 
             if (IsNA(t) || N2kIsNA((uint8_t)t_source) || N2kIsNA(temp))
                 m_logManager->EmitNoDataReject();
             
-            Serialisable s(t.SerialisationSize() + 1 + sizeof(double));
+            Serialisable s(t.SerialisationSize() + 2*sizeof(uint8_t) + sizeof(double));
             t.Serialise(s);
+            s += (uint8_t)msg.Source;
             s += (uint8_t)t_source;
             s += temp;
             m_logManager->Record(logger::Manager::PacketIDs::Pkt_Temperature, s);
@@ -614,6 +645,25 @@ void Logger::HandleExtTemperature(Timestamp::TimeDatum const& t, tN2kMsg const& 
     } else {
         m_logManager->Syslog(t.printable() + ": ERR: Failed to parse temperature packet.");
     }
+}
+
+/// Write the raw binary representation of the NMEA2000 packet to output, so that it can be
+/// parsed in post.  This is intended for auxiliary data packets that the user of a particular
+/// logger installation might be interested in, but which otherwise we'd exclude to save space.
+///
+/// @param t    Estimate of real time associated with the current message
+/// @param msg  NMEA2000 message to be serialised
+
+void Logger::HandleBinary(Timestamp::TimeDatum const& t, tN2kMsg const& msg)
+{
+    if (m_verbose) {
+        Serial.println("DBG: Handling binary NMEA2000 packet serialisation.");
+    }
+    Serialisable s(t.SerialisationSize() + msg.DataLen + 8);
+    t.Serialise(s);
+    s += static_cast<uint32_t>(msg.PGN);
+    s.add(msg.DataLen, msg.Data);
+    m_logManager->Record(logger::Manager::PacketIDs::Pkt_N2kBinary, s);
 }
 
 }

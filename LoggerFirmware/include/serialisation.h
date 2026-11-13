@@ -35,7 +35,7 @@
 #include "FS.h"
 
 const int SerialiserVersionMajor = 1; ///< Major version number for the serialiser
-const int SerialiserVersionMinor = 3; ///< Minor version number for the serialiser
+const int SerialiserVersionMinor = 4; ///< Minor version number for the serialiser
 
 /// \class Serialisable
 /// \brief Provide encapsulation for data to be written to store
@@ -67,6 +67,8 @@ public:
     void operator+=(double d);
     /// \brief Add an array of characters (C-style string) to the output buffer
     void operator+=(const char *p);
+    /// \brief Add an array of raw bytes to the output buffer
+    void add(uint32_t len, uint8_t const *p);
     
 private:
     friend class Serialiser;

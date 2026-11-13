@@ -26,6 +26,7 @@
 
 #include <set>
 #include "NVMFile.h"
+#include "JSONUtilities.h"
 #include "LittleFS.h"
 #include "LogManager.h"
 #include "serialisation.h"
@@ -125,7 +126,7 @@ size_t NVMFile::EndTransaction(DynamicJsonDocument& source)
 /// @param indented True if the output should be indended and prettified.
 /// @return The string representation of the JSON object
 
-String NVMFile::JSONRepresentation(bool indented)
+String NVMFile::JSONRepresentation(bool indented) const
 {
     String rtn;
     if (!Valid()) return rtn;
@@ -148,7 +149,7 @@ String NVMFile::JSONRepresentation(bool indented)
 ///
 /// @param dest Document into which to generate contents
 
-DynamicJsonDocument NVMFile::GetContents(void)
+DynamicJsonDocument NVMFile::GetContents(void) const
 {
     return logger::status::GenerateJSON(m_contents);
 }
@@ -348,10 +349,7 @@ void AlgoRequestStore::AddAlgorithm(String const& alg_name, String const& alg_pa
     entry["parameters"] = alg_params;
     if ((doc.memoryUsage() + entry.capacity()) > 0.95*doc.capacity()) {
         // The document needs to be bigger to handle the new entry
-        int capacity = doc.memoryUsage() + entry.capacity() + 256;
-        DynamicJsonDocument new_doc(capacity);
-        new_doc.set(doc);
-        doc = new_doc;
+        GrowJsonDocumentBy(doc, entry.capacity());
     }
     doc["algorithm"].add(entry.as<JsonObject>());
     doc["count"] = count + 1;
@@ -437,8 +435,6 @@ bool N0183IDStore::AddIDs(String const& msg_set)
     int count = doc["count"];
     int start_point = 0, split_point;
 
-    //Serial.printf("DBG: NMEA0183 ID count currently %d\n", count);
-
     while ((split_point = msg_set.indexOf(' ', start_point)) >= 0) {
         String msgid = msg_set.substring(start_point, split_point);
         if (msgid.length() != 3) {
@@ -460,9 +456,6 @@ bool N0183IDStore::AddIDs(String const& msg_set)
     }
     doc["count"] = count;
     EndTransaction(doc);
-
-    String temp(JSONRepresentation());
-    //Serial.printf("DBG: Filter store now |%s|\n", temp.c_str());
 
     return true;
 }
@@ -508,9 +501,118 @@ void N0183IDStore::BuildSet(std::set<String>& s)
 
     int count = doc["count"];
     s.clear();
-   for (int n = 0; n < count; ++n) {
+    for (int n = 0; n < count; ++n) {
         String IDname = doc["ids"][n];
         s.insert(IDname);
+    }
+}
+
+N2000PGNStore::N2000PGNStore(void)
+: NVMFile("/N2000PGN.txt")
+{
+    if (Empty()) {
+        // This is the first time we've been booted, so there's no store; initialise
+        StaticJsonDocument<128> doc;
+        doc["count"] = 0;
+        doc["all"] = false;
+        Set(doc);
+    }
+}
+
+int N2000PGNStore::convert_pgn(String const& s, int start_point, int end_point)
+{
+    String pgn_str = s.substring(start_point, end_point);
+    int pgn = pgn_str.toInt();
+    if (pgn != 0) {
+        return pgn;
+    }
+    // TODO: Add better error checking for the output of toInt() call.
+    return -1;
+}
+
+/// Add a new set of PGNs (space separated) to the list of known PGNs to serialise as raw
+/// binary received data into the output stream.  The input string should be a space-separated
+/// list of decimal PGNs that the user wants the code to serialise; the values are converted
+/// into integers and the process will fail if this is not possible.
+///
+/// @param pgns String representation of decimal PGNs to store
+
+bool N2000PGNStore::AddPGNs(String const& pgns)
+{
+    std::set<int> known_pgns;
+    bool write_all;
+    BuildSet(known_pgns, write_all);
+    int start_point = 0, split_point, pgn, parse_errors = 0;
+
+    while ((split_point = pgns.indexOf(' ', start_point)) >= 0) {
+        if ((pgn = convert_pgn(pgns, start_point, split_point)) > 0) {
+            known_pgns.insert(pgn);
+        } else {
+            ++parse_errors;
+        }
+        start_point = split_point + 1;
+    }
+    // At the end of the loop, we need to convert the last component
+    if ((pgn = convert_pgn(pgns, start_point, pgns.length())) > 0) {
+        known_pgns.insert(pgn);
+    } else {
+        ++parse_errors;
+    }
+
+    // Having added all of the PGNs (not necessarily all new) to the known set, we now
+    // need to make a JSON representation for them.
+    DynamicJsonDocument doc(BeginTransaction());
+    int count = 0;
+    for (auto s = known_pgns.begin(); s != known_pgns.end(); ++s, ++count) {
+        doc["ids"][count] = *s;
+    }
+    doc["count"] = count;
+    doc["all"] = write_all; // Preserve what was there originally
+    EndTransaction(doc);
+
+    return parse_errors == 0;
+}
+
+void N2000PGNStore::WriteAll(bool write_all)
+{
+    DynamicJsonDocument doc(BeginTransaction());
+    doc["all"] = write_all;
+    EndTransaction(doc);
+}
+
+void N2000PGNStore::ClearPGNList(void)
+{
+    StaticJsonDocument<128> doc;
+    doc["count"] = 0;
+    doc["all"] = false;
+    Set(doc);
+}
+
+void N2000PGNStore::SerialisePGNs(Serialiser *s)
+{
+    if (Empty()) return;
+
+    String rep(JSONRepresentation());
+    Serialisable ser(rep.length() + sizeof(unsigned int));
+    ser += rep.length();
+    ser += rep.c_str();
+    s->Process(logger::Manager::PacketIDs::Pkt_NMEA2000PGNS, ser);
+}
+
+void N2000PGNStore::BuildSet(std::set<int>& s, bool& write_all)
+{
+    s.clear();
+    if (Empty()) return;
+
+    DynamicJsonDocument doc(GetContents());
+    int count = doc["count"];
+    for (int n = 0; n < count; ++n) {
+        s.insert(doc["ids"][n].as<int>());
+    }
+    if (doc["all"]) {
+        write_all = true;
+    } else {
+        write_all = false;
     }
 }
 

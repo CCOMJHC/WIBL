@@ -39,7 +39,7 @@
 
 const uint32_t CommandMajorVersion = 1;
 const uint32_t CommandMinorVersion = 4;
-const uint32_t CommandPatchVersion = 1;
+const uint32_t CommandPatchVersion = 2;
 
 /// Default constructor for the SerialCommand object.  This stores the pointers for the logger and
 /// status LED controllers for reference, and then generates a BLE service object.  This turns on
@@ -246,7 +246,7 @@ void SerialCommand::SetIdentificationString(String const& identifier, CommandSou
 {
     if (logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_MODULEID_S, identifier)) {
         if (src == CommandSource::SerialPort) {
-            EmitMessage("INF: UUID accepted.\n", src);
+            EmitMessage("INFO: UUID accepted.\n", src);
         } else {
             ReportConfigurationJSON(src);
         }
@@ -288,7 +288,7 @@ void SerialCommand::SetShipname(String const& name, CommandSource src)
 {
     if (logger::LoggerConfig.SetConfigString(logger::Config::ConfigParam::CONFIG_SHIPNAME_S, name)) {
         if (src == CommandSource::SerialPort) {
-            EmitMessage("INF: Shipname accepted.\n", src);
+            EmitMessage("INFO: Shipname accepted.\n", src);
         } else {
             ReportConfigurationJSON(src);
         }
@@ -327,8 +327,8 @@ void SerialCommand::SetVerboseMode(String const& mode)
 void SerialCommand::Shutdown(void)
 {
     m_logManager->CloseLogfile();
-    Serial.println("info: Stopping under control for powerdown");
-    m_logManager->Syslog("INF: Stopping under control for powerdown.");
+    Serial.println("INFO: Stopping under control for powerdown");
+    m_logManager->Syslog("INFO: Stopping under control for powerdown.");
     m_logManager->CloseConsole();
     m_led->SetStatus(StatusLED::Status::sSTOPPED);
     while (true) {
@@ -765,7 +765,7 @@ void SerialCommand::ConfigurePassthrough(String const& params, CommandSource src
     } else {
         m_passThrough = false;
     }
-    EmitMessage("INF: passthrough mode set to: " + params + "\n", src);
+    EmitMessage("INFO: passthrough mode set to: " + params + "\n", src);
 }
 
 /// Report the current configuration of the logger using JSON formatting.  This can
@@ -780,15 +780,7 @@ void SerialCommand::ConfigurePassthrough(String const& params, CommandSource src
 
 void SerialCommand::ReportConfigurationJSON(CommandSource src, bool secure)
 {
-    DynamicJsonDocument json(logger::ConfigJSON::ExtractConfig());
-    if (src == CommandSource::SerialPort) {
-        String s;
-        serializeJsonPretty(json, s);
-        EmitMessage(s + "\n", src);
-    } else {
-        if (m_wifi != nullptr)
-            m_wifi->SetMessage(json);
-    }
+    EmitJSON(logger::ConfigJSON::ExtractConfig(), src);
 }
 
 /// Provide summary report of all of the configuration parameters being managed by the Confgiuration
@@ -885,7 +877,7 @@ void SerialCommand::SetupLogger(String const& spec, CommandSource src)
         if (src == CommandSource::WirelessPort)
             ReportConfigurationJSON(src);
         else
-            EmitMessage("INF: Accepted configuration from JSON input string.\n", src);
+            EmitMessage("INFO: Accepted configuration from JSON input string.\n", src);
     } else {
         EmitMessage("ERR: Error accepting configuration from JSON input string.\n", src);
         if (src == CommandSource::WirelessPort && m_wifi != nullptr)
@@ -922,8 +914,7 @@ void SerialCommand::DisplayAlgorithmStore(logger::AlgoRequestStore& store, Comma
         String algorithms(store.JSONRepresentation(true));
         EmitMessage(algorithms + '\n', src);
     } else if (src == CommandSource::WirelessPort) {
-        DynamicJsonDocument doc(store.GetContents());
-        m_wifi->SetMessage(doc);
+        m_wifi->SetMessage(store.GetContents());
     } else {
         EmitMessage("ERR: request for unknown CommandSource - who are you?\n", src);
     }
@@ -989,7 +980,7 @@ void SerialCommand::StoreMetadataElement(String const& params, CommandSource src
     logger::MetadataStore metastore;
     metastore.SetMetadata(params);
     if (src == CommandSource::SerialPort) {
-        EmitMessage("INF: added metadata element to local configuration.\n", src);
+        EmitMessage("INFO: added metadata element to local configuration.\n", src);
     } else {
         EmitJSON(params, src);
     } 
@@ -1015,15 +1006,14 @@ void SerialCommand::ReportMetadataElement(CommandSource src)
     }
 }
 
-void SerialCommand::DisplayNMEAFilter(logger::N0183IDStore& filter, CommandSource src)
+void SerialCommand::DisplayNMEAFilter(logger::N0183IDStore const& filter, CommandSource src)
 {
     if (src == CommandSource::SerialPort) {
         EmitMessage("NMEA0183 message IDs accepted for logging:\n", src);
         String filter_ids(filter.JSONRepresentation(true));
         EmitMessage(filter_ids + '\n', src);
     } else if (src == CommandSource::WirelessPort) {
-        DynamicJsonDocument doc(filter.GetContents());
-        m_wifi->SetMessage(doc);
+        m_wifi->SetMessage(filter.GetContents());
     } else {
          EmitMessage("ERR: request for unknown CommandSource - who are you?\n", src);
     }
@@ -1045,7 +1035,7 @@ void SerialCommand::ReportNMEAFilter(CommandSource src)
 /// reception.  Any sentence with a message ID on the list will be logged; all others will be
 /// rejected.  Note that the code does not check the syntax of the message IDs, or that they are
 /// exactly three characters, etc. --- that's up to the user.  The string is therefore case
-/// sensitive.  The special ID "any" will reset the filter back to the default state where
+/// sensitive.  The special ID "all" will reset the filter back to the default state where
 /// everything is logged.  Note that the code does not consider the talker ID, so INGGA and
 /// GPGGA will both be logged if GGA is on the list.
 ///
@@ -1061,6 +1051,58 @@ void SerialCommand::AddNMEAFilter(String const& params, CommandSource src)
         filter.AddIDs(params);
     }
     DisplayNMEAFilter(filter, src);
+}
+
+/// Display the contents of the PGN list for the NMEA2000 messages that are being sent to the output
+/// file as binary data.  The native structure of this is JSON, so we just write it for serial, and
+/// send entire for WiFi.
+///
+/// @param pgns NVM store object for the PGNs
+/// @param src  Where to write the output (and therefore how to write the output)
+
+void SerialCommand::DisplayNMEABinaries(logger::N2000PGNStore const& pgns, CommandSource src)
+{
+    if (src == CommandSource::SerialPort) {
+        EmitMessage("NMEA2000 PGN list for binary output:\n", src);
+        String pgn_store(pgns.JSONRepresentation(true));
+        EmitMessage(pgn_store + '\n', src);
+    } else if (src == CommandSource::WirelessPort) {
+        m_wifi->SetMessage(pgns.GetContents());
+    } else {
+        EmitMessage("ERR: request for unknown CommandSource - who are you?\n", src);
+    }
+}
+
+/// Report the currently configured set of PGNs being written to the output file as binary packets
+/// (i.e., as auxiliary data for future use).
+///
+/// @param src Channel on which to report the IDs configured for logging
+
+void SerialCommand::ReportNMEABinaries(CommandSource src)
+{
+    logger::N2000PGNStore pgns;
+    DisplayNMEABinaries(pgns, src);
+}
+
+/// Add (or reset) the list of PGNs being used for reporting to the output file as binary packets
+/// (i.e., as auxiliary data for later decoding and debugging).  The command should be a space separated
+/// list of decimal PGN numbers, all of which will be recorded in addition to the default set of hard-
+/// coded packets, or "clear" which removes all PGNs from the list.
+///
+/// @param pgns Space-separated list of decimal PGNS, or "clear"
+/// @param src  Source to report results of command
+
+void SerialCommand::AddNMEABinary(String const& pgns, CommandSource src)
+{
+    logger::N2000PGNStore store;
+    if (pgns == "clear") {
+        store.ClearPGNList();
+    } else if (pgns == "all") {
+        store.WriteAll(true);
+    } else {
+        store.AddPGNs(pgns);
+    }
+    DisplayNMEABinaries(store, src);
 }
 
 /// Report the set of scales set for any on-board sensors that record binary data that needs to be
@@ -1097,6 +1139,11 @@ void SerialCommand::ReportFileCount(CommandSource src)
 {
     uint32_t file_count = m_logManager->CountLogFiles();
     EmitMessage(String(file_count) + "\n", src);
+}
+
+void SerialCommand::ReportCatalog(CommandSource src)
+{
+    EmitJSON(logger::status::GenerateFilelist(m_logManager), src);
 }
 
 void SerialCommand::ReportWebserverConfig(CommandSource src)
@@ -1166,17 +1213,7 @@ void SerialCommand::ConfigureWebserver(String const& params, CommandSource src)
 
 void SerialCommand::ReportCurrentStatus(CommandSource src)
 {
-    DynamicJsonDocument status(logger::status::CurrentStatus(m_logManager));
-
-    if (src == CommandSource::SerialPort) {
-        String json;
-        serializeJsonPretty(status, json);
-        EmitMessage(json+"\n", src);
-    } else {
-        if (m_wifi != nullptr) {
-            m_wifi->SetMessage(status);
-        }
-    }
+    EmitJSON(logger::status::CurrentStatus(m_logManager), src);
 }
 
 /// Report the current set of "lab default" configuration parameters set on the logger.  These
@@ -1209,7 +1246,7 @@ void SerialCommand::SetLabDefaults(String const& spec, CommandSource src)
 {
     logger::LoggerConfig.SetConfigString(logger::Config::CONFIG_DEFAULTS_S, spec);
     if (src == CommandSource::SerialPort) {
-        EmitMessage("INF: set lab defaults.\n", src);
+        EmitMessage("INFO: set lab defaults.\n", src);
     } else if (m_wifi != nullptr) {
         if (!EmitJSON(spec, src)) {
             m_wifi->SetStatusCode(WiFiAdapter::HTTPReturnCodes::BADREQUEST);
@@ -1233,7 +1270,7 @@ void SerialCommand::ResetLabDefaults(CommandSource src)
     if (spec.length() > 0) {
         logger::ConfigJSON::SetConfig(spec);
         if (src == CommandSource::SerialPort) {
-            EmitMessage("INF: lab default configuration reset; you may need to reboot for some changes to take effect.\n", src);
+            EmitMessage("INFO: lab default configuration reset; you may need to reboot for some changes to take effect.\n", src);
         } else if (m_wifi != nullptr) {
             if (!EmitJSON(spec, src)) {
                 EmitMessage("Invalid lab defaults JSON", src);
@@ -1376,6 +1413,7 @@ void SerialCommand::SnapshotResource(String const& resource, CommandSource src)
             contents = String("{}");
         m_logManager->WriteSnapshot("defaults.jsn", contents, url);
         json = DynamicJsonDocument(logger::status::GenerateFilelist(m_logManager));
+        contents.clear(); // Because the JSON serialisation appends ...
         serializeJson(json, contents);
         m_logManager->WriteSnapshot("catalog.jsn", contents, url);
         url = "/archive";
@@ -1384,14 +1422,12 @@ void SerialCommand::SnapshotResource(String const& resource, CommandSource src)
         EmitMessage("ERR: unknown snapshot resource requested.\n", src);
     }
 
-    StaticJsonDocument<256> responseJson;
+    DynamicJsonDocument responseJson(256);
     if (rc)
         responseJson["url"] = url;
     else
         responseJson["url"] = "";
-    String response;
-    serializeJson(responseJson, response);
-    EmitJSON(response, src);
+    EmitJSON(std::move(responseJson), src);
 }
 
 void SerialCommand::ReportUploadConfig(CommandSource src)
@@ -1507,6 +1543,7 @@ void SerialCommand::Syntax(CommandSource src)
     EmitMessage("  metadata [platform-specific]        Store or report a platform-specific metadata JSON element.\n", src);
     EmitMessage("  ota                                 Start Over-the-Air update sequence for the logger.\n", src);
     EmitMessage("  password ap|station [wifi-password] Set the WiFi password.\n", src);
+    EmitMessage("  pgn [NMEA2000 PGN | clear | all]    Configure which additional NMEA2000 messages to record.\n", src);
     EmitMessage("  restart                             Restart the logger module hardware.\n", src);
     EmitMessage("  scales                              Report any registered sensor-specific scale factors.\n", src);
     EmitMessage("  setup [json-specification]          Report the configuration of the logger, or set it, using JSON specifications.\n", src);
@@ -1560,6 +1597,8 @@ void SerialCommand::Execute(String const& cmd, CommandSource src)
         } else {
             SetAuthorisation(cmd.substring(5), src);
         }
+    } else if (cmd == "catalog") {
+        ReportCatalog(src);
     } else if (cmd.startsWith("configure")) {
         if (cmd.length() == 9) {
             ReportConfiguration(src);
@@ -1614,6 +1653,12 @@ void SerialCommand::Execute(String const& cmd, CommandSource src)
             GetWiFiPassword(src);
         else
             SetWiFiPassword(cmd.substring(9), src);
+    } else if (cmd.startsWith("pgn")) {
+        if (cmd.length() == 3) {
+            ReportNMEABinaries(src);
+        } else {
+            AddNMEABinary(cmd.substring(4), src);
+        }
     } else if (cmd == "restart") {
         ESP.restart();
     } else if (cmd == "scales") {
@@ -1782,19 +1827,26 @@ bool SerialCommand::EmitJSON(String const& source, CommandSource chan)
         EmitMessage("No data in JSON.\n", chan);
         return false;
     }
-    DynamicJsonDocument json(logger::status::GenerateJSON(source));
-    switch (chan) {
-        case CommandSource::SerialPort:
-            serializeJsonPretty(json, Serial);
-            break;
-        case CommandSource::WirelessPort:
-            if (m_wifi != nullptr) {
-                m_wifi->SetMessage(json);
-            }
-            break;
-        default:
-            Serial.println("ERR: command source not recognised.");
-            break;
-    }
+    EmitJSON(logger::status::GenerateJSON(source), chan);
     return true;
+}
+
+/// Generate a message on the output stream associated with the given source, with
+/// the message in JSON format.
+///
+/// @param json   JSON document
+/// @param src    Input channel on which the command arrived
+
+void SerialCommand::EmitJSON(DynamicJsonDocument && json, CommandSource src)
+{
+    if (src == CommandSource::SerialPort) {
+        serializeJsonPretty(json, Serial);
+        Serial.println();
+    } else if (src == CommandSource::WirelessPort) {
+        if (m_wifi != nullptr) {
+            m_wifi->SetMessage(std::move(json));
+        }
+    } else {
+        Serial.println("ERR: command source not recognised.");
+    }
 }

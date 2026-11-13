@@ -10,7 +10,11 @@ terraform {
     }
   }
 
-  backend "s3" {}
+  backend "s3" {
+    bucket = "${PROVIDER_PREFIX}-wibl-tf-state"
+    region = "${WIBL_AWS_REGION}"
+    key    = "terraform/state/wibl-processing-server-deploy.tfstate"
+  }
 
   required_version = ">= 1.5.0"
 }
@@ -91,6 +95,8 @@ module "configure-lambda" {
     source = "./lambda"
 
     aws_region = var.region
+    architecture = var.architecture
+    python_version = var.python_version
     package_path = "${var.wibl_build_path}/wibl-package-py${var.python_version}-${var.architecture}.zip"
     conversion_lambda_name = var.conversion_lambda_name
     conversion_start_lambda_name = var.conversion_start_lambda_name
