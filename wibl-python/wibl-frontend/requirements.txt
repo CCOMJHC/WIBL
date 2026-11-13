@@ -1,7 +1,7 @@
-Django~=5.1.2
-psycopg[binary]~=3.2.3
-celery~=5.4.0
-redis~=5.1.1
+Django~=5.2.19
+psycopg[binary]~=3.3.9
+celery~=5.7.0
+redis~=8.1.0
 channels[daphne]
 channels-redis
 httpx[http2,brotli,zstd]
@@ -10,6 +10,6 @@ dash~=4.1.0
 django-plotly-dash
 django-allow-cidr
 django-storages[s3]
-plotly
+plotly~=7.1.0 # Compatible with plotly.js 4.x
 pandas
 numpy

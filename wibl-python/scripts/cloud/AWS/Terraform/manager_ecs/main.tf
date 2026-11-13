@@ -71,7 +71,7 @@ resource "docker_registry_image" "manager" {
   name = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/manager:latest"
   keep_remotely = true
   triggers = {
-    image_id = docker_image.frontend_image.image_id
+    image_id = docker_image.manager_image.image_id
   }
   depends_on = [aws_ecr_repository.manager_ecr_repo, docker_image.manager_image]
 }
@@ -684,8 +684,10 @@ resource "aws_ecs_task_definition" "frontend_setup" {
       set -e
       echo "Running migrations..."
       python manage.py migrate
-      echo "Creating superuser..."
-      python manage.py create_superuser
+      if [[ $CREATE_SUPERUSER -eq "1" ]]; then
+        echo "Creating superuser..."
+        python manage.py create_superuser
+      fi
       echo "Collecting static files..."
       python manage.py collectstatic --noinput
 EOT
@@ -703,7 +705,8 @@ EOT
       { name = "AWS_REGION", value = var.region},
       { name = "ALB_DNS_NAME", value = aws_lb.frontend_alb.dns_name},
       { name = "REDIS_URL", value = aws_elasticache_replication_group.redis.primary_endpoint_address},
-      { name = "MAP_NAME", value = aws_location_map.map.map_name}
+      { name = "MAP_NAME", value = aws_location_map.map.map_name},
+      { name = "CREATE_SUPERUSER", value = "1"}
     ]
     logConfiguration = {
         logDriver = "awslogs"
@@ -726,6 +729,26 @@ aws ecs run-task \
   --cluster ${aws_ecs_cluster.wibl_manager.id} \
   --launch-type FARGATE \
   --task-definition ${aws_ecs_task_definition.frontend_setup.family} \
+  --network-configuration "awsvpcConfiguration={subnets=[${aws_subnet.private_subnet_1.id},${aws_subnet.private_subnet_2.id}],securityGroups=[${aws_security_group.private_sg.id}],assignPublicIp=DISABLED}"
+EOT
+  }
+}
+
+resource "null_resource" "run_frontend_update" {
+    triggers = {
+      image_id = docker_image.frontend_image.image_id
+    }
+
+  depends_on = [aws_ecs_task_definition.frontend_setup, aws_cloudwatch_log_group.frontend_setup, aws_db_instance.frontend_db_instance]
+
+  provisioner "local-exec" {
+    command = <<EOT
+aws ecs run-task \
+  --region ${var.region} \
+  --cluster ${aws_ecs_cluster.wibl_manager.id} \
+  --launch-type FARGATE \
+  --task-definition ${aws_ecs_task_definition.frontend_setup.family} \
+  --overrides '{"containerOverrides": [{"name": "frontend_setup", "environment": [{"name": "CREATE_SUPERUSER", "value": "0"}]}]}' \
   --network-configuration "awsvpcConfiguration={subnets=[${aws_subnet.private_subnet_1.id},${aws_subnet.private_subnet_2.id}],securityGroups=[${aws_security_group.private_sg.id}],assignPublicIp=DISABLED}"
 EOT
   }
@@ -782,6 +805,9 @@ EOT
 }
 
 resource "null_resource" "run_manager_migrations" {
+  triggers = {
+    image_id = docker_image.manager_image.image_id
+  }
   depends_on = [
     aws_ecs_task_definition.manager_setup,
     aws_db_instance.manager_db_instance,
