@@ -31,7 +31,7 @@ import struct
 from abc import ABC, abstractmethod
 import io
 from enum import Enum
-from typing import TypeVar, Type, Generic
+from typing import Type, Protocol
 
 
 ## Exception used to report bad keyword parameters when setting up a packet from scratch in code
@@ -92,6 +92,8 @@ class PacketTypes(Enum):
     NMEA2000Binary = 20
     ## Raw GNSS data packets for post processing
     GNSSBinary = 21
+    ## GNSS 1PPS time reference for post processing
+    GNSS1PPS = 22
 
 ## Convert from Kelvin to degrees Celsius
 #
@@ -125,13 +127,36 @@ def pressure_to_mbar(pressure):
 def angle_to_degs(rads):
     return rads*180.0/3.1415926535897932384626433832795
 
+## Protocol class for data packets that can be read from the WIBL raw data file
+#
+# Different versions of the WIBL raw data file can have different base properties (e.g.,
+# whether they attempt to store an estimate of time rather than just elapsed time), which
+# makes maintaining the capability of reading various versions of the files difficult.  This
+# protocol defines what's required of the base data packet reader object, so that it can
+# there's a common model for all versions of the file that can be handed out to higher level
+# code, with specialised implementations for the different versions of raw file
+class DataPacket(Protocol):
+    @abstractmethod
+    def payload(self) -> bytes:
+        ...
 
+    @abstractmethod
+    def id(self) -> int:
+        ...
+
+    @abstractmethod
+    def name(self) -> str:
+        ...
+
+    @abstractmethod
+    def __str__(self) -> str:
+        ...
 
 ## Base class for all data packets that can be read from the binary file
 #
 # This provides a common base class for all of the data packets, and stores the information on the date and time at
 # which the packet was received.
-class DataPacket(ABC):
+class LegacyBaseDataPacket(ABC):
     ## Initialise the base packet with date and timestamp for the packet reception time
     #
     # This simply stores the date and time for the packet reception
@@ -139,7 +164,7 @@ class DataPacket(ABC):
     # \param self       Pointer to the object
     # \param date       Days elapsed since 1970-01-01
     # \param timestamp  Seconds since midnight on the day
-    def __init__(self, date, timestamp, elapsed):
+    def __init__(self, date: int, timestamp: float, elapsed: int) -> None:
         ## Date in days since 1970-01-01
         self.date = date
         ## Time in seconds since midnight on the day in question
@@ -153,7 +178,7 @@ class DataPacket(ABC):
     # it in new files.
     @abstractmethod
     def payload(self) -> bytes:
-        pass
+        ...
 
     ## Abstact method for a class to report its ID number
     #
@@ -161,7 +186,7 @@ class DataPacket(ABC):
     #
     @abstractmethod
     def id(self) -> int:
-        pass
+        ...
 
     ## Provide the fixed-text string name for this data packet
     #
@@ -171,7 +196,7 @@ class DataPacket(ABC):
     # \return String with the human-readable name of the packet
     @abstractmethod
     def name(self) -> str:
-        pass
+        ...
 
     ## Serialise the data in the current packet into the given file
     #
@@ -217,6 +242,7 @@ class PacketFactoryBase(ABC):
         self.strict_mode = strict_mode
         self.packets_read: int = 0
 
+    @abstractmethod
     def _generate_packet(self, pkt_id: int, buffer: bytes, last_pos: int) -> DataPacket | None:
         ...
 

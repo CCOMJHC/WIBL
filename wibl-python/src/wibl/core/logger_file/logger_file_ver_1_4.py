@@ -38,7 +38,7 @@ from .base import (
     pressure_to_mbar,
     angle_to_degs,
     PacketTypes,
-    DataPacket,
+    LegacyBaseDataPacket,
     PacketFactoryBase, LoggerFileBase
 )
 
@@ -51,7 +51,7 @@ WIBL_FILE_VERSION_MINOR = 4
 #
 # This retrieves the timestamp, logger elapsed time, and time source for a SystemTime packet serialised into the file.
 #
-class SystemTime(DataPacket):
+class SystemTime(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -78,7 +78,7 @@ class SystemTime(DataPacket):
         ## Source of the timestamp (see documentation for decoding, but at least GNSS)
         self.data_source = data_source
         self.talker_id = talker_id
-        DataPacket.__init__(self, date, timestamp, elapsed_time)
+        super().__init__(date, timestamp, elapsed_time)
 
     ## Generate a synthetic packet based on keywords
     #
@@ -127,7 +127,7 @@ class SystemTime(DataPacket):
 #
 # The attitude message contains estimates of roll, pitch, and yaw of the ship, without any indication of where the data
 # is coming from.  Consequently, the data is just reported directly.
-class Attitude(DataPacket):
+class Attitude(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -158,7 +158,7 @@ class Attitude(DataPacket):
         self.pitch = pitch
         ## Roll angle of the ship, radians (+ve port up)
         self.roll = roll
-        DataPacket.__init__(self, date, timestamp, elapsed_time)
+        super().__init__(date, timestamp, elapsed_time)
 
     def payload(self) -> bytes:
         buffer = struct.pack('<HdIBddd', self.date, self.timestamp, self.elapsed, self.talker_id,
@@ -212,7 +212,7 @@ class Attitude(DataPacket):
 #
 # The depth message includes the observed depth, the offset that needs to be applied to it either for rise from the keel
 # or waterline, and the maximum depth that can be observed (allowing for some filtering).
-class Depth(DataPacket):
+class Depth(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -299,7 +299,7 @@ class Depth(DataPacket):
 #
 # The Course-over-ground/Speed-over-ground message is sent more frequently that most, and contains estimates of the
 # current course and speed.
-class COG(DataPacket):
+class COG(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -381,7 +381,7 @@ class COG(DataPacket):
 # The GNSS observation message contains a single GNSS observation from a receiver on the ship (multiple receivers are
 # possible, of course).  This contains all of the usual suspects that would come from a GPGGA message in NMEA0183, but
 # has better information on correctors, and methods of correction, which are preserved here.
-class GNSS(DataPacket):
+class GNSS(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -540,7 +540,7 @@ class GNSS(DataPacket):
 # The Environment message was originally used to provide a combination of temperature, humidity, and pressure, but has
 # since been deprecated in favour of individual messages (which also have the benefit of preserving the source information
 # for the pressure data).  These are also supported, but this is provided for backwards compatibility.
-class Environment(DataPacket):
+class Environment(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -641,7 +641,7 @@ class Environment(DataPacket):
 # sensors on the ship, including things like bait tanks and reefers.  The information is, however, always qualified
 # with a source designator.  Some filtering of messages might happen at the logger, however, which means that not all
 # temperature messages make it to here.
-class Temperature(DataPacket):
+class Temperature(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -725,7 +725,7 @@ class Temperature(DataPacket):
 # on the ship, including interior and exterior.  The information is, however, always qualified with a source designator.
 # Some filtering of messages might happen at the logger, however, which means that not all humidity messages make it
 # to here.
-class Humidity(DataPacket):
+class Humidity(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -809,7 +809,7 @@ class Humidity(DataPacket):
 # on the ship, including atmospheric and compressed air systems.  The information is, however, always qualified with a
 # source designator.  Some filtering of messages might happen at the logger, however, which means that not all pressure
 # messages make it to here.
-class Pressure(DataPacket):
+class Pressure(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -892,7 +892,7 @@ class Pressure(DataPacket):
 # As an extension, the logger can (if the hardware is populated) record data from two separate RS-422 NMEA0183
 # data streams, and timestamp in the same manner as the rest of the data.  The code encapsulates the entire message
 # in this packet, rather than trying to have a separate packet for each data string type (at least for now).
-class SerialString(DataPacket):
+class SerialString(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -959,7 +959,7 @@ class SerialString(DataPacket):
 # This picks apart the information on the version of the serialiser used to generate the file being read.  This should
 # always be the first packet in the file, and allows the code to adjust readers if necessary in order to read what's
 # coming next.
-class SerialiserVersion(DataPacket):
+class SerialiserVersion(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1058,7 +1058,7 @@ class SerialiserVersion(DataPacket):
 #
 # This picks out the information from the on-board motion sensor (if available).  This data is not processed
 # (e.g., with a Kalman filter) and may need further work before being useful.
-class Motion(DataPacket):
+class Motion(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1139,7 +1139,7 @@ class Motion(DataPacket):
 # information for the logger that created the file. Note that this is not the same as the
 # JSONMetadata packet, which provides more detailled information for the post-processing code
 # to generate/modify IHO B.12 style GeoJSON metadata.
-class Metadata(DataPacket):
+class Metadata(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1206,8 +1206,7 @@ class Metadata(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = DataPacket.__str__(
-            self) + f' {self.name()}: logger name (unique ID) = {self.logger_name}, shipname = {self.ship_name}'
+        rtn = super().__str__() + f' {self.name()}: logger name (unique ID) = {self.logger_name}, shipname = {self.ship_name}'
         return rtn
 
 
@@ -1215,7 +1214,7 @@ class Metadata(DataPacket):
 #
 # This picks out the information from the algorithm request packet, which provides an algorithm name
 # and parameter set that the logger would recommend running on the data in the cloud, if available
-class AlgorithmRequest(DataPacket):
+class AlgorithmRequest(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1276,7 +1275,7 @@ class AlgorithmRequest(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the obect
     def __str__(self):
-        rtn = DataPacket.__str__(self) + f' {self.name()}: algorithm = {self.algorithm}, parameters = {self.parameters}'
+        rtn = super().__str__() + f' {self.name()}: algorithm = {self.algorithm}, parameters = {self.parameters}'
         return rtn
 
 
@@ -1285,7 +1284,7 @@ class AlgorithmRequest(DataPacket):
 # This picks out information on metadata elements that the logger would like to send into the JSON
 # file being constructed for each data file being transmitted to the database.  This is provided by
 # the user and cached on the logger, and then transmitted as is, without interpretation.
-class JSONMetadata(DataPacket):
+class JSONMetadata(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1346,7 +1345,7 @@ class JSONMetadata(DataPacket):
     # \param self
     # \return String representation of the object
     def __str__(self):
-        rtn = DataPacket.__str__(self) + f' {self.name()}: metadata element = |{self.metadata_element.decode("UTF-8")}|'
+        rtn = super().__str__() + f' {self.name()}: metadata element = |{self.metadata_element.decode("UTF-8")}|'
         return rtn
 
 
@@ -1355,7 +1354,7 @@ class JSONMetadata(DataPacket):
 # The logger has the ability to filter the NMEA0183 sentences that are received so that it only  records to
 # SD card those that are of interest.  Getting the filtering right can be important to let the capture run
 # for as long as possible.
-class NMEA0183Filter(DataPacket):
+class NMEA0183Filter(LegacyBaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1439,8 +1438,7 @@ class NMEA0183Filter(DataPacket):
     # \param self   Reference for the object
     # \return String representation of the object
     def __str__(self) -> str:
-        rtn = DataPacket.__str__(
-            self) + f' {self.name()}: sentence recognition string = |{self.recog_string.decode("UTF-8")}|'
+        rtn = super().__str__() + f' {self.name()}: sentence recognition string = |{self.recog_string.decode("UTF-8")}|'
         return rtn
 
 
@@ -1451,7 +1449,7 @@ class NMEA0183Filter(DataPacket):
 # configured) to give SI units (m/s and rad/s).  This packet contains a JSON-format string to provide
 # these scales.  Of course, since it's just a JSON string, it can also be readily extended for other
 # sensors that might be embedded in other implementations.
-class SensorScales(DataPacket):
+class SensorScales(LegacyBaseDataPacket):
     ## Initialise the packet using either a bytes buffer from a file, or keywords ab initio
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1543,7 +1541,7 @@ class SensorScales(DataPacket):
     # \param self   Reference for the object
     # \return String representation of the object
     def __str__(self) -> str:
-        rtn = DataPacket.__str__(self) + f' {self.name()}: sensor scales =|{self.config}|'
+        rtn = super().__str__() + f' {self.name()}: sensor scales =|{self.config}|'
         return rtn
 
 
@@ -1552,7 +1550,7 @@ class SensorScales(DataPacket):
 # The IMU on the standard WIBL logger is a 6-dof device, and therefore provides a 3-axis acceleration and 3-axis
 # gyro rate estimate.  The particular device used also provides a die temperature estimate (needed to calibrate
 # internally) which is also serialised.
-class RawIMU(DataPacket):
+class RawIMU(LegacyBaseDataPacket):
     ## Initialise the packet using either a bytes buffer from a file, or keywords ab initio
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1649,7 +1647,7 @@ class RawIMU(DataPacket):
 # The WIBL logger can serialise a JSON-formatted dictionary containing all of the configuration parameters for
 # the current setup of the logger.  This packet encapsulates that string so that it can be used to determine the
 # configuration during processing, if required (or for general monitoring, etc.)
-class Setup(DataPacket):
+class Setup(LegacyBaseDataPacket):
     ## Initialise the packet using either a bytes buffer from a file, or keywords ab initio
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1755,7 +1753,7 @@ class Setup(DataPacket):
 # that packets of interest that are not immediately required for the core depth logger can be stored for
 # future use.  This packet holds the JSON string that specifies which PGNs to record in this fashion (in
 # addition to the core set that are always recorded).
-class NMEA2000PGNs(DataPacket):
+class NMEA2000PGNs(LegacyBaseDataPacket):
     def __init__(self, **kwargs):
         if 'buffer' in kwargs:
             self.buffer_constructor(kwargs['buffer'])
@@ -1802,7 +1800,7 @@ class NMEA2000PGNs(DataPacket):
         return rtn
 
 
-class NMEA2000Binary(DataPacket):
+class NMEA2000Binary(LegacyBaseDataPacket):
     def __init__(self, **kwargs):
         if 'buffer' in kwargs:
             self.buffer_constructor(kwargs['buffer'])
@@ -1874,7 +1872,7 @@ class PacketFactory(PacketFactoryBase):
     NMEA2000PGNs = NMEA2000PGNs
     NMEA2000Binary = NMEA2000Binary
 
-    def _generate_packet(self, pkt_id: int, buffer: bytes, last_pos: int) -> DataPacket | None:
+    def _generate_packet(self, pkt_id: int, buffer: bytes, last_pos: int) -> LegacyBaseDataPacket | None:
         rtn = None
         try:
             if pkt_id == PacketTypes.SerialiserVersion.value:

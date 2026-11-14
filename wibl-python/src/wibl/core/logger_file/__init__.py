@@ -9,8 +9,6 @@ import wibl.core.logger_file.logger_file_ver_1_5 as _logger_file_ver_1_5
 # Note that DataPacket and PacketTranscriptionError are used transitively when
 # importing this (wibl.core.logger_file) from other code, rather than directly here.
 from wibl.core.logger_file.base import (
-    DataPacket,
-    PacketTranscriptionError,
     PacketTypes,
     LoggerFileBase, PacketFactoryBase
 )
@@ -29,9 +27,9 @@ DEFAULT_LOGGER_FILE_VERSION_MINOR = 5
 
 LOGGER_VERSIONS = {
     '1.5': {
-        'n2000': (1, 2, 0),
-        'n0183': (1, 1, 0),
-        'imu': (1, 0, 0),
+        'n2000': (1, 3, 0),
+        'n0183': (1, 2, 0),
+        'imu': (1, 1, 0),
         'gnss': (1, 0, 0)
     },
     '1.4': {
@@ -86,7 +84,7 @@ def get_logger_file(version: LOGGER_FILE_VERSIONS = '1.5') -> LoggerFileBase:
 
 ## Obtain a PacketFactory instance for use when reading a particular WIBL file
 #
-# Obtain a PacketFactory instance of a pariticular serialiser version for use when reading a particular
+# Obtain a PacketFactory instance of a particular serialiser version for use when reading a particular
 # WIBL file.
 #
 # Those wishing to write WIBL data, without first reading, are advised to obtain a version-specific

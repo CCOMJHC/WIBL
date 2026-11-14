@@ -27,6 +27,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
+from abc import ABC, abstractmethod
 import struct
 import io
 import json
@@ -38,7 +39,6 @@ from .base import (
     pressure_to_mbar,
     angle_to_degs,
     PacketTypes,
-    DataPacket,
     PacketFactoryBase, LoggerFileBase
 )
 
@@ -47,11 +47,45 @@ WIBL_FILE_VERSION_MAJOR = 1
 ## Definition of minor version of the file format represented by this description
 WIBL_FILE_VERSION_MINOR = 5
 
+## Abstract base class for data packets from the WIBL raw data file.
+#
+# This abstract base class provides core services for the data packets being read from the
+# WIBL raw data file.  This version was introduced in v 1.5 of the file, which eliminated the
+# real-time estimates of date/time from packets (since we don't use them in post and therefore
+# don't need to store them).  This class also implements the DataPacket protocol and therefore
+# can be returned from the PacketFactoryBase
+class BaseDataPacket(ABC):
+    def __init__(self, elapsed: int) -> None:
+        self.elapsed = elapsed
+
+    @abstractmethod
+    def payload(self) -> bytes:
+        ...
+
+    @abstractmethod
+    def id(self) -> int:
+        ...
+
+    @abstractmethod
+    def name(self) -> str:
+        ...
+
+    def serialise(self, f: io.BufferedWriter) -> None:
+        buffer = self.payload()
+        id = self.id()
+        f.write(id.to_bytes(4, 'little'))
+        f.write(len(buffer).to_bytes(4, 'little'))
+        f.write(buffer)
+
+    def __str__(self) -> str:
+        rtn = f'[{self.elapsed} µs elapsed]'
+        return rtn
+
 ## Implementation of the SystemTime NMEA2000 packet
 #
 # This retrieves the timestamp, logger elapsed time, and time source for a SystemTime packet serialised into the file.
 #
-class SystemTime(DataPacket):
+class SystemTime(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -74,11 +108,11 @@ class SystemTime(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, data_source) = struct.unpack('<HdIBB', buffer)
+        (elapsed_time, talker_id, data_source) = struct.unpack('<QBB', buffer)
         ## Source of the timestamp (see documentation for decoding, but at least GNSS)
         self.data_source = data_source
         self.talker_id = talker_id
-        DataPacket.__init__(self, date, timestamp, elapsed_time)
+        super().__init__(elapsed_time)
 
     ## Generate a synthetic packet based on keywords
     #
@@ -92,12 +126,12 @@ class SystemTime(DataPacket):
         try:
             self.data_source = kwargs['data_source']
             self.talker_id = kwargs['talker_id']
-            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
     
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBB', self.date, self.timestamp, self.elapsed, self.talker_id, self.data_source)
+        buffer = struct.pack('<QBB', self.elapsed, self.talker_id, self.data_source)
         return buffer
     
     def id(self) -> int:
@@ -126,7 +160,7 @@ class SystemTime(DataPacket):
 #
 # The attitude message contains estimates of roll, pitch, and yaw of the ship, without any indication of where the data
 # is coming from.  Consequently, the data is just reported directly.
-class Attitude(DataPacket):
+class Attitude(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -149,7 +183,7 @@ class Attitude(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes byffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, yaw, pitch, roll) = struct.unpack("<HdIBddd", buffer)
+        (elapsed_time, talker_id, yaw, pitch, roll) = struct.unpack("<QBddd", buffer)
         self.talker_id = talker_id
         ## Yaw angle of the ship, radians (+ve clockwise from north)
         self.yaw = yaw
@@ -157,11 +191,10 @@ class Attitude(DataPacket):
         self.pitch = pitch
         ## Roll angle of the ship, radians (+ve port up)
         self.roll = roll
-        DataPacket.__init__(self, date, timestamp, elapsed_time)
+        super().__init__(elapsed_time)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBddd', self.date, self.timestamp, self.elapsed, self.talker_id,
-                             self.yaw, self.pitch, self.roll)
+        buffer = struct.pack('<QBddd', self.elapsed, self.talker_id, self.yaw, self.pitch, self.roll)
         return buffer
     
     ## Generate a synthetic packet based on keywords
@@ -180,7 +213,7 @@ class Attitude(DataPacket):
             self.yaw = kwargs['yaw']
             self.pitch = kwargs['pitch']
             self.roll = kwargs['roll']
-            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -210,7 +243,7 @@ class Attitude(DataPacket):
 #
 # The depth message includes the observed depth, the offset that needs to be applied to it either for rise from the keel
 # or waterline, and the maximum depth that can be observed (allowing for some filtering).
-class Depth(DataPacket):
+class Depth(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -233,7 +266,7 @@ class Depth(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, depth, offset, range) = struct.unpack('<HdIBddd', buffer)
+        (elapsed_time, talker_id, depth, offset, range) = struct.unpack('<QBddd', buffer)
         self.talker_id = talker_id
         ## Observed depth below transducer, metres
         self.depth = depth
@@ -243,11 +276,10 @@ class Depth(DataPacket):
         self.offset = offset
         ## Maximum range of observation, metres
         self.range = range
-        super().__init__(date, timestamp, elapsed_time)
+        super().__init__(elapsed_time)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBddd', self.date, self.timestamp, self.elapsed, self.talker_id,
-                             self.depth, self.offset, self.range)
+        buffer = struct.pack('<QBddd', self.elapsed, self.talker_id, self.depth, self.offset, self.range)
         return buffer
     
     def id(self) -> int:
@@ -269,7 +301,7 @@ class Depth(DataPacket):
             self.depth = kwargs['depth']
             self.offset = kwargs['offset']
             self.range = kwargs['range']
-            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -296,7 +328,7 @@ class Depth(DataPacket):
 #
 # The Course-over-ground/Speed-over-ground message is sent more frequently that most, and contains estimates of the
 # current course and speed.
-class COG(DataPacket):
+class COG(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -319,16 +351,16 @@ class COG(DataPacket):
     # \param self   Pointer to the objet
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, courseOverGround, speedOverGround) = struct.unpack('<HdIBdd', buffer)
+        (elapsed_time, talker_id, courseOverGround, speedOverGround) = struct.unpack('<QBdd', buffer)
         self.talker_id = talker_id
         ## Course over ground (radians)
         self.courseOverGround = courseOverGround
         ## Speed over ground (m/s)
         self.speedOverGround = speedOverGround
-        super().__init__(date, timestamp, elapsed_time)
+        super().__init__(elapsed_time)
     
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBdd', self.date, self.timestamp, self.elapsed, self.talker_id, self.courseOverGround, self.speedOverGround)
+        buffer = struct.pack('<QBdd', self.elapsed, self.talker_id, self.courseOverGround, self.speedOverGround)
         return buffer
 
     def id(self) -> int:
@@ -348,7 +380,7 @@ class COG(DataPacket):
             self.talker_id = kwargs['talker_id']
             self.courseOverGround = kwargs['cog']
             self.speedOverGround = kwargs['sog']
-            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -376,7 +408,7 @@ class COG(DataPacket):
 # The GNSS observation message contains a single GNSS observation from a receiver on the ship (multiple receivers are
 # possible, of course).  This contains all of the usual suspects that would come from a GPGGA message in NMEA0183, but
 # has better information on correctors, and methods of correction, which are preserved here.
-class GNSS(DataPacket):
+class GNSS(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -403,9 +435,9 @@ class GNSS(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (sys_date, sys_timestamp, sys_elapsed, talker_id, date, timestamp, latitude, longitude, altitude,
+        (sys_elapsed, talker_id, date, timestamp, latitude, longitude, altitude,
          receiverType, receiverMethod, numSVs, horizontalDOP, positionDOP, separation, numRefStations, refStationType,
-         refStationID, correctionAge) = struct.unpack('<HdIBHddddBBBdddBBHd', buffer)
+         refStationID, correctionAge) = struct.unpack('<QBHddddBBBdddBBHd', buffer)
         self.talker_id = talker_id
         ## In-message date (days since epoch)
         self.msg_date = date
@@ -437,10 +469,10 @@ class GNSS(DataPacket):
         self.refStationID = refStationID
         ## Age of corrections, seconds
         self.correctionAge = correctionAge
-        super().__init__(sys_date, sys_timestamp, sys_elapsed)
+        super().__init__(sys_elapsed)
     
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBHddddBBBdddBBHd', self.date, self.timestamp, self.elapsed, self.talker_id,
+        buffer = struct.pack('<QBHddddBBBdddBBHd',  self.elapsed, self.talker_id,
                                                     self.msg_date, self.msg_timestamp,
                                                     self.latitude, self.longitude, self.altitude, self.receiverType, self.receiverMethod,
                                                     self.numSVs, self.horizontalDOP, self.positionDOP, self.separation,
@@ -494,7 +526,7 @@ class GNSS(DataPacket):
             self.refStationType = kwargs['refs_type']
             self.refStationID = kwargs['refs_id']
             self.correctionAge = kwargs['correction_age']
-            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -531,7 +563,7 @@ class GNSS(DataPacket):
 # The Environment message was originally used to provide a combination of temperature, humidity, and pressure, but has
 # since been deprecated in favour of individual messages (which also have the benefit of preserving the source information
 # for the pressure data).  These are also supported, but this is provided for backwards compatibility.
-class Environment(DataPacket):
+class Environment(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -557,8 +589,8 @@ class Environment(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, tempSource, temperature, humiditySource, humidity, pressure) = \
-            struct.unpack('<HdIBBdBdd', buffer)
+        (elapsed_time, talker_id, tempSource, temperature, humiditySource, humidity, pressure) = \
+            struct.unpack('<QBBdBdd', buffer)
         self.talker_id = talker_id
         ## Source of temperature information (e.g., inside, outside)
         self.tempSource = tempSource
@@ -572,10 +604,10 @@ class Environment(DataPacket):
         # The source information for pressure information is not provided, so presumably this is meant to be
         # atmospheric pressure, rather than something more general.
         self.pressure = pressure
-        super().__init__(date, timestamp, elapsed_time)
+        super().__init__(elapsed_time)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBBdBdd', self.date, self.timestamp, self.elapsed, self.talker_id,
+        buffer = struct.pack('<QBBdBdd', self.elapsed, self.talker_id,
                              self.tempSource, self.temperature, self.humiditySource, self.humidity, self.pressure)
         return buffer
 
@@ -602,7 +634,7 @@ class Environment(DataPacket):
             self.humiditySource = kwargs['humid_source']
             self.humidity = kwargs['humidity']
             self.pressure = kwargs['pressure']
-            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -631,7 +663,7 @@ class Environment(DataPacket):
 # sensors on the ship, including things like bait tanks and reefers.  The information is, however, always qualified
 # with a source designator.  Some filtering of messages might happen at the logger, however, which means that not all
 # temperature messages make it to here.
-class Temperature(DataPacket):
+class Temperature(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -655,16 +687,16 @@ class Temperature(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes object from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, tempSource, temperature) = struct.unpack('<HdIBBd', buffer)
+        (elapsed_time, talker_id, tempSource, temperature) = struct.unpack('<QBBd', buffer)
         self.talker_id = talker_id
         ## Source of temperature information (e.g., water, air, cabin)
         self.tempSource = tempSource
         ## Temperature of source, Kelvin
         self.temperature = temperature
-        super().__init__(date, timestamp, elapsed_time)
+        super().__init__(elapsed_time)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBBd', self.date, self.timestamp, self.elapsed, self.talker_id,
+        buffer = struct.pack('<QBBd', self.elapsed, self.talker_id,
                              self.tempSource, self.tempSource)
         return buffer
 
@@ -685,7 +717,7 @@ class Temperature(DataPacket):
             self.talker_id = kwargs['talker_id']
             self.tempSource = kwargs['temp_source']
             self.temperature = kwargs['temp']
-            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -714,7 +746,7 @@ class Temperature(DataPacket):
 # on the ship, including interior and exterior.  The information is, however, always qualified with a source designator.
 # Some filtering of messages might happen at the logger, however, which means that not all humidity messages make it
 # to here.
-class Humidity(DataPacket):
+class Humidity(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -738,17 +770,16 @@ class Humidity(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes object from which to unpack the binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, humiditySource, humidity) = struct.unpack('<HdIBBd', buffer)
+        (elapsed_time, talker_id, humiditySource, humidity) = struct.unpack('<QBBd', buffer)
         self.talker_id = talker_id
         ## Source of humidity (e.g., inside, outside)
         self.humiditySource = humiditySource
         ## Humidity observation, percent
         self.humidity = humidity
-        super().__init__(date, timestamp, elapsed_time)
+        super().__init__(elapsed_time)
     
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBBd', self.date, self.timestamp, self.elapsed, self.talker_id,
-                             self.humiditySource, self.humidity)
+        buffer = struct.pack('<QBBd', self.elapsed, self.talker_id, self.humiditySource, self.humidity)
         return buffer
     
     def id(self) -> int:
@@ -768,7 +799,7 @@ class Humidity(DataPacket):
             self.talker_id = kwargs['talker_id']
             self.humiditySource = kwargs['humid_source']
             self.humidity = kwargs['humidity']
-            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -797,7 +828,7 @@ class Humidity(DataPacket):
 # on the ship, including atmospheric and compressed air systems.  The information is, however, always qualified with a
 # source designator.  Some filtering of messages might happen at the logger, however, which means that not all pressure
 # messages make it to here.
-class Pressure(DataPacket):
+class Pressure(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -821,17 +852,16 @@ class Pressure(DataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes object from which to unpack the information
     def buffer_constructor(self, buffer: bytes) -> None:
-        (date, timestamp, elapsed_time, talker_id, pressureSource, pressure) = struct.unpack('<HdIBBd', buffer)
+        (elapsed_time, talker_id, pressureSource, pressure) = struct.unpack('<QBBd', buffer)
         self.talker_id = talker_id
         ## Source of pressure measurement (e.g., atmospheric, compressed air)
         self.pressureSource = pressureSource
         ## Pressure, Pascals
         self.pressure = pressure
-        super().__init__(date, timestamp, elapsed_time)
+        super().__init__(elapsed_time)
     
     def payload(self) -> bytes:
-        buffer = struct.pack('<HdIBBd', self.date, self.timestamp, self.elapsed, self.talker_id,
-                             self.pressureSource, self.pressure)
+        buffer = struct.pack('<QBBd', self.elapsed, self.talker_id, self.pressureSource, self.pressure)
         return buffer
     
     def id(self) -> int:
@@ -851,7 +881,7 @@ class Pressure(DataPacket):
             self.talker_id = kwargs['talker_id']
             self.pressureSource = kwargs['press_source']
             self.pressure = kwargs['pressure']
-            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
     
@@ -879,7 +909,7 @@ class Pressure(DataPacket):
 # As an extension, the logger can (if the hardware is populated) record data from two separate RS-422 NMEA0183
 # data streams, and timestamp in the same manner as the rest of the data.  The code encapsulates the entire message
 # in this packet, rather than trying to have a separate packet for each data string type (at least for now).
-class SerialString(DataPacket):
+class SerialString(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -896,14 +926,14 @@ class SerialString(DataPacket):
 
     def buffer_constructor(self, buffer: bytes) -> None:
         string_length = len(buffer) - 4
-        (elapsed_time, data) = struct.unpack(f'<I{string_length}s', buffer)
+        (elapsed_time, data) = struct.unpack(f'<Q{string_length}s', buffer)
         ## Serial data encapsulated in the packet
         self.data = data
-        super().__init__(0, 0, elapsed_time)
+        super().__init__(elapsed_time)
 
     def payload(self) -> bytes:
         data_len = len(self.data)
-        buffer = struct.pack(f'<I{data_len}s', self.elapsed, self.data)
+        buffer = struct.pack(f'<Q{data_len}s', self.elapsed, self.data)
         return buffer
 
     def id(self) -> int:
@@ -917,7 +947,7 @@ class SerialString(DataPacket):
     def data_constructor(self, **kwargs) -> None:
         try:
             self.data = kwargs['payload']
-            super().__init__(0, 0, kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -946,7 +976,7 @@ class SerialString(DataPacket):
 # This picks apart the information on the version of the serialiser used to generate the file being read.  This should
 # always be the first packet in the file, and allows the code to adjust readers if necessary in order to read what's
 # coming next.
-class SerialiserVersion(DataPacket):
+class SerialiserVersion(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -988,7 +1018,7 @@ class SerialiserVersion(DataPacket):
         ## GNSS software version information
         self.gnss_version = f'{gnss_major}.{gnss_minor}.{gnss_patch}'
 
-        super().__init__(0, 0.0, 0)
+        super().__init__(0)
 
     def payload(self) -> bytes:
         buffer = struct.pack('<HHHHHHHHHHHHHH', self.major, self.minor,
@@ -1021,7 +1051,7 @@ class SerialiserVersion(DataPacket):
             self.nmea0183_version = f'{self.nmea0183[0]}.{self.nmea0183[1]}.{self.nmea0183[2]}'
             self.imu_version = f'{self.imu[0]}.{self.imu[1]}.{self.imu[2]}'
             self.gnss_version = f'{self.gnss[0]}.{self.gnss[1]}.{self.gnss[2]}'
-            super().__init__(0, 0.0, 0)
+            super().__init__(0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1041,14 +1071,14 @@ class SerialiserVersion(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = super().__str__() + f' {self.name()}: version = {self.major}.{self.minor}, with NMEA2000 version {self.nmea2000},  NMEA0183 version {self.nmea0183}, IMU version {self.imu}, and GNSS version {self.gnss}'
+        rtn = super().__str__() + f' {self.name()}: version = {self.major}.{self.minor}, with NMEA2000 version {self.nmea2000}, NMEA0183 version {self.nmea0183}, IMU version {self.imu}, and GNSS version {self.gnss}'
         return rtn
 
 ## Implement the motion sensor data packet
 #
 # This picks out the information from the on-board motion sensor (if available).  This data is not processed
 # (e.g., with a Kalman filter) and may need further work before being useful.
-class Motion(DataPacket):
+class Motion(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1070,17 +1100,17 @@ class Motion(DataPacket):
     # \param self   Reference for the object
     # \param buffer A bytes object for the previously serialised packet
     def buffer_constructor(self, buffer: bytes) -> None:
-        (elapsed, ax, ay, az, gx, gy, gz, temp) = struct.unpack('<Ifffffff', buffer)
+        (elapsed, ax, ay, az, gx, gy, gz, temp) = struct.unpack('<Qfffffff', buffer)
         ## The acceleration vector, 3D
         self.accel = (ax, ay, az)
         ## The gyroscope rate vector, 3D
         self.gyro = (gx, gy, gz)
         # Die temperature of the motion sensor
         self.temp = temp
-        super().__init__(0, 0.0, elapsed)
+        super().__init__(elapsed)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<Ifffffff', self.elapsed, self.accel[0], self.accel[1], self.accel[2], self.gyro[0], self.gyro[1], self.gyro[2], self.temp)
+        buffer = struct.pack('<Qfffffff', self.elapsed, self.accel[0], self.accel[1], self.accel[2], self.gyro[0], self.gyro[1], self.gyro[2], self.temp)
         return buffer
     
     def id(self) -> int:
@@ -1098,7 +1128,7 @@ class Motion(DataPacket):
             self.accel = kwargs['accel']
             self.gyro = kwargs['gyro']
             self.temp = kwargs['temp']
-            super().__init__(0, 0.0, kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1127,7 +1157,7 @@ class Motion(DataPacket):
 # information for the logger that created the file. Note that this is not the same as the
 # JSONMetadata packet, which provides more detailled information for the post-processing code
 # to generate/modify IHO B.12 style GeoJSON metadata.
-class Metadata(DataPacket):
+class Metadata(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1153,7 +1183,7 @@ class Metadata(DataPacket):
         name, = struct.unpack_from(f'<{name_len}s', buffer, base)
         self.logger_name = unique_id.decode('UTF-8')
         self.ship_name = name.decode('UTF-8')
-        super().__init__(0, 0.0, 0)
+        super().__init__(0)
 
     def payload(self) -> bytes:
         logger_name_len = len(self.logger_name)
@@ -1173,7 +1203,7 @@ class Metadata(DataPacket):
         try:
             self.logger_name = kwargs['logger']
             self.ship_name = kwargs['shipname']
-            super().__init__(0, 0.0, 0)
+            super().__init__(0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1194,14 +1224,14 @@ class Metadata(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the object
     def __str__(self):
-        rtn = DataPacket.__str__(self) + f' {self.name()}: logger name (unique ID) = {self.logger_name}, shipname = {self.ship_name}'
+        rtn = BaseDataPacket.__str__(self) + f' {self.name()}: logger name (unique ID) = {self.logger_name}, shipname = {self.ship_name}'
         return rtn
 
 ## Implement the algorithm packet
 #
 # This picks out the information from the algorithm request packet, which provides an algorithm name
 # and parameter set that the logger would recommend running on the data in the cloud, if available
-class AlgorithmRequest(DataPacket):
+class AlgorithmRequest(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1227,7 +1257,7 @@ class AlgorithmRequest(DataPacket):
         algparams, = struct.unpack_from(f'<{param_len}s', buffer, base)
         self.algorithm = algname
         self.parameters = algparams
-        super().__init__(0, 0.0, 0)
+        super().__init__(0)
     
     def payload(self) -> bytes:
         name_len = len(self.algorithm)
@@ -1242,7 +1272,7 @@ class AlgorithmRequest(DataPacket):
         try:
             self.algorithm = kwargs['name'].encode('UTF-8')
             self.parameters = kwargs['params'].encode('UTF-8')
-            super().__init__(0, 0.0, 0)
+            super().__init__(0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
     
@@ -1262,7 +1292,7 @@ class AlgorithmRequest(DataPacket):
     # \param self   Pointer to the object
     # \return String representation of the obect
     def __str__(self):
-        rtn = DataPacket.__str__(self) + f' {self.name()}: algorithm = {self.algorithm}, parameters = {self.parameters}'
+        rtn = BaseDataPacket.__str__(self) + f' {self.name()}: algorithm = {self.algorithm}, parameters = {self.parameters}'
         return rtn
 
 ## Implement the JSON metadata packet
@@ -1270,7 +1300,7 @@ class AlgorithmRequest(DataPacket):
 # This picks out information on metadata elements that the logger would like to send into the JSON
 # file being constructed for each data file being transmitted to the database.  This is provided by
 # the user and cached on the logger, and then transmitted as is, without interpretation.
-class JSONMetadata(DataPacket):
+class JSONMetadata(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1291,7 +1321,7 @@ class JSONMetadata(DataPacket):
         base += 4
         meta, = struct.unpack_from(f'<{meta_len}s', buffer, base)
         self.metadata_element = meta
-        super().__init__(0, 0.0, 0)
+        super().__init__(0)
 
     def payload(self) -> bytes:
         meta_len = len(self.metadata_element)
@@ -1314,7 +1344,7 @@ class JSONMetadata(DataPacket):
                 self.metadata_element = kwargs['meta'].encode('UTF-8')
             else:
                 self.metadata_element = kwargs['meta']
-            super().__init__(0, 0.0, 0)
+            super().__init__(0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
         
@@ -1331,7 +1361,7 @@ class JSONMetadata(DataPacket):
     # \param self
     # \return String representation of the object
     def __str__(self):
-        rtn = DataPacket.__str__(self) + f' {self.name()}: metadata element = |{self.metadata_element.decode("UTF-8")}|'
+        rtn = BaseDataPacket.__str__(self) + f' {self.name()}: metadata element = |{self.metadata_element.decode("UTF-8")}|'
         return rtn
 
 ## Implement a packet to hold information on NMEA0183 packets being recorded
@@ -1339,7 +1369,7 @@ class JSONMetadata(DataPacket):
 # The logger has the ability to filter the NMEA0183 sentences that are received so that it only  records to
 # SD card those that are of interest.  Getting the filtering right can be important to let the capture run
 # for as long as possible. 
-class NMEA0183Filter(DataPacket):
+class NMEA0183Filter(BaseDataPacket):
     ## Initialise the object using the supplied buffer of data, or keywords if appropriate
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1366,7 +1396,7 @@ class NMEA0183Filter(DataPacket):
         base += 4
         recog_string, = struct.unpack_from(f'<{id_len}s', buffer, base)
         self.recog_string = recog_string
-        super().__init__(0, 0.0, 0)
+        super().__init__(0)
     
     ## Initialise the packet from keyword arguments
     #
@@ -1381,7 +1411,7 @@ class NMEA0183Filter(DataPacket):
     def data_constructor(self, **kwargs) -> None:
         try:
             self.recog_string = kwargs['sentence'].encode('UTF-8')
-            super().__init__(0, 0.0, 0)
+            super().__init__(0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
     
@@ -1423,7 +1453,7 @@ class NMEA0183Filter(DataPacket):
     # \param self   Reference for the object
     # \return String representation of the object
     def __str__(self) -> str:
-        rtn = DataPacket.__str__(self) + f' {self.name()}: sentence recognition string = |{self.recog_string.decode("UTF-8")}|'
+        rtn = BaseDataPacket.__str__(self) + f' {self.name()}: sentence recognition string = |{self.recog_string.decode("UTF-8")}|'
         return rtn
 
 ## Implement a packet to store a JSON description of the sensor scales used by on-board sensors
@@ -1433,7 +1463,7 @@ class NMEA0183Filter(DataPacket):
 # configured) to give SI units (m/s and rad/s).  This packet contains a JSON-format string to provide
 # these scales.  Of course, since it's just a JSON string, it can also be readily extended for other
 # sensors that might be embedded in other implementations.
-class SensorScales(DataPacket):
+class SensorScales(BaseDataPacket):
     ## Initialise the packet using either a bytes buffer from a file, or keywords ab initio
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1463,7 +1493,7 @@ class SensorScales(DataPacket):
         convert_string = f'<{config_len}s'
         config, = struct.unpack_from(convert_string, buffer, base)
         self.config = json.loads(config)
-        super().__init__(0, 0.0, 0)
+        super().__init__(0)
 
     ## Initialise the packet from keyword arguments
     #
@@ -1482,7 +1512,7 @@ class SensorScales(DataPacket):
                     self.config = json.load(kwargs['scales'])
             else:
                 self.config = kwargs['scales']
-            super().__init__(0, 0.0, 0)
+            super().__init__(0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1525,7 +1555,7 @@ class SensorScales(DataPacket):
     # \param self   Reference for the object
     # \return String representation of the object
     def __str__(self) -> str:
-        rtn = DataPacket.__str__(self) + f' {self.name()}: sensor scales =|{self.config}|'
+        rtn = BaseDataPacket.__str__(self) + f' {self.name()}: sensor scales =|{self.config}|'
         return rtn
 
 ## Implement a packet to hold IMU information from a WIBL logger
@@ -1533,7 +1563,7 @@ class SensorScales(DataPacket):
 # The IMU on the standard WIBL logger is a 6-dof device, and therefore provides a 3-axis acceleration and 3-axis
 # gyro rate estimate.  The particular device used also provides a die temperature estimate (needed to calibrate
 # internally) which is also serialised.
-class RawIMU(DataPacket):
+class RawIMU(BaseDataPacket):
     ## Initialise the packet using either a bytes buffer from a file, or keywords ab initio
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1557,11 +1587,11 @@ class RawIMU(DataPacket):
     # \param self   Reference for the object
     # \param buffer Binary buffer with serialised information for the packet
     def buffer_constructor(self, buffer: bytes) -> None:
-        (elapsed, t, gx, gy, gz, ax, ay, az) = struct.unpack('<Ihhhhhhh', buffer)
+        (elapsed, t, gx, gy, gz, ax, ay, az) = struct.unpack('<Qhhhhhhh', buffer)
         self.accel = (ax, ay, az)
         self.gyro = (gx, gy, gz)
         self.temp = t
-        super().__init__(0, 0.0, elapsed)
+        super().__init__(elapsed)
 
     ## Initialise the packet from keyword arguments
     #
@@ -1579,7 +1609,7 @@ class RawIMU(DataPacket):
             self.accel = kwargs['accel']
             self.gyro = kwargs['gyro']
             self.temp = kwargs['temp']
-            super().__init__(0, 0.0, kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1592,7 +1622,7 @@ class RawIMU(DataPacket):
     # \param self   Reference for the object
     # \return Bytes array with the binary representation of the packet-specific parameters
     def payload(self) -> bytes:
-        buffer = struct.pack('<Ihhhhhhh', self.elapsed, self.temp, self.gyro[0], self.gyro[1], self.gyro[2], self.accel[0], self.accel[1], self.accel[2])
+        buffer = struct.pack('<Qhhhhhhh', self.elapsed, self.temp, self.gyro[0], self.gyro[1], self.gyro[2], self.accel[0], self.accel[1], self.accel[2])
         return buffer
 
     ## Provide the recognition ID for the packet, as used in the binary file
@@ -1628,7 +1658,7 @@ class RawIMU(DataPacket):
 # The WIBL logger can serialise a JSON-formatted dictionary containing all of the configuration parameters for
 # the current setup of the logger.  This packet encapsulates that string so that it can be used to determine the
 # configuration during processing, if required (or for general monitoring, etc.)
-class Setup(DataPacket):
+class Setup(BaseDataPacket):
     ## Initialise the packet using either a bytes buffer from a file, or keywords ab initio
     #
     # If the keywords include "buffer", the code assumes that the contents of the buffer are a serialised
@@ -1658,7 +1688,7 @@ class Setup(DataPacket):
         convert_string = f'<{setup_len}s'
         setup, = struct.unpack_from(convert_string, buffer, base)
         self.setup = json.loads(setup)
-        super().__init__(0, 0.0, 0)
+        super().__init__(0)
 
     ## Initialise the packet from keyword arguments
     #
@@ -1682,6 +1712,7 @@ class Setup(DataPacket):
                 self.setup = kwargs['setup']
             if 'version' not in self.setup or 'commandproc' not in self.setup['version']:
                 raise SpecificationError('JSON specification does not contain version information.')
+            super().__init__(0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1733,7 +1764,7 @@ class Setup(DataPacket):
 # that packets of interest that are not immediately required for the core depth logger can be stored for
 # future use.  This packet holds the JSON string that specifies which PGNs to record in this fashion (in
 # addition to the core set that are always recorded).
-class NMEA2000PGNs(DataPacket):
+class NMEA2000PGNs(BaseDataPacket):
     def __init__(self, **kwargs):
         if 'buffer' in kwargs:
             self.buffer_constructor(kwargs['buffer'])
@@ -1747,7 +1778,7 @@ class NMEA2000PGNs(DataPacket):
         convert_string = f'<{setup_len}s'
         config, = struct.unpack_from(convert_string, buffer, base)
         self.config = json.loads(config)
-        super().__init__(0, 0.0, 0)
+        super().__init__(0)
 
     def data_constructor(self, **kwargs) -> None:
         try:
@@ -1760,6 +1791,7 @@ class NMEA2000PGNs(DataPacket):
                 self.config = kwargs['config']
             if 'count' not in self.config or 'ids' not in self.config:
                 raise SpecificationError('PGN configuration does not contain count or id information')
+            super().__init__(0)
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1779,7 +1811,7 @@ class NMEA2000PGNs(DataPacket):
         rtn = super().__str__() + f' {self.name()}: json = |{self.config}|'
         return rtn
 
-class NMEA2000Binary(DataPacket):
+class NMEA2000Binary(BaseDataPacket):
     def __init__(self, **kwargs):
         if 'buffer' in kwargs:
             self.buffer_constructor(kwargs['buffer'])
@@ -1788,25 +1820,25 @@ class NMEA2000Binary(DataPacket):
 
     def buffer_constructor(self, buffer: bytes) -> None:
         base: int = 0
-        (date, timestamp, elapsed_time, pgn, buf_len) = struct.unpack_from('<HdIII', buffer, base)
+        (elapsed_time, pgn, buf_len) = struct.unpack_from('<QII', buffer, base)
         base += 22
         self.pgn = pgn
         convert_string = f'<{buf_len}s'
         buf, = struct.unpack_from(convert_string, buffer, base)
         self.raw = buf
-        super().__init__(date, timestamp, elapsed_time)
+        super().__init__(elapsed_time)
 
     def data_constructor(self, **kwargs) -> None:
         try:
             self.pgn = kwargs['pgn']
             self.raw = kwargs['raw']
-            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
     def payload(self) -> bytes:
         raw_len: int = len(self.raw)
-        buffer = struct.pack(f'<HdIII{raw_len}s', self.date, self.timestamp, self.elapsed, self.pgn, raw_len, self.raw)
+        buffer = struct.pack(f'<QII{raw_len}s', self.elapsed, self.pgn, raw_len, self.raw)
         return buffer
 
     def id(self) -> int:
@@ -1819,7 +1851,7 @@ class NMEA2000Binary(DataPacket):
         rtn = super().__str__() + f' {self.name()}: PGN {self.pgn} = {self.raw}'
         return rtn
 
-class GNSSBinary(DataPacket):
+class GNSSBinary(BaseDataPacket):
     def __init__(self, **kwargs):
         if 'buffer' in kwargs:
             self.buffer_constructor(kwargs['buffer'])
@@ -1833,12 +1865,12 @@ class GNSSBinary(DataPacket):
         convert_string = f'<{buf_len}s'
         buf, = struct.unpack_from(convert_string, buffer, base)
         self.raw = buf
-        super().__init__(0, 0.0, 0)
+        super().__init__(0)
 
     def data_constructor(self, **kwargs) -> None:
         try:
             self.raw = kwargs['raw']
-            super().__init__(kwargs['date'], kwargs['timestamp'], kwargs['elapse_time'])
+            super().__init__(kwargs['elapsed_time'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1855,6 +1887,41 @@ class GNSSBinary(DataPacket):
 
     def __str__(self) -> str:
         rtn = super().__str__() + f' {self.name()}: {self.raw}'
+        return rtn
+
+class GNSS1PPS(BaseDataPacket):
+    def __init__(self, **kwargs):
+        if 'buffer' in kwargs:
+            self.buffer_constructor(kwargs['buffer'])
+        else:
+            self.data_constructor(**kwargs)
+
+    def buffer_constructor(self, buffer: bytes) -> None:
+        (elapsed, utc_second, utc_microsecond) = struct.unpack_from('<QII', buffer)
+        self.utc_second = utc_second
+        self.utc_microsecond = utc_microsecond
+        super().__init__(elapsed)
+
+    def data_constructor(self, **kwargs) -> None:
+        try:
+            self.utc_second = kwargs['utc_second']
+            self.utc_microsecond = kwargs['utc_microsecond']
+            super().__init__(kwargs['elapsed_time'])
+        except KeyError as e:
+            raise SpecificationError('Bad packet parameters') from e
+
+    def payload(self) -> bytes:
+        buffer = struct.pack('<QII', self.elapsed, self.utc_second, self.utc_microsecond)
+        return buffer
+
+    def id(self) -> int:
+        return PacketTypes.GNSS1PPS.value
+
+    def name(self) -> str:
+        return 'GNSS1PPS'
+
+    def __str__(self) -> str:
+        rtn = super().__str__() + f' {self.name()}: {self.utc_second} s + {self.utc_microsecond} µs since 1970-01-01/00:00:00 UTC'
         return rtn
 
 ## Translate packets out of the binary file, reconstituing as an appropriate class
@@ -1888,8 +1955,9 @@ class PacketFactory(PacketFactoryBase):
     NMEA2000PGNs = NMEA2000PGNs
     NMEA2000Binary = NMEA2000Binary
     GNSSBinary = GNSSBinary
+    GNSS1PPS = GNSS1PPS
 
-    def _generate_packet(self, pkt_id: int, buffer: bytes, last_pos: int) -> DataPacket | None:
+    def _generate_packet(self, pkt_id: int, buffer: bytes, last_pos: int) -> BaseDataPacket | None:
         rtn = None
         try:
             if pkt_id == PacketTypes.SerialiserVersion.value:
@@ -1936,6 +2004,8 @@ class PacketFactory(PacketFactoryBase):
                 rtn = NMEA2000Binary(buffer=buffer)
             elif pkt_id == PacketTypes.GNSSBinary.value:
                 rtn = GNSSBinary(buffer=buffer)
+            elif pkt_id == PacketTypes.GNSS1PPS.value:
+                rtn = GNSS1PPS(buffer=buffer)
             else:
                 print(f"Unknown packet number {self.packets_read} with ID {pkt_id} and name "
                       f"'{PacketTypes(pkt_id).name}' in input stream; ignored.")
