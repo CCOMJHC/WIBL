@@ -391,10 +391,27 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+data "aws_iam_policy_document" "manager_secretsmanager_access" {
+  statement {
+    sid     = "ManagerAllSecretsManagerGetSercretValue"
+    effect  = "Allow"
+    actions = ["secretsmanager:GetSecretValue"]
+    resources = [
+      aws_secretsmanager_secret.frontend_secret_key.arn
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "manager_secretsmanager_access_read" {
+  name = "manager-secretsmanager-access-read"
+  role = aws_iam_role.ecs_task_execution_role.id
+  policy = data.aws_iam_policy_document.manager_secretsmanager_access.json
+}
+
 data "aws_iam_policy_document" "manager_s3_access" {
   statement {
-    sid    = "ManagerAllowS3AccessAll"
-    effect = "Allow"
+    sid     = "ManagerAllowS3AccessAll"
+    effect  = "Allow"
     actions = ["s3:*"]
 
     resources = flatten([
@@ -661,6 +678,47 @@ resource "aws_elasticache_replication_group" "redis" {
   automatic_failover_enabled = false
 }
 
+# Define frontend secrets (used for frontend task as well as setup and update tasks)
+resource "aws_secretsmanager_secret" "frontend_db_password" {
+  name = "frontend_db_password"
+}
+resource "aws_secretsmanager_secret_version" "frontend_db_password" {
+  secret_id = aws_secretsmanager_secret.frontend_db_password.id
+  secret_string = jsonencode(var.frontend_db_password)
+}
+
+resource "aws_secretsmanager_secret" "frontend_db_user" {
+  name = "frontend_db_user"
+}
+resource "aws_secretsmanager_secret_version" "frontend_db_user" {
+  secret_id = aws_secretsmanager_secret.frontend_db_user.id
+  secret_string = jsonencode(var.frontend_db_user)
+}
+
+resource "aws_secretsmanager_secret" "frontend_superuser_username" {
+  name = "superuser_username"
+}
+resource "aws_secretsmanager_secret_version" "frontend_superuser_username" {
+  secret_id = aws_secretsmanager_secret.frontend_superuser_username.id
+  secret_string = jsonencode(var.superuser_username)
+}
+
+resource "aws_secretsmanager_secret" "frontend_superuser_password" {
+  name = "superuser_password"
+}
+resource "aws_secretsmanager_secret_version" "frontend_superuser_password" {
+  secret_id = aws_secretsmanager_secret.frontend_superuser_password.id
+  secret_string = jsonencode(var.superuser_password)
+}
+
+resource "aws_secretsmanager_secret" "frontend_secret_key" {
+  name = "frontend_secret_key"
+}
+resource "aws_secretsmanager_secret_version" "frontend_secret_key" {
+  secret_id = aws_secretsmanager_secret.frontend_secret_key.id
+  secret_string = jsonencode(var.frontend_secret_key)
+}
+
 # Create one off ecs tasks to configure the frontend and manager respectively
 resource "aws_ecs_task_definition" "frontend_setup" {
   family                   = "frontend_setup"
@@ -694,12 +752,7 @@ EOT
     ]
     environment = [
       { name = "FRONTEND_DATABASE_NAME", value = var.frontend_db_name },
-      { name = "FRONTEND_DATABASE_USER", value = var.frontend_db_user },
-      { name = "FRONTEND_DATABASE_PASSWORD", value = var.frontend_db_password },
       { name = "FRONTEND_DATABASE_HOST", value = aws_db_instance.frontend_db_instance.address },
-      { name = "SUPERUSER_USERNAME", value = var.superuser_username},
-      { name = "SUPERUSER_PASSWORD", value = var.superuser_password},
-      { name = "FRONTEND_SECRET_KEY", value = var.frontend_secret_key},
       { name = "DEBUG_MODE", value = var.debug_mode},
       { name = "STATIC_BUCKET_NAME", value = var.static_bucket_name},
       { name = "AWS_REGION", value = var.region},
@@ -707,6 +760,13 @@ EOT
       { name = "REDIS_URL", value = aws_elasticache_replication_group.redis.primary_endpoint_address},
       { name = "MAP_NAME", value = aws_location_map.map.map_name},
       { name = "CREATE_SUPERUSER", value = "1"}
+    ]
+    secrets = [
+      { name = "FRONTEND_DATABASE_USER", valueFrom = aws_secretsmanager_secret.frontend_db_user.arn },
+      { name = "FRONTEND_DATABASE_PASSWORD", valueFrom = aws_secretsmanager_secret.frontend_db_password.arn },
+      { name = "FRONTEND_SECRET_KEY", valueFrom = aws_secretsmanager_secret.frontend_secret_key.arn },
+      { name = "SUPERUSER_USERNAME", valueFrom = aws_secretsmanager_secret.frontend_superuser_username.arn },
+      { name = "SUPERUSER_PASSWORD", valueFrom = aws_secretsmanager_secret.frontend_superuser_password.arn },
     ]
     logConfiguration = {
         logDriver = "awslogs"
@@ -754,6 +814,15 @@ EOT
   }
 }
 
+# Define manager secrets (used for manager task as well as setup task)
+resource "aws_secretsmanager_secret" "manager_database_uri" {
+  name = "manager_database_uri"
+}
+resource "aws_secretsmanager_secret_version" "manager_database_uri" {
+  secret_id = aws_secretsmanager_secret.manager_database_uri.id
+  secret_string = jsonencode("postgresql+psycopg://${var.manager_db_user}:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}")
+}
+
 resource "aws_ecs_task_definition" "manager_setup" {
   family                   = "manager_setup"
   requires_compatibilities = ["FARGATE"]
@@ -785,11 +854,8 @@ echo "Migrations complete."
 EOT
       ]
 
-      environment = [
-        {
-          name  = "MANAGER_DATABASE_URI"
-          value = "postgresql+psycopg://${var.manager_db_user}:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
-        }
+      secrets = [
+        { name = "MANAGER_DATABASE_URI", valueFrom = aws_secretsmanager_secret.manager_database_uri.arn }
       ]
 
       logConfiguration = {
@@ -945,7 +1011,7 @@ resource "aws_ecs_task_definition" "wibl_manager" {
     templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/terraform-manager-container-definition.proto", {
       REPLACEME_ACCOUNT_NUMBER  = var.account_number
       REPLACEME_AWS_REGION      = var.region
-      REPLACEME_DATABASE_URI    = "postgresql+psycopg://${var.manager_db_user}:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
+      REPLACEME_DATABASE_URI    = aws_secretsmanager_secret.manager_database_uri.arn
       REPLACEME_WIBL_BUCKET     = var.incoming_bucket_name
       REPLACEME_GEOJSON_BUCKET  = var.staging_bucket_name
     })
@@ -1051,14 +1117,14 @@ resource "aws_ecs_task_definition" "frontend" {
       REPLACEME_STATIC_BUCKET      = var.static_bucket_name
 
       REPLACEME_DATABASE_NAME      = var.frontend_db_name
-      REPLACEME_DATABASE_USER      = var.frontend_db_user
-      REPLACEME_DATABASE_PASSWORD  = var.frontend_db_password
+      REPLACEME_DATABASE_USER      = aws_secretsmanager_secret.frontend_db_user.arn
+      REPLACEME_DATABASE_PASSWORD  = aws_secretsmanager_secret.frontend_db_password.arn
       REPLACEME_DATABASE_HOST      = aws_db_instance.frontend_db_instance.address
 
-      REPLACEME_SUPERUSER_USERNAME = var.superuser_username
-      REPLACEME_SUPERUSER_PASSWORD = var.superuser_password
+      REPLACEME_SUPERUSER_USERNAME = aws_secretsmanager_secret.frontend_superuser_username.arn
+      REPLACEME_SUPERUSER_PASSWORD = aws_secretsmanager_secret.frontend_superuser_password.arn
 
-      REPLACEME_SECRET_KEY         = var.frontend_secret_key
+      REPLACEME_SECRET_KEY         = aws_secretsmanager_secret.frontend_secret_key.arn
       REPLACEME_DEBUG_MODE         = var.debug_mode
 
       REPLACEME_ALB_DNS            = aws_cloudfront_distribution.frontend.domain_name

@@ -136,6 +136,7 @@ following JSON document as the contents of the policy:
 				"iam:ListRolePolicies",
 				"iam:PassRole",
 				"iam:PutRolePolicy",
+                "iam:UpdateAssumeRolePolicy",
 				"logs:CreateLogGroup",
 				"logs:DeleteLogGroup",
 				"logs:DescribeLogGroups",
