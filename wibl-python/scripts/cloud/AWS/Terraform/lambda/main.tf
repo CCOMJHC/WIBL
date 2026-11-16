@@ -1,8 +1,8 @@
 
-#https://aws-sdk-pandas.readthedocs.io/en/stable/layers.html
+# https://aws-sdk-pandas.readthedocs.io/en/stable/layers.html
 data "aws_lambda_layer_version" "aws_pandas_layer" {
-  layer_name = "arn:aws:lambda:${var.aws_region}:336392948345:layer:AWSSDKPandas-Python312-Arm64"
-  version = 32
+  layer_name = "arn:aws:lambda:${var.aws_region}:336392948345:layer:AWSSDKPandas-Python${replace(var.python_version, ".", "")}-Arm64"
+  version = var.lambda_aws_pandas_layer_version
 }
 
 # Conversion Lambda

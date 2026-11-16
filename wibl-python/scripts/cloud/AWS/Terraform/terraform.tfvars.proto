@@ -40,7 +40,8 @@ frontend_db_password = "test_test"
 # -------------------------------------
 
 architecture = "arm64"
-python_version = "3.12"
+python_version = "3.14"
+lambda_aws_pandas_layer_version = 12
 
 terraform_state_bucket = "${PROVIDER_PREFIX}-wibl-tf-state"
 terraform_state_key = "terraform/state/wibl-processing-server-deploy.tfstate"

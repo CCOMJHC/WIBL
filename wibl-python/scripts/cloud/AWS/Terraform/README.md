@@ -264,8 +264,7 @@ add, 0 to change, 0 to destroy." without returning any errors, run the next scri
 errors when running the `build.sh` script, you need to then run the `destroy.sh` script before you can attempt another 
 build. 
 
-If you experience this error, **Error: Backend configuration changed**, then run the [tf-reconfigure.sh](./tf-reconfigure.sh) 
-script and try to build again.
+> Note: If you experience the error, **Error: Backend configuration changed**, then run the [tf-reconfigure.sh](./tf-reconfigure.sh) script and try to build again.
 
 #### IMPORTANT: The system can take upwards of 15 to 25 minutes to fully build or destroy.
 
