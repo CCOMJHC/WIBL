@@ -7,14 +7,14 @@ import numpy as np
 
 from wibl import config_logger_service
 from wibl.core.logger_file import PacketTypes
-from wibl.simulator.data import DataGenerator, State, FormattedAngle, format_angle, MAX_RAD
+from wibl.simulator.data import DataGenerator, State, FormattedAngle, format_angle, MAX_RAD, DUMMY_TALKER
 from wibl.simulator.data.writer import Writer, MemoryWriter
 
 
 logger = config_logger_service()
 
 
-class TestDataGenerator(unittest.TestCase):
+class TestDataGeneratorVersion_1_4(unittest.TestCase):
     """
     TODO: Add tests for the following packet types in `wibl.core.logger_file.py`:
         - COG
@@ -67,17 +67,17 @@ class TestDataGenerator(unittest.TestCase):
         # Major version in bytes 7-8, equals 1
         self.assertEqual(1, struct.unpack('<H', buff[8:10])[0])
         # Minor version in bytes 9-10, equals 0
-        self.assertEqual(3, struct.unpack('<H', buff[10:12])[0])
+        self.assertEqual(4, struct.unpack('<H', buff[10:12])[0])
         # NMEA2000 major version in bytes 11-12, equals 1
         self.assertEqual(1, struct.unpack('<H', buff[12:14])[0])
         # NMEA2000 minor version in bytes 13-14, equals 0
-        self.assertEqual(0, struct.unpack('<H', buff[14:16])[0])
+        self.assertEqual(2, struct.unpack('<H', buff[14:16])[0])
         # NMEA2000 patch version in bytes 15-16, equals 0
         self.assertEqual(0, struct.unpack('<H', buff[16:18])[0])
         # NMEA0183 major version in bytes 17-18, equals 1
         self.assertEqual(1, struct.unpack('<H', buff[18:20])[0])
         # NMEA0183 minor version in bytes 19-20, equals 0
-        self.assertEqual(0, struct.unpack('<H', buff[20:22])[0])
+        self.assertEqual(1, struct.unpack('<H', buff[20:22])[0])
         # NMEA0183 patch version in bytes 21-22, equals 0
         self.assertEqual(0, struct.unpack('<H', buff[22:24])[0])
         # IMU major version in bytes 23-24, equals 1
@@ -110,9 +110,14 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
+        self.assertEqual(gen._lf.version_major, 1)
+        self.assertEqual(gen._lf.version_minor, 4)
+        self.assertEqual(gen._pf.version_major, 1)
+        self.assertEqual(gen._pf.version_minor, 4)
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.4')
         gen.generate_gga(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -276,13 +281,15 @@ class TestDataGenerator(unittest.TestCase):
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_data_const.generate_gga(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False, logger_file_version='1.4')
+        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_buff_const.generate_gga(state, writer_buff_const)
         buff_buff_const: bytes = writer_buff_const.getvalue()
 
@@ -293,9 +300,11 @@ class TestDataGenerator(unittest.TestCase):
         # Simulate first time after initial time step
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True,
+                                           logger_file_version='1.4')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.4')
         gen.generate_system_time(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -305,18 +314,21 @@ class TestDataGenerator(unittest.TestCase):
         # Message type in bytes 72-75
         self.assertEqual(PacketTypes.SystemTime.value, struct.unpack('<I', buff[73:77])[0])
         # Message length in bytes 76-79
-        self.assertEqual(15, struct.unpack('<I', buff[77:81])[0])
+        self.assertEqual(16, struct.unpack('<I', buff[77:81])[0])
         # Days since epoch from bytes 80-81
         self.assertEqual(18262, struct.unpack('<H', buff[81:83])[0])
         # Read timestamp from bytes 82-89
         self.assertEqual(0.300536, struct.unpack('<d', buff[83:91])[0])
         # Elapsed time should equal state.tick_count_to_milliseconds()
         self.assertEqual(state.tick_count_to_milliseconds(), struct.unpack('<I', buff[91:95])[0])
+        # Read talker ID from bytes 94-95
+        talker_id = struct.unpack('<B', buff[95:96])[0]
+        self.assertEqual(talker_id, DUMMY_TALKER)
         # Data source is the final byte (23) and should be 0 for now
-        self.assertEqual(0, buff[95])
+        self.assertEqual(0, buff[96])
 
         with self.assertRaises(IndexError):
-            buff[96]
+            buff[97]
 
     def test_generate_system_time_compare(self):
         """
@@ -328,13 +340,17 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True,
+                                                      logger_file_version='1.4')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_data_const.generate_system_time(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buffer_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buffer_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buffer_const: DataGenerator = DataGenerator(use_data_constructor=False,
+                                                        logger_file_version='1.4')
+        writer_buffer_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                   logger_file_version='1.4')
         gen_buffer_const.generate_system_time(state, writer_buffer_const)
         buff_buffer_const: bytes = writer_buffer_const.getvalue()
 
@@ -345,9 +361,10 @@ class TestDataGenerator(unittest.TestCase):
         # Simulate first time after initial time step
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.4')
         gen.generate_attitude(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -357,28 +374,31 @@ class TestDataGenerator(unittest.TestCase):
         # Message type in bytes 72-75
         self.assertEqual(PacketTypes.Attitude.value, struct.unpack('<I', buff[73:77])[0])
         # Message length in bytes 76-79
-        self.assertEqual(38, struct.unpack('<I', buff[77:81])[0])
+        self.assertEqual(39, struct.unpack('<I', buff[77:81])[0])
         # Days since epoch from bytes 80-81
         self.assertEqual(18262, struct.unpack('<H', buff[81:83])[0])
         # Read timestamp from bytes 82-89
         self.assertEqual(0.300536, struct.unpack('<d', buff[83:91])[0])
         # Elapsed time should equal state.tick_count_to_milliseconds()
         self.assertEqual(state.tick_count_to_milliseconds(), struct.unpack('<I', buff[91:95])[0])
-        # Read yaw from bytes 94-101
-        yaw = struct.unpack('<d', buff[95:103])[0]
+        # Read talker ID from bytes 94-95
+        talker_id = struct.unpack('<B', buff[95:96])[0]
+        self.assertEqual(talker_id, DUMMY_TALKER)
+        # Read yaw from bytes 95-102
+        yaw = struct.unpack('<d', buff[96:104])[0]
         self.assertGreaterEqual(yaw, 0)
         self.assertLessEqual(yaw, MAX_RAD)
-        # Read pitch from bytes 102-109
-        pitch = struct.unpack('<d', buff[103:111])[0]
+        # Read pitch from bytes 103-110
+        pitch = struct.unpack('<d', buff[104:112])[0]
         self.assertGreaterEqual(pitch, 0)
         self.assertLessEqual(pitch, MAX_RAD)
-        # Read roll from bytes 110-117
-        roll = struct.unpack('<d', buff[111:119])[0]
+        # Read roll from bytes 111-118
+        roll = struct.unpack('<d', buff[112:120])[0]
         self.assertGreaterEqual(roll, 0)
         self.assertLessEqual(roll, MAX_RAD)
 
         with self.assertRaises(IndexError):
-            buff[119]
+            buff[120]
 
     def test_generate_attitude_compare(self):
         """
@@ -390,13 +410,15 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_data_const.generate_attitude(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buffer_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buffer_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buffer_const: DataGenerator = DataGenerator(use_data_constructor=False, logger_file_version='1.4')
+        writer_buffer_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                   logger_file_version='1.4')
         gen_buffer_const.generate_attitude(state, writer_buffer_const)
         buff_buffer_const: bytes = writer_buffer_const.getvalue()
 
@@ -411,9 +433,10 @@ class TestDataGenerator(unittest.TestCase):
         # Simulate first position after initial position step
         state.current_longitude = -74.999996729200006
         state.current_latitude = 43.000003270800001
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.4')
         gen.generate_gnss(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -423,47 +446,49 @@ class TestDataGenerator(unittest.TestCase):
         # Message type in bytes 72-75
         self.assertEqual(PacketTypes.GNSS.value, struct.unpack('<I', buff[73:77])[0])
         # Message length in bytes 76-79
-        self.assertEqual(87, struct.unpack('<I', buff[77:81])[0])
+        self.assertEqual(88, struct.unpack('<I', buff[77:81])[0])
         # Days since epoch from bytes 80-81
         self.assertEqual(18262, struct.unpack('<H', buff[81:83])[0])
         # Read timestamp from bytes 82-89
         self.assertEqual(0.150268, struct.unpack('<d', buff[83:91])[0])
         # Elapsed time should equal state.tick_count_to_milliseconds()
         self.assertEqual(state.sim_time.tick_count_to_milliseconds(), struct.unpack('<I', buff[91:95])[0])
-
+        # Read talker ID from bytes 94-95
+        talker_id = struct.unpack('<B', buff[95:96])[0]
+        self.assertEqual(talker_id, DUMMY_TALKER)
         # Message date should equal state.sim_time.days_since_epoch()
-        self.assertEqual(state.sim_time.days_since_epoch(), struct.unpack('<H', buff[95:97])[0])
+        self.assertEqual(state.sim_time.days_since_epoch(), struct.unpack('<H', buff[96:98])[0])
         # Message timestamp = state.sim_time.seconds_in_day()
-        self.assertEqual(state.sim_time.seconds_in_day(), struct.unpack('<d', buff[97:105])[0])
+        self.assertEqual(state.sim_time.seconds_in_day(), struct.unpack('<d', buff[98:106])[0])
         # Latitude
-        self.assertEqual(state.current_latitude, struct.unpack('<d', buff[105:113])[0])
+        self.assertEqual(state.current_latitude, struct.unpack('<d', buff[106:114])[0])
         # Longitude
-        self.assertEqual(state.current_longitude, struct.unpack('<d', buff[113:121])[0])
+        self.assertEqual(state.current_longitude, struct.unpack('<d', buff[114:122])[0])
         # Hard-coded altitude
-        self.assertEqual(-19.323, struct.unpack('<d', buff[121:129])[0])
+        self.assertEqual(-19.323, struct.unpack('<d', buff[122:130])[0])
         # Hard-coded rx_type
-        self.assertEqual(0, buff[129])
+        self.assertEqual(0, buff[130])
         # Hard-coded rx_method
-        self.assertEqual(2, buff[130])
+        self.assertEqual(2, buff[131])
         # Hard-coded num SVs
-        self.assertEqual(12, buff[131])
+        self.assertEqual(12, buff[132])
         # Hard-coded horizontal DOP
-        self.assertEqual(1.5, struct.unpack('<d', buff[132:140])[0])
+        self.assertEqual(1.5, struct.unpack('<d', buff[133:141])[0])
         # Hard-coded position DOP
-        self.assertEqual(2.2, struct.unpack('<d', buff[140:148])[0])
+        self.assertEqual(2.2, struct.unpack('<d', buff[141:149])[0])
         # Hard-coded sep
-        self.assertEqual(22.3453, struct.unpack('<d', buff[148:156])[0])
+        self.assertEqual(22.3453, struct.unpack('<d', buff[149:157])[0])
         # Hard-coded n_refs
-        self.assertEqual(1, buff[156])
+        self.assertEqual(1, buff[157])
         # Hard-coded refs_type
-        self.assertEqual(4, buff[157])
+        self.assertEqual(4, buff[158])
         # Hard-coded refs_id
-        self.assertEqual(12312, struct.unpack('<H', buff[158:160])[0])
+        self.assertEqual(12312, struct.unpack('<H', buff[159:161])[0])
         # Hard-coded correction_age
-        self.assertEqual(2.32, struct.unpack('<d', buff[160:168])[0])
+        self.assertEqual(2.32, struct.unpack('<d', buff[161:169])[0])
 
         with self.assertRaises(IndexError):
-            buff[168]
+            buff[169]
 
     def test_generate_gnss_compare(self):
         """
@@ -479,13 +504,17 @@ class TestDataGenerator(unittest.TestCase):
         state.current_longitude = -74.999996729200006
         state.current_latitude = 43.000003270800001
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True,
+                                                      logger_file_version='1.4')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_data_const.generate_gnss(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False,
+                                                      logger_file_version='1.4')
+        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_buff_const.generate_gnss(state, writer_buff_const)
         buff_buff_const: bytes = writer_buff_const.getvalue()
 
@@ -496,9 +525,10 @@ class TestDataGenerator(unittest.TestCase):
         # Simulate first time after initial time step
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.4')
         gen.generate_depth(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -508,23 +538,25 @@ class TestDataGenerator(unittest.TestCase):
         # Message type in bytes 72-75
         self.assertEqual(PacketTypes.Depth.value, struct.unpack('<I', buff[73:77])[0])
         # Message length in bytes 76-79
-        self.assertEqual(38, struct.unpack('<I', buff[77:81])[0])
+        self.assertEqual(39, struct.unpack('<I', buff[77:81])[0])
         # Days since epoch from bytes 80-81
         self.assertEqual(18262, struct.unpack('<H', buff[81:83])[0])
         # Read timestamp from bytes 82-89
         self.assertEqual(0.0, struct.unpack('<d', buff[83:91])[0])
         # Elapsed time should equal state.tick_count_to_milliseconds()
         self.assertEqual(state.sim_time.tick_count_to_milliseconds(), struct.unpack('<I', buff[91:95])[0])
-
+        # Read talker ID from bytes 94-95
+        talker_id = struct.unpack('<B', buff[95:96])[0]
+        self.assertEqual(talker_id, DUMMY_TALKER)
         # Depth should equal state.current_depth
-        self.assertEqual(state.current_depth, struct.unpack('<d', buff[95:103])[0])
+        self.assertEqual(state.current_depth, struct.unpack('<d', buff[96:104])[0])
         # Hard-coded offset
-        self.assertEqual(0.0, struct.unpack('<d', buff[103:111])[0])
+        self.assertEqual(0.0, struct.unpack('<d', buff[104:112])[0])
         # Hard-coded range
-        self.assertEqual(200.0, struct.unpack('<d', buff[111:119])[0])
+        self.assertEqual(200.0, struct.unpack('<d', buff[112:120])[0])
 
         with self.assertRaises(IndexError):
-            buff[119]
+            buff[120]
 
     def test_generate_depth_compare(self):
         """
@@ -536,13 +568,15 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_data_const.generate_depth(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False, logger_file_version='1.4')
+        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_buff_const.generate_depth(state, writer_buff_const)
         buff_buff_const: bytes = writer_data_const.getvalue()
 
@@ -557,9 +591,10 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.4')
         gen.generate_zda(state, writer)
 
         buff: bytes = writer.getvalue()
@@ -644,13 +679,15 @@ class TestDataGenerator(unittest.TestCase):
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_data_const.generate_zda(state, writer_data_const)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False, logger_file_version='1.4')
+        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_buff_const.generate_zda(state, writer_buff_const)
         buff_buff_const: bytes = writer_buff_const.getvalue()
 
@@ -665,9 +702,10 @@ class TestDataGenerator(unittest.TestCase):
         state.update_ticks(300536)
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
-        gen: DataGenerator = DataGenerator(use_data_constructor=True)
+        gen: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
 
-        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        writer: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                      logger_file_version='1.4')
         gen.generate_dbt(state, writer, override_depth=10.0)
 
         buff: bytes = writer.getvalue()
@@ -751,13 +789,15 @@ class TestDataGenerator(unittest.TestCase):
         state.ref_time.update(state.curr_ticks)
         state.sim_time.update(math.floor(state.curr_ticks / 2))
 
-        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True)
-        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_data_const: DataGenerator = DataGenerator(use_data_constructor=True, logger_file_version='1.4')
+        writer_data_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_data_const.generate_dbt(state, writer_data_const, override_depth=10.0)
         buff_data_const: bytes = writer_data_const.getvalue()
 
-        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False)
-        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator')
+        gen_buff_const: DataGenerator = DataGenerator(use_data_constructor=False, logger_file_version='1.4')
+        writer_buff_const: Writer = MemoryWriter('Gulf Surveyor', 'WIBL-Simulator',
+                                                 logger_file_version='1.4')
         gen_buff_const.generate_dbt(state, writer_buff_const, override_depth=10.0)
         buff_buff_const: bytes = writer_buff_const.getvalue()
 

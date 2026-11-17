@@ -52,6 +52,8 @@ class PktFaults(Enum):
     TypeFault = 4
     ## A fault in checksum verification for a packet
     ChecksumFault = 5
+    ## Filtered by talker ID
+    FilteredFault = 6
 
 ## Exception indicating that the code attempted to register an unknown fault type
 class NoSuchFault(Exception):
@@ -72,6 +74,7 @@ class StatCounters:
     attrib_fault:   int = 0
     type_fault:     int = 0
     chksum_fault:   int = 0
+    filtered_fault: int = 0
 
     ## Count the number of times that the object has been observed in the datastream
     def Observed(self) -> None:
@@ -101,6 +104,10 @@ class StatCounters:
     def ChecksumFault(self) -> None:
         self.chksum_fault += 1
 
+    ## Count the number of times an object has been filtered by talker
+    def FilteredFault(self) -> None:
+        self.filtered_fault += 1
+
     ## Count the total number of faults that have been seen on the object
     #
     # For reporting purposes, it's often a requirement to know how many faults have been
@@ -109,12 +116,12 @@ class StatCounters:
     #
     # \return Total number of faults recorded for this object
     def FaultCount(self) -> int:
-        return self.parse_fault + self.short_msg + self.decode_fault + self.attrib_fault + self.type_fault + self.chksum_fault
+        return self.parse_fault + self.short_msg + self.decode_fault + self.attrib_fault + self.type_fault + self.chksum_fault + self.filtered_fault
 
     ## Generate a printable representation of the current object's information
     def __str__(self) -> str:
         total_fault = self.FaultCount()
-        rtn = f'{self.observed:6} Obs.; Errors ({total_fault:6} total): {self.parse_fault:6} Parse / {self.short_msg:6} Short / {self.decode_fault:6} Decode / {self.attrib_fault:6} Attrib / {self.type_fault:6} Type / {self.chksum_fault:6} Checksum'
+        rtn = f'{self.observed:6} Obs.; Errors ({total_fault:6} total): {self.parse_fault:6} Parse / {self.short_msg:6} Short / {self.decode_fault:6} Decode / {self.attrib_fault:6} Attrib / {self.type_fault:6} Type / {self.chksum_fault:6} Checksum / {self.filtered_fault:6} Filtered'
         return rtn
 
 ## \class PktStats
@@ -183,6 +190,8 @@ class PktStats:
             self.packets[name].TypeFault()
         elif fault == PktFaults.ChecksumFault:
             self.packets[name].ChecksumFault()
+        elif fault == PktFaults.FilteredFault:
+            self.packets[name].FilteredFault()
         else:
             raise NoSuchFault()
 

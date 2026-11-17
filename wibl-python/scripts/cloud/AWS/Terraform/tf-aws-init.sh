@@ -1,3 +1,5 @@
+AWS_PROFILE='default'
+
 CONTENT_ROOT=$(realpath "$(dirname $0)/../../../..")
 
 if [ $# -gt 0 ] && [ "$1" == '--silent' ]; then
@@ -16,7 +18,6 @@ if [ $SILENT -ne 1 ]; then
   echo "Using AWS_TF_ROOT: ${AWS_TF_ROOT}"
 fi
 
-AWS_PROFILE='default'
 export AWS_PROFILE
 if [ $SILENT -ne 1 ]; then
   echo "Using AWS_PROFILE: ${AWS_PROFILE}"

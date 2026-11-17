@@ -1,16 +1,23 @@
 services:
-  wibl-test-uploadwibl-localstack:
-    image: localstack/localstack
+  wibl-test-uploadwibl-garage:
+    image: dxflrs/garage:v2.3.0
     environment:
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-      - DOCKER_HOST=unix:///var/run/docker.sock
-      - ENFORCE_IAM=0
-      - SERVICES=s3
-      - DEBUG=0
-      - LS_LOG=info
+      - GARAGE_ALLOW_WORLD_READABLE_SECRETS=true
     ports:
-      - "24566:4566"
-      - "24510-24559:4510-4559"
+      # S3 API
+      - "24566:3900"
+      # Admin API
+      - "24903:3903"
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./garage.toml:/etc/garage.toml:ro"
+      - "garage-meta:/var/lib/garage/meta"
+      - "garage-data:/var/lib/garage/data"
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  garage-meta:
+  garage-data:

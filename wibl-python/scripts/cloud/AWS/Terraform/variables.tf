@@ -125,14 +125,20 @@ variable "wibl_build_path" {
 }
 
 variable "architecture" {
-    description = "The architecture being run by the ECS tasks"
+    description = "The architecture ECS tasks and lambdas will run on"
     type = string
     default = "arm64"
 }
 
 variable "python_version" {
+    description = "The Python version used by lambdas"
     type = string
-    default = "3.12"
+    default = "3.14"
+}
+
+variable "lambda_aws_pandas_layer_version" {
+    type = number
+    default = 12
 }
 
 variable "account_number" {
