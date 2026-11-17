@@ -56,7 +56,7 @@ function createJSONConfig() {
     const port2BaudRate = document.getElementById("port2-baud").value;
     let config = `{
         "version": {
-            "commandproc": "1.4.1"
+            "commandproc": "1.4.2"
         },
         "uniqueID": "${uniqueID}",
         "shipname": "${shipname}",

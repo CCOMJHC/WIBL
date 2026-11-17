@@ -63,6 +63,7 @@ def plot_timestrip(data, file_prefix):
     plt.subplot(3,1,3)
     plt.plot(timebase, data['Depth'], '.')
     plt.grid()
+    plt.gca().invert_yaxis()
     plt.ylabel('Depth (m)')
     plt.xlabel('Elapsed Time (' + time_label + ')')
     

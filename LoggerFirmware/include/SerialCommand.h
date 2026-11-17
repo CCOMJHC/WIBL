@@ -162,6 +162,10 @@ private:
     void ReportNMEAFilter(CommandSource src);
     /// \brief Add/reset the NMEA0183 messages accepted for logging
     void AddNMEAFilter(String const& command, CommandSource src);
+    /// \brief Dump out the list of NMEA2000 PGNs that are being stored as binary data
+    void ReportNMEABinaries(CommandSource src);
+    /// \brief Add/reset the NMEA2000 PGNs that are being stored as binary data
+    void AddNMEABinary(String const& command, CommandSource src);
     /// \brief Dump out the scales element stored in the flash memory
     void ReportScalesElement(CommandSource src);
     /// \brief Report the number of log files available on the SD card
@@ -200,9 +204,11 @@ private:
     /// \brief Send a JSON document, with error reporting
     void EmitJSON(DynamicJsonDocument && json, CommandSource src);
     /// @brief Display a NMEA0183 filter ID list
-    void DisplayNMEAFilter(logger::N0183IDStore& filter, CommandSource src);
+    void DisplayNMEAFilter(logger::N0183IDStore const& filter, CommandSource src);
     /// @brief Display an Algorithm Store list
     void DisplayAlgorithmStore(logger::AlgoRequestStore& store, CommandSource src);
+    /// @brief Display the list of NMEA2000 PGNs being stored as binaries
+    void DisplayNMEABinaries(logger::N2000PGNStore const& pgns, CommandSource src);
 };
 
 #endif

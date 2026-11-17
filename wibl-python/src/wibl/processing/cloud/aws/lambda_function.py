@@ -73,6 +73,7 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
 
     verbose: bool = config['verbose']
     strict_mode: bool = config['strict_mode']
+    bad_talkers: list[int] = config['bad_talkers']
 
     meta: WIBLMetadata = WIBLMetadata()
     lineage: Lineage = Lineage()
@@ -93,7 +94,8 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         source_data = ts.time_interpolation(local_file, lineage, config['elapsed_time_quantum'],
                                             verbose=verbose,
                                             fault_limit=config['fault_limit'],
-                                            strict_mode=strict_mode)
+                                            strict_mode=strict_mode,
+                                            bad_talkers=bad_talkers)
         meta.logger = source_data['loggername']
         meta.platform = source_data['platform']
         meta.observations = len(source_data['depth']['z'])

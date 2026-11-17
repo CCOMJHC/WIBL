@@ -11,7 +11,7 @@ function cleanup () {
   rm -f /tmp/test-wibl-buffer-constr.bin
   rm -f /tmp/test-wibl-inject.bin
   rm -f /tmp/test-wibl-inject.geojson
-  docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" down
+  docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" down -v
 }
 trap cleanup EXIT
 
@@ -36,9 +36,16 @@ wibl procwibl -c tests/data/configure.local.json /tmp/test-wibl-inject.bin /tmp/
 ## Validate GeoJSON
 wibl validate -c tests/data/configure.local.json /tmp/test-wibl-inject.geojson
 
-## Test uploadwibl locally using localstack to emulate S3
-### Start localstack
+# Test uploadwibl locally using localstack to emulate S3
+## Start garage
 docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" up -d --wait
+
+## Initialize garage cluster for local S3
+GARAGE="docker compose -f ${SCRIPT_DIR}/docker-compose.yaml exec -T wibl-test-uploadwibl-garage /garage"
+### Assign the single node to a cluster layout (required before the S3 API is usable)
+NODE_ID=$(${GARAGE} node id -q | cut -d '@' -f 1)
+${GARAGE} layout assign -z dc1 -c 1G "${NODE_ID}"
+${GARAGE} layout apply --version 1
 
 ### Create bucket
 export BUCKET_NAME=wibl-test-uploadwibl
@@ -46,11 +53,12 @@ export AWS_SCHEME=http
 export AWS_ENDPOINT=127.0.0.1:24566
 export S3_ENDPOINT_URL="${AWS_SCHEME}://${AWS_ENDPOINT}"
 export AWS_REGION='us-east-1'
-export AWS_ACCESS_KEY_ID='test'
-export AWS_SECRET_ACCESS_KEY='test'
-aws --endpoint ${S3_ENDPOINT_URL} \
-  --region ${AWS_REGION} \
-  s3api create-bucket --bucket ${BUCKET_NAME}
+export AWS_ACCESS_KEY_ID="GK$(openssl rand -hex 16)"
+export AWS_SECRET_ACCESS_KEY="$(openssl rand -hex 32)"
+export WIBL_TEST=1
+${GARAGE} key import --yes -n wibl-test-key "${AWS_ACCESS_KEY_ID}" "${AWS_SECRET_ACCESS_KEY}"
+${GARAGE} bucket create "${BUCKET_NAME}"
+${GARAGE} bucket allow --read --write --owner "${BUCKET_NAME}" --key wibl-test-key
 
 ### Run upload wibl
 wibl uploadwibl -b ${BUCKET_NAME} -s vessel-name /tmp/test-wibl-inject.bin
@@ -64,4 +72,5 @@ if [[ $num_objects -ne $expect ]]; then
     exit 1
 fi
 
+echo "Integration tests successful."
 exit 0
