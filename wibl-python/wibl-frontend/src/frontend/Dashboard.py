@@ -1,6 +1,7 @@
 import time
 from dash import Dash, dcc, html
 from django_plotly_dash import DjangoDash
+from django.templatetags.static import static
 import dash
 import os
 import plotly.express as px
@@ -157,8 +158,7 @@ observerSndCountGraph.update_layout(autosize=False, xaxis_title='Observer Name',
 
 config = {'displayModeBar': False}
 
-app = DjangoDash("Dashboard")
-
+app = DjangoDash("Dashboard", external_scripts=[static("js/plotly-2.27.0.min.js")])
 
 # Create the html layout of the dashboard
 app.layout = html.Div([
@@ -241,20 +241,19 @@ app.layout = html.Div([
 
 
 # Call the manager's statistics endpoint and return the response
-async def getData():
+def getData():
     manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
-
-    client = httpx.AsyncClient()
-    response = await client.get(manager_url + "/statistics")
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return None
+    with httpx.Client() as client:
+        response = client.get(manager_url + "/statistics")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
 
 # Use the getData() function to call the manager, then load the response into the respective figures.
 # All Numbers and Gauges have a new value injected without reload, but all Graphs must be regenerated.
-async def loadData():
-    manager_res = await getData()
+def loadData():
+    manager_res = getData()
     if not manager_res:
         return
 
@@ -277,7 +276,6 @@ async def loadData():
     newSubmissionGraph.update_layout(autosize=False, width=2 * graphWidth, height=1.7 * graphHeight,
                                      margin=dict(l=0, r=0, t=0, b=0),
                                      xaxis_title='Days', yaxis_title='Files Submitted')
-
 
     newObserverFileCountGraph = px.line(observer_file_total_df, x='observer', y='files')
     newObserverFileCountGraph.update_layout(autosize=False, width=2.4 * graphWidth, height=1.7 * graphHeight,
@@ -310,17 +308,17 @@ async def loadData():
 
     uploadNumber.data[0].value = wibl_file_count
 
-    convertedGauge.data[0].value = (converted_total / wibl_file_count) * 100
+    convertedGauge.data[0].value = (converted_total / wibl_file_count * 100) if wibl_file_count else 0
 
-    validatedGauge.data[0].value = (validated_total / geojson_file_count) * 100
+    validatedGauge.data[0].value = (validated_total / geojson_file_count * 100) if geojson_file_count else 0
 
-    submittedGauge.data[0].value = (submitted_total / geojson_file_count) * 100
+    submittedGauge.data[0].value = (submitted_total / geojson_file_count * 100) if geojson_file_count else 0
 
     totalSizeNumber.data[0].value = size_total
 
     totalObsNumber.data[0].value = (observations_total / 100000)
 
-    obsUsedGauge.data[0].value = (soundings_total / observations_total) * 100
+    obsUsedGauge.data[0].value = (soundings_total / observations_total * 100) if observations_total else 0
 
     totalObserversNumber.data[0].value = observer_total
 
@@ -344,7 +342,7 @@ async def loadData():
     [dash.dependencies.Input('interval-component', 'n_intervals')]
 )
 def update_dashboard(n):
-    figures = asyncio.run(loadData())
+    figures = loadData()
     return (figures['submissionGraph'], figures['locationGraph'], figures['observerFileCountGraph'],
             figures['observerSndCountGraph'])
 
