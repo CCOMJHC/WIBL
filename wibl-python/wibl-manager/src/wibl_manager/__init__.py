@@ -26,11 +26,9 @@
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from enum import Enum, IntFlag
-from typing import Tuple, List, Dict, Any
-from geoalchemy2 import Geometry
 import requests
 
 
@@ -92,7 +90,7 @@ class GeoJSONMetadata(FileMetadata):
 
 
 class MessageStore:
-    messages: List[str] = []
+    messages: list[str] = []
 
     def write(self, message: str, verbose: bool) -> None:
         self.messages.append(message)
@@ -116,7 +114,7 @@ class ManagerInterface:
     metatype:   MetadataType
     logmsgs:    MessageStore
     verbose:    bool
-    rest_url:   str
+    rest_url:   str | None
 
     def __init__(self, metatype: MetadataType, fileid: str, verbose: bool) -> None:
         self.metatype = metatype

@@ -1,7 +1,7 @@
-from typing import Tuple, List, Dict, Generator, Callable, Union, Any
+from typing import Tuple, Generator, Callable, Any
 
 from wibl.core import Lineage
-from wibl.core.logger_file import DataPacket
+from wibl.core.logger_file.base import DataPacket
 from wibl.core.algorithm import WiblAlgorithm, AlgorithmPhase, AlgorithmDescriptor, UnknownAlgorithm
 from wibl.core.algorithm.deduplicate import Deduplicate
 from wibl.core.algorithm.nodatareject import NoDataReject
@@ -15,8 +15,8 @@ ALGORITHMS = {
 
 def _get_run_func_for_phase(algorithm: WiblAlgorithm, phase: AlgorithmPhase) -> \
         Callable[
-            [Union[List[DataPacket], Dict[str, Any]], str, Lineage, bool],
-            Union[List[DataPacket], Dict[str, Any]]
+            [list[DataPacket] | dict[str, Any], str, Lineage, bool],
+            list[DataPacket] | dict[str, Any]
         ]:
     if phase is AlgorithmPhase.ON_LOAD:
         return algorithm.run_on_load
@@ -24,16 +24,18 @@ def _get_run_func_for_phase(algorithm: WiblAlgorithm, phase: AlgorithmPhase) -> 
         return algorithm.run_after_time_interp
     elif phase is AlgorithmPhase.AFTER_GEOJSON_CONVERSION:
         return algorithm.run_after_geojson_conversion
+    else:
+        raise ValueError(f'Algorithm phase {phase} not known.')
 
 
-def iterate(algorithm_descriptors: List[AlgorithmDescriptor],
+def iterate(algorithm_descriptors: list[AlgorithmDescriptor],
             phase: AlgorithmPhase,
             wibl_file_name: str) -> \
         Generator[
             Tuple[
                 Callable[
-                    [Union[List[DataPacket], Dict[str, Any]], str, Lineage, bool],
-                    Union[List[DataPacket], Dict[str, Any]]
+                    [list[DataPacket] | dict[str, Any], str, Lineage, bool],
+                    list[DataPacket] | dict[str, Any]
                 ],
                 str,
                 str
@@ -65,12 +67,12 @@ def iterate(algorithm_descriptors: List[AlgorithmDescriptor],
             raise UnknownAlgorithm(f"Unknown algorithm '{alg_name}' for {wibl_file_name}.")
 
 
-def run_algorithms(data: Union[List[DataPacket], Dict[str, Any]],
-                   algorithms: List[AlgorithmDescriptor],
+def run_algorithms(data: list[DataPacket] | dict[str, Any],
+                   algorithms: list[AlgorithmDescriptor],
                    phase: AlgorithmPhase,
                    filename: str,
                    lineage: Lineage,
-                   verbose: bool) -> Union[List[DataPacket], Dict[str, Any]]:
+                   verbose: bool) -> list[DataPacket] | dict[str, Any]:
     """
     Run all algorithms defined in ``algorithms`` applicable to ``phase`` passing ``data``
     to each algorithm sequentially. ``data`` will be modified in place.

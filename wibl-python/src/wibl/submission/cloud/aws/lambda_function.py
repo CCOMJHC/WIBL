@@ -163,15 +163,15 @@ def transmit_geojson(source_info: Dict[str,Any], provider_id: str, provider_auth
         json_code = json_response['success']
         if json_code:
             rc = True
-            meta.status = UploadStatus.UPLOAD_SUCCESSFUL.value
+            meta.status = GeoJSONStatus.UPLOAD_SUCCESSFUL.value
         else:
             rc = False
-            meta.status = UploadStatus.UPLOAD_FAILED.value
+            meta.status = GeoJSONStatus.UPLOAD_FAILED.value
             manager.logmsg(f'error: DCDB responded {json_response}')
 
     except json.decoder.JSONDecodeError:
         rc = False
-        meta.status = UploadStatus.UPLOAD_FAILED.value
+        meta.status = GeoJSONStatus.UPLOAD_FAILED.value
         manager.logmsg(f'error: DCDB responded {json_response}')
 
     manager.update(meta)

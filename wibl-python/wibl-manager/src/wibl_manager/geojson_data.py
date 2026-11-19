@@ -49,12 +49,12 @@ class GeoJSONPostParse(BaseModel):
 
 # Arguments passable to the GeoJSON end-point for PUT updates to an existing file's metadata
 class GeoJSONPutParse(BaseModel):
-    logger: str = None
-    size: float = None
-    soundings: int = None
-    notifytime: str = None
-    status: int = None
-    messages: str = None
+    logger: str | None = None
+    size: float | None = None
+    soundings: int | None = None
+    notifytime: str | None = None
+    status: int | None = None
+    messages: str | None = None
 
 # Data mapping for marshalling GeoJSONDataModel for transfer
 class GeoJSONMarshModel(BaseModel):

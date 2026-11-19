@@ -24,13 +24,13 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
-from typing import List
 from datetime import datetime, timezone
 from itertools import filterfalse
 from collections import Counter
 from functools import partial
 
 import wibl.core.logger_file as LoggerFile
+from wibl.core.logger_file.base import DataPacket
 from wibl.core.algorithm import SOURCE, AlgorithmPhase, WiblAlgorithm
 from wibl.core import Lineage
 
@@ -46,7 +46,7 @@ def get_days_since_epoch() -> int:
     return (datetime.utcnow().replace(tzinfo=timezone.utc) - EPOCH_START).days
 
 
-def reject_predicate(pkt: LoggerFile.DataPacket, *,
+def reject_predicate(pkt: DataPacket, *,
                      counters: Counter,
                      days_since_epoch: int,
                      verbose: bool = False) -> bool:
@@ -80,10 +80,10 @@ def reject_predicate(pkt: LoggerFile.DataPacket, *,
     return False
 
 
-def reject_nodata(data: List[LoggerFile.DataPacket],
+def reject_nodata(data: list[DataPacket],
                   params: str,
                   lineage: Lineage,
-                  verbose: bool) -> List[LoggerFile.DataPacket]:
+                  verbose: bool) -> list[DataPacket]:
     days_since_epoch: int = get_days_since_epoch()
     c: Counter = Counter()
     predicate = partial(reject_predicate, counters=c, days_since_epoch=days_since_epoch, verbose=verbose)
@@ -107,8 +107,8 @@ class NoDataReject(WiblAlgorithm):
 
     @classmethod
     def run_on_load(cls,
-                    data: List[LoggerFile.DataPacket],
+                    data: list[DataPacket],
                     params: str,
                     lineage: Lineage,
-                    verbose: bool) -> List[LoggerFile.DataPacket]:
+                    verbose: bool) -> list[DataPacket]:
         return reject_nodata(data, params, lineage, verbose)

@@ -36,9 +36,9 @@ from typing import Dict, Any
 from datetime import datetime
 
 import boto3
-import numpy as np
 import wibl.core.config as conf
 import wibl.core.logger_file as lf
+from wibl.core.logger_file.base import PacketTranscriptionError
 import wibl.core.datasource as ds
 import wibl.core.notification as nt
 from wibl.core.algorithm import UnknownAlgorithm
@@ -77,7 +77,10 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
 
     meta: WIBLMetadata = WIBLMetadata()
     lineage: Lineage = Lineage()
-    meta.size = item.source_size/(1024.0*1024.0)
+    if item.source_size:
+        meta.size = item.source_size/(1024.0*1024.0)
+    else:
+        meta.size = -1.0
     meta.status = WIBLStatus.PROCESSING_FAILED.value  # Until further notice ...
     manager: ManagerInterface = ManagerInterface(MetadataType.WIBL_METADATA, item.source_key, config['verbose'])
     if not manager.register(meta.size):
@@ -128,8 +131,8 @@ def process_item(item: ds.DataItem, controller: ds.CloudController, notifier: nt
         meta.max_lat = max_lat
         meta.min_lat = min_lat
         meta.max_lon = max_lon
-        meta.low_lon = min_lon
-    except lf.PacketTranscriptionError as e:
+        meta.min_lon = min_lon
+    except PacketTranscriptionError as e:
         print(f"Error reading packet from WIBL file: {str(e)}")
     except ts.NoTimeSource:
         manager.logmsg(f'error: failed to convert data({local_file}): no time source known.')

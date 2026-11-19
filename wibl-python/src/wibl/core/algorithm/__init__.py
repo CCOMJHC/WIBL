@@ -32,11 +32,11 @@ from dataclasses import dataclass
 from enum import Flag, auto
 
 from abc import ABC
-from typing import List, Dict, Any
+from typing import Any
 
 from wibl import __version__ as wiblversion
 from wibl.core import Lineage
-from wibl.core.logger_file import DataPacket
+from wibl.core.logger_file.base import DataPacket
 
 
 SOURCE = f"WIBL-{wiblversion}"
@@ -65,24 +65,24 @@ class WiblAlgorithm(ABC):
 
     @classmethod
     def run_on_load(cls,
-                    data: List[DataPacket],
+                    data: list[DataPacket],
                     params: str,
                     lineage: Lineage,
-                    verbose: bool) -> List[DataPacket]:
-        pass
+                    verbose: bool) -> list[DataPacket]:
+        ...
 
     @classmethod
     def run_after_time_interp(cls,
-                              data: Dict[str, Any],
+                              data: dict[str, Any],
                               params: str,
                               lineage: Lineage,
-                              verbose: bool) -> Dict[str, Any]:
-        pass
+                              verbose: bool) -> dict[str, Any]:
+        ...
 
     @classmethod
     def run_after_geojson_conversion(cls,
-                                     data: Dict[str, Any],
+                                     data: dict[str, Any],
                                      params: str,
                                      lineage: Lineage,
-                                     verbose: bool) -> Dict[str, Any]:
-        pass
+                                     verbose: bool) -> dict[str, Any]:
+        ...

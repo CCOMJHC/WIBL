@@ -39,9 +39,9 @@ import datetime as dt
 import pynmea2 as nmea
 
 from wibl.core import Lineage
-from wibl.core.logger_file import PacketFactoryBase
 from wibl.core.statistics import PktStats, PktFaults
 import wibl.core.logger_file as LoggerFile
+from wibl.core.logger_file.base import DataPacket
 from wibl.core.algorithm import AlgorithmPhase, AlgorithmDescriptor
 from wibl.core.algorithm.runner import run_algorithms
 
@@ -58,14 +58,16 @@ class NoTimeSource(Exception):
 # packets in the file.  There are a number of choices for this, depending on what type of
 # data we have in there; this enumeration provides a controlled list of the options.
 class TimeSource(Enum):
+    ## Use GNSS packet for 1PPS UTC time
+    Time_1PPS = 0
     ## Use NMEA2000 packet for SystemTime
-    Time_SysTime = 0
+    Time_SysTime = 1
     ## Use NMEA2000 packet from GNSS observations
-    Time_GNSS = 1
+    Time_GNSS = 2
     ## Use NMEA0183 ZDA timestamp packets
-    Time_ZDA = 2
+    Time_ZDA = 3
     ## Use NMEA0183 RMC minimum data with timestamps
-    Time_RMC = 3
+    Time_RMC = 4
 
 ## Work out which time source in the WIBL file should be used for real time associations
 #
@@ -92,6 +94,8 @@ def determine_time_source(stats: PktStats) -> TimeSource:
         Outputs:
             TimeSource enum for which source should be used for timestamping
     """
+    if stats.Seen('1PPS'):
+        rtn = TimeSource.Time_1PPS
     if stats.Seen('SystemTime'):
         rtn = TimeSource.Time_SysTime
     elif stats.Seen('GNSS'):
@@ -123,7 +127,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
               process_algorithms: bool = True,
               strict_mode: bool = False,
               bad_talkers: Union[list[int],None] = None) -> \
-        Tuple[PktStats, TimeSource, List[LoggerFile.DataPacket], List[AlgorithmDescriptor]]:
+        Tuple[PktStats, TimeSource, List[DataPacket], List[AlgorithmDescriptor]]:
     """Load the entirety of a WIBL binary file into memory, in the process determining the type of time
        source that can be used to add timestamps to the data, and fixing up any messages that don't have
        any elapsed time (i.e., time of reception) stamps.  This provides a set of data where it should
@@ -145,11 +149,11 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
             alg_desc        List[AlgorithmDescriptor] List of algorithms derived from the WIBL file
     """
     stats: PktStats = PktStats(maxreports)
-    packets: List[LoggerFile.DataPacket] = []
-    alg_desc: List[AlgorithmDescriptor]
+    packets: list[DataPacket] = []
+    alg_desc: list[AlgorithmDescriptor]
 
     # First read all packets into packets_raw so that we can find algorithm packets
-    packets_raw: List[LoggerFile.DataPacket] = []
+    packets_raw: list[DataPacket] = []
     algorithms_raw = []
     with open(filename, 'rb') as file:
         source = LoggerFile.PacketFactory(file, strict_mode=strict_mode)
@@ -169,7 +173,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
                 else:
                     packets_raw.append(pkt)
                 # Check for algorithm packet
-                if pkt_name := pkt.name() == 'AlgorithmRequest':
+                if (pkt_name := pkt.name()) == 'AlgorithmRequest':
                     stats.Observed(pkt_name)
                     algorithms_raw.append(AlgorithmDescriptor(name=pkt.algorithm.decode('UTF-8'),
                                                               params=pkt.parameters.decode('UTF-8'))
@@ -203,7 +207,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
         else:
             stats.Observed(pkt_name)
         packet_count += 1
-        if pkt.elapsed == 0:
+        if pkt.elapsedcount() == 0:
             needs_elapsed_time_fixup = True
         if verbose and packet_count % 50000 == 0:
             print(f'Reading file: passing {packet_count} packets ...')
@@ -213,8 +217,8 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
     # We need some form of connection from elapsed time stamps (i.e., when the packet is received
     # at the logger) and a real time, so that we can interpolate to real-time information for all
     # of the data.  There are a number of potential sources, including (in descending order of
-    # preference), NMEA2000 SystemTime or GNSS, or NMEA0183 ZDA or RMC messages.  This code determines
-    # which to use.
+    # preference), GNSS 1PPS, NMEA2000 SystemTime or GNSS, or NMEA0183 ZDA or RMC messages.  This code
+    # determines which to use.
     timesource = determine_time_source(stats)
 
     # Under some circumstances, it is possible that packets will have no elapsed time in them
@@ -225,6 +229,12 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
     # some point between bordering timestamped data.  It's messy, but it's the best you're going
     # to get from loggers that don't record decent data ...
     if needs_elapsed_time_fixup:
+        # TODO: Check whether this is ever actually executed.  This should only execute on packets which are
+        # NMEA0183 packets ('SerialString'), but only if the elapsed count for the packet is zero.  Since
+        # every packet should always have an elapsed count attached, it seems likely that this is never
+        # going to do anything, at least with the current (1.5) file format.  This might have been a mistake
+        # on the recognition that NMEA0183 as a timesource in previous versions would probably mean that no
+        # date/time would be provided with a packet, rather than the elapsed time.
         if timesource == TimeSource.Time_ZDA or timesource == TimeSource.Time_RMC:
             # If we're using NMEA0183 strings for timing, then we have the possibility of there being
             # packets where there's no elapsed time stamp, and we need to unpack the NMEA string
@@ -232,7 +242,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
             # generating intermediate elapsed time estimates subsequently.
             realtime_elapsed_zero = None
             for n in range(len(packets)):
-                if packets[n].name() == 'SerialString' and packets[n].elapsed == 0:
+                if packets[n].name() == 'SerialString' and packets[n].elapsedcount() == 0:
                     # Decode the packet string to identify ZDA/RMC
                     msg_id = packets[n].data[3:6].decode('UTF-8')
                     if (msg_id == 'ZDA' and timesource == TimeSource.Time_ZDA) or (msg_id == 'RMC' and timesource == TimeSource.Time_RMC):
@@ -247,9 +257,9 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
                                     pkt_real_time = dt.datetime.combine(msg.datestamp, msg.timestamp)
                                     if realtime_elapsed_zero is None:
                                         realtime_elapsed_zero = pkt_real_time
-                                        packets[n].elapsed = 0
+                                        packets[n].setelapsedcount(0)
                                     else:
-                                        packets[n].elapsed = 1000.0*(pkt_real_time.timestamp() - realtime_elapsed_zero.timestamp())
+                                        packets[n].setelapsedcount(int(1_000_000.0*(pkt_real_time.timestamp() - realtime_elapsed_zero.timestamp())))
                             except UnicodeDecodeError:
                                 if verbose and stats.FaultCount(msg_id) < stats.fault_limit:
                                     print(f'Error: unicode decode failure on NMEA string; ignoring.')
@@ -274,23 +284,22 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
         # them.
         oldest_position = None
         for n in range(len(packets)):
-            if packets[n].elapsed == 0:
-                if n > 0 and packets[n-1].elapsed > 0:
+            if packets[n].elapsedcount() == 0:
+                if n > 0 and packets[n-1].elapsedcount() > 0:
                     oldest_position = n - 1
             else:
                 if oldest_position is not None:
                     if n - oldest_position > 1:
                         # This means we hit the end of a potential bracket, so we need to process the elapsed times
-                        target_elapsed_time = (packets[oldest_position].elapsed + packets[n].elapsed)/2.0
+                        target_elapsed_time = int((packets[oldest_position].elapsedcount() + packets[n].elapsedcount())/2.0)
                         for i in range(n - oldest_position - 1):
-                            packets[oldest_position + 1 + i].elapsed = target_elapsed_time
+                            packets[oldest_position + 1 + i].setelapsedcount(target_elapsed_time)
                         oldest_position = None
         
         # Finally, we replace any timestamps that weren't interpolated to make sure that there's no question
         # that they're not valid.
         for n in range(len(packets)):
-            #print(f'{n}: {packets[n].elapsed}')
-            if packets[n].elapsed == 0:
-               packets[n].elapsed = None
+            if packets[n].elapsedcount() == 0:
+               packets[n].setelapsedcount(-1)
 
     return stats, timesource, packets, alg_desc

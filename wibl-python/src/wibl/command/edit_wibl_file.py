@@ -35,7 +35,7 @@ from pathlib import Path
 import click
 
 from wibl.core import logger_file as lf
-from wibl.core.logger_file import PacketTranscriptionError
+from wibl.core.logger_file.base import PacketTranscriptionError
 
 
 @click.command()

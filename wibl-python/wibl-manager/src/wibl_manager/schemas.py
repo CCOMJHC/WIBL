@@ -1,15 +1,6 @@
-from datetime import datetime, timezone
-from http.client import HTTPException
-
-import boto3
-import requests
-from pydantic.v1.schema import schema
-from sqlalchemy import Column, String, Integer, Float, Date
+from sqlalchemy import Column, String, Integer, Float
 # noinspection PyInterpreter
-from .database import Base, get_async_db
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException
+from .database import Base
 from geoalchemy2 import Geometry
 
 

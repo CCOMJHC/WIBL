@@ -31,7 +31,7 @@ import struct
 from abc import ABC, abstractmethod
 import io
 from enum import Enum
-from typing import Type, Protocol
+from typing import Type, Protocol, BinaryIO
 
 
 ## Exception used to report bad keyword parameters when setting up a packet from scratch in code
@@ -152,6 +152,18 @@ class DataPacket(Protocol):
     def __str__(self) -> str:
         ...
 
+    @abstractmethod
+    def elapsedcount(self) -> int:
+        ...
+
+    @abstractmethod
+    def setelapsedcount(self, count: int) -> None:
+        ...
+
+    @abstractmethod
+    def serialise(self, f: io.BufferedWriter) -> None:
+        ...
+
 ## Base class for all data packets that can be read from the binary file
 #
 # This provides a common base class for all of the data packets, and stores the information on the date and time at
@@ -171,6 +183,12 @@ class LegacyBaseDataPacket(ABC):
         self.timestamp = timestamp
         ## Time in milliseconds since boot (reference time)
         self.elapsed = elapsed
+
+    def elapsedcount(self) -> int:
+        return self.elapsed
+
+    def setelapsedcount(self, count: int) -> None:
+        self.elapsed = count
 
     ## Abstract method for constructing the payload of the packet for serialisation
     #

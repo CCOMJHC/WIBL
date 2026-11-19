@@ -5,7 +5,7 @@ import uuid
 
 import requests
 
-from wibl_manager import ReturnCodes, ProcessingStatus, UploadStatus
+from wibl_manager import ReturnCodes, GeoJSONStatus, WIBLStatus
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class TestWiblManager(unittest.TestCase):
                                           'observations': 100232, 'soundings': 8023,
                                           'startTime': '2023-01-23T12:34:45.142',
                                           'endTime': '2023-01-24T01:45:23.012',
-                                          'status': ProcessingStatus.PROCESSING_SUCCESSFUL.value})
+                                          'status': WIBLStatus.PROCESSING_SUCCESSFUL.value})
             self.assertIsNotNone(response)
             self.assertEqual(ReturnCodes.RECORD_CREATED.value, response.status_code)
 
@@ -50,7 +50,7 @@ class TestWiblManager(unittest.TestCase):
             response = requests.put(self.base_uri + 'geojson/' + geojson_fileid,
                                     json={'logger': 'UNHJHC-wibl-1',
                                           'soundings': 8023,
-                                          'status': UploadStatus.UPLOAD_SUCCESSFUL.value})
+                                          'status': GeoJSONStatus.UPLOAD_SUCCESSFUL.value})
             self.assertIsNotNone(response)
             self.assertEqual(ReturnCodes.RECORD_CREATED.value, response.status_code)
 

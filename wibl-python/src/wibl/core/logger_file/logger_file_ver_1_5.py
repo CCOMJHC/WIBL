@@ -58,6 +58,12 @@ class BaseDataPacket(ABC):
     def __init__(self, elapsed: int) -> None:
         self.elapsed = elapsed
 
+    def elapsedcount(self) -> int:
+        return self.elapsed
+
+    def setelapsedcount(self, count: int) -> None:
+        self.elapsed = count
+
     @abstractmethod
     def payload(self) -> bytes:
         ...
@@ -108,8 +114,10 @@ class SystemTime(BaseDataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (elapsed_time, talker_id, data_source) = struct.unpack('<QBB', buffer)
+        (utc_date, utc_seconds, elapsed_time, talker_id, data_source) = struct.unpack('<HfQBB', buffer)
         ## Source of the timestamp (see documentation for decoding, but at least GNSS)
+        self.date = utc_date
+        self.timestamp = utc_seconds
         self.data_source = data_source
         self.talker_id = talker_id
         super().__init__(elapsed_time)
@@ -124,6 +132,8 @@ class SystemTime(BaseDataPacket):
     #   'data_source':      Source for time information (see Wiki for details)
     def data_constructor(self, **kwargs) -> None:
         try:
+            self.date = kwargs['date']
+            self.timestamp = kwargs['timestamp']
             self.data_source = kwargs['data_source']
             self.talker_id = kwargs['talker_id']
             super().__init__(kwargs['elapsed_time'])
@@ -131,7 +141,7 @@ class SystemTime(BaseDataPacket):
             raise SpecificationError('Bad packet parameters') from e
     
     def payload(self) -> bytes:
-        buffer = struct.pack('<QBB', self.elapsed, self.talker_id, self.data_source)
+        buffer = struct.pack('<HfQBB', self.date, self.timestamp, self.elapsed, self.talker_id, self.data_source)
         return buffer
     
     def id(self) -> int:

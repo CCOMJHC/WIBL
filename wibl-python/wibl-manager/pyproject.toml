@@ -18,7 +18,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    'requests~=2.34',
+    'requests~=2.34.4',
     'dataclasses-json~=0.5.7',
     'GeoAlchemy2'
 ]

@@ -24,7 +24,7 @@
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
 import math
-from typing import NamedTuple, NoReturn, Union, TypeVar, Tuple, Any
+from typing import NamedTuple, Union, TypeVar, Tuple, Any
 from datetime import datetime, date, timedelta
 import binascii
 import struct
@@ -33,6 +33,7 @@ import logging
 
 
 import wibl.core.logger_file as lf
+from wibl.core.logger_file.base import DataPacket
 from wibl.simulator.data.writer import Writer
 
 
@@ -111,7 +112,7 @@ class ComponentDateTime(TickCountMillisecondsMixin):
     NMEA2000 packets.
     """
     def __init__(self, tick_count: int, *,
-                 datetime_timestamp: int = None):
+                 datetime_timestamp: int | None = None):
         """
 
         :param tick_count:
@@ -262,7 +263,7 @@ class State(TickCountMillisecondsMixin):
         # Global for Gaussian variate generator (from Numerical Recipies)
         self._iset: bool = False
         # Global state for Gaussian variate generator (from Numerical Recipies)
-        self._gset: float = None
+        self._gset: float = 0
 
     def update_ticks(self, ticks: int) -> None:
         self.curr_ticks = ticks
@@ -305,7 +306,7 @@ class DataGenerator:
                  use_data_constructor: bool = True,
                  duplicate_depth_prob: float = 0.0,
                  no_data_prob: float = 0.0,
-                 logger_file_version: lf.LOGGER_FILE_VERSIONS = '1.4'):
+                 logger_file_version: lf.LOGGER_FILE_VERSIONS = '1.5'):
         """
         Default constructor, given the NMEA2000 object that's doing the data capture
         :param emit_nmea0183:
@@ -333,7 +334,7 @@ class DataGenerator:
             logger.warning('User asked for neither NMEA0183 or NMEA2000; defaulting to generating NMEA2000')
             self._m_binary = True
 
-    V = TypeVar('V', bound=Union[Any])
+    V = TypeVar('V', bound=Any)
     def _get_possible_na_values(self,
                                 na_values: Tuple[V, ...],
                                 valid_values: Tuple[V, ...]) -> Tuple[V, ...]:
@@ -406,12 +407,12 @@ class DataGenerator:
             # talker ID should be ignored for serialiser versions prior to 1.4
             'talker_id': DUMMY_TALKER
         }
-        pkt: lf.DataPacket = self._pf.SystemTime(**data)
+        pkt: DataPacket = self._pf.SystemTime(**data)
         if not self._use_data_constructor:
             # Use buffer constructor, but because the format of binary packets can vary with serialiser
             # versions, we have to use the packet constructed via the data constructor to generate the
             # buffer to use with the buffer constructor.
-            pkt: lf.DataPacket = self._pf.SystemTime(buffer=pkt.payload())
+            pkt = self._pf.SystemTime(buffer=pkt.payload())
 
         output.record(pkt)
 
@@ -432,12 +433,12 @@ class DataGenerator:
             # talker ID should be ignored for serialiser versions prior to 1.4
             'talker_id': DUMMY_TALKER
         }
-        pkt: lf.DataPacket = self._pf.Attitude(**data)
+        pkt: DataPacket = self._pf.Attitude(**data)
         if not self._use_data_constructor:
             # Use buffer constructor, but because the format of binary packets can vary with serialiser
             # versions, we have to use the packet constructed via the data constructor to generate the
             # buffer to use with the buffer constructor.
-            pkt: lf.DataPacket = self._pf.Attitude(buffer=pkt.payload())
+            pkt = self._pf.Attitude(buffer=pkt.payload())
 
         output.record(pkt)
 
@@ -473,12 +474,12 @@ class DataGenerator:
             # talker ID should be ignored for serialiser versions prior to 1.4
             'talker_id': DUMMY_TALKER
         }
-        pkt: lf.DataPacket = self._pf.GNSS(**data)
+        pkt: DataPacket = self._pf.GNSS(**data)
         if not self._use_data_constructor:
             # Use buffer constructor, but because the format of binary packets can vary with serialiser
             # versions, we have to use the packet constructed via the data constructor to generate the
             # buffer to use with the buffer constructor.
-            pkt: lf.DataPacket = self._pf.GNSS(buffer=pkt.payload())
+            pkt = self._pf.GNSS(buffer=pkt.payload())
 
         output.record(pkt)
 
@@ -502,12 +503,12 @@ class DataGenerator:
             # talker ID should be ignored for serialiser versions prior to 1.4
             'talker_id': DUMMY_TALKER
         }
-        pkt: lf.DataPacket = self._pf.Depth(**data)
+        pkt: DataPacket = self._pf.Depth(**data)
         if not self._use_data_constructor:
             # Use buffer constructor, but because the format of binary packets can vary with serialiser
             # versions, we have to use the packet constructed via the data constructor to generate the
             # buffer to use with the buffer constructor.
-            pkt: lf.DataPacket = self._pf.Depth(buffer=pkt.payload())
+            pkt = self._pf.Depth(buffer=pkt.payload())
 
         output.record(pkt)
         if self._duplicate_depth_prob > 0.0 and \
@@ -538,12 +539,12 @@ class DataGenerator:
                     'elapsed_time': state.sim_time.tick_count_to_milliseconds()
                     }
 
-            pkt: lf.DataPacket = self._pf.SerialString(**data)
+            pkt: DataPacket = self._pf.SerialString(**data)
         else:
             # Use buffer constructor
             elapsed_bytes = struct.pack('<I', state.sim_time.tick_count_to_milliseconds())
             buffer = elapsed_bytes + bytes(msg, 'ascii')
-            pkt: lf.DataPacket = self._pf.SerialString(buffer=buffer)
+            pkt = self._pf.SerialString(buffer=buffer)
 
         output.record(pkt)
 
@@ -587,17 +588,17 @@ class DataGenerator:
                     'elapsed_time': state.sim_time.tick_count_to_milliseconds()
                     }
 
-            pkt: lf.DataPacket = self._pf.SerialString(**data)
+            pkt: DataPacket = self._pf.SerialString(**data)
         else:
             # Use buffer constructor
             elapsed_bytes = struct.pack('<I', state.sim_time.tick_count_to_milliseconds())
             buffer = elapsed_bytes + bytes(msg, 'ascii')
-            pkt: lf.DataPacket = self._pf.SerialString(buffer=buffer)
+            pkt = self._pf.SerialString(buffer=buffer)
 
         output.record(pkt)
 
     def generate_dbt(self, state: State, output: Writer, *,
-                     override_depth: float = None) -> None:
+                     override_depth: float = -1.0) -> None:
         """
         Generate NMEA0183 depth (SDDBT) information
         :param state: Simulator state to use for generation
@@ -605,7 +606,7 @@ class DataGenerator:
         :param override_depth: Override depth with this value (used for unit testing so as to avoid stochastic depth)
         :return:
         """
-        if override_depth is not None:
+        if override_depth >= 0:
             depth_metres: float = override_depth
         else:
             depth_metres: float = state.current_depth + state.measurement_uncertainty * state.unit_normal()
@@ -625,12 +626,12 @@ class DataGenerator:
                     'elapsed_time': state.sim_time.tick_count_to_milliseconds()
                     }
 
-            pkt: lf.DataPacket = self._pf.SerialString(**data)
+            pkt: DataPacket = self._pf.SerialString(**data)
         else:
             # Use buffer constructor
             elapsed_bytes = struct.pack('<I', state.sim_time.tick_count_to_milliseconds())
             buffer = elapsed_bytes + bytes(msg, 'ascii')
-            pkt: lf.DataPacket = self._pf.SerialString(buffer=buffer)
+            pkt = self._pf.SerialString(buffer=buffer)
 
         output.record(pkt)
         if self._duplicate_depth_prob > 0.0 and \

@@ -29,7 +29,7 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
-from typing import Dict, Any
+from typing import Any
 
 import numpy as np
 
@@ -41,7 +41,7 @@ __version__ = '1.0.0'
 ALG_NAME = 'deduplicate'
 
 
-def find_duplicates(source: Dict, verbose: bool) -> np.ndarray:
+def find_duplicates(source: dict, verbose: bool) -> np.ndarray:
     current_depth = 0
     d = []
     for n in range(len(source['depth']['z'])):
@@ -56,7 +56,7 @@ def find_duplicates(source: Dict, verbose: bool) -> np.ndarray:
     return rtn
 
 
-def deduplicate_depth(source: Dict[str,Any], params: str,  lineage: Lineage, verbose: bool) -> Dict[str,Any]:
+def deduplicate_depth(source: dict[str,Any], params: str,  lineage: Lineage, verbose: bool) -> dict[str,Any]:
     n_ip_points = len(source['depth']['z'])
     index = find_duplicates(source, verbose)
     source['depth']['t'] = source['depth']['t'][index]
@@ -79,8 +79,8 @@ class Deduplicate(WiblAlgorithm):
 
     @classmethod
     def run_after_time_interp(cls,
-                              data: Dict[str, Any],
+                              data: dict[str, Any],
                               params: str,
                               lineage: Lineage,
-                              verbose: bool) -> Dict[str, Any]:
+                              verbose: bool) -> dict[str, Any]:
         return deduplicate_depth(data, params, lineage, verbose)

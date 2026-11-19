@@ -23,11 +23,12 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import BinaryIO
 import io
 
 import wibl.core.logger_file as lf
+from wibl.core.logger_file.base import DataPacket
 
 
 class Writer(ABC):
@@ -37,22 +38,23 @@ class Writer(ABC):
         self._lf = self._lf = lf.get_logger_file(logger_file_version)
         self._pf = self._lf.packet_factory
         # Write serialiser version to underlying data stream
-        version: lf.DataPacket = self._pf.SerialiserVersion(major=major,
+        version: DataPacket = self._pf.SerialiserVersion(major=major,
                                                             minor=minor,
                                                             **lf.LOGGER_VERSIONS[logger_file_version])
         self.record(version)
         # Write metadata to underlying data stream
-        meta: lf.DataPacket = self._pf.Metadata(logger=logger_name,
+        meta: DataPacket = self._pf.Metadata(logger=logger_name,
                                                 shipname=shipname)
         self.record(meta)
 
-    def record(self, data: lf.DataPacket):
+    @abstractmethod
+    def record(self, data: DataPacket):
         """
         Write a packet into the underlying data stream
         :param data:
         :return:
         """
-        pass
+        ...
 
 
 class FileWriter(Writer):
@@ -70,7 +72,7 @@ class FileWriter(Writer):
         self._m_output_log.close()
         self._file.close()
 
-    def record(self, data: lf.DataPacket):
+    def record(self, data: DataPacket):
         """
         Write a packet into the current log file
         :param data: Data packet to be written
@@ -91,7 +93,7 @@ class MemoryWriter(Writer):
         self.writer.close()
         self.bio.close()
 
-    def record(self, data: lf.DataPacket):
+    def record(self, data: DataPacket):
         """
         Write a packet into the underlying byte array
         :param data: Data packet to be written

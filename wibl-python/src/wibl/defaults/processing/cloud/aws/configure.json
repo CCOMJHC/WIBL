@@ -1,6 +1,6 @@
 {
 	"verbose":				false,
-	"elapsed_time_width":	32,
+	"elapsed_time_width":	64,
 	"fault_limit":			10,
 	"local":				false
 }

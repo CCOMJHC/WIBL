@@ -94,7 +94,14 @@ def lambda_handler(event, context):
 
     # Since we're getting SNS notifications, there can only be one item to process
     # for each invocation.
-    item: ds.DataItem = source.nextSource()
+    item: ds.DataItem | None = source.nextSource()
+    if not item:
+        print(f'error: failed to get data item information from SNS message.')
+        return {
+            'statusCode': ReturnCodes.FAILED.value,
+            'body': 'Failed to get data item information from SNS message.'
+        }
+
     local_file, source_info = controller.obtain(item)
     if not source_info['sourceID']:
         if config['verbose']:

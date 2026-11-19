@@ -98,7 +98,7 @@ def read_config(config_file: Union[Path, str]) -> Dict[str, Any]:
        before they're uploaded to the database; and where to send the files.  There are also parameters
        to control the local algorithm, including:
     
-            elapsed_time_width:     Width (bits) of the elapsed time data in the WIBL file (default: 32)
+            elapsed_time_width:     Width (bits) of the elapsed time data in the WIBL file (default: 64)
             verbose:                Boolean for verbose reporting of processing (usu. False)
             local:                  Boolean for local testing (usu. False for cloud deployment)
             fault_limit             Limit on number of fault messages that are reported before starting to summarise
@@ -118,7 +118,7 @@ def read_config(config_file: Union[Path, str]) -> Dict[str, Any]:
         if 'elapsed_time_width' in config:
             config['elapsed_time_quantum'] = 1 << config['elapsed_time_width']
         else:
-            config['elapsed_time_quantum'] = 1 << 32
+            config['elapsed_time_quantum'] = 1 << 64
 
         # Set default config parameters
         if 'verbose' not in config:

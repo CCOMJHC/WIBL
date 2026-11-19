@@ -49,20 +49,20 @@ class WIBLPostParse(BaseModel):
 
 
 class WIBLPutParse(BaseModel):
-    logger: str = None
-    platform: str = None
-    size: float = None
-    observations: int = None
-    soundings: int = None
-    max_lat: float = None
-    min_lat: float = None
-    max_lon: float = None
-    min_lon: float = None
-    notifytime: str = None
-    starttime: str = None
-    endtime: str = None
-    status: int = None
-    messages: str = None
+    logger: str | None = None
+    platform: str | None = None
+    size: float | None = None
+    observations: int | None = None
+    soundings: int | None = None
+    max_lat: float | None = None
+    min_lat: float | None = None
+    max_lon: float | None = None
+    min_lon: float | None = None
+    notifytime: str | None = None
+    starttime: str | None = None
+    endtime: str | None = None
+    status: int | None = None
+    messages: str | None = None
 
 
 class WIBLMarshModel(BaseModel):

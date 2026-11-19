@@ -45,7 +45,7 @@
 
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Tuple, Optional, List
+from typing import Any
 from urllib.parse import unquote_plus, urlencode
 import json
 import os
@@ -72,19 +72,19 @@ s3_cli = s3.meta.client
 @dataclass
 class DataItem:
     # Source file's cloud store, typically the name of an S3 bucket
-    source_store:   str
+    source_store:   str | None
     # Source file's key in the cloud store, typically the key in the S3 bucket
     source_key:     str
     # Source file's size in bytes
-    source_size:    Optional[int]
+    source_size:    int | None
     # Name of the file to use in the local file system for downloading the cloud file for processing
-    localname:      Optional[str]
+    localname:      str | None
     # Destination file's cloud store, typically the name of an S3 bucket
-    dest_store:     str
+    dest_store:     str | None
     # Destination file's key in the cloud store, typically the key in the S3 bucket
-    dest_key:       str
+    dest_key:       str | None
     # Destination file's size in bytes
-    dest_size:      Optional[int]
+    dest_size:     int | None
 
 
 @dataclass
@@ -95,11 +95,11 @@ class MultiDataItem:
     # Source file(s)'s cloud store, typically the name of an S3 bucket
     source_store: str
     # Source file's key in the cloud store, typically the key in the S3 bucket
-    source_keys: List[str]
+    source_keys: list[str]
     # Destination file's name to be written to dest_store
     dest_key: str
     # Arbitrary metadata
-    meta: Dict[str, Any] = None
+    meta: dict[str, Any] | None
 
 
 ## Abstract base class for a collection of data items to be processed
@@ -111,12 +111,12 @@ class DataSource(ABC):
     ## Default constructor, adapted to the cloud provider's data information
     @abstractmethod
     def __init__(self):
-        pass
+        ...
 
     ## Abstract method to extract the next \a DataItem object from the source information
     @abstractmethod
-    def nextSource(self) -> DataItem:
-        pass
+    def nextSource(self) -> DataItem | None:
+        ...
 
 ## Concrete implementation of the \a DataSource model for AWS Lambdas
 #
@@ -166,7 +166,7 @@ class AWSSource(DataSource):
     # caller, or None if there are none left.
     #
     # \return Specification for the next S3 object to process
-    def nextSource(self) -> DataItem:
+    def nextSource(self) -> DataItem | None:
         if self.items:
             rc = self.items.pop()
         else:
@@ -240,7 +240,7 @@ class AWSSourceSNSTrigger(DataSource):
     # caller, or None if there are none left.
     #
     # \return Specification for the next S3 object to process
-    def nextSource(self) -> DataItem:
+    def nextSource(self) -> DataItem | None:
         if self.items:
             rc = self.items.pop()
         else:
@@ -262,9 +262,9 @@ class LocalSource(DataSource):
     # \param output Local filename to write converted GeoJSON into
     # \param config Configuration dictionary for the algorithm
 
-    def __init__(self, input: str, output: str, config: Dict[str,Any]):
-        self.inname = input
-        self.outname = output
+    def __init__(self, input: str, output: str, config: dict[str,Any]):
+        self.inname: str | None = input
+        self.outname: str | None = output
         self.filesize = os.path.getsize(input)
         if config['verbose']:
             print(f'Configured for input file {self.inname} converting to {self.outname}.')
@@ -276,11 +276,10 @@ class LocalSource(DataSource):
     # more than once.
     #
     # \return Specification for the next local file to process
-    def nextSource(self) -> DataItem:
-        if self.inname is None:
-            rc = None
-        else:
-            rc: DataItem = DataItem(None, self.inname, self.filesize, self.inname, None, self.outname, 0)
+    def nextSource(self) -> DataItem | None:
+        rc: DataItem | None = None
+        if self.inname:
+            rc = DataItem(None, self.inname, self.filesize, self.inname, None, self.outname, 0)
             self.inname = None
             self.outname = None
         return rc
@@ -290,12 +289,12 @@ class MultiDataSource(ABC):
     ## Default constructor, adapted to the cloud provider's data information
     @abstractmethod
     def __init__(self):
-        pass
+        ...
 
     ## Abstract method to extract the next \a DataItem object from the source information
     @abstractmethod
-    def nextSource(self) -> MultiDataItem:
-        pass
+    def nextSource(self) -> MultiDataItem | None:
+        ...
 
 
 class AWSMultiSource(MultiDataSource):
@@ -308,7 +307,7 @@ class AWSMultiSource(MultiDataSource):
     # \param event      AWS Lambda event to parse
     # \param config     Configuration dictionary for the algorithm
     def __init__(self, event, config):
-        self.items: List[MultiDataItem] = []
+        self.items: list[MultiDataItem] = []
         for record in event['Records']:
             if 'Sns' not in record:
                 print('error: no SNS notification in event.')
@@ -321,7 +320,7 @@ class AWSMultiSource(MultiDataSource):
                     source_keys = [unquote_plus(fname) for fname in message['source_keys']]
                     dest_key = message['dest_key']
                     if 'meta' in message:
-                        meta = message['meta']
+                        meta: dict[str,Any] | None = message['meta']
                     else:
                         meta = None
 
@@ -341,7 +340,7 @@ class AWSMultiSource(MultiDataSource):
     # caller, or None if there are none left.
     #
     # \return Specification for the next S3 object to process
-    def nextSource(self) -> Optional[MultiDataItem]:
+    def nextSource(self) -> MultiDataItem | None:
         if self.items:
             rc = self.items.pop()
         else:
@@ -362,8 +361,8 @@ class CloudController(ABC):
     #
     # \param config Dictionary (typically from JSON file) with parameters
     @abstractmethod
-    def __init__(self, config: Dict[str,Any]):
-        pass
+    def __init__(self, config: dict[str,Any]):
+        ...
 
     ## Test whether a specified object exists in the provider's cloud store
     #
@@ -372,8 +371,8 @@ class CloudController(ABC):
     # \param meta   Specification for the object to pull from the cloud object store
     # \return Tuple[bool, Optional[int]] (True, size in bytes) if the specified object exists,
     #   (False, None) if the specified object doesn't exist.
-    def exists(self, meta: DataItem) -> Tuple[bool, Optional[int]]:
-        pass
+    def exists(self, meta: DataItem) -> tuple[bool, int | None]:
+        ...
 
     ## Extract a specified object from the provider's cloud store
     #
@@ -383,8 +382,8 @@ class CloudController(ABC):
     # \return Tuple of a string and dictionary specifying the local filename at which
     # the object was stored, and the tags used for the object
     @abstractmethod
-    def obtain(self, meta: DataItem) -> Tuple[str, Dict[str,Any]]:
-        pass
+    def obtain(self, meta: DataItem) -> tuple[str, dict[str,Any]]:
+        ...
         
     ## Send a local object to the cloud provider's object store
     #
@@ -392,20 +391,20 @@ class CloudController(ABC):
     # pair for the uniqueID associated with the object.
     #
     # \param meta       Specification for the object destination
-    # \param SourceID   UniqueID for the source data, to set on the object store
-    # \param Logger     Logger name for the source file
-    # \param Soundings  Number of soundings in the transmitted file
+    # \param sourceID   UniqueID for the source data, to set on the object store
+    # \param logger     Logger name for the source file
+    # \param soundings  Number of soundings in the transmitted file
     # \param data       Data string to transmit to the cloud object store
     @abstractmethod
-    def transmit(self, meta: DataItem, SourceID: str, Logger: str, Soundings: int, data: str) -> None:
-        pass
+    def transmit(self, meta: DataItem, sourceID: str, logger: str, soundings: int, data: bytes) -> None:
+        ...
 
     ## Upload local (temp) file to cloud provider's object store
     #
     # \param localname      Name of local file to uplaod
     # \param dest_key       Key of object to store file in within bucket defined by self.destination.
     def upload(self, localname: str, dest_key: str) -> None:
-        pass
+        ...
 
 
 ## Concrete implementation of the CloudController model for AWS S3 buckets
@@ -422,7 +421,7 @@ class AWSController(CloudController):
     #   "verbose"           Flag: True => provide more information on what's going on
     #
     # \param config Configuration dictionary for the algorithm
-    def __init__(self, config: Dict[str,Any]):
+    def __init__(self, config: dict[str,Any]):
         self.destination = getenv('DEST_BUCKET')
         self.verbose = config['verbose']
 
@@ -433,7 +432,7 @@ class AWSController(CloudController):
     # \param meta   Specification for the object to pull from the cloud object store
     # \return Tuple[bool, Optional[int]] (True, size in bytes) if the specified object exists,
     #   (False, None) if the specified object doesn't exist.
-    def exists(self, meta: DataItem) -> Tuple[bool, Optional[int]]:
+    def exists(self, meta: DataItem) -> tuple[bool, int | None]:
         if self.verbose:
             print(f'Testing existence of object {meta.source_key} from bucket {meta.source_store}')
         try:
@@ -454,12 +453,13 @@ class AWSController(CloudController):
     #
     # \param meta   Specification for the object being transferred into the local environment
     # \return Tuple[str,str]: local filename, dictionary of tags on the data
-    def obtain(self, meta: DataItem) -> Tuple[str, Dict[str,Any]]:
+    def obtain(self, meta: DataItem) -> tuple[str, dict[str,Any]]:
         if self.verbose:
             print(f'Downloading from bucket {meta.source_store} object {meta.source_key} to local file {meta.localname}')
         s3.Bucket(meta.source_store).download_file(meta.source_key, meta.localname)
+        assert(meta.localname)
         tags = s3_cli.get_object_tagging(Bucket=meta.source_store, Key=meta.source_key)
-        info: Dict[str,Any] = {'sourceID': '', 'logger': '', 'soundings': -1}
+        info: dict[str,Any] = {'sourceID': '', 'logger': '', 'soundings': -1}
         for tag in tags['TagSet']:
             if tag['Key'] == 'SourceID':
                 info['sourceID'] = tag['Value']
@@ -483,7 +483,7 @@ class AWSController(CloudController):
     # \param logger     Logger name for the source file
     # \param soundings  Number of soundings in the transmitted file
     # \param data       Data to transfer into the cloud store
-    def transmit(self, meta: DataItem, sourceID: str, logger: str, soundings: int, data: str) -> None:
+    def transmit(self, meta: DataItem, sourceID: str, logger: str, soundings: int, data: bytes) -> None:
         if self.verbose:
             print(f'Transmitting {meta.localname} to bucket {self.destination}, key {meta.dest_key}, source ID {sourceID}')
         tags = urlencode({
@@ -516,7 +516,7 @@ class LocalController(CloudController):
     # only configuration is whether to report what's going on (verbose mode)
     #
     # \param config Dictionary of algorithm configuration parameters
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         self.verbose = config['verbose']
 
     ## Test whether a specified object exists as a local file
@@ -524,8 +524,9 @@ class LocalController(CloudController):
     # \param meta   Specification for the object to pull from the local environment
     # \return Tuple[bool, Optional[int]] (True, size in bytes) if the specified object exists,
     #   (False, None) if the specified object doesn't exist.
-    def exists(self, meta: DataItem) -> Tuple[bool, Optional[int]]:
+    def exists(self, meta: DataItem) -> tuple[bool, int | None]:
         try:
+            assert(meta.localname)
             stat = os.stat(meta.localname)
             return True, stat.st_size
         except FileNotFoundError:
@@ -539,10 +540,11 @@ class LocalController(CloudController):
     #
     # \param meta   Specification for the object being transferred into the local environment
     # \return Tuple[str,str]: local filename, dictionary of tags
-    def obtain(self, meta: DataItem) -> Tuple[str, Dict[str,Any]]:
-        info: Dict[str,Any] = {'sourceID': '', 'logger': '', 'soundings': -1}
+    def obtain(self, meta: DataItem) -> tuple[str, dict[str,Any]]:
+        info: dict[str,Any] = {'sourceID': '', 'logger': '', 'soundings': -1}
         # To get the tagging information on a local file, we can't rely on the sort of key,value
         # pairs that we have in S3, so we read the file, and find them directly (if the file is JSON)
+        assert(meta.localname)
         if 'json' in meta.localname:
             with open(meta.localname, 'r') as f:
                 data = json.load(f)
@@ -587,13 +589,13 @@ class LocalController(CloudController):
     # \param meta       Specification for the object being transferred into the cloud environment
     # \param sourceID   UniqueID associated with the data (for key-value metadata tag)
     # \param data       Data to transfer into the cloud store
-    def transmit(self, meta: DataItem, sourceID: str, logger: str, soundings: int, data: str) -> None:
+    def transmit(self, meta: DataItem, sourceID: str, logger: str, soundings: int, data: bytes) -> None:
         if self.verbose:
             if len(data) > 1000:
                 prdata = str(data[0:1000]) + '...'
             else:
                 prdata = str(data)
             print(f'Local conversion: saving to {meta.dest_key} with data {prdata}.')
-        with open(meta.dest_key, 'w') as f:
-            json.dump(json.loads(data.decode('utf-8')), f, indent=4)
-
+        if meta.dest_key:
+            with open(meta.dest_key, 'w') as f:
+                json.dump(json.loads(data.decode('utf-8')), f, indent=4)
