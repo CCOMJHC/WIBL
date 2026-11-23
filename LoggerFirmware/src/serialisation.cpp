@@ -204,13 +204,15 @@ void Serialisable::add(uint32_t len, uint8_t const *p)
 ///
 /// \param file Reference for the file on which the data should be serialised.
 
-Serialiser::Serialiser(File& file)
+Serialiser::Serialiser(File& file, uint64_t now)
 : m_file(file)
 {
     uint16_t major, minor, patch;
     
-    Serialisable version(28);
-    
+    Serialisable version(sizeof(uint64_t) + 14*sizeof(uint16_t));
+
+    version += now;
+
     version += (uint16_t)SerialiserVersionMajor;
     version += (uint16_t)SerialiserVersionMinor;
     
@@ -236,10 +238,11 @@ Serialiser::Serialiser(File& file)
 
     rawProcess(0, version);
 
-    Serialisable meta(255);
     String name, identifier;
     logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_SHIPNAME_S, name);
     logger::LoggerConfig.GetConfigString(logger::Config::CONFIG_MODULEID_S, identifier);
+    Serialisable meta(sizeof(uint64_t) + name.length() + identifier.length() + 2*sizeof(uint32_t));
+    meta += now;
     meta += static_cast<uint32_t>(name.length());
     meta += name.c_str();
     meta += static_cast<uint32_t>(identifier.length());
@@ -250,7 +253,8 @@ Serialiser::Serialiser(File& file)
     JsonDocument json_setup(logger::ConfigJSON::ExtractConfig(true));
     String json_str;
     serializeJson(json_setup, json_str);
-    Serialisable setup(json_str.length() + sizeof(size_t));
+    Serialisable setup(sizeof(uint64_t) + json_str.length() + sizeof(uint32_t));
+    setup += now;
     setup += static_cast<uint32_t>(json_str.length());
     setup += json_str.c_str();
 

@@ -227,13 +227,14 @@ void MetadataStore::SetMetadata(String const& s)
 ///
 /// @param s    Pointer to the \a Serialiser object to use to put the data into the output file
 
-void MetadataStore::SerialiseMetadata(Serialiser *s)
+void MetadataStore::SerialiseMetadata(Serialiser *s, uint64_t now)
 {
     if (Empty()) return;
 
     String meta = JSONRepresentation();
-    Serialisable packet(meta.length() + 4);
+    Serialisable packet(sizeof(uint64_t) + meta.length() + sizeof(uint32_t));
 
+    packet += now;
     packet += static_cast<uint32_t>(meta.length());
     packet += meta.c_str();
     s->Process(logger::Manager::PacketIDs::Pkt_JSON, packet);
@@ -302,13 +303,14 @@ void ScalesStore::ClearScales(void)
 ///
 /// @param s    Pointer to the \a Serialiser object to use to put the data into the output file
 
-void ScalesStore::SerialiseScales(Serialiser *s)
+void ScalesStore::SerialiseScales(Serialiser *s, uint64_t now)
 {
     if (Empty()) return;
 
     String scales = JSONRepresentation();
-    Serialisable packet(scales.length() + 4);
-
+    Serialisable packet(sizeof(uint64_t) + scales.length() + 4);
+    
+    packet += now;
     packet += static_cast<uint32_t>(scales.length());
     packet += scales.c_str();
     s->Process(logger::Manager::PacketIDs::Pkt_SensorScales, packet);
@@ -375,7 +377,7 @@ void AlgoRequestStore::ClearAlgorithmList(void)
 ///
 /// @param s    Pointer to the @a Serialiser to write data into the required ouptut file
 
-void AlgoRequestStore::SerialiseAlgorithms(Serialiser *s)
+void AlgoRequestStore::SerialiseAlgorithms(Serialiser *s, uint64_t now)
 {
     JsonDocument doc(GetContents());
 
@@ -383,7 +385,8 @@ void AlgoRequestStore::SerialiseAlgorithms(Serialiser *s)
     for (int n = 0; n < alg_count; ++n) {
         String algorithm = doc["algorithm"][n]["name"];
         String parameters = doc["algorithm"][n]["parameters"];
-        Serialisable ser(algorithm.length() + parameters.length() + sizeof(unsigned int)*2);
+        Serialisable ser(sizeof(uint64_t) + algorithm.length() + parameters.length() + sizeof(uint32_t)*2);
+        ser += now;
         ser += static_cast<uint32_t>(algorithm.length());
         ser += algorithm.c_str();
         ser += static_cast<uint32_t>(parameters.length());
@@ -392,9 +395,10 @@ void AlgoRequestStore::SerialiseAlgorithms(Serialiser *s)
     }
 }
 
-void AlgoRequestStore::SerialiseSingleAlgorithm(String const& algo, String const& params, Serialiser *s)
+void AlgoRequestStore::SerialiseSingleAlgorithm(String const& algo, String const& params, Serialiser *s, uint64_t now)
 {
-    Serialisable ser(255);
+    Serialisable ser(sizeof(uint64_t) + algo.length() + params.length() + 2*sizeof(uint32_t));
+    ser += now;
     ser += static_cast<uint32_t>(algo.length());
     ser += algo.c_str();
     ser += static_cast<uint32_t>(params.length());
@@ -476,14 +480,15 @@ void N0183IDStore::ClearIDList(void)
 ///
 /// @param s    Pointer to the @a Serialiser associated with the required output file
 
-void N0183IDStore::SerialiseIDs(Serialiser *s)
+void N0183IDStore::SerialiseIDs(Serialiser *s, uint64_t now)
 {
     JsonDocument doc(GetContents());
 
     int count = doc["count"];
     for (int n = 0; n < count; ++n) {
-        Serialisable ser;
         String IDname = doc["ids"][n];
+        Serialisable ser(sizeof(uint64_t) + IDname.length() + sizeof(uint32_t));
+        ser += now;
         ser += static_cast<uint32_t>(IDname.length());
         ser += IDname.c_str();
         s->Process(logger::Manager::PacketIDs::Pkt_NMEA0183ID, ser);
@@ -589,12 +594,13 @@ void N2000PGNStore::ClearPGNList(void)
     Set(doc);
 }
 
-void N2000PGNStore::SerialisePGNs(Serialiser *s)
+void N2000PGNStore::SerialisePGNs(Serialiser *s, uint64_t now)
 {
     if (Empty()) return;
 
     String rep(JSONRepresentation());
-    Serialisable ser(rep.length() + sizeof(unsigned int));
+    Serialisable ser(sizeof(uint64_t) + rep.length() + sizeof(unsigned int));
+    ser += now;
     ser += static_cast<uint32_t>(rep.length());
     ser += rep.c_str();
     s->Process(logger::Manager::PacketIDs::Pkt_NMEA2000PGNS, ser);

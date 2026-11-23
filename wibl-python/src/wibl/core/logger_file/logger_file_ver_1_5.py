@@ -1003,7 +1003,7 @@ class SerialiserVersion(BaseDataPacket):
 
     def buffer_constructor(self, buffer: bytes) -> None:
         base = 0
-        (major, minor) = struct.unpack_from('<HH', buffer, base)
+        (elapsed, major, minor) = struct.unpack_from('<QHH', buffer, base)
         base += 4
         (n2000_major, n2000_minor, n2000_patch, n0183_major, n0183_minor, n0183_patch, imu_major, imu_minor, imu_patch, gnss_major, gnss_minor, gnss_patch) = \
                 struct.unpack_from('<HHHHHHHHHHHH', buffer, base)
@@ -1028,10 +1028,10 @@ class SerialiserVersion(BaseDataPacket):
         ## GNSS software version information
         self.gnss_version = f'{gnss_major}.{gnss_minor}.{gnss_patch}'
 
-        super().__init__(0)
+        super().__init__(elapsed)
 
     def payload(self) -> bytes:
-        buffer = struct.pack('<HHHHHHHHHHHHHH', self.major, self.minor,
+        buffer = struct.pack('<QHHHHHHHHHHHHHH', self.elapsed, self.major, self.minor,
                              self.nmea2000[0], self.nmea2000[1], self.nmea2000[2],
                              self.nmea0183[0], self.nmea0183[1], self.nmea0183[2],
                              self.imu[0], self.imu[1], self.imu[2],
@@ -1061,7 +1061,7 @@ class SerialiserVersion(BaseDataPacket):
             self.nmea0183_version = f'{self.nmea0183[0]}.{self.nmea0183[1]}.{self.nmea0183[2]}'
             self.imu_version = f'{self.imu[0]}.{self.imu[1]}.{self.imu[2]}'
             self.gnss_version = f'{self.gnss[0]}.{self.gnss[1]}.{self.gnss[2]}'
-            super().__init__(0)
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1184,8 +1184,8 @@ class Metadata(BaseDataPacket):
 
     def buffer_constructor(self, buffer: bytes) -> None:
         base = 0
-        id_len, = struct.unpack_from('<I', buffer, base)
-        base += 4
+        (elapsed, id_len) = struct.unpack_from('<QI', buffer, base)
+        base += 12
         unique_id, = struct.unpack_from(f'<{id_len}s', buffer, base)
         base += id_len
         name_len, = struct.unpack_from('<I', buffer, base)
@@ -1193,12 +1193,15 @@ class Metadata(BaseDataPacket):
         name, = struct.unpack_from(f'<{name_len}s', buffer, base)
         self.logger_name = unique_id.decode('UTF-8')
         self.ship_name = name.decode('UTF-8')
-        super().__init__(0)
+        super().__init__(elapsed)
 
     def payload(self) -> bytes:
         logger_name_len = len(self.logger_name)
         ship_name_len = len(self.ship_name)
-        buffer = struct.pack(f'<I{logger_name_len}sI{ship_name_len}s', logger_name_len, self.logger_name.encode('UTF-8'), ship_name_len, self.ship_name.encode('UTF-8'))
+        buffer = struct.pack(f'<QI{logger_name_len}sI{ship_name_len}s',
+                             self.elapsed,
+                             logger_name_len, self.logger_name.encode('UTF-8'),
+                             ship_name_len, self.ship_name.encode('UTF-8'))
         return buffer
     
     def id(self) -> int:
@@ -1213,7 +1216,7 @@ class Metadata(BaseDataPacket):
         try:
             self.logger_name = kwargs['logger']
             self.ship_name = kwargs['shipname']
-            super().__init__(0)
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1258,8 +1261,8 @@ class AlgorithmRequest(BaseDataPacket):
 
     def buffer_constructor(self, buffer: bytes) -> None:
         base = 0
-        algname_len, = struct.unpack_from('<I', buffer, base)
-        base += 4
+        (elapsed, algname_len) = struct.unpack_from('<QI', buffer, base)
+        base += 12
         algname, = struct.unpack_from(f'<{algname_len}s', buffer, base)
         base += algname_len
         param_len, = struct.unpack_from('<I', buffer, base)
@@ -1267,12 +1270,15 @@ class AlgorithmRequest(BaseDataPacket):
         algparams, = struct.unpack_from(f'<{param_len}s', buffer, base)
         self.algorithm = algname
         self.parameters = algparams
-        super().__init__(0)
+        super().__init__(elapsed)
     
     def payload(self) -> bytes:
         name_len = len(self.algorithm)
         param_len = len(self.parameters)
-        buffer = struct.pack(f'<I{name_len}sI{param_len}s', name_len, self.algorithm, param_len, self.parameters)
+        buffer = struct.pack(f'<QI{name_len}sI{param_len}s',
+                             self.elapsed,
+                             name_len, self.algorithm,
+                             param_len, self.parameters)
         return buffer
     
     def id(self) -> int:
@@ -1282,7 +1288,7 @@ class AlgorithmRequest(BaseDataPacket):
         try:
             self.algorithm = kwargs['name'].encode('UTF-8')
             self.parameters = kwargs['params'].encode('UTF-8')
-            super().__init__(0)
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
     
@@ -1327,15 +1333,15 @@ class JSONMetadata(BaseDataPacket):
 
     def buffer_constructor(self, buffer: bytes) -> None:
         base = 0
-        meta_len, = struct.unpack_from('<I', buffer, base)
-        base += 4
+        (elapsed, meta_len) = struct.unpack_from('<QI', buffer, base)
+        base += 12
         meta, = struct.unpack_from(f'<{meta_len}s', buffer, base)
         self.metadata_element = meta
-        super().__init__(0)
+        super().__init__(elapsed)
 
     def payload(self) -> bytes:
         meta_len = len(self.metadata_element)
-        buffer = struct.pack(f'<I{meta_len}s', meta_len, self.metadata_element)
+        buffer = struct.pack(f'<QI{meta_len}s', self.elapsed, meta_len, self.metadata_element)
         return buffer
     
     def id(self) -> int:
@@ -1354,7 +1360,7 @@ class JSONMetadata(BaseDataPacket):
                 self.metadata_element = kwargs['meta'].encode('UTF-8')
             else:
                 self.metadata_element = kwargs['meta']
-            super().__init__(0)
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
         
@@ -1402,11 +1408,11 @@ class NMEA0183Filter(BaseDataPacket):
     # \param buffer Binary buffer with serialised information for the packet
     def buffer_constructor(self, buffer: bytes) -> None:
         base = 0
-        id_len, = struct.unpack_from('<I', buffer, base)
+        (elapsed, id_len) = struct.unpack_from('<QI', buffer, base)
         base += 4
         recog_string, = struct.unpack_from(f'<{id_len}s', buffer, base)
         self.recog_string = recog_string
-        super().__init__(0)
+        super().__init__(elapsed)
     
     ## Initialise the packet from keyword arguments
     #
@@ -1421,7 +1427,7 @@ class NMEA0183Filter(BaseDataPacket):
     def data_constructor(self, **kwargs) -> None:
         try:
             self.recog_string = kwargs['sentence'].encode('UTF-8')
-            super().__init__(0)
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
     
@@ -1435,7 +1441,7 @@ class NMEA0183Filter(BaseDataPacket):
     # \return Bytes array with the binary representation of the packet-specific parameters
     def payload(self) -> bytes:
         recog_len = len(self.recog_string)
-        buffer = struct.pack(f'<I{recog_len}s', recog_len, self.recog_string)
+        buffer = struct.pack(f'<QI{recog_len}s', self.elapsed, recog_len, self.recog_string)
         return buffer
     
     ## Provide the recognition ID for the packet, as used in the binary file
@@ -1498,12 +1504,12 @@ class SensorScales(BaseDataPacket):
     # \param buffer Binary buffer with serialised information for the packet
     def buffer_constructor(self, buffer: bytes) -> None:
         base = 0
-        config_len, = struct.unpack_from('<I', buffer, base)
-        base += 4
+        (elapsed, config_len) = struct.unpack_from('<QI', buffer, base)
+        base += 12
         convert_string = f'<{config_len}s'
         config, = struct.unpack_from(convert_string, buffer, base)
         self.config = json.loads(config)
-        super().__init__(0)
+        super().__init__(elapsed)
 
     ## Initialise the packet from keyword arguments
     #
@@ -1522,7 +1528,7 @@ class SensorScales(BaseDataPacket):
                     self.config = json.load(kwargs['scales'])
             else:
                 self.config = kwargs['scales']
-            super().__init__(0)
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1537,7 +1543,7 @@ class SensorScales(BaseDataPacket):
     def payload(self) -> bytes:
         config = json.dumps(self.config, separators=(',', ':')).encode('UTF-8')
         config_len = len(config)
-        buffer = struct.pack(f'<I{config_len}s', config_len, config)
+        buffer = struct.pack(f'<QI{config_len}s', self.elapsed, config_len, config)
         return buffer
 
     ## Provide the recognition ID for the packet, as used in the binary file
@@ -1693,12 +1699,12 @@ class Setup(BaseDataPacket):
     # \param buffer Binary buffer with serialised information for the packet
     def buffer_constructor(self, buffer: bytes) -> None:
         base = 0
-        setup_len, = struct.unpack_from('<I', buffer, base)
+        (elapsed, setup_len) = struct.unpack_from('<QI', buffer, base)
         base += 4
         convert_string = f'<{setup_len}s'
         setup, = struct.unpack_from(convert_string, buffer, base)
         self.setup = json.loads(setup)
-        super().__init__(0)
+        super().__init__(elapsed)
 
     ## Initialise the packet from keyword arguments
     #
@@ -1722,7 +1728,7 @@ class Setup(BaseDataPacket):
                 self.setup = kwargs['setup']
             if 'version' not in self.setup or 'commandproc' not in self.setup['version']:
                 raise SpecificationError('JSON specification does not contain version information.')
-            super().__init__(0)
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1737,7 +1743,7 @@ class Setup(BaseDataPacket):
     def payload(self) -> bytes:
         stringified = json.dumps(self.setup).encode('UTF-8')
         stringified_len = len(stringified)
-        buffer = struct.pack(f'<I{stringified_len}s', stringified_len, stringified)
+        buffer = struct.pack(f'<QI{stringified_len}s', self.elapsed, stringified_len, stringified)
         return buffer
 
     ## Provide the recognition ID for the packet, as used in the binary file
@@ -1783,12 +1789,12 @@ class NMEA2000PGNs(BaseDataPacket):
 
     def buffer_constructor(self, buffer: bytes) -> None:
         base: int = 0
-        setup_len, = struct.unpack_from('<I', buffer, base)
+        (elapsed, setup_len) = struct.unpack_from('<QI', buffer, base)
         base += 4
         convert_string = f'<{setup_len}s'
         config, = struct.unpack_from(convert_string, buffer, base)
         self.config = json.loads(config)
-        super().__init__(0)
+        super().__init__(elapsed)
 
     def data_constructor(self, **kwargs) -> None:
         try:
@@ -1801,14 +1807,14 @@ class NMEA2000PGNs(BaseDataPacket):
                 self.config = kwargs['config']
             if 'count' not in self.config or 'ids' not in self.config:
                 raise SpecificationError('PGN configuration does not contain count or id information')
-            super().__init__(0)
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
     def payload(self) -> bytes:
         stringified = json.dumps(self.config).encode('UTF-8')
         stringified_len = len(stringified)
-        buffer = struct.pack(f'<I{stringified_len}s', stringified_len, stringified)
+        buffer = struct.pack(f'<QI{stringified_len}s', self.elapsed, stringified_len, stringified)
         return buffer
 
     def id(self) -> int:
@@ -1870,23 +1876,23 @@ class GNSSBinary(BaseDataPacket):
 
     def buffer_constructor(self, buffer: bytes) -> None:
         base: int = 0
-        buf_len, = struct.unpack_from('<I', buffer, base)
-        base += 4
+        (elapsed, buf_len) = struct.unpack_from('<QI', buffer, base)
+        base += 12
         convert_string = f'<{buf_len}s'
         buf, = struct.unpack_from(convert_string, buffer, base)
         self.raw = buf
-        super().__init__(0)
+        super().__init__(elapsed)
 
     def data_constructor(self, **kwargs) -> None:
         try:
             self.raw = kwargs['raw']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
     def payload(self) -> bytes:
         raw_len: int = len(self.raw)
-        buffer = struct.pack(f'<I{raw_len}s', raw_len, self.raw)
+        buffer = struct.pack(f'<QI{raw_len}s', self.elapsed, raw_len, self.raw)
         return buffer
 
     def id(self) -> int:
@@ -1916,7 +1922,7 @@ class GNSS1PPS(BaseDataPacket):
         try:
             self.utc_second = kwargs['utc_second']
             self.utc_microsecond = kwargs['utc_microsecond']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 

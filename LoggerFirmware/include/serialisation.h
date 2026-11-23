@@ -92,7 +92,7 @@ private:
 class Serialiser {
 public:
     /// \brief Default constructor
-    Serialiser(File& f);
+    Serialiser(File& f, uint64_t now);
     /// \brief Write the payload to file, with header block
     bool Process(uint32_t payload_id, Serialisable const& payload);
 

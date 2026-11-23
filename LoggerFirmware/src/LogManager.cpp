@@ -25,8 +25,6 @@
 
 #include <string>
 #include <list>
-#include <stdint.h>
-#include <utility>
 #include "MD5Builder.h"
 #include "LittleFS.h"
 #include "LogManager.h"
@@ -629,17 +627,18 @@ void Manager::StartNewLog(void)
 
     m_outputLog = m_storage->Controller().open(filename, FILE_WRITE);
     if (m_outputLog) {
-        m_serialiser = new Serialiser(m_outputLog);
+        uint64_t now = GetElapsedTime();
+        m_serialiser = new Serialiser(m_outputLog, now);
         logger::AlgoRequestStore algstore;
-        algstore.SerialiseAlgorithms(m_serialiser);
+        algstore.SerialiseAlgorithms(m_serialiser, now);
         logger::MetadataStore metastore;
-        metastore.SerialiseMetadata(m_serialiser);
+        metastore.SerialiseMetadata(m_serialiser, now);
         logger::N0183IDStore filterstore;
-        filterstore.SerialiseIDs(m_serialiser);
+        filterstore.SerialiseIDs(m_serialiser, now);
         logger::N2000PGNStore pgnstore;
-        pgnstore.SerialisePGNs(m_serialiser);
+        pgnstore.SerialisePGNs(m_serialiser, now);
         logger::ScalesStore scalesstore;
-        scalesstore.SerialiseScales(m_serialiser);
+        scalesstore.SerialiseScales(m_serialiser, now);
         Syslog(String("INFO: started logging to ") + filename);
     } else {
         m_serialiser = nullptr;
@@ -852,7 +851,7 @@ void Manager::EmitNoDataReject(void)
 {
     if (m_noDataAlgEmitted) return;
     logger::AlgoRequestStore store;
-    store.SerialiseSingleAlgorithm("nodatareject", "phase=raw", m_serialiser);
+    store.SerialiseSingleAlgorithm("nodatareject", "phase=raw", m_serialiser, GetElapsedTime());
     m_noDataAlgEmitted = true;
 }
 

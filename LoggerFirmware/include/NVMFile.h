@@ -124,7 +124,7 @@ public:
     void SetMetadata(String const& meta);
 
     /// \brief Write the metadata element string into the output file associated with the \a Serialiser
-    void SerialiseMetadata(Serialiser *ser);
+    void SerialiseMetadata(Serialiser *ser, uint64_t now);
 };
 
 /// \class ScalesStore
@@ -150,7 +150,7 @@ public:
     void ClearScales(void);
 
     /// \brief Serialise the scales JSON into the output file associated with the \a Serialiser provided
-    void SerialiseScales(Serialiser *ser);
+    void SerialiseScales(Serialiser *ser, uint64_t now);
 };
 
 /// \class AlgoRequestStore
@@ -175,10 +175,10 @@ public:
     void ClearAlgorithmList(void);
 
     /// \brief Write the list of all requested algorithms to the log file associated with \a Serialiser
-    void SerialiseAlgorithms(Serialiser *s);
+    void SerialiseAlgorithms(Serialiser *s, uint64_t now);
 
     /// \brief Generate and emit a single algorithm by name
-    void SerialiseSingleAlgorithm(String const& algorithm, String const& parameters, Serialiser *s);
+    void SerialiseSingleAlgorithm(String const& algorithm, String const& parameters, Serialiser *s, uint64_t now);
 };
 
 /// \class N0183IDStore
@@ -204,7 +204,7 @@ public:
     void ClearIDList(void);
 
     /// \brief Write the list of accepted message IDs into the data log file associated with \a Serialiser
-    void SerialiseIDs(Serialiser *s);
+    void SerialiseIDs(Serialiser *s, uint64_t now);
 
     /// \brief Read all of the message IDs and build the structure required for checking incoming messages
     void BuildSet(std::set<String>& s);
@@ -237,7 +237,7 @@ public:
     void ClearPGNList(void);
 
     /// \brief Write the list of PGNs that are being stored into the associated \a Serialiser
-    void SerialisePGNs(Serialiser *s);
+    void SerialisePGNs(Serialiser *s, uint64_t now);
 
     /// \brief Read all of the PGNs and build the structure required for checking incoming messages
     void BuildSet(std::set<int>& s, bool& write_all);

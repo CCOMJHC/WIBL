@@ -329,7 +329,8 @@ void Logger::TransferData(void)
     m_sensor->checkUblox();
     m_sensor->checkCallbacks();
     while (m_sensor->fileBufferAvailable() >= RawDataPacketSize) {
-        Serialisable pkt(RawDataPacketSize + sizeof(uint32_t));
+        Serialisable pkt(sizeof(uint64_t) + RawDataPacketSize + sizeof(uint32_t));
+        pkt += m_output->GetElapsedTime();
         m_sensor->extractFileBufferData(m_pktBuffer, RawDataPacketSize);
         pkt.add(RawDataPacketSize, m_pktBuffer);
         m_output->Record(logger::Manager::PacketIDs::Pkt_RawGNSS, pkt);
