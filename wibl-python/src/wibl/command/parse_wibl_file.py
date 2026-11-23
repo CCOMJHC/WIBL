@@ -33,6 +33,7 @@ import sys
 import click
 
 import wibl.core.logger_file as LoggerFile
+from wibl.core.logger_file.base import PacketTranscriptionError
 
 
 @click.command()
@@ -87,7 +88,7 @@ def parsewibl(input: str, stats: bool, dump: str, gnss: str, strict_mode: bool):
                         if packet_name not in packets_by_source[talker]:
                             packets_by_source[talker][packet_name] = 0
                         packets_by_source[talker][packet_name] += 1
-        except LoggerFile.PacketTranscriptionError as e:
+        except PacketTranscriptionError as e:
             sys.exit(f"Failed to translate packet {packet_count}: {str(e)}.")
 
     click.echo(f"Found {packet_count} packets total")

@@ -113,6 +113,7 @@ def PacketFactory(file: io.FileIO | io.BufferedReader, *, # noqa: N802
         if pkt_len < 4:
             raise LoggerFileIOError(f"Expected length of first packet in file {file.name} to be greater than four, "
                                     f"but it was {pkt_len}.")
+        
     except Exception as e:
         raise LoggerFileIOError(f"Unable to read serialiser version from file {file.name}: error was: {str(e)}")
     # Reset file descriptor position so that reads by the packet factory can proceed as normal.

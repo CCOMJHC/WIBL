@@ -211,10 +211,9 @@ Serialiser::Serialiser(File& file, uint64_t now)
     
     Serialisable version(sizeof(uint64_t) + 14*sizeof(uint16_t));
 
-    version += now;
-
     version += (uint16_t)SerialiserVersionMajor;
     version += (uint16_t)SerialiserVersionMinor;
+    version += now;
     
     nmea::N2000::Logger::SoftwareVersion(major, minor, patch);
     version += major;

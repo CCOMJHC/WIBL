@@ -593,7 +593,7 @@ void Logger::HandleBinary(uint64_t const t, tN2kMsg const& msg)
     if (m_verbose) {
         Serial.println("DBG: Handling binary NMEA2000 packet serialisation.");
     }
-    Serialisable s(sizeof(uint64_t) + msg.DataLen + 8);
+    Serialisable s(sizeof(uint64_t) + msg.DataLen + sizeof(uint32_t));
     s += t;
     s += static_cast<uint32_t>(msg.PGN);
     s.add(msg.DataLen, msg.Data);

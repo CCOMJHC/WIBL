@@ -114,7 +114,7 @@ class SystemTime(BaseDataPacket):
     # \param self   Pointer to the object
     # \param buffer Bytes buffer from which to unpack binary data
     def buffer_constructor(self, buffer: bytes) -> None:
-        (utc_date, utc_seconds, elapsed_time, talker_id, data_source) = struct.unpack('<HfQBB', buffer)
+        (utc_date, utc_seconds, elapsed_time, talker_id, data_source) = struct.unpack('<HdQBB', buffer)
         ## Source of the timestamp (see documentation for decoding, but at least GNSS)
         self.date = utc_date
         self.timestamp = utc_seconds
@@ -125,7 +125,7 @@ class SystemTime(BaseDataPacket):
     ## Generate a synthetic packet based on keywords
     #
     # This generates a synthetic packet based on keywords.  The expected keywords are:
-    #   'elapsed_time':     Elapsed time (ms) since logger boot
+    #   'elapsed':          Elapsed time (ms) since logger boot
     #   'date':             Estimated real-world date string for packet (yyyy-mm-dd)
     #   'timestamp':        Estimated real-world timestasmp for packet (seconds since midnight)
     #   'talker_id':        Talker ID number for the message (as if on a NMEA2000 bus)
@@ -136,7 +136,7 @@ class SystemTime(BaseDataPacket):
             self.timestamp = kwargs['timestamp']
             self.data_source = kwargs['data_source']
             self.talker_id = kwargs['talker_id']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
     
@@ -210,7 +210,7 @@ class Attitude(BaseDataPacket):
     ## Generate a synthetic packet based on keywords
     #
     # This generates a synthetic packet based on keywords.  The expected keywords are:
-    #   'elapsed_time':     Elapsed time (ms) since logger boot
+    #   'elapsed':     Elapsed time (ms) since logger boot
     #   'date':             Estimated real-world date string for packet (yyyy-mm-dd)
     #   'timestamp':        Estimated real-world timestasmp for packet (seconds since midnight)
     #   'talker_id':        Talker ID number for the message (as if on a NMEA2000 bus)
@@ -223,7 +223,7 @@ class Attitude(BaseDataPacket):
             self.yaw = kwargs['yaw']
             self.pitch = kwargs['pitch']
             self.roll = kwargs['roll']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -298,7 +298,7 @@ class Depth(BaseDataPacket):
     ## Generate a synthetic packet based on keywords
     #
     # This generates a synthetic packet based on keywords.  The expected keywords are:
-    #   'elapsed_time':     Elapsed time (ms) since logger boot
+    #   'elapsed':     Elapsed time (ms) since logger boot
     #   'date':             Estimated real-world date string for packet (yyyy-mm-dd)
     #   'timestamp':        Estimated real-world timestasmp for packet (seconds since midnight)
     #   'talker_id':        Talker ID number for the message (as if on a NMEA2000 bus)
@@ -311,7 +311,7 @@ class Depth(BaseDataPacket):
             self.depth = kwargs['depth']
             self.offset = kwargs['offset']
             self.range = kwargs['range']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -379,7 +379,7 @@ class COG(BaseDataPacket):
     ## Generate a synthetic packet based on keywords
     #
     # This generates a synthetic packet based on keywords.  The expected keywords are:
-    #   'elapsed_time':     Elapsed time (ms) since logger boot
+    #   'elapsed':     Elapsed time (ms) since logger boot
     #   'date':             Estimated real-world date string for packet (yyyy-mm-dd)
     #   'timestamp':        Estimated real-world timestasmp for packet (seconds since midnight)
     #   'talker_id':        Talker ID number for the message (as if on a NMEA2000 bus)
@@ -390,7 +390,7 @@ class COG(BaseDataPacket):
             self.talker_id = kwargs['talker_id']
             self.courseOverGround = kwargs['cog']
             self.speedOverGround = kwargs['sog']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -495,7 +495,7 @@ class GNSS(BaseDataPacket):
     ## Generate a synthetic packet based on keywords
     #
     # This generates a synthetic packet based on keywords.  The expected keywords are:
-    #   'elapsed_time':     Elapsed time (ms) since logger boot
+    #   'elapsed':     Elapsed time (ms) since logger boot
     #   'date':             Estimated real-world date string for packet (days since epoch))
     #   'timestamp':        Estimated real-world timestasmp for packet (seconds since midnight)
     #   'talker_id':        Talker ID number for the message (as if on a NMEA2000 bus)
@@ -536,7 +536,7 @@ class GNSS(BaseDataPacket):
             self.refStationType = kwargs['refs_type']
             self.refStationID = kwargs['refs_id']
             self.correctionAge = kwargs['correction_age']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -627,7 +627,7 @@ class Environment(BaseDataPacket):
     ## Generate a synthetic packet from keyword descriptions
     #
     # This generates a synetic packet from keywords.  Expected keywords are:
-    #   'elapsed_time': Elapsed time (ms) since logger boot
+    #   'elapsed': Elapsed time (ms) since logger boot
     #   'date':         Real-world date associated with the data (days since epoch)
     #   'timestamp':    Real-world time associated with the data (seconds since midnight)
     #   'talker_id':    Talker ID number for the message (as if on a NMEA2000 bus)
@@ -644,7 +644,7 @@ class Environment(BaseDataPacket):
             self.humiditySource = kwargs['humid_source']
             self.humidity = kwargs['humidity']
             self.pressure = kwargs['pressure']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -716,7 +716,7 @@ class Temperature(BaseDataPacket):
     ## Generate a synthetic packet from keyword descriptions
     #
     # This generates a synetic packet from keywords.  Expected keywords are:
-    #   'elapsed_time': Elapsed time (ms) since logger boot
+    #   'elapsed': Elapsed time (ms) since logger boot
     #   'date':         Real-world date associated with the data
     #   'timestamp':    Real-world time associated with the data
     #   'talker_id':    Talker ID number for the message (as if on a NMEA2000 bus)
@@ -727,7 +727,7 @@ class Temperature(BaseDataPacket):
             self.talker_id = kwargs['talker_id']
             self.tempSource = kwargs['temp_source']
             self.temperature = kwargs['temp']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -798,7 +798,7 @@ class Humidity(BaseDataPacket):
     ## Generate a synthetic packet from keyword descriptions
     #
     # This generates a synetic packet from keywords.  Expected keywords are:
-    #   'elapsed_time': Elapsed time (ms) since logger boot
+    #   'elapsed': Elapsed time (ms) since logger boot
     #   'date':         Real-world date associated with the data
     #   'timestamp':    Real-world time associated with the data
     #   'talker_id':    Talker ID number for the message (as if on a NMEA2000 bus)
@@ -809,7 +809,7 @@ class Humidity(BaseDataPacket):
             self.talker_id = kwargs['talker_id']
             self.humiditySource = kwargs['humid_source']
             self.humidity = kwargs['humidity']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -880,7 +880,7 @@ class Pressure(BaseDataPacket):
     ## Generate a synthetic packet from keyword descriptions
     #
     # This generates a synetic packet from keywords.  Expected keywords are:
-    #   'elapsed_time': Elapsed time (ms) since logger boot
+    #   'elapsed': Elapsed time (ms) since logger boot
     #   'date':         Real-world date associated with the data
     #   'timestamp':    Real-world time associated with the data
     #   'talker_id':    Talker ID number for the message (as if on a NMEA2000 bus)
@@ -891,7 +891,7 @@ class Pressure(BaseDataPacket):
             self.talker_id = kwargs['talker_id']
             self.pressureSource = kwargs['press_source']
             self.pressure = kwargs['pressure']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
     
@@ -935,7 +935,7 @@ class SerialString(BaseDataPacket):
             self.data_constructor(**kwargs)
 
     def buffer_constructor(self, buffer: bytes) -> None:
-        string_length = len(buffer) - 4
+        string_length = len(buffer) - 8
         (elapsed_time, data) = struct.unpack(f'<Q{string_length}s', buffer)
         ## Serial data encapsulated in the packet
         self.data = data
@@ -952,12 +952,12 @@ class SerialString(BaseDataPacket):
     ## Generate a synthetic packet from keyword specification
     #
     # This generates a synthetic packet from keywords.  Expected keywords are:
-    #   'elapsed_time': Elapsed time (ms) since logger boot
+    #   'elapsed': Elapsed time (ms) since logger boot
     #   'payload':      A NMEA0183-formatted sentence, complete with leading '$' and tailing CRC
     def data_constructor(self, **kwargs) -> None:
         try:
             self.data = kwargs['payload']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1003,8 +1003,8 @@ class SerialiserVersion(BaseDataPacket):
 
     def buffer_constructor(self, buffer: bytes) -> None:
         base = 0
-        (elapsed, major, minor) = struct.unpack_from('<QHH', buffer, base)
-        base += 4
+        (major, minor, elapsed) = struct.unpack_from('<HHQ', buffer, base)
+        base += 12
         (n2000_major, n2000_minor, n2000_patch, n0183_major, n0183_minor, n0183_patch, imu_major, imu_minor, imu_patch, gnss_major, gnss_minor, gnss_patch) = \
                 struct.unpack_from('<HHHHHHHHHHHH', buffer, base)
         ## Major software version for the serialiser code
@@ -1129,7 +1129,7 @@ class Motion(BaseDataPacket):
     ## Generate an example of the packet from keyword specifications.
     #
     # This generates a synthetic packet based on keyword descriptions.  Expected keywords are:
-    #   'elapsed_time': Elapsed time (ms) since logger boot
+    #   'elapsed': Elapsed time (ms) since logger boot
     #   'accel':        3-tuple of accelerations (x,y,z)
     #   'gyro':         3-tuple of gyro rates (x,y,z)
     #   'temp':         Scalar temperature
@@ -1138,7 +1138,7 @@ class Motion(BaseDataPacket):
             self.accel = kwargs['accel']
             self.gyro = kwargs['gyro']
             self.temp = kwargs['temp']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1409,7 +1409,7 @@ class NMEA0183Filter(BaseDataPacket):
     def buffer_constructor(self, buffer: bytes) -> None:
         base = 0
         (elapsed, id_len) = struct.unpack_from('<QI', buffer, base)
-        base += 4
+        base += 12
         recog_string, = struct.unpack_from(f'<{id_len}s', buffer, base)
         self.recog_string = recog_string
         super().__init__(elapsed)
@@ -1616,7 +1616,7 @@ class RawIMU(BaseDataPacket):
     #   'accel': 3-tuple of int16s for accelerations (using appropriate scale factors)
     #   'gyro': 3-tuple of int16s for gyro rates (using appropriate scale factors)
     #   'temp': int16 for temperature (using appropriate scale factors)
-    #   'elapsed_time': uint32 for elapsed time of the packet
+    #   'elapsed': uint32 for elapsed time of the packet
     #
     # \param self       Reference for the object
     # \param **kwargs   Keyword dictionary with parameters for the packet
@@ -1625,7 +1625,7 @@ class RawIMU(BaseDataPacket):
             self.accel = kwargs['accel']
             self.gyro = kwargs['gyro']
             self.temp = kwargs['temp']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
@@ -1700,7 +1700,7 @@ class Setup(BaseDataPacket):
     def buffer_constructor(self, buffer: bytes) -> None:
         base = 0
         (elapsed, setup_len) = struct.unpack_from('<QI', buffer, base)
-        base += 4
+        base += 12
         convert_string = f'<{setup_len}s'
         setup, = struct.unpack_from(convert_string, buffer, base)
         self.setup = json.loads(setup)
@@ -1790,7 +1790,7 @@ class NMEA2000PGNs(BaseDataPacket):
     def buffer_constructor(self, buffer: bytes) -> None:
         base: int = 0
         (elapsed, setup_len) = struct.unpack_from('<QI', buffer, base)
-        base += 4
+        base += 12
         convert_string = f'<{setup_len}s'
         config, = struct.unpack_from(convert_string, buffer, base)
         self.config = json.loads(config)
@@ -1837,7 +1837,7 @@ class NMEA2000Binary(BaseDataPacket):
     def buffer_constructor(self, buffer: bytes) -> None:
         base: int = 0
         (elapsed_time, pgn, buf_len) = struct.unpack_from('<QII', buffer, base)
-        base += 22
+        base += 16
         self.pgn = pgn
         convert_string = f'<{buf_len}s'
         buf, = struct.unpack_from(convert_string, buffer, base)
@@ -1848,7 +1848,7 @@ class NMEA2000Binary(BaseDataPacket):
         try:
             self.pgn = kwargs['pgn']
             self.raw = kwargs['raw']
-            super().__init__(kwargs['elapsed_time'])
+            super().__init__(kwargs['elapsed'])
         except KeyError as e:
             raise SpecificationError('Bad packet parameters') from e
 
