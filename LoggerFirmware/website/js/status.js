@@ -174,22 +174,15 @@ function updateStatus(tablePrefix) {
         versions.appendChild(assembleSummaryRow("NMEA2000", data.version.nmea2000));
         versions.appendChild(assembleSummaryRow("IMU", data.version.imu));
         versions.appendChild(assembleSummaryRow("Serialiser", data.version.serialiser));
-    
-        let totalFileSize = 0;
-        for (let n = 0; n < data.files.count; ++n) {
-            if ('len' in data.files.detail[n] && isFinite(data.files.detail[n].len)) {
-                totalFileSize += data.files.detail[n].len;
-            }
-        }
-    
+
         let stats = document.getElementById(statsTable);
         stats.replaceChildren(assembleSummaryHeader("Status"));
         stats.appendChild(assembleSummaryRow("Elapsed Time", translateTime(data.elapsed)));
         stats.appendChild(assembleSummaryRow("Supply Voltage", roundVoltage(data.supply)));
         stats.appendChild(assembleSummaryRow("Webserver Status Current", data.webserver.current));
         stats.appendChild(assembleSummaryRow("Webserver Status Boot", data.webserver.boot));
-        stats.appendChild(assembleSummaryRow("Files on Logger", data.files.count));
-        stats.appendChild(assembleSummaryRow("Total Size", translateSize(totalFileSize)));
+        stats.appendChild(assembleSummaryRow("Files on Logger", data.files.totalFileCount));
+        stats.appendChild(assembleSummaryRow("Total Size", translateSize(data.files.totalFileSize)));
     
         let nmea0183 = document.getElementById(n0183Table);
         if (nmea0183 !== null) {
@@ -220,26 +213,23 @@ function updateStatus(tablePrefix) {
                     data.data.nmea2000.detail[n].display));
             }
         }
-    
+
         let detail = document.getElementById(detailTable);
         if (detail !== null) {
-            detail.replaceChildren(assembleDetailHeader());
-            for (let n = 0; n < data.files.count; ++n) {
-                if (data.files.detail[n].hasOwnProperty('id') &&
-                    data.files.detail[n].hasOwnProperty('len') &&
-                    data.files.detail[n].hasOwnProperty('md5') &&
-                    data.files.detail[n].hasOwnProperty('url') &&
-                    data.files.detail[n].hasOwnProperty('uploads'))
-                    detail.appendChild(
-                        assembleDetailRow(
-                            data.files.detail[n].id,
-                            data.files.detail[n].len,
-                            data.files.detail[n].md5,
-                            data.files.detail[n].url,
-                            data.files.detail[n].uploads
-                        )
-                    );
-            }
+            sendCommand('catalog').then((data) => {
+                detail.replaceChildren(assembleDetailHeader());
+                for (const entry of data.files.detail) {
+                    detail.appendChild(assembleDetailRow(
+                        entry.id ?? "?",
+                        entry.len ?? "?",
+                        entry.md5 ?? "?",
+                        entry.url ?? "?",
+                        entry.uploads ?? "?"));
+                }
+                if (data.files.isTruncated) {
+                    detail.appendChild(assembleDetailRow("...", "...", "...", "...", "..."));
+                }
+            });
         }
     });
 }

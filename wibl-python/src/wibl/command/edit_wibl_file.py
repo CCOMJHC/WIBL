@@ -111,7 +111,8 @@ def editwibl(input: Path, output: Path, uniqueid: str, shipname: str,
             except PacketTranscriptionError as e:
                 raise PacketTranscriptionError(f'Error reading packet {packet_count}: {str(e)}') from e
             if packet:
-                if isinstance(packet, lf.Metadata):
+                pkt_name = packet.name()
+                if pkt_name == 'Metadata':
                     if logger_name or shipname:
                         out_name = packet.logger_name
                         out_id = packet.ship_name
@@ -119,16 +120,16 @@ def editwibl(input: Path, output: Path, uniqueid: str, shipname: str,
                             out_name = logger_name
                         if shipname:
                             out_id = shipname
-                        packet = lf.Metadata(logger = out_name, shipname = out_id)
+                        packet = source.Metadata(logger=out_name, shipname=out_id)
                         metadata_out = True
-                elif isinstance(packet, lf.JSONMetadata):
+                elif pkt_name == 'JSONMetadata':
                     if metadata:
-                        packet = lf.JSONMetadata(meta = metadata)
+                        packet = source.JSONMetadata(meta=metadata)
                         json_metadata_out = True
-                elif isinstance(packet, lf.SerialiserVersion):
+                elif pkt_name == 'SerialiserVersion':
                     if file_major:
-                        packet = lf.SerialiserVersion(major=file_major, minor=file_minor,
-                                                      n2000=packet.nmea2000, n0183=packet.nmea0183, imu=packet.imu)
+                        packet = source.SerialiserVersion(major=file_major, minor=file_minor,
+                                                          n2000=packet.nmea2000, n0183=packet.nmea0183, imu=packet.imu)
                 packet.serialise(op)
         # At the end of the file, if we haven't yet sent out any of the edited packets,
         # we just append.  Note that we don't do this for the SerialiserVersion packet,
@@ -142,18 +143,18 @@ def editwibl(input: Path, output: Path, uniqueid: str, shipname: str,
                 out_id = 'Unknown'
                 if shipname:
                     out_id = shipname
-                packet = lf.Metadata(logger = out_name, shipname = out_id)
+                packet = source.Metadata(logger=out_name, shipname=out_id)
                 packet.serialise(op)
         if not json_metadata_out and metadata:
-            packet = lf.JSONMetadata(meta = metadata)
+            packet = source.JSONMetadata(meta=metadata)
             packet.serialise(op)
         if algorithms:
             for alg in algorithms:
-                packet = lf.AlgorithmRequest(name = alg['name'], params = alg['params'])
+                packet = source.AlgorithmRequest(name=alg['name'], params=alg['params'])
                 packet.serialise(op)
         if filters:
             for filt in filters:
-                packet = lf.NMEA0183Filter(sentence = filt)
+                packet = source.NMEA0183Filter(sentence=filt)
                 packet.serialise(op)
     
     op.flush()

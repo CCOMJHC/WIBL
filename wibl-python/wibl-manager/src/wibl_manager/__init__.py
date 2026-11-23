@@ -34,7 +34,7 @@ from geoalchemy2 import Geometry
 import requests
 
 
-__version__ = '1.0.1'
+__version__ = '1.2.0'
 
 class ReturnCodes(Enum):
     OK = 200
@@ -68,7 +68,7 @@ class FileState(Enum):
 @dataclass_json
 @dataclass
 class FileMetadata:
-    pass
+    status: int = 0
 
 @dataclass_json
 @dataclass

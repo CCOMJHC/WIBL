@@ -57,6 +57,7 @@ def parsewibl(input: str, stats: bool, dump: str, strict_mode: bool):
     packet_count: int = 0
     packet_stats: dict = {}
     source = LoggerFile.PacketFactory(file, strict_mode=strict_mode)
+    packets_by_source: dict[int,dict[str,int]] = dict()
     while source.has_more():
         try:
             pkt = source.next_packet()
@@ -65,11 +66,20 @@ def parsewibl(input: str, stats: bool, dump: str, strict_mode: bool):
                 click.echo(pkt)
                 if dump_file:
                     if pkt.name() == 'SerialString':
+                        assert(type(pkt) == LoggerFile.SerialString)
                         dump_file.write(f'{pkt.elapsed} {pkt.data.decode("utf-8").strip()}\n')
                 if stats:
                     if pkt.name() not in packet_stats:
                         packet_stats[pkt.name()] = 0
                     packet_stats[pkt.name()] += 1
+                    talker: int = getattr(pkt, 'talker_id', -1)
+                    if talker >= 0:
+                        if talker not in packets_by_source:
+                            packets_by_source[talker] = dict()
+                        packet_name = pkt.name()
+                        if packet_name not in packets_by_source[talker]:
+                            packets_by_source[talker][packet_name] = 0
+                        packets_by_source[talker][packet_name] += 1
         except LoggerFile.PacketTranscriptionError as e:
             sys.exit(f"Failed to translate packet {packet_count}: {str(e)}.")
 
@@ -78,3 +88,9 @@ def parsewibl(input: str, stats: bool, dump: str, strict_mode: bool):
         click.echo("Packet statistics:")
         for name in packet_stats:
             click.echo(f"\t{packet_stats[name]:8d} {name}")
+        click.echo("Packet statistics by talker:")
+        talkers = [t for t in packets_by_source]
+        talkers.sort()
+        for talker in talkers:
+            packets = [f'{name}({packets_by_source[talker][name]})' for name in packets_by_source[talker]]
+            click.echo(f"\t{talker:3d}: {' '.join(packets)}")

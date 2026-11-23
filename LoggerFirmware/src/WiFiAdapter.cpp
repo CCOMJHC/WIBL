@@ -35,6 +35,7 @@
 #include <LittleFS.h>
 #include <ESP32-targz.h>
 
+#include "JSONUtilities.h"
 #include "LogManager.h"
 #include "WiFiAdapter.h"
 #include "Configuration.h"
@@ -381,12 +382,9 @@ public:
     /// Default constructor for the ESP32 adapter.  This brings up the parameter store to use
     /// for WiFi parameters, but takes no other action until the user explicitly starts the AccessPoint.
     ESP32WiFiAdapter(void)
-    : m_storage(nullptr), m_server(nullptr), m_messages(nullptr), m_statusCode(HTTPReturnCodes::OK)
+    : m_storage(nullptr), m_server(nullptr), m_messages(defaultMessageBufferSize), m_statusCode(HTTPReturnCodes::OK)
     {
         if ((m_storage = mem::MemControllerFactory::Create()) == nullptr) {
-            return;
-        }
-        if ((m_messages = new DynamicJsonDocument(1024)) == nullptr) {
             return;
         }
     }
@@ -396,14 +394,15 @@ public:
     {
         stop();
         delete m_storage; // Note that we're not stopping the interface, since it may still be required elsewhere
-        delete m_messages;
     }
     
 private:
+    static constexpr size_t defaultMessageBufferSize = 1024;
+
     mem::MemController  *m_storage;     ///< Pointer to the storage object to use
     ExtendedWebServer   *m_server;      ///< Pointer to the server object, if started.
     std::queue<String>  m_commands;     ///< Queue to handle commands sent by the user
-    DynamicJsonDocument *m_messages;    ///< Accumulating message content to be send to the client
+    DynamicJsonDocument m_messages;     ///< Accumulating message content to be send to the client
     HTTPReturnCodes     m_statusCode;   ///< Status code to return to the user with the transaction response
     ConnectionStateMachine m_state;     ///< Manager for connection state
 
@@ -533,19 +532,14 @@ private:
 
     void accumulateMessage(String const& message)
     {
-        if ((m_messages->memoryUsage() + message.length()) > 0.95*m_messages->capacity()) {
-            // Expand capacity to ensure that the message will be added successfully
-            size_t new_capacity = m_messages->capacity() * 2;
-            DynamicJsonDocument *new_doc = new DynamicJsonDocument(new_capacity);
-            if (new_doc != nullptr) {
-                new_doc->set(*m_messages);
-                delete m_messages;
-                m_messages = new_doc;
-            }
+        bool needToGrowBuffer = (m_messages.memoryUsage() + message.length()) > 0.95 * m_messages.capacity();
+        if (needToGrowBuffer && !GrowJsonDocument(m_messages)) {
+            Serial.printf("ERR: failed to grow buffer beyond %d bytes; messages will be lost.\n", m_messages.capacity());
+            return;
         }
-        if (!(*m_messages)["messages"].add(message)) {
+        if (!m_messages["messages"].add(message)) {
             Serial.printf("ERR: failed to add message to accumulation buffer (capacity %d bytes); messages may be truncated.\n",
-                m_messages->capacity());
+                m_messages.capacity());
         }
     }
 
@@ -553,10 +547,14 @@ private:
     ///
     /// \param message \a String to use for the return message.
     /// \return N/A
-
-    void setMessage(DynamicJsonDocument const& message)
+    void setMessage(JsonDocument const& message)
     {
-        *m_messages = message;
+        m_messages = message;
+    }
+    void setMessage(DynamicJsonDocument && message)
+    {
+        m_messages = std::move(message);
+
     }
 
     /// Configure the HTTP status code that the response should use.  By default, the status code used
@@ -582,10 +580,18 @@ private:
     bool transmitMessages(void)
     {
         String message;
-        serializeJson(*m_messages, message);
+        serializeJson(m_messages, message);
         //Serial.printf("DBG: WiFi transmitting response |%s|\n", message.c_str());
         m_server->send(m_statusCode, "application/json", message);
-        m_messages->clear();
+
+        // If the JSON document got too large, replace it with a smaller one to avoid needlessly
+        // holding on to too much memory. Otherwise, just clear the document and reuse it.
+        if (defaultMessageBufferSize < m_messages.capacity()) {
+            m_messages = DynamicJsonDocument(defaultMessageBufferSize);
+        } else {
+            m_messages.clear();
+        }
+
         m_statusCode = HTTPReturnCodes::OK; // "OK" by default
         return true;
     }
@@ -632,12 +638,6 @@ bool WiFiAdapter::TransferFile(String const& filename, uint32_t filesize, logger
 /// \param message  String for the message to send
 /// \return N/A
 void WiFiAdapter::AddMessage(String const& message) { accumulateMessage(message); }
-
-/// Pass-through implementation to the sub-class code to reset the message from straight JSON
-///
-/// @param message JSON document to send back to the client
-/// @return N/A
-void WiFiAdapter::SetMessage(DynamicJsonDocument const& message) { setMessage(message); }
 
 /// Pass-through implementation to the sub-class code to set status code
 ///

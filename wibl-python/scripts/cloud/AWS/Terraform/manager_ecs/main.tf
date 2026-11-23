@@ -32,16 +32,21 @@ resource "docker_image" "frontend_image" {
     platform   = "linux/${var.architecture}"
   }
   triggers = {
-    source_hash = sha1(join("", [
-      for f in fileset("${var.src_path}/wibl-frontend", "**/*") :
-      filemd5("${var.src_path}/wibl-frontend/${f}")
-    ]))
+    source_hash = sha1(join("",
+      [filemd5("${var.src_path}/wibl-frontend/Dockerfile"),
+      filemd5("${var.src_path}/wibl-frontend/requirements.txt")],
+      [for f in fileset("${var.src_path}/wibl-frontend", "src/**") : filemd5("${var.src_path}/wibl-frontend/${f}")]
+    ))
   }
 }
 
 resource "docker_registry_image" "frontend" {
   name = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/frontend:latest"
   keep_remotely = true
+  triggers = {
+    image_id = docker_image.frontend_image.image_id
+  }
+
   depends_on = [aws_ecr_repository.frontend_ecr_repo, docker_image.frontend_image]
 }
 
@@ -53,16 +58,21 @@ resource "docker_image" "manager_image" {
     platform   = "linux/${var.architecture}"
   }
   triggers = {
-    source_hash = sha1(join("", [
-      for f in fileset("${var.src_path}/wibl-manager", "**/*") :
-      filemd5("${var.src_path}/wibl-manager/${f}")
-    ]))
+    source_hash = sha1(join("",
+      [filemd5("${var.src_path}/wibl-manager/Dockerfile"),
+      filemd5("${var.src_path}/wibl-manager/requirements.txt"),
+      filemd5("${var.src_path}/wibl-manager/pyproject.toml")],
+      [for f in fileset("${var.src_path}/wibl-manager", "src/wibl_manager/**") : filemd5("${var.src_path}/wibl-manager/${f}")]
+    ))
   }
 }
 
 resource "docker_registry_image" "manager" {
   name = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/wibl/manager:latest"
   keep_remotely = true
+  triggers = {
+    image_id = docker_image.manager_image.image_id
+  }
   depends_on = [aws_ecr_repository.manager_ecr_repo, docker_image.manager_image]
 }
 
@@ -368,10 +378,10 @@ resource "aws_ecs_cluster_capacity_providers" "capacity_attach" {
   }
 }
 
-# Setup 'ecsTaskExecutionRole' role and attach relevant policies
-# Create `ecsTaskExecutionRole`
+# Setup 'wibl-tf-ecsTaskExecutionRole' role and attach relevant policies
+# Create `wibl-tf-ecsTaskExecutionRole`
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecsTaskExecutionRole"
+  name = "wibl-tf-ecsTaskExecutionRole"
   assume_role_policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/task-execution-assume-role.json")
 }
 
@@ -381,10 +391,32 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+data "aws_iam_policy_document" "manager_secretsmanager_access" {
+  statement {
+    sid     = "ManagerAllSSMGetParameters"
+    effect  = "Allow"
+    actions = ["ssm:GetParameters"]
+    resources = [
+      aws_ssm_parameter.frontend_secret_key.arn,
+      aws_ssm_parameter.frontend_db_user.arn,
+      aws_ssm_parameter.frontend_db_password.arn,
+      aws_ssm_parameter.frontend_superuser_username.arn,
+      aws_ssm_parameter.frontend_superuser_password.arn,
+      aws_ssm_parameter.manager_database_uri.arn
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "manager_secretsmanager_access_read" {
+  name = "manager-secretsmanager-access-read"
+  role = aws_iam_role.ecs_task_execution_role.id
+  policy = data.aws_iam_policy_document.manager_secretsmanager_access.json
+}
+
 data "aws_iam_policy_document" "manager_s3_access" {
   statement {
-    sid    = "ManagerAllowS3AccessAll"
-    effect = "Allow"
+    sid     = "ManagerAllowS3AccessAll"
+    effect  = "Allow"
     actions = ["s3:*"]
 
     resources = flatten([
@@ -405,7 +437,7 @@ resource "aws_iam_role_policy" "manager_s3_access_all" {
 # Associate CloudWatch policy to `ecsInstanceRole` to allow ECS tasks to send logs to CloudWatch
 # Create policy
 resource "aws_iam_policy" "ecs_cloudwatch_logs" {
-  name   = "ECS-CloudWatchLogs"
+  name   = "wibl-tf-ecsCloudWatchLogs"
   policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/ecs-cloudwatch-policy.json")
 }
 
@@ -561,8 +593,6 @@ resource "aws_vpc_security_group_ingress_rule" "private_rds_sg_rule1" {
 resource "aws_vpc_security_group_egress_rule" "private_rds_sg_rule2" {
   ip_protocol       = "-1"
   security_group_id = aws_security_group.private_rds_sg.id
-  from_port = 0
-  to_port = 0
   cidr_ipv4 = "0.0.0.0/0"
 }
 
@@ -653,6 +683,37 @@ resource "aws_elasticache_replication_group" "redis" {
   automatic_failover_enabled = false
 }
 
+# Define frontend secrets (used for frontend task as well as setup and update tasks)
+resource "aws_ssm_parameter" "frontend_db_password" {
+  name = "frontend_db_password"
+  type  = "SecureString"
+  value = var.frontend_db_password
+}
+
+resource "aws_ssm_parameter" "frontend_db_user" {
+  name = "frontend_db_user"
+  type  = "SecureString"
+  value = var.frontend_db_user
+}
+
+resource "aws_ssm_parameter" "frontend_superuser_username" {
+  name = "superuser_username"
+  type  = "SecureString"
+  value = var.superuser_username
+}
+
+resource "aws_ssm_parameter" "frontend_superuser_password" {
+  name = "superuser_password"
+  type  = "SecureString"
+  value = var.superuser_password
+}
+
+resource "aws_ssm_parameter" "frontend_secret_key" {
+  name  = "frontend_secret_key"
+  type  = "SecureString"
+  value = var.frontend_secret_key
+}
+
 # Create one off ecs tasks to configure the frontend and manager respectively
 resource "aws_ecs_task_definition" "frontend_setup" {
   family                   = "frontend_setup"
@@ -676,26 +737,31 @@ resource "aws_ecs_task_definition" "frontend_setup" {
       set -e
       echo "Running migrations..."
       python manage.py migrate
-      echo "Creating superuser..."
-      python manage.py create_superuser
+      if [[ $CREATE_SUPERUSER -eq "1" ]]; then
+        echo "Creating superuser..."
+        python manage.py create_superuser
+      fi
       echo "Collecting static files..."
       python manage.py collectstatic --noinput
 EOT
     ]
     environment = [
       { name = "FRONTEND_DATABASE_NAME", value = var.frontend_db_name },
-      { name = "FRONTEND_DATABASE_USER", value = var.frontend_db_user },
-      { name = "FRONTEND_DATABASE_PASSWORD", value = var.frontend_db_password },
       { name = "FRONTEND_DATABASE_HOST", value = aws_db_instance.frontend_db_instance.address },
-      { name = "SUPERUSER_USERNAME", value = var.superuser_username},
-      { name = "SUPERUSER_PASSWORD", value = var.superuser_password},
-      { name = "FRONTEND_SECRET_KEY", value = var.frontend_secret_key},
       { name = "DEBUG_MODE", value = var.debug_mode},
       { name = "STATIC_BUCKET_NAME", value = var.static_bucket_name},
       { name = "AWS_REGION", value = var.region},
       { name = "ALB_DNS_NAME", value = aws_lb.frontend_alb.dns_name},
       { name = "REDIS_URL", value = aws_elasticache_replication_group.redis.primary_endpoint_address},
-      { name = "MAP_NAME", value = aws_location_map.map.map_name}
+      { name = "MAP_NAME", value = aws_location_map.map.map_name},
+      { name = "CREATE_SUPERUSER", value = "1"}
+    ]
+    secrets = [
+      { name = "FRONTEND_DATABASE_USER", valueFrom = aws_ssm_parameter.frontend_db_user.arn },
+      { name = "FRONTEND_DATABASE_PASSWORD", valueFrom = aws_ssm_parameter.frontend_db_password.arn },
+      { name = "FRONTEND_SECRET_KEY", valueFrom = aws_ssm_parameter.frontend_secret_key.arn },
+      { name = "SUPERUSER_USERNAME", valueFrom = aws_ssm_parameter.frontend_superuser_username.arn },
+      { name = "SUPERUSER_PASSWORD", valueFrom = aws_ssm_parameter.frontend_superuser_password.arn },
     ]
     logConfiguration = {
         logDriver = "awslogs"
@@ -721,6 +787,33 @@ aws ecs run-task \
   --network-configuration "awsvpcConfiguration={subnets=[${aws_subnet.private_subnet_1.id},${aws_subnet.private_subnet_2.id}],securityGroups=[${aws_security_group.private_sg.id}],assignPublicIp=DISABLED}"
 EOT
   }
+}
+
+resource "null_resource" "run_frontend_update" {
+    triggers = {
+      image_id = docker_image.frontend_image.image_id
+    }
+
+  depends_on = [aws_ecs_task_definition.frontend_setup, aws_cloudwatch_log_group.frontend_setup, aws_db_instance.frontend_db_instance]
+
+  provisioner "local-exec" {
+    command = <<EOT
+aws ecs run-task \
+  --region ${var.region} \
+  --cluster ${aws_ecs_cluster.wibl_manager.id} \
+  --launch-type FARGATE \
+  --task-definition ${aws_ecs_task_definition.frontend_setup.family} \
+  --overrides '{"containerOverrides": [{"name": "frontend_setup", "environment": [{"name": "CREATE_SUPERUSER", "value": "0"}]}]}' \
+  --network-configuration "awsvpcConfiguration={subnets=[${aws_subnet.private_subnet_1.id},${aws_subnet.private_subnet_2.id}],securityGroups=[${aws_security_group.private_sg.id}],assignPublicIp=DISABLED}"
+EOT
+  }
+}
+
+# Define manager secrets (used for manager task as well as setup task)
+resource "aws_ssm_parameter" "manager_database_uri" {
+  name = "manager_database_uri"
+  type  = "SecureString"
+  value = "postgresql+psycopg://${var.manager_db_user}:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
 }
 
 resource "aws_ecs_task_definition" "manager_setup" {
@@ -754,11 +847,8 @@ echo "Migrations complete."
 EOT
       ]
 
-      environment = [
-        {
-          name  = "MANAGER_DATABASE_URI"
-          value = "postgresql+psycopg://${var.manager_db_user}:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
-        }
+      secrets = [
+        { name = "MANAGER_DATABASE_URI", valueFrom = aws_ssm_parameter.manager_database_uri.arn }
       ]
 
       logConfiguration = {
@@ -774,6 +864,9 @@ EOT
 }
 
 resource "null_resource" "run_manager_migrations" {
+  triggers = {
+    image_id = docker_image.manager_image.image_id
+  }
   depends_on = [
     aws_ecs_task_definition.manager_setup,
     aws_db_instance.manager_db_instance,
@@ -911,7 +1004,7 @@ resource "aws_ecs_task_definition" "wibl_manager" {
     templatefile("${var.src_path}/scripts/cloud/AWS/manager/input/terraform-manager-container-definition.proto", {
       REPLACEME_ACCOUNT_NUMBER  = var.account_number
       REPLACEME_AWS_REGION      = var.region
-      REPLACEME_DATABASE_URI    = "postgresql+psycopg://${var.manager_db_user}:${var.manager_db_password}@${aws_db_instance.manager_db_instance.address}:5432/${var.manager_db_name}"
+      REPLACEME_DATABASE_URI    = aws_ssm_parameter.manager_database_uri.arn
       REPLACEME_WIBL_BUCKET     = var.incoming_bucket_name
       REPLACEME_GEOJSON_BUCKET  = var.staging_bucket_name
     })
@@ -928,7 +1021,7 @@ resource "aws_location_map" "map" {
 
 # Frontend ECS task role
 resource "aws_iam_role" "ecs_frontend_task_role" {
-  name = "ecsFrontEndTaskRole"
+  name = "wibl-tf-ecsFrontEndTaskRole"
   assume_role_policy = file("${var.src_path}/scripts/cloud/AWS/manager/input/task-execution-assume-role.json")
 }
 
@@ -1017,14 +1110,14 @@ resource "aws_ecs_task_definition" "frontend" {
       REPLACEME_STATIC_BUCKET      = var.static_bucket_name
 
       REPLACEME_DATABASE_NAME      = var.frontend_db_name
-      REPLACEME_DATABASE_USER      = var.frontend_db_user
-      REPLACEME_DATABASE_PASSWORD  = var.frontend_db_password
+      REPLACEME_DATABASE_USER      = aws_ssm_parameter.frontend_db_user.arn
+      REPLACEME_DATABASE_PASSWORD  = aws_ssm_parameter.frontend_db_password.arn
       REPLACEME_DATABASE_HOST      = aws_db_instance.frontend_db_instance.address
 
-      REPLACEME_SUPERUSER_USERNAME = var.superuser_username
-      REPLACEME_SUPERUSER_PASSWORD = var.superuser_password
+      REPLACEME_SUPERUSER_USERNAME = aws_ssm_parameter.frontend_superuser_username.arn
+      REPLACEME_SUPERUSER_PASSWORD = aws_ssm_parameter.frontend_superuser_password.arn
 
-      REPLACEME_SECRET_KEY         = var.frontend_secret_key
+      REPLACEME_SECRET_KEY         = aws_ssm_parameter.frontend_secret_key.arn
       REPLACEME_DEBUG_MODE         = var.debug_mode
 
       REPLACEME_ALB_DNS            = aws_cloudfront_distribution.frontend.domain_name

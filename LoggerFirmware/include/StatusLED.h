@@ -91,7 +91,7 @@
 class StatusLED {
 public:
     /// \brief Default constructor for the LED manager
-    StatusLED(int red_ping = DEFAULT_RED_LED_PIN,
+    StatusLED(int red_pin = DEFAULT_RED_LED_PIN,
               int green_pin = DEFAULT_GREEN_LED_PIN,
               int blue_pin = DEFAULT_BLUE_LED_PIN);
     
@@ -120,8 +120,9 @@ private:
     boolean         led_flasher;        ///< Flag indicating whether the LEDs should be flashing or not
     unsigned long   last_change_time;   ///< Last millis() when the flash status changed
     unsigned long   on_period;          ///< Number of millis() for each flash
+    unsigned long   data_next_available;///< Time at which next data indication is allowed
     unsigned long   data_end_time;      ///< Time after which to turn off data light
-    unsigned long   data_flash_duration;    ///< Number of millis() for data event to show
+    unsigned long   data_flash_duration;///< Number of millis() for data event to show
     
     /// \brief Turn on the data LED for an event indication
     void DataLEDOn(void);

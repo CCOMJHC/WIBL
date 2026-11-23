@@ -10,10 +10,6 @@
   ],
   "environment": [
     {
-      "name": "MANAGER_DATABASE_URI",
-      "value": "${REPLACEME_DATABASE_URI}"
-    },
-    {
       "name": "AWS_REGION",
       "value": "${REPLACEME_AWS_REGION}"
     },
@@ -24,6 +20,12 @@
     {
        "name": "GEOJSON_METADATA_BUCKET",
        "value": "${REPLACEME_GEOJSON_BUCKET}"
+    }
+  ],
+  "secrets": [
+    {
+      "name": "MANAGER_DATABASE_URI",
+      "valueFrom": "${REPLACEME_DATABASE_URI}"
     }
   ],
   "logConfiguration": {

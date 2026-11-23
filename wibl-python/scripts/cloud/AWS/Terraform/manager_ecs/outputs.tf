@@ -33,3 +33,7 @@ output "alb_url" {
 output "oai_iam_arn" {
     value = aws_cloudfront_origin_access_identity.static_oai.iam_arn
 }
+
+output "frontend_hostname" {
+    value = aws_cloudfront_distribution.frontend.domain_name
+}

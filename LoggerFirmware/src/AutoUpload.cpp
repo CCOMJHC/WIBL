@@ -81,16 +81,14 @@ void UploadManager::UploadCycle(void)
             m_lastUploadCycle);
         return;
     }
-    DynamicJsonDocument files(logger::status::GenerateFilelist(m_logManager));
-    int filecount = files["files"]["count"].as<int>();
-    for (int n = 0; n < filecount; ++n) {
-        uint32_t file_id = files["files"]["detail"][n]["id"].as<uint32_t>();
-        if (TransferFile(m_logManager->FileSystem(), file_id)) {
+
+    for (auto fileNumber : m_logManager->GetLogFileNumbers()) {
+        bool success = TransferFile(m_logManager->FileSystem(), fileNumber);
+        if (success) {
             // File transferred to the server successfully, so we can delete locally
-            m_logManager->RemoveLogFile(file_id);
+            m_logManager->RemoveLogFile(fileNumber);
         } else {
             // File did not transfer, so we update the upload attempt metadata and move on
-            
         }
         unsigned long current_elapsed = millis();
         if ((current_elapsed - start_time) > m_uploadDuration) {

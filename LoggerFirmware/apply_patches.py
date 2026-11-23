@@ -20,7 +20,7 @@ files_were_patched = False
 for patch_file, original_file in patches.items():
     print(f"\tApplying patch '{patch_file}' to file '{original_file}'")
     assert original_file.is_file() and patch_file.is_file()
-    res = env.Execute(f"python patch.py -d {str(original_file.parent)} {str(patch_file)}")
+    res = env.Execute(f'"{sys.executable}" patch.py -d {str(original_file.parent)} {str(patch_file)}')
     if res == 0:
         print(f"\t\tSuccessfully applied patch '{patch_file}'")
         files_were_patched = True

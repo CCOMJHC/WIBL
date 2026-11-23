@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.14.10-slim as builder
 
 WORKDIR /var/local/wibl/frontend
 ADD ./src /var/local/wibl/frontend
@@ -12,3 +12,5 @@ RUN apt-get update && apt-get install -y curl
 COPY requirements.txt ./
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
+
+FROM builder as final

@@ -602,11 +602,22 @@ go 1.24
 ```
 
 ### Building and running with `docker compose`
-Before running, you'll need to first create a self-signed TLS
-certificate using the provided script [cert-gen.sh](scripts/cert-gen.sh).
+Before running, you'll need to first create a self-signed TLS certificate using the provided script
+[cert-gen.sh](scripts/cert-gen.sh), which by default will generate the certificates in `./certs` (i.e., in the
+repository source directory), a requirement for  `docker compose` to function correctly.
 
-This should store the certs in the local directory called `certs`
-(which will be created if it does not exist).
+You will also have to build the code to add a logger to the database  using the [script
+available](./build-add-logger.bash), which will compile the code [from the Go
+source](./src/tools/add-logger/insert-logger.go).  Then, create a dummy logger with:
+```shell
+mkdir ./db
+add-logger -config ./config-local.json \
+           -logger TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A \
+           -password CC0E1FE1-46CA-4768-93A7-2252BF748118
+```
+where `TNAME` is your DCDB identifier (e.g., `UNHJHC`).  If you do not specify a password, one will be automatically
+created; the database file will also be created if it does not already exist (which also needs to be in the root of the
+upload server source directory, i.e., `./db/loggers.db`, for the `docker compose` to work).
 
 Now, build and start the server in a container using:
 ```shell
@@ -649,19 +660,6 @@ wibl-upload  | 2025/10/02 18:10:52.451089 INFO [::1] - - [02/Oct/2025:18:10:52 +
 wibl-upload  | 2025/10/02 18:11:02.497117 INFO [::1] - - [02/Oct/2025:18:11:02 +0000] "GET / HTTP/2.0" 200 0
 wibl-upload  | 2025/10/02 18:11:12.556534 INFO [::1] - - [02/Oct/2025:18:11:12 +0000] "GET / HTTP/2.0" 200 0
 ```
-
-Before trying to interact with the service, you'll need to create a `loggers.db`
-file in the `db` local directory. Before you can do that, you'll need to build
-the `add-logger` command using the provided [script](build-add-logger.bash).
-
-
-```shell
-mkdir -p db
-./add-logger -config config-local.json -logger TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A -password CC0E1FE1-46CA-4768-93A7-2252BF748118
-./add-logger -config config-local.json -logger TNNAME-12CEC8B4-0C42-424C-82CD-FB4E96CD7153 -password CAF1CA92-CB9E-437D-B391-7709A39D32B1
-```
-
-> Where "TNNAME" is your trusted node identifier.
 
 You can then verify that the loggers have been added by running:
 ```shell

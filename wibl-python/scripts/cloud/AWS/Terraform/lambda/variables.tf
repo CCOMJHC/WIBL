@@ -54,7 +54,12 @@ variable "architecture" {
 
 variable "python_version" {
     type = string
-    default = "3.12"
+    default = "3.14"
+}
+
+variable "lambda_aws_pandas_layer_version" {
+    type = number
+    default = 12
 }
 
 variable "lambda_memory_size" {

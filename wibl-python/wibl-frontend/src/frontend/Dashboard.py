@@ -1,16 +1,19 @@
+import os
 import time
-from dash import Dash, dcc, html
+import json
+
 from django_plotly_dash import DjangoDash
 from django.templatetags.static import static
+
 import dash
-import os
+from dash import dcc, html
+
 import plotly.express as px
 import plotly.graph_objects as go
+
 import pandas as pd
-import numpy as np
+
 import httpx
-import asyncio
-import json
 
 """
     Frontend Dashboard 
@@ -23,7 +26,7 @@ import json
     
 """
 
-# Static values used by all figures.
+# Constant values used by all figures.
 lr_margin = 50
 graphWidth = 200
 graphHeight = 100
@@ -40,10 +43,27 @@ uploadNumber.update_layout(autosize=False, width=2 * graphWidth, height= 1.3 * g
                            margin=dict(l=40, r=0, b=0, t=30))
 
 emptySubmissionsDf = pd.DataFrame(columns=['date', 'submissions'])
-submissionGraph = px.line(emptySubmissionsDf, x='date', y='submissions')
-
-submissionGraph.update_layout(autosize=False, xaxis_title='Days', yaxis_title='Files Submitted',
-                              width=2 * graphWidth, height=5 * graphHeight, margin=dict(l=0, r=0, t=0, b=0))
+submissionGraph = px.line(emptySubmissionsDf, x='date', y='submissions', markers=True)
+SUBMISSION_GRAPH_LAYOUT = {
+    'xaxis_title': '',
+    'yaxis_title': '',
+    'autosize': False,
+    'width': 2 * graphWidth,
+    'height': 1.7 * graphHeight,
+    'margin': dict(l=0, r=0, t=0, b=0)
+}
+submissionGraph.update_layout(**SUBMISSION_GRAPH_LAYOUT)
+SUBMISSION_GRAPH_DATE_FMT = "%Y-%m-%d"
+SUBMISSION_GRAPH_XAXIS_FMT = {
+    'tickformat': SUBMISSION_GRAPH_DATE_FMT,
+    'tickangle': -45,
+    'dtick': 'D1'
+}
+submissionGraph.update_xaxes(**SUBMISSION_GRAPH_XAXIS_FMT)
+SUBMISSION_GRAPH_YAXIS_FMT = {
+    'dtick': 1
+}
+submissionGraph.update_yaxes(**SUBMISSION_GRAPH_YAXIS_FMT)
 
 convertedGauge = go.Figure(go.Indicator(
     mode="gauge+number",
@@ -53,14 +73,18 @@ convertedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-
 convertedGauge.update_layout(autosize=False, width=1.2 * graphWidth, height=1.18 * graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=40))
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=36))
 
 emptyLocationDf = pd.DataFrame(columns=['longitude', 'latitude'])
 locationGraph = px.scatter_geo(emptyLocationDf, lon='longitude', lat='latitude', projection='natural earth')
-
-locationGraph.update_layout(autosize=False, height=1.2 * graphHeight, margin=dict(l=0, r=0, t=0, b=0))
+LOCATION_GRAPH_LAYOUT = {
+    'autosize': True,
+    'height': 2 * graphHeight,
+    'width': 2 * graphWidth,
+    'margin': dict(l=15, r=0, t=20, b=0)
+}
+locationGraph.update_layout(**LOCATION_GRAPH_LAYOUT)
 
 validatedGauge = go.Figure(go.Indicator(
     mode='gauge+number',
@@ -70,9 +94,8 @@ validatedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-
 validatedGauge.update_layout(autosize=False, width=1.2 * graphWidth, height=1.18 * graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=40))
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=36))
 
 submittedGauge = go.Figure(go.Indicator(
     mode='gauge+number',
@@ -82,7 +105,6 @@ submittedGauge = go.Figure(go.Indicator(
     domain={'x': [0, 1], 'y': [0, 1]},
     gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
 ))
-
 submittedGauge.update_layout(autosize=False, width=1.2 * graphWidth, height=1.18 * graphHeight,
                              margin=dict(l=lr_margin, r=lr_margin, b=0, t=40))
 
@@ -106,7 +128,7 @@ totalObsNumber = go.Figure(go.Indicator(
 ))
 
 totalObsNumber.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                             margin=dict(l=lr_margin, r=lr_margin, t=10, b=0))
+                             margin=dict(l=lr_margin, r=lr_margin, b=0, t=10))
 
 obsUsedGauge = go.Figure(go.Indicator(
     mode='gauge+number',
@@ -114,11 +136,17 @@ obsUsedGauge = go.Figure(go.Indicator(
     title={'text': 'Observations Used', 'font': {'size': 15}},
     number={'suffix': '%'},
     domain={'x': [0, 1], 'y': [0, 1]},
-    gauge={'axis': {'range': [None, 100], 'tick0': 0, 'dtick': 20}}
+    gauge={'axis': {
+           'range': [None, 100],
+           'tick0': 0,
+           'dtick': 20,
+           'tickangle': 0
+        }
+    }
 ))
 
 obsUsedGauge.update_layout(autosize=False, width=graphWidth, height=graphHeight,
-                           margin=dict(l=lr_margin, r=lr_margin, b=0, t=35))
+                           margin=dict(l=lr_margin, r=lr_margin, b=0, t=40))
 
 totalObserversNumber = go.Figure(go.Indicator(
     mode='number',
@@ -138,27 +166,23 @@ noReportsNumber = go.Figure(go.Indicator(
     number={'valueformat': '.0f', 'font': {'size': 35}},
     domain={'x': [0, 1], 'y': [0, 1]}
 ))
-
 noReportsNumber.update_layout(autosize=False, width=graphWidth, height= 1.2 * graphHeight,
                               margin=dict(l=lr_margin - 20, r=lr_margin + 10, t=60, b=0))
 
 emptyObserverDf = pd.DataFrame(columns=['observer', 'files', 'soundings'])
-
-observerFileCountGraph = px.line(emptyObserverDf, x='observer', y='files')
-
-observerFileCountGraph.update_layout(autosize=False, xaxis_title='Observer Name', yaxis_title='Files Submitted',
+observerFileCountGraph = px.bar(emptyObserverDf, x='observer', y='files')
+observerFileCountGraph.update_layout(autosize=False, xaxis_title='Observer Name', yaxis_title='Files',
                                      width=1.8 * graphWidth, height=5 * graphHeight,
                                      margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
 
-observerSndCountGraph = px.line(emptyObserverDf, x='observer', y='soundings')
-
-observerSndCountGraph.update_layout(autosize=False, xaxis_title='Observer Name', yaxis_title='Soundings Submitted',
+observerSndCountGraph = px.bar(emptyObserverDf, x='observer', y='soundings')
+observerSndCountGraph.update_layout(autosize=False, xaxis_title='Observer Name', yaxis_title='Soundings',
                                     width=1.8 * graphWidth, height=5 * graphHeight,
                                     margin=dict(l=lr_margin, r=lr_margin, t=0, b=0))
 
 config = {'displayModeBar': False}
 
-app = DjangoDash("Dashboard", external_scripts=[static("js/plotly-2.27.0.min.js")])
+app = DjangoDash("Dashboard", external_scripts=[static("js/plotly-4.3.0.min.js")])
 
 # Create the html layout of the dashboard
 app.layout = html.Div([
@@ -217,7 +241,7 @@ app.layout = html.Div([
                 ], style={'display': 'flex'})
             ], style={'border-width': '5px', 'width': '670px'}),
             html.Fieldset([
-                html.Legend('Observers', style={'font-size': 15, 'font-family': 'Verdana'}),
+                html.Legend('Observer Submissions', style={'font-size': 15, 'font-family': 'Verdana'}),
                 html.Div([
                     html.Div([
                         html.Div([
@@ -265,30 +289,47 @@ def loadData():
     validated_total = manager_res['ValidatedTotal']
     submitted_total = manager_res['SubmittedTotal']
     size_total = manager_res['SizeTotal']
+    if size_total is None:
+        size_total = 0
     observations_total = manager_res['ObservationsTotal']
+    if observations_total is None:
+        observations_total = 0
     soundings_total = manager_res['SoundingsTotal']
+    if soundings_total is None:
+        soundings_total = 0
     zero_reports_total = manager_res['ObserverZeroReportsTotal']
     observer_total = manager_res['ObserverTotal']
     location_geojson = manager_res['LocationData']
 
     # Must regenerate all graphs
-    newSubmissionGraph = px.line(file_date_df, x='date', y='submissions')
-    newSubmissionGraph.update_layout(autosize=False, width=2 * graphWidth, height=1.7 * graphHeight,
-                                     margin=dict(l=0, r=0, t=0, b=0),
-                                     xaxis_title='Days', yaxis_title='Files Submitted')
+    # Note: Before trying to create the graphs below, make sure each dataframe contains the expected columns.
+    if 'date' not in file_date_df.columns:
+        file_date_df['date'] = []
+    if 'submissions' not in file_date_df.columns:
+        file_date_df['submissions'] = []
+    newSubmissionGraph = px.line(file_date_df, x='date', y='submissions', markers=True)
+    newSubmissionGraph.update_layout(**SUBMISSION_GRAPH_LAYOUT)
+    newSubmissionGraph.update_xaxes(**SUBMISSION_GRAPH_XAXIS_FMT)
+    newSubmissionGraph.update_yaxes(**SUBMISSION_GRAPH_YAXIS_FMT)
 
-    newObserverFileCountGraph = px.line(observer_file_total_df, x='observer', y='files')
+    if 'observer' not in observer_file_total_df.columns:
+        observer_file_total_df['observer'] = []
+    if 'files' not in observer_file_total_df.columns:
+        observer_file_total_df['files'] = []
+    newObserverFileCountGraph = px.bar(observer_file_total_df, x='observer', y='files')
     newObserverFileCountGraph.update_layout(autosize=False, width=2.4 * graphWidth, height=1.7 * graphHeight,
                                          margin=dict(l=lr_margin, r=lr_margin, t=0, b=0),
-                                         xaxis_title='Observer Name', yaxis_title='Files Submitted')
+                                         xaxis_title='Observer Name', yaxis_title='Files')
 
-    newObserverSndCountGraph = px.line(observer_file_total_df, x='observer', y='soundings')
+    if 'soundings' not in observer_file_total_df.columns:
+        observer_file_total_df['soundings'] = []
+    newObserverSndCountGraph = px.bar(observer_file_total_df, x='observer', y='soundings')
     newObserverSndCountGraph.update_layout(autosize=False, width=2.4 * graphWidth, height=1.7 * graphHeight,
                                         margin=dict(l=lr_margin, r=lr_margin, t=10, b=0),
-                                        xaxis_title='Observer Name', yaxis_title='Soundings Submitted')
+                                        xaxis_title='Observer Name', yaxis_title='Soundings')
 
     newLocationGraph = px.scatter_geo(emptyLocationDf, lon='longitude', lat='latitude', projection='natural earth')
-    newLocationGraph.update_layout(autosize=False, height=2 * graphHeight, width=2 * graphWidth, margin=dict(l=15, r=0, t=20, b=0))
+    newLocationGraph.update_layout(**LOCATION_GRAPH_LAYOUT)
 
     # creates a "box" trace for every geojson file currently loaded in the manager
     for item in location_geojson:
@@ -307,29 +348,25 @@ def loadData():
             showlegend=False))
 
     uploadNumber.data[0].value = wibl_file_count
-
     convertedGauge.data[0].value = (converted_total / wibl_file_count * 100) if wibl_file_count else 0
-
     validatedGauge.data[0].value = (validated_total / geojson_file_count * 100) if geojson_file_count else 0
-
     submittedGauge.data[0].value = (submitted_total / geojson_file_count * 100) if geojson_file_count else 0
-
-    totalSizeNumber.data[0].value = size_total
-
+    totalSizeNumber.data[0].value = size_total / 1000
     totalObsNumber.data[0].value = (observations_total / 100000)
-
     obsUsedGauge.data[0].value = (soundings_total / observations_total * 100) if observations_total else 0
-
     totalObserversNumber.data[0].value = observer_total
-
     noReportsNumber.data[0].value = zero_reports_total
 
     # Return the regenerated Graphs
     return {
-        "submissionGraph": newSubmissionGraph,
-        "locationGraph": newLocationGraph,
-        "observerFileCountGraph": newObserverFileCountGraph,
-        "observerSndCountGraph": newObserverSndCountGraph
+        'submissionGraph': newSubmissionGraph,
+        'locationGraph': newLocationGraph,
+        'observerFileCountGraph': newObserverFileCountGraph,
+        'observerSndCountGraph': newObserverSndCountGraph,
+        'convertedGauge': convertedGauge,
+        'validatedGauge': validatedGauge,
+        'submittedGauge': submittedGauge,
+        'obsUsedGauge': obsUsedGauge
     }
 
 # When the interval dash element reaches the end of its countdown, this callback is run.
@@ -339,12 +376,17 @@ def loadData():
     dash.dependencies.Output('location-Graph', 'figure'),
     dash.dependencies.Output('observer-File-Count-Graph', 'figure'),
     dash.dependencies.Output('observer-Snd-Count-Graph', 'figure'),
+    dash.dependencies.Output('converted-Gauge', 'figure'),
+    dash.dependencies.Output('validated-Gauge', 'figure'),
+    dash.dependencies.Output('submitted-Gauge', 'figure'),
+    dash.dependencies.Output('obs-Used-Gauge', 'figure'),
     [dash.dependencies.Input('interval-component', 'n_intervals')]
 )
 def update_dashboard(n):
     figures = loadData()
     return (figures['submissionGraph'], figures['locationGraph'], figures['observerFileCountGraph'],
-            figures['observerSndCountGraph'])
+            figures['observerSndCountGraph'], figures['convertedGauge'], figures['validatedGauge'],
+            figures['submittedGauge'], figures['obsUsedGauge'])
 
 
 # Updates the internal countdown timer once a second
