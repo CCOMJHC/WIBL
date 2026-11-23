@@ -181,6 +181,7 @@ Options:
 ### Edit WIBL file
 Add platform metadata to existing binary WIBL file (e.g., from data simulator or from a real datalogger):
 ```shell
+$ wibl editwibl --help
 Usage: wibl editwibl [OPTIONS] INPUT OUTPUT
 
   Edit INPUT WIBL logger file, writing edited WIBL file to OUTPUT.

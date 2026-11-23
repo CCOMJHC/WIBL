@@ -31,6 +31,7 @@ def upgrade() -> None:
     sa.Column('soundings', sa.Integer(), nullable=True),
     sa.Column('status', sa.Integer(), nullable=True),
     sa.Column('messages', sa.String(length=1024), nullable=True),
+    sa.Column('state', sa.Integer(), nullable=True),
     sa.PrimaryKeyConstraint('fileid')
     )
     op.create_table('WIBLDataTable',
@@ -47,6 +48,7 @@ def upgrade() -> None:
     sa.Column('endtime', sa.String(length=30), nullable=True),
     sa.Column('status', sa.Integer(), nullable=True),
     sa.Column('messages', sa.String(length=1024), nullable=True),
+    sa.Column('state', sa.Integer(), nullable=True),
     sa.PrimaryKeyConstraint('fileid')
     )
     # ### end Alembic commands ###

@@ -34,7 +34,7 @@ from geoalchemy2 import Geometry
 import requests
 
 
-__version__ = '1.0.1'
+__version__ = '1.2.0'
 
 class ReturnCodes(Enum):
     OK = 200
@@ -43,7 +43,6 @@ class ReturnCodes(Enum):
     FAILED = 400
     FILE_NOT_FOUND = 404
     RECORD_CONFLICT = 409
-
 
 class WIBLStatus(Enum):
     PROCESSING_STARTED = 0
@@ -61,10 +60,15 @@ class GeoJSONStatus(IntFlag):
     UPLOAD_FAILED = 0x20
     EMPTY_UPLOAD = ~(UPLOAD_STARTED | UPLOAD_SUCCESSFUL | UPLOAD_FAILED)
 
+class FileState(Enum):
+    ONLINE = 0
+    DELETED = 1
+    ARCHIVED = 2
+
 @dataclass_json
 @dataclass
 class FileMetadata:
-    pass
+    status: int = 0
 
 @dataclass_json
 @dataclass
@@ -132,7 +136,7 @@ class ManagerInterface:
             endpoint = ''
 
         if endpoint and 'MANAGEMENT_URL' in os.environ and os.environ['MANAGEMENT_URL']:
-            self.rest_url = os.environ['MANAGEMENT_URL'] + endpoint + '/' + fileid
+            self.rest_url = os.environ['MANAGEMENT_URL'] + '/' + endpoint + '/' + fileid
         else:
             self.rest_url = None
 

@@ -2,9 +2,13 @@
 import os
 import json
 from abc import ABC, abstractmethod
+from datetime import datetime
+
 from channels.generic.websocket import AsyncWebsocketConsumer
 import httpx
 
+
+DATETIME_FORMAT = "%B %d, %Y at %I:%M %p %Z"
 
 
 class FileConsumer(ABC, AsyncWebsocketConsumer):
@@ -13,15 +17,23 @@ class FileConsumer(ABC, AsyncWebsocketConsumer):
         Created to reuse code.
 
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.group_id = None
+        self.channel_name = None
+
     async def connect(self):
-        # Get user session
-        self.session_key = self.scope['session'].session_key
-        print(f"{self.channel_name}.connect: session_key: {self.session_key}")
-        await self.channel_layer.group_add(self.session_key, self.channel_name)
+        # Use user ID for authenticated users, which is stable across reconnections
+        user = self.scope.get('user')
+        if user and user.is_authenticated:
+            self.group_id = f"user_{user.id}"
+        else:
+            self.group_id = self.scope['session'].session_key
+        await self.channel_layer.group_add(self.group_id, self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.session_key, self.channel_name)
+        await self.channel_layer.group_discard(self.group_id, self.channel_name)
 
     # Implements the AsyncWebsocketConsumer's method, while making it abstract
     @abstractmethod
@@ -35,6 +47,10 @@ class FileConsumer(ABC, AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({"message": message}))
 
 class WiblFileConsumer(FileConsumer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.channel_name = "WiblFileConsumer"
 
     async def send_list_wibl_files(self):
         print("send_list_wibl_files called!")
@@ -75,7 +91,8 @@ class WiblFileConsumer(FileConsumer):
                 "starttime": wf['starttime'],
                 "endtime": wf['endtime'],
                 "status": wf['status'],
-                "messages": wf['messages']
+                "messages": wf['messages'],
+                "state": wf['state']
             })
         print("sending to websocket...")
         await self.send(text_data=json.dumps({
@@ -84,7 +101,9 @@ class WiblFileConsumer(FileConsumer):
             'message': wibl_files_data
         }))
 
-    async def delete_wibl_files(self, file_ids):
+    async def delete_wibl_files(self, payload):
+        file_ids = payload['file_ids']
+
         print("delete_wibl_files called!")
 
         manager_url: str = os.environ.get('MANAGEMENT_URL', 'http://manager:5000')
@@ -132,7 +151,7 @@ class WiblFileConsumer(FileConsumer):
                 await self.send_list_wibl_files()
             case 'delete-wibl-files':
                 print(f"WiblFileDetailConsumer.receive: calling deleter_wibl_files()...")
-                await self.delete_wibl_files(message['file_ids'])
+                await self.delete_wibl_files(message['payload'])
             case _:
                 await self.send(text_data=json.dumps({
                     'type': 'error',
@@ -140,9 +159,16 @@ class WiblFileConsumer(FileConsumer):
                 }))
 
 class WiblFileDetailConsumer(FileConsumer):
-    async def send_wibl_details(self, file_id: str):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.channel_name = "WiblFileDetailConsumer"
+
+    async def send_wibl_details(self, payload):
+        file_id = payload['file_id']
+
         HEADERS = ["fileid", "processtime", "updatetime", "notifytime", "logger", "platform", "size"
-            , "observations", "soundings", "starttime", "endtime", "status", "messages"]
+            , "observations", "soundings", "starttime", "endtime", "status", "messages", "state"]
         print("send_wibl_details called")
         wibl_file_data = {"fileid": "",
                           "processtime": "",
@@ -156,7 +182,8 @@ class WiblFileDetailConsumer(FileConsumer):
                           "starttime": "",
                           "endtime": "",
                           "status": "",
-                          "messages": ""}
+                          "messages": "",
+                          "state": ""}
 
         # Make call to WIBL manager
         manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
@@ -175,7 +202,35 @@ class WiblFileDetailConsumer(FileConsumer):
 
         print(f"Got response from manager: {wf_json}")
         for heading in HEADERS:
-            wibl_file_data[heading] = wf_json[heading]
+            match heading:
+                case 'processtime' | 'updatetime' | 'notifytime' | 'starttime' | 'endtime':
+                    if wf_json[heading][0] == 'U':
+                        # time field with value of "Unknown"
+                        wibl_file_data[heading] = wf_json[heading]
+                    else:
+                        try:
+                            dt = datetime.fromisoformat(wf_json[heading])
+                            wibl_file_data[heading] = dt.strftime(DATETIME_FORMAT)
+                        except Exception as e:
+                            print(f"WARNING: Unable to format field '{heading}' with value: {wf_json[heading]}. "
+                                  f"Passing through raw value. Error was: {str(e)}")
+                            wibl_file_data[heading] = wf_json[heading]
+                case 'observations' | 'soundings':
+                    try:
+                        wibl_file_data[heading] = f"{wf_json[heading]:,d}"
+                    except Exception as e:
+                        print(f"WARNING: Unable to format field '{heading}' with value: {wf_json[heading]}. "
+                              f"Passing through raw value. Error was: {str(e)}")
+                        wibl_file_data[heading] = wf_json[heading]
+                case 'size':
+                    try:
+                        wibl_file_data[heading] = f"{wf_json[heading]:.2f} MB"
+                    except Exception as e:
+                        print(f"WARNING: Unable to format field '{heading}' with value: {wf_json[heading]}. "
+                              f"Passing through raw value. Error was: {str(e)}")
+                        wibl_file_data[heading] = wf_json[heading]
+                case _:
+                    wibl_file_data[heading] = wf_json[heading]
 
         print("sending to websocket...")
         await self.send(text_data=json.dumps({
@@ -201,7 +256,7 @@ class WiblFileDetailConsumer(FileConsumer):
         match message['type']:
             case 'list-wibl-details':
                 print(f"WiblFileDetailConsumer.receive: calling send_wibl_details()...")
-                await self.send_wibl_details(message['file_id'])
+                await self.send_wibl_details(message['payload'])
             case _:
                 await self.send(text_data=json.dumps({
                     'type': 'error',
@@ -210,6 +265,11 @@ class WiblFileDetailConsumer(FileConsumer):
 
 
 class GeojsonFileConsumer(FileConsumer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.channel_name = "GeojsonFileConsumer"
+
     async def receive(self, text_data, **kwargs):
         message = json.loads(text_data)
 
@@ -229,10 +289,7 @@ class GeojsonFileConsumer(FileConsumer):
                 await self.send_list_geojson_files()
             case 'delete-geojson-files':
                 print(f"GeojsonConsumer.receive: calling delete_geojson_files()...")
-                await self.delete_geojson_files(message['file_ids'])
-            case 'list-geojson-details':
-                print(f"GeojsonConsumer.receive: calling send_list_geojson_details()...")
-                await self.send_geojson_details(message['file_id'])
+                await self.delete_geojson_files(message['payload'])
             case _:
                 await self.send(text_data=json.dumps({
                     'type': 'error',
@@ -273,7 +330,8 @@ class GeojsonFileConsumer(FileConsumer):
                 'size':         wf['size'],
                 'soundings':    wf['soundings'],
                 'status':       wf['status'],
-                'messages':     wf['messages']
+                'messages':     wf['messages'],
+                'state':        wf['state']
             })
         print("sending to websocket...")
         await self.send(text_data=json.dumps({
@@ -282,7 +340,8 @@ class GeojsonFileConsumer(FileConsumer):
             'message': geojson_files_data
         }))
 
-    async def delete_geojson_files(self, file_ids):
+    async def delete_geojson_files(self, payload):
+        file_ids = payload['file_ids']
         print("delete_geojson_files called!")
 
         manager_url: str = os.environ.get('MANAGEMENT_URL', 'http://manager:5000')
@@ -312,9 +371,15 @@ class GeojsonFileConsumer(FileConsumer):
 
 class GeojsonFileDetailConsumer(FileConsumer):
 
-    async def send_geojson_details(self, file_id: str):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.channel_name = "GeojsonFileDetailConsumer"
+
+    async def send_geojson_details(self, payload):
+        file_id = payload['file_id']
+
         HEADERS = ["fileid", "uploadtime", "updatetime", "notifytime", "logger", "size",
-                   "soundings", "status", "messages"]
+                   "soundings", "status", "messages", "state"]
         print("send_wibl_details called")
         geojson_file_data = {"fileid": "",
                           "uploadtime": "",
@@ -324,7 +389,8 @@ class GeojsonFileDetailConsumer(FileConsumer):
                           "size": "",
                           "soundings": "",
                           "status": "",
-                          "messages": ""}
+                          "messages": "",
+                          "state": ""}
 
         # Make call to WIBL manager
         manager_url: str = os.environ.get('MANAGEMENT_URL', "http://manager:5000")
@@ -343,7 +409,35 @@ class GeojsonFileDetailConsumer(FileConsumer):
 
         print(f"Got response from manager: {wf_json}")
         for heading in HEADERS:
-            geojson_file_data[heading] = wf_json[heading]
+            match heading:
+                case 'uploadtime' | 'updatetime' | 'notifytime':
+                    if wf_json[heading][0] == 'U':
+                        # time field with value of "Unknown"
+                        geojson_file_data[heading] = wf_json[heading]
+                    else:
+                        try:
+                            dt = datetime.fromisoformat(wf_json[heading])
+                            geojson_file_data[heading] = dt.strftime(DATETIME_FORMAT)
+                        except Exception as e:
+                            print(f"WARNING: Unable to format time field '{heading}' with value {wf_json[heading]}. "
+                                  f"Passing through raw value. Error was: {str(e)}")
+                            geojson_file_data[heading] = wf_json[heading]
+                case 'soundings':
+                    try:
+                        geojson_file_data[heading] = f"{wf_json[heading]:,d}"
+                    except Exception as e:
+                        print(f"WARNING: Unable to format field '{heading}' with value: {wf_json[heading]}. "
+                              f"Passing through raw value. Error was: {str(e)}")
+                        geojson_file_data[heading] = wf_json[heading]
+                case 'size':
+                    try:
+                        geojson_file_data[heading] = f"{wf_json[heading]:.2f} MB"
+                    except Exception as e:
+                        print(f"WARNING: Unable to format field '{heading}' with value: {wf_json[heading]}. "
+                              f"Passing through raw value. Error was: {str(e)}")
+                        geojson_file_data[heading] = wf_json[heading]
+                case _:
+                    geojson_file_data[heading] = wf_json[heading]
 
         print("sending to websocket...")
         await self.send(text_data=json.dumps({
@@ -351,6 +445,7 @@ class GeojsonFileDetailConsumer(FileConsumer):
             'event': 'list-geojson-details',
             'message': geojson_file_data
         }))
+
     # Receive message from WebSocket
     async def receive(self, text_data, **kwargs):
         message = json.loads(text_data)
@@ -368,7 +463,7 @@ class GeojsonFileDetailConsumer(FileConsumer):
         match message['type']:
             case 'list-geojson-details':
                 print(f"GeojsonDetailConsumer.receive: calling send_geojson_details()...")
-                await self.send_geojson_details(message['file_id'])
+                await self.send_geojson_details(message['payload'])
             case _:
                 await self.send(text_data=json.dumps({
                     'type': 'error',

@@ -1,5 +1,9 @@
 #!/bin/bash
-#
+
+# IMPORTANT: This file and all other scripts other than "build-lambda.sh" are apart of the deprecated scripting
+# build approach. The intended build method is to use Terraform. Follow the instructions in the README.md located in the
+# Terraform folder.
+
 # This script sets up the WIBL Cloud Manager service on AWS using ECS with Fargate as a capacity provider
 # (rather than EC2).
 
