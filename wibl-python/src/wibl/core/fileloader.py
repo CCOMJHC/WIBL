@@ -169,7 +169,7 @@ def load_file(filename: str, lineage: Lineage, verbose: bool, maxreports: int, *
                 else:
                     packets_raw.append(pkt)
                 # Check for algorithm packet
-                if pkt_name := pkt.name() == 'AlgorithmRequest':
+                if (pkt_name := pkt.name()) == 'AlgorithmRequest':
                     stats.Observed(pkt_name)
                     algorithms_raw.append(AlgorithmDescriptor(name=pkt.algorithm.decode('UTF-8'),
                                                               params=pkt.parameters.decode('UTF-8'))
