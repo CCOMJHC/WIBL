@@ -6,7 +6,7 @@
         "provider": "aws"
     },
     "aws": {
-        "endpoint":         "http://localstack:4566",
+        "endpoint":         "http://floci:4566",
         "region":           "us-east-2",
         "upload_bucket":    "unhjhc-wibl-incoming"
     },

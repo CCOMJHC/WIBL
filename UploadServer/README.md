@@ -611,9 +611,9 @@ available](./build-add-logger.bash), which will compile the code [from the Go
 source](./src/tools/add-logger/insert-logger.go).  Then, create a dummy logger with:
 ```shell
 mkdir ./db
-add-logger -config ./config-local.json \
-           -logger TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A \
-           -password CC0E1FE1-46CA-4768-93A7-2252BF748118
+./add-logger -config ./config-local.json \
+             -logger TNNAME-F94E871E-8A66-4614-9E10-628FFC49540A \
+             -password CC0E1FE1-46CA-4768-93A7-2252BF748118
 ```
 where `TNAME` is your DCDB identifier (e.g., `UNHJHC`).  If you do not specify a password, one will be automatically
 created; the database file will also be created if it does not already exist (which also needs to be in the root of the
@@ -789,7 +789,7 @@ If there was a failure, the server will return:
 
 And the server console log should show the error so that you can fix it.
 
-To view the contents of the localstack S3 bucket to verify that the uploaded file was written to storage, you can
+To view the contents of the local floci S3 bucket to verify that the uploaded file was written to storage, you can
 use the `aws cli` as follows:
 ```shell
 export UPLOAD_BUCKET='unhjhc-wibl-incoming'
