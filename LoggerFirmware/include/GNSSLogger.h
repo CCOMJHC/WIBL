@@ -48,6 +48,7 @@ public:
     String printable(void) const { return m_reference.printable(); }
     bool isValid(void) const { return m_reference.isValid(); }
     timing::TimePoint const& reference(void) const { return m_reference; }
+    inline void setVerbose(bool verbose) { m_verbose = verbose; }
 
 private:
     friend void tim_rcv(UBX_TIM_TP_data_t *data);
@@ -56,6 +57,7 @@ private:
     timing::TimePoint   m_reference;
     time_t              m_pendingSecond;
     uint32_t            m_pendingMicrosecond;
+    bool                m_verbose;
         
     void register_mark(uint16_t const week, uint32_t const tow_msec, uint32_t const tow_fracms);
     void reference_mark(uint64_t const elapsed);

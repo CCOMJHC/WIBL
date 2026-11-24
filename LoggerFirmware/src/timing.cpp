@@ -27,7 +27,7 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
- #include <time.h>
+#include <time.h>
 #include "driver/gptimer.h"
 #include "timing.h"
 
@@ -85,8 +85,7 @@ uint64_t Timestamper::GetElapsed(void)
 bool Timestamper::Translate(uint64_t const elapsed, TimePoint& now, SourcePriority& source)
 {
     for (int s = (int)TIMING_REFERENCE; s < (int)TIMING_MAXPRI; ++s) {
-        int count = 0;
-        for (auto it = m_sources[s].begin(); it != m_sources[s].end(); ++it, ++count) {
+        for (auto it = m_sources[s].begin(); it != m_sources[s].end(); ++it) {
             if ((*it)->assigntime(elapsed, now)) {
                 source = static_cast<SourcePriority>(s);
                 return true;
@@ -116,6 +115,15 @@ void Timestamper::update_timeofday(void)
     //Serial.printf("DBG: setting time of day to %s\n", now.printable().c_str());
     settimeofday(&tv, nullptr);
     m_lastSystemTime = now.second;
+}
+
+void Timestamper::SetVerbose(bool verbose)
+{
+    for (int s = (int)TIMING_REFERENCE; s < (int)TIMING_MAXPRI; ++s) {
+        for (auto it = m_sources[s].begin(); it != m_sources[s].end(); ++it) {
+            (*it)->setVerbose(verbose);
+        }
+    }
 }
 
 }

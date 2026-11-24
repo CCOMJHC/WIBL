@@ -156,15 +156,17 @@ private:
 /// \brief Capture time information from ZDA/RMC/GGA messages (as a last resort)
 class N1KTimeSource : public timing::BaseTimeSource {
 public:
-    N1KTimeSource(void) : timing::BaseTimeSource() {}
+    N1KTimeSource(void) : timing::BaseTimeSource(), m_verbose(false) {}
 
     bool assigntime(uint64_t const elapsed, timing::TimePoint& now);
     bool setReference(uint64_t const elapsed, const Sentence *message);
+    inline void setVerbose(bool verbose) { m_verbose = verbose; }
 
     inline String printable(void) const { return m_reference.printable(); }
     inline bool isValid(void) const { return m_reference.isValid(); }
 
 private:
+    bool                m_verbose;
     timing::TimePoint   m_reference;
     void parse_zda(const Sentence *zda, time_t& seconds, uint32_t& microseconds);
     void parse_rmc(const Sentence *rmc, time_t& seconds, uint32_t& microseconds);

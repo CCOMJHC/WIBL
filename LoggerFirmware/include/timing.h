@@ -61,6 +61,7 @@ public:
     virtual bool assigntime(uint64_t const elapsed, TimePoint& now) = 0;
     virtual String printable(void) const = 0;
     virtual bool isValid(void) const = 0;
+    virtual void setVerbose(bool verbose) = 0;
 };
 
 /// \enum SourcePriority
@@ -88,6 +89,8 @@ public:
         return Translate(GetElapsed(), now, source);
     }
     void update_timeofday(void);
+    /// \brief Set debugging status
+    void SetVerbose(bool verbose);
 
 private:
     hw_timer_t      *m_timer;

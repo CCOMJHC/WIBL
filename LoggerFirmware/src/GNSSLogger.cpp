@@ -62,6 +62,7 @@ volatile bool pps_fired = false;
 
 GNSSTimeSource::GNSSTimeSource(void)
 {
+    m_verbose = false;
     m_pendingSecond = m_pendingMicrosecond = 0UL;
 }
 

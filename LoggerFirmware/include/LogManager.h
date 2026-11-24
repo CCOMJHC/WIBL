@@ -142,6 +142,7 @@ public:
     }
     inline uint64_t GetElapsedTime(void) const { return m_timestamper->GetElapsed(); }
     inline void UpdateTimeofday(void) { return m_timestamper->update_timeofday(); }
+    inline void SetTimestamperVerbosity(bool verbosity) { m_timestamper->SetVerbose(verbosity); }
     
     /// \brief Call to log on the console log
     void Syslog(String const& message);

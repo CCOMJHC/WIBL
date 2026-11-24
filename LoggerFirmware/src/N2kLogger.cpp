@@ -77,6 +77,10 @@ void N2KTimeSource::setReferenceUnconditional(uint64_t const elapsed, uint16_t c
     m_reference.elapsed = elapsed;
     m_reference.second = days * 86400 + static_cast<int>(floor(seconds));
     m_reference.microsecond = static_cast<uint32_t>(1000000.0 * (seconds - floor(seconds)));
+    if (m_verbose) {
+        Serial.printf("DBG: N2KTimeSource::setReferenceUnconditional OK at elapsed %lld pseudo-µs for %hd days/%lf s.\n",
+            elapsed, days, seconds);
+    }
 }
 
 /// \brief Set the reference time from the GNSS message (but only if it's better than what we have)
@@ -100,6 +104,9 @@ void N2KTimeSource::setReferenceGNSS(uint64_t const elapsed, uint16_t const days
         !m_fromSystemTime ||
         (m_fromSystemTime && advance > 5000000)) {
         setReferenceUnconditional(elapsed, days, seconds);
+        if (m_verbose) {
+            Serial.printf("DBG: N2KTimeSource::setReferenceGNSS OK at elapsed %lld pseudo-µs.\n", elapsed);
+        }
     }
 }
 

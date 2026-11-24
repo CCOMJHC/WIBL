@@ -43,12 +43,13 @@ namespace N2000 {
 /// \brief Time information from NMEA2000 messages for timestamping
 class N2KTimeSource : public timing::BaseTimeSource {
 public:
-    N2KTimeSource(void) : m_fromSystemTime(false) {};
+    N2KTimeSource(void) : m_fromSystemTime(false), m_verbose(false) {};
 
     bool assigntime(uint64_t const elapsed, timing::TimePoint& now);
 
     void setReferenceUnconditional(uint64_t const elapsed, uint16_t const days, double const seconds);
     void setReferenceGNSS(uint64_t const elapsed, uint16_t const days, double const seconds);
+    inline void setVerbose(bool verbose) { m_verbose = verbose; }
 
     String printable(void) const { return m_reference.printable(); }
     bool isValid(void) const { return m_reference.isValid(); }
@@ -56,6 +57,7 @@ public:
 private:
     timing::TimePoint   m_reference;
     bool                m_fromSystemTime;
+    bool                m_verbose;
 };
 
 /// \class Logger

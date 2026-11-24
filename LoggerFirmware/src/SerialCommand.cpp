@@ -340,6 +340,8 @@ void SerialCommand::SetVerboseMode(String const& spec, CommandSource src)
         if (m_imuLogger != nullptr) m_imuLogger->SetVerbose(verbosity);
     } else if (subsys == "webserver") {
         if (m_wifi != nullptr) m_wifi->SetVerbose(verbosity);
+    } else if (subsys == "timestamper") {
+        m_logManager->SetTimestamperVerbosity(verbosity);
     } else {
         String msg("ERR: verbose subsystem |");
         msg += subsys + "| not recognised.\n";

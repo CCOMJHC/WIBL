@@ -74,20 +74,34 @@ bool N1KTimeSource::setReference(uint64_t const elapsed, const Sentence *message
     String id(message->MessageID());
     time_t seconds = (time_t)0; // Essentially "no value" since we can't get new data at 1970-01-01!
     uint32_t microseconds = 0UL;
+    if (m_verbose) {
+        Serial.printf("DBG: N1KTimeSource::setReference for message |%s|\n", message->Contents());
+    }
     if (id == "ZDA") {
         parse_zda(message, seconds, microseconds);
     } else if (id == "RMC") {
         parse_rmc(message, seconds, microseconds);
     } else {
         // The message, whatever it is, has no time information that's useful for us.
+        if (m_verbose) {
+            Serial.printf("DBG: N1KTimeSource::setReference not valid for message id |%s|\n", id.c_str());
+        }
         return false;
     }
     // The parser code returns early without modifying the seconds/microseconds output
     // if there's a validation failure from the NMEA sentences.  Detecting a non-zero
     // seconds count (even if microseconds is zero) demonstrates that parsing worked.
     if (seconds > 0) {
+        m_reference.elapsed = elapsed;
         m_reference.second = seconds;
         m_reference.microsecond = microseconds;
+        if (m_verbose) {
+            Serial.printf("DBG: N1KTimeSource::setReference OK for message |%s|\n", message->Contents());
+        }
+    } else {
+        if (m_verbose) {
+            Serial.printf("DBG: N1KTimeSource::setReference parse failed for message |%s|\n", message->Contents());
+        }
     }
     return true;
 }
@@ -194,7 +208,7 @@ void N1KTimeSource::parse_zda(const Sentence *message, time_t& seconds, uint32_t
     const char* month_end = strchr(month_start, ',');
     if (month_end == nullptr) return;
     const char* year_start = month_end + 1;
-    const char* year_end = strchr(year_start, '*');
+    const char* year_end = strchr(year_start, ',');
     if (year_end == nullptr) return;
     if (day_end - day_start != 2 || month_end - month_start != 2 ||
         year_end - year_start != 4) {
